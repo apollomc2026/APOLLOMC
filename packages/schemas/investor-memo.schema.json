@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Investor Memo",
+  "description": "Structured output schema for an investor memo deliverable.",
+  "type": "object",
+  "required": ["metadata", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["deliverable_type", "title", "target_company", "date"],
+      "properties": {
+        "deliverable_type": { "type": "string", "const": "investor-memo" },
+        "title": { "type": "string", "minLength": 5 },
+        "target_company": { "type": "string" },
+        "sector": { "type": "string" },
+        "deal_type": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "prepared_by": { "type": "string" },
+        "fund_name": { "type": "string" },
+        "classification": { "type": "string" }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "content"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "investment_thesis",
+              "company_overview",
+              "market_opportunity",
+              "financial_analysis",
+              "valuation",
+              "risk_factors",
+              "due_diligence_findings",
+              "recommendation"
+            ]
+          },
+          "label": { "type": "string" },
+          "content": { "type": "string", "minLength": 50 },
+          "financial_data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "metric": { "type": "string" },
+                "value": { "type": "string" },
+                "period": { "type": "string" },
+                "growth_rate": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

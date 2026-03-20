@@ -1,0 +1,37 @@
+{
+  "deliverable_slug": "investor-update",
+  "required_fields": [
+    { "key": "company_name", "label": "Company name", "type": "text", "placeholder": "Your company name" },
+    { "key": "reporting_period", "label": "Reporting period", "type": "text", "placeholder": "e.g., March 2026, Q1 2026" },
+    { "key": "key_metrics", "label": "Key metrics this period", "type": "textarea", "placeholder": "MRR/ARR, customer count, growth rate, burn rate, runway remaining, and other KPIs you track..." },
+    { "key": "highlights", "label": "Top highlights and wins", "type": "textarea", "placeholder": "What went well this period? Major milestones, customer wins, product launches, partnerships..." },
+    { "key": "challenges", "label": "Challenges and learnings", "type": "textarea", "placeholder": "What was hard? What didn't go as planned? What did you learn?" },
+    { "key": "priorities_next_period", "label": "Priorities for next period", "type": "textarea", "placeholder": "What are the top 3-5 priorities for the coming month or quarter?" }
+  ],
+  "optional_fields": [
+    { "key": "ceo_name", "label": "CEO / sender name", "type": "text", "placeholder": "Name of the person sending the update" },
+    { "key": "cash_position", "label": "Cash position and runway", "type": "text", "placeholder": "e.g., $1.2M cash, 14 months runway at current burn" },
+    { "key": "burn_rate", "label": "Monthly burn rate", "type": "text", "placeholder": "e.g., $85K/month" },
+    { "key": "product_updates", "label": "Product updates", "type": "textarea", "placeholder": "New features shipped, tech debt addressed, infrastructure changes..." },
+    { "key": "team_updates", "label": "Team updates", "type": "textarea", "placeholder": "New hires, departures, open roles, team size..." },
+    { "key": "fundraising_status", "label": "Fundraising status", "type": "textarea", "placeholder": "If currently raising: status, pipeline, timeline..." },
+    { "key": "asks_of_investors", "label": "Asks of investors", "type": "textarea", "placeholder": "Introductions, advice, resources you need from your investors..." },
+    { "key": "round_info", "label": "Current round", "type": "text", "placeholder": "e.g., Seed, Series A" }
+  ],
+  "file_upload_prompts": [
+    { "kind": "financial_data", "label": "Upload financial summary, P&L, or metrics dashboard export", "required": false },
+    { "kind": "reference_doc", "label": "Upload prior investor updates for consistency", "required": false },
+    { "kind": "brand_guide", "label": "Upload brand guidelines (optional)", "required": false }
+  ],
+  "sections": [
+    { "key": "tldr", "label": "TL;DR", "required": true, "min_words": 30, "max_words": 100, "instructions": "3-5 bullet points capturing the most important updates. Investors should be able to read only this section and know the state of the company." },
+    { "key": "key_metrics", "label": "Key Metrics", "required": true, "min_words": 40, "max_words": 150, "instructions": "Dashboard-style metrics with current values, month-over-month change, and vs. target. Use a consistent format each period for comparability." },
+    { "key": "milestones", "label": "Milestones and Wins", "required": true, "min_words": 60, "max_words": 200, "instructions": "Celebrate wins and progress. Include customer logos won, product milestones, partnership announcements, and press coverage." },
+    { "key": "challenges", "label": "Challenges", "required": true, "min_words": 50, "max_words": 200, "instructions": "Be transparent about what is hard. Investors respect honesty and it builds trust. Frame challenges with what you are doing about them." },
+    { "key": "burn_and_runway", "label": "Burn Rate and Runway", "required": true, "min_words": 30, "max_words": 100, "instructions": "Current monthly burn, cash in bank, and months of runway. Compare to last period. Flag if runway is below 12 months." },
+    { "key": "product_updates", "label": "Product Updates", "required": false, "min_words": 40, "max_words": 150, "instructions": "Major features shipped, user feedback incorporated, and upcoming product roadmap items." },
+    { "key": "team_updates", "label": "Team Updates", "required": false, "min_words": 20, "max_words": 100, "instructions": "New hires with brief intros, departures, current headcount, and open roles you are hiring for." },
+    { "key": "upcoming_priorities", "label": "Upcoming Priorities", "required": true, "min_words": 40, "max_words": 150, "instructions": "Top 3-5 priorities for the next period. Be specific and measurable so investors can track progress in the next update." },
+    { "key": "asks", "label": "Asks", "required": false, "min_words": 20, "max_words": 100, "instructions": "Specific, actionable requests of investors. Introductions to specific people, advice on specific topics, or resources needed." }
+  ]
+}

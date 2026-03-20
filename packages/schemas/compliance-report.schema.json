@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Compliance Report",
+  "description": "Structured output schema for a compliance report deliverable.",
+  "type": "object",
+  "required": ["metadata", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["deliverable_type", "title", "organization", "regulatory_framework", "date"],
+      "properties": {
+        "deliverable_type": { "type": "string", "const": "compliance-report" },
+        "title": { "type": "string", "minLength": 5 },
+        "organization": { "type": "string" },
+        "regulatory_framework": { "type": "string" },
+        "assessment_period": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "prepared_by": { "type": "string" },
+        "classification": { "type": "string" }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "content"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "executive_summary",
+              "scope_and_methodology",
+              "regulatory_landscape",
+              "current_state_assessment",
+              "gap_analysis",
+              "risk_scoring",
+              "remediation_roadmap",
+              "appendices"
+            ]
+          },
+          "label": { "type": "string" },
+          "content": { "type": "string", "minLength": 50 },
+          "findings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "finding_id": { "type": "string" },
+                "severity": { "type": "string", "enum": ["critical", "high", "medium", "low"] },
+                "description": { "type": "string" },
+                "recommendation": { "type": "string" },
+                "remediation_deadline": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

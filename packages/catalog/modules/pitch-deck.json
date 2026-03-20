@@ -1,0 +1,42 @@
+{
+  "deliverable_slug": "pitch-deck",
+  "required_fields": [
+    { "key": "company_name", "label": "Company name", "type": "text", "placeholder": "Your company name" },
+    { "key": "tagline", "label": "One-line tagline", "type": "text", "placeholder": "e.g., The operating system for modern logistics" },
+    { "key": "problem", "label": "Problem you solve", "type": "textarea", "placeholder": "What painful problem does your target customer face? Be specific and quantify if possible..." },
+    { "key": "solution", "label": "Your solution", "type": "textarea", "placeholder": "How does your product or service solve this problem? What is the core value proposition?" },
+    { "key": "business_model", "label": "Business model", "type": "textarea", "placeholder": "How do you make money? Pricing model, average deal size, sales cycle..." },
+    { "key": "traction", "label": "Traction and milestones", "type": "textarea", "placeholder": "Revenue, customers, growth rate, key partnerships, product milestones..." },
+    { "key": "team", "label": "Founding team", "type": "textarea", "placeholder": "Key team members, their roles, and why they are uniquely qualified to build this company..." },
+    { "key": "fundraising_ask", "label": "Fundraising ask", "type": "textarea", "placeholder": "How much are you raising, what round, and how will the funds be used?" }
+  ],
+  "optional_fields": [
+    { "key": "market_size", "label": "Market size (TAM/SAM/SOM)", "type": "textarea", "placeholder": "Total addressable market, serviceable market, and obtainable market with sources..." },
+    { "key": "competitors", "label": "Key competitors", "type": "textarea", "placeholder": "Main competitors and how you differentiate..." },
+    { "key": "financial_projections", "label": "Financial projections", "type": "textarea", "placeholder": "Revenue projections for the next 3-5 years with key assumptions..." },
+    { "key": "current_investors", "label": "Current investors", "type": "textarea", "placeholder": "Existing investors, advisors, and notable backers..." },
+    { "key": "product_demo_notes", "label": "Product demo highlights", "type": "textarea", "placeholder": "Key features or workflows to highlight in product slides..." },
+    { "key": "customer_quotes", "label": "Customer testimonials", "type": "textarea", "placeholder": "Quotes or case studies from customers..." },
+    { "key": "website", "label": "Website", "type": "text" },
+    { "key": "presenter_name", "label": "Presenter name and title", "type": "text" }
+  ],
+  "file_upload_prompts": [
+    { "kind": "brand_guide", "label": "Upload brand guidelines, logo files, or color palette", "required": false },
+    { "kind": "reference_doc", "label": "Upload any existing pitch decks, one-pagers, or investor materials", "required": false },
+    { "kind": "financial_data", "label": "Upload financial models or projections spreadsheet", "required": false },
+    { "kind": "reference_image", "label": "Upload product screenshots or demo images", "required": false }
+  ],
+  "sections": [
+    { "key": "title_slide", "label": "Title Slide", "required": true, "min_words": 5, "max_words": 30, "instructions": "Company name, tagline, and presenter info. Clean and memorable. Set the visual tone for the entire deck." },
+    { "key": "problem", "label": "Problem", "required": true, "min_words": 40, "max_words": 150, "instructions": "Make the pain visceral and relatable. Use data points to quantify the problem. The audience must feel the urgency." },
+    { "key": "solution", "label": "Solution", "required": true, "min_words": 40, "max_words": 150, "instructions": "Show how your product solves the problem. Clear cause-and-effect from problem to solution. Include a product visual or demo screenshot description." },
+    { "key": "market_size", "label": "Market Size", "required": true, "min_words": 30, "max_words": 120, "instructions": "TAM, SAM, SOM with clear methodology and credible sources. Bottom-up analysis preferred over top-down." },
+    { "key": "business_model", "label": "Business Model", "required": true, "min_words": 40, "max_words": 150, "instructions": "How you make money, pricing structure, unit economics. Show that the model is scalable and defensible." },
+    { "key": "traction", "label": "Traction", "required": true, "min_words": 40, "max_words": 150, "instructions": "Hard numbers: revenue, growth rate, customers, engagement metrics. If pre-revenue, show product development milestones and validation signals." },
+    { "key": "competition", "label": "Competition", "required": true, "min_words": 30, "max_words": 120, "instructions": "Competitive landscape positioning. Use a 2x2 matrix or feature comparison. Show clear differentiation without disparaging competitors." },
+    { "key": "team", "label": "Team", "required": true, "min_words": 40, "max_words": 150, "instructions": "Key team members with photos, titles, and one-line relevant credentials. Show why THIS team is uniquely positioned to win." },
+    { "key": "financials", "label": "Financials", "required": true, "min_words": 30, "max_words": 120, "instructions": "3-5 year revenue projections with key assumptions clearly stated. Show path to profitability." },
+    { "key": "the_ask", "label": "The Ask", "required": true, "min_words": 30, "max_words": 100, "instructions": "Amount raising, use of funds breakdown (percentages), and milestones the funding will enable. Be specific." },
+    { "key": "closing", "label": "Closing Slide", "required": true, "min_words": 5, "max_words": 30, "instructions": "Contact information, website, and a memorable closing statement that reinforces the core thesis." }
+  ]
+}

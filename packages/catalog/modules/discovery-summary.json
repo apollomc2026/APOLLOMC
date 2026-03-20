@@ -1,0 +1,32 @@
+{
+  "deliverable_slug": "discovery-summary",
+  "required_fields": [
+    { "key": "case_name", "label": "Case name", "type": "text", "placeholder": "e.g., Smith v. Acme Corporation" },
+    { "key": "case_number", "label": "Case number", "type": "text", "placeholder": "e.g., 1:24-cv-01234" },
+    { "key": "court", "label": "Court", "type": "text", "placeholder": "e.g., U.S. District Court, District of Massachusetts" },
+    { "key": "discovery_scope", "label": "Scope of discovery to summarize", "type": "textarea", "placeholder": "Describe what categories of discovery materials need to be summarized (documents, depositions, interrogatories, etc.)..." },
+    { "key": "key_issues", "label": "Key issues in the case", "type": "textarea", "placeholder": "List the primary legal and factual issues the discovery relates to..." },
+    { "key": "your_party_role", "label": "Your client's role", "type": "text", "placeholder": "e.g., Plaintiff, Defendant, Third-party defendant" }
+  ],
+  "optional_fields": [
+    { "key": "deponent_names", "label": "Key deponents", "type": "textarea", "placeholder": "Names and roles of key deponents..." },
+    { "key": "document_volume", "label": "Approximate document volume", "type": "text", "placeholder": "e.g., 5,000 documents, 200 pages of deposition transcripts" },
+    { "key": "privilege_concerns", "label": "Privilege or sensitivity concerns", "type": "textarea", "placeholder": "Note any privilege log issues or sensitive materials..." },
+    { "key": "upcoming_deadlines", "label": "Upcoming deadlines", "type": "text", "placeholder": "e.g., Summary judgment motion due April 15" },
+    { "key": "opposing_counsel", "label": "Opposing counsel", "type": "text", "placeholder": "Firm and attorney names" }
+  ],
+  "file_upload_prompts": [
+    { "kind": "reference_doc", "label": "Upload discovery documents, deposition transcripts, or interrogatory responses", "required": true },
+    { "kind": "reference_doc", "label": "Upload the complaint, answer, or other key pleadings for context", "required": false },
+    { "kind": "brand_guide", "label": "Upload firm letterhead or brand guidelines (optional)", "required": false }
+  ],
+  "sections": [
+    { "key": "executive_summary", "label": "Executive Summary", "required": true, "min_words": 150, "max_words": 400, "instructions": "Provide a high-level overview of the discovery reviewed, key findings, and their significance to the case. Written for a senior partner who needs a quick briefing." },
+    { "key": "discovery_overview", "label": "Discovery Overview", "required": true, "min_words": 100, "max_words": 300, "instructions": "Catalog the types and volume of discovery reviewed. Include production dates, custodians, and any gaps or outstanding requests." },
+    { "key": "document_review_findings", "label": "Document Review Findings", "required": true, "min_words": 300, "max_words": 800, "instructions": "Organize document review results by issue or category. Highlight smoking gun documents, key admissions, and patterns. Reference specific exhibit numbers." },
+    { "key": "deposition_highlights", "label": "Deposition Highlights", "required": true, "min_words": 200, "max_words": 600, "instructions": "Summarize key testimony from each deponent organized by topic. Include exact quotes with transcript citations for critical admissions or contradictions." },
+    { "key": "key_evidence", "label": "Key Evidence Catalog", "required": true, "min_words": 200, "max_words": 500, "instructions": "Create a prioritized list of the most significant evidence supporting and undermining the client's position. Rate each item by strength and relevance." },
+    { "key": "timeline", "label": "Chronological Timeline", "required": true, "min_words": 150, "max_words": 400, "instructions": "Construct a fact timeline from the discovery materials showing the sequence of key events with supporting evidence citations." },
+    { "key": "recommendations", "label": "Recommendations", "required": true, "min_words": 100, "max_words": 300, "instructions": "Provide strategic recommendations based on the discovery review. Identify areas needing further investigation, potential motion topics, and trial themes." }
+  ]
+}

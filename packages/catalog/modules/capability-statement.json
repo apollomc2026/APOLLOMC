@@ -1,0 +1,35 @@
+{
+  "deliverable_slug": "capability-statement",
+  "required_fields": [
+    { "key": "company_name", "label": "Company name", "type": "text", "placeholder": "Full legal entity name" },
+    { "key": "core_competencies", "label": "Core competencies", "type": "textarea", "placeholder": "List your top 3-5 core competencies or service areas..." },
+    { "key": "naics_codes", "label": "NAICS codes", "type": "textarea", "placeholder": "List your primary NAICS codes (e.g., 541512 - Computer Systems Design)" },
+    { "key": "differentiators", "label": "Key differentiators", "type": "textarea", "placeholder": "What makes your company uniquely qualified? Proprietary tools, clearances, certifications, specialized expertise..." },
+    { "key": "past_performance_highlights", "label": "Past performance highlights", "type": "textarea", "placeholder": "Summarize 2-3 of your most impressive contracts or projects with outcomes..." }
+  ],
+  "optional_fields": [
+    { "key": "cage_code", "label": "CAGE code", "type": "text", "placeholder": "e.g., 1ABC2" },
+    { "key": "duns_uei", "label": "UEI number", "type": "text", "placeholder": "SAM.gov Unique Entity Identifier" },
+    { "key": "set_aside_status", "label": "Set-aside / socioeconomic status", "type": "text", "placeholder": "e.g., 8(a), SDVOSB, WOSB, HUBZone, Small Business" },
+    { "key": "gsa_schedule", "label": "GSA Schedule number", "type": "text", "placeholder": "e.g., GSA MAS, Schedule 70" },
+    { "key": "clearances", "label": "Facility / personnel clearances", "type": "text", "placeholder": "e.g., Facility clearance: Secret, Key personnel: Top Secret/SCI" },
+    { "key": "certifications", "label": "Certifications", "type": "textarea", "placeholder": "e.g., ISO 9001, ISO 27001, CMMI Level 3, FedRAMP" },
+    { "key": "company_overview", "label": "Company overview", "type": "textarea", "placeholder": "Brief company history, size, locations, and mission..." },
+    { "key": "target_agencies", "label": "Target agencies", "type": "textarea", "placeholder": "Which agencies are you targeting with this capability statement?" },
+    { "key": "contact_name", "label": "Point of contact name", "type": "text" },
+    { "key": "contact_email", "label": "Contact email", "type": "text" },
+    { "key": "contact_phone", "label": "Contact phone", "type": "text" },
+    { "key": "website", "label": "Website URL", "type": "text" }
+  ],
+  "file_upload_prompts": [
+    { "kind": "brand_guide", "label": "Upload your company logo and brand guidelines", "required": false },
+    { "kind": "reference_doc", "label": "Upload any existing capability statements or marketing materials for reference", "required": false }
+  ],
+  "sections": [
+    { "key": "core_competencies", "label": "Core Competencies", "required": true, "min_words": 50, "max_words": 200, "instructions": "3-5 bullet points highlighting your primary service capabilities. Each should be concise but specific enough to demonstrate depth." },
+    { "key": "past_performance", "label": "Past Performance", "required": true, "min_words": 80, "max_words": 250, "instructions": "2-3 brief past performance examples showing contract name, client, value, and measurable outcome. Format for quick scanning." },
+    { "key": "differentiators", "label": "Differentiators", "required": true, "min_words": 40, "max_words": 150, "instructions": "3-4 crisp bullet points on what sets you apart from competitors. Focus on unique value, not generic claims." },
+    { "key": "company_overview", "label": "Company Overview", "required": true, "min_words": 30, "max_words": 120, "instructions": "Brief company description including founding year, size, headquarters, and mission. Include CAGE, UEI, NAICS, and set-aside status." },
+    { "key": "contact_information", "label": "Contact Information", "required": true, "min_words": 10, "max_words": 60, "instructions": "Full contact block with company name, address, POC name, phone, email, and website." }
+  ]
+}

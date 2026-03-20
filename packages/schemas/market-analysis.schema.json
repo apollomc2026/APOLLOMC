@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Market Analysis",
+  "description": "Structured output schema for a market analysis deliverable.",
+  "type": "object",
+  "required": ["metadata", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["deliverable_type", "title", "target_market", "date"],
+      "properties": {
+        "deliverable_type": { "type": "string", "const": "market-analysis" },
+        "title": { "type": "string", "minLength": 5 },
+        "target_market": { "type": "string" },
+        "geography": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "prepared_for": { "type": "string" },
+        "prepared_by": { "type": "string" },
+        "confidentiality_notice": { "type": "string" }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "content"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "executive_summary",
+              "market_overview",
+              "industry_trends",
+              "target_segments",
+              "competitive_landscape",
+              "swot_analysis",
+              "market_entry_strategy",
+              "financial_opportunity",
+              "recommendations"
+            ]
+          },
+          "label": { "type": "string" },
+          "content": { "type": "string", "minLength": 50 },
+          "data_points": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "metric": { "type": "string" },
+                "value": { "type": "string" },
+                "source": { "type": "string" },
+                "year": { "type": "string" }
+              }
+            }
+          },
+          "competitors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "market_share": { "type": "string" },
+                "strengths": { "type": "array", "items": { "type": "string" } },
+                "weaknesses": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

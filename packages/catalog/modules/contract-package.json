@@ -1,0 +1,41 @@
+{
+  "deliverable_slug": "contract-package",
+  "required_fields": [
+    { "key": "contract_type", "label": "Type of contract", "type": "text", "placeholder": "e.g., Master Services Agreement, NDA, License Agreement" },
+    { "key": "party_a_name", "label": "Party A (your organization)", "type": "text", "placeholder": "Full legal entity name" },
+    { "key": "party_a_role", "label": "Party A role", "type": "text", "placeholder": "e.g., Service Provider, Licensor, Seller" },
+    { "key": "party_b_name", "label": "Party B (counterparty)", "type": "text", "placeholder": "Full legal entity name" },
+    { "key": "party_b_role", "label": "Party B role", "type": "text", "placeholder": "e.g., Client, Licensee, Buyer" },
+    { "key": "scope_of_agreement", "label": "Scope of the agreement", "type": "textarea", "placeholder": "Describe what goods, services, or rights are covered by this contract..." },
+    { "key": "governing_law", "label": "Governing law / jurisdiction", "type": "text", "placeholder": "e.g., State of Delaware" },
+    { "key": "term_length", "label": "Contract term", "type": "text", "placeholder": "e.g., 12 months with auto-renewal, 3-year fixed term" }
+  ],
+  "optional_fields": [
+    { "key": "compensation_terms", "label": "Compensation / payment terms", "type": "textarea", "placeholder": "Describe pricing, payment schedule, invoicing terms..." },
+    { "key": "termination_conditions", "label": "Termination conditions", "type": "textarea", "placeholder": "Any specific termination triggers beyond standard breach..." },
+    { "key": "ip_ownership", "label": "Intellectual property ownership", "type": "textarea", "placeholder": "Who owns work product, pre-existing IP provisions..." },
+    { "key": "non_compete_non_solicit", "label": "Non-compete / non-solicitation terms", "type": "textarea", "placeholder": "Duration and geographic scope of any restrictive covenants..." },
+    { "key": "insurance_requirements", "label": "Insurance requirements", "type": "text", "placeholder": "e.g., $1M general liability, E&O coverage required" },
+    { "key": "special_provisions", "label": "Special provisions or carve-outs", "type": "textarea", "placeholder": "Any unique terms this contract needs to include..." }
+  ],
+  "file_upload_prompts": [
+    { "kind": "reference_doc", "label": "Upload any existing contracts, term sheets, or prior agreements for reference", "required": false },
+    { "kind": "brand_guide", "label": "Upload firm or company letterhead / brand guidelines (optional)", "required": false }
+  ],
+  "sections": [
+    { "key": "recitals", "label": "Recitals", "required": true, "min_words": 50, "max_words": 200, "instructions": "State the background and purpose of the agreement using standard WHEREAS recitals. Establish the relationship between the parties." },
+    { "key": "definitions", "label": "Definitions", "required": true, "min_words": 100, "max_words": 400, "instructions": "Define all capitalized terms used throughout the agreement. Include standard definitions for Agreement, Confidential Information, Deliverables, Effective Date, and Term." },
+    { "key": "scope_of_work", "label": "Scope of Work / Services", "required": true, "min_words": 150, "max_words": 500, "instructions": "Detail the services, goods, or rights being provided. Be specific enough to prevent scope disputes." },
+    { "key": "term_and_termination", "label": "Term and Termination", "required": true, "min_words": 100, "max_words": 300, "instructions": "Specify the contract duration, renewal provisions, and termination rights for each party including cure periods." },
+    { "key": "compensation", "label": "Compensation and Payment", "required": true, "min_words": 100, "max_words": 300, "instructions": "Detail all pricing, payment schedules, invoicing procedures, late payment penalties, and expense reimbursement terms." },
+    { "key": "intellectual_property", "label": "Intellectual Property", "required": true, "min_words": 100, "max_words": 300, "instructions": "Specify ownership of work product, licenses granted, pre-existing IP protections, and assignment provisions." },
+    { "key": "confidentiality", "label": "Confidentiality", "required": true, "min_words": 100, "max_words": 300, "instructions": "Define confidential information, obligations of the receiving party, exclusions, and survival period." },
+    { "key": "representations_warranties", "label": "Representations and Warranties", "required": true, "min_words": 100, "max_words": 300, "instructions": "Include standard representations for authority, compliance with laws, and non-infringement. Add deal-specific warranties." },
+    { "key": "indemnification", "label": "Indemnification", "required": true, "min_words": 80, "max_words": 250, "instructions": "Specify mutual or asymmetric indemnification obligations, procedures for claims, and defense obligations." },
+    { "key": "limitation_of_liability", "label": "Limitation of Liability", "required": true, "min_words": 50, "max_words": 200, "instructions": "Set liability caps, exclude consequential damages, and specify any carve-outs from the limitation." },
+    { "key": "dispute_resolution", "label": "Dispute Resolution", "required": true, "min_words": 50, "max_words": 200, "instructions": "Specify the dispute resolution mechanism: negotiation, mediation, arbitration, or litigation. Include venue and governing law." },
+    { "key": "general_provisions", "label": "General Provisions", "required": true, "min_words": 100, "max_words": 400, "instructions": "Include standard boilerplate: entire agreement, amendment, assignment, notices, severability, waiver, force majeure, counterparts." },
+    { "key": "signature_block", "label": "Signature Block", "required": true, "min_words": 20, "max_words": 100, "instructions": "Format signature blocks for all parties with name, title, date, and entity name fields." },
+    { "key": "exhibits", "label": "Exhibits and Schedules", "required": false, "min_words": 50, "max_words": 500, "instructions": "Include any referenced exhibits such as detailed SOW, pricing schedule, SLA, or data processing addendum." }
+  ]
+}

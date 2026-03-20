@@ -1,0 +1,35 @@
+{
+  "deliverable_slug": "market-analysis",
+  "required_fields": [
+    { "key": "target_market", "label": "Target market or industry", "type": "text", "placeholder": "e.g., US enterprise cybersecurity, European pet food market" },
+    { "key": "analysis_purpose", "label": "Purpose of analysis", "type": "textarea", "placeholder": "Why is this analysis being conducted? e.g., evaluating market entry, supporting a funding round, strategic planning..." },
+    { "key": "company_name", "label": "Your company name", "type": "text", "placeholder": "Organization requesting the analysis" },
+    { "key": "product_or_service", "label": "Your product or service", "type": "textarea", "placeholder": "What product or service are you evaluating for this market?" },
+    { "key": "geographic_scope", "label": "Geographic scope", "type": "text", "placeholder": "e.g., United States, North America, Global" },
+    { "key": "key_questions", "label": "Key questions to answer", "type": "textarea", "placeholder": "What specific questions should this analysis answer? e.g., Is the market large enough? Who are the key players? What are the entry barriers?" }
+  ],
+  "optional_fields": [
+    { "key": "known_competitors", "label": "Known competitors", "type": "textarea", "placeholder": "List competitors you already know about..." },
+    { "key": "current_market_position", "label": "Current market position", "type": "textarea", "placeholder": "If already in this market, describe your current position and market share..." },
+    { "key": "budget_for_entry", "label": "Budget for market entry or expansion", "type": "text", "placeholder": "e.g., $500K for initial launch" },
+    { "key": "timeline_for_decision", "label": "Decision timeline", "type": "text", "placeholder": "When do you need to make a decision based on this analysis?" },
+    { "key": "data_sources", "label": "Preferred data sources", "type": "textarea", "placeholder": "Any specific reports, databases, or sources to reference..." },
+    { "key": "regulatory_landscape", "label": "Known regulatory factors", "type": "textarea", "placeholder": "Any regulations or compliance requirements you're aware of..." }
+  ],
+  "file_upload_prompts": [
+    { "kind": "reference_doc", "label": "Upload any existing market research, competitor profiles, or industry reports", "required": false },
+    { "kind": "financial_data", "label": "Upload financial data or market sizing spreadsheets", "required": false },
+    { "kind": "brand_guide", "label": "Upload brand guidelines for report formatting (optional)", "required": false }
+  ],
+  "sections": [
+    { "key": "executive_summary", "label": "Executive Summary", "required": true, "min_words": 150, "max_words": 400, "instructions": "High-level summary of market size, growth trajectory, competitive intensity, and overall attractiveness. Include a clear recommendation." },
+    { "key": "market_overview", "label": "Market Overview", "required": true, "min_words": 200, "max_words": 500, "instructions": "Define the market boundaries, current size (TAM/SAM/SOM), historical growth, and projected growth rates with sources." },
+    { "key": "industry_trends", "label": "Industry Trends", "required": true, "min_words": 150, "max_words": 400, "instructions": "Key macro and micro trends shaping the market. Cover technology, regulatory, consumer behavior, and economic factors." },
+    { "key": "target_segments", "label": "Target Customer Segments", "required": true, "min_words": 150, "max_words": 400, "instructions": "Define and size the most attractive customer segments. Include buyer personas, purchasing behavior, and willingness to pay." },
+    { "key": "competitive_landscape", "label": "Competitive Landscape", "required": true, "min_words": 200, "max_words": 600, "instructions": "Map key competitors by tier. Analyze market share, positioning, strengths, weaknesses, and recent strategic moves. Include competitive positioning matrix." },
+    { "key": "swot_analysis", "label": "SWOT Analysis", "required": true, "min_words": 100, "max_words": 300, "instructions": "Strengths, weaknesses, opportunities, and threats specific to the client's position in this market." },
+    { "key": "market_entry_strategy", "label": "Market Entry / Expansion Strategy", "required": true, "min_words": 150, "max_words": 400, "instructions": "Recommended approach to entering or expanding in this market. Cover positioning, channels, partnerships, and phased rollout plan." },
+    { "key": "financial_opportunity", "label": "Financial Opportunity Assessment", "required": true, "min_words": 100, "max_words": 300, "instructions": "Revenue potential, pricing benchmarks, investment requirements, and expected time to profitability in this market." },
+    { "key": "recommendations", "label": "Recommendations", "required": true, "min_words": 100, "max_words": 300, "instructions": "Clear, prioritized recommendations with risk-adjusted rationale. Include go/no-go assessment and critical success factors." }
+  ]
+}

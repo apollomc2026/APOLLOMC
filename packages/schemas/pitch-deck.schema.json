@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Pitch Deck",
+  "description": "Structured output schema for a pitch deck deliverable.",
+  "type": "object",
+  "required": ["metadata", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["deliverable_type", "company_name", "date"],
+      "properties": {
+        "deliverable_type": { "type": "string", "const": "pitch-deck" },
+        "company_name": { "type": "string" },
+        "tagline": { "type": "string" },
+        "round": { "type": "string" },
+        "ask_amount": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "presenter": { "type": "string" },
+        "website": { "type": "string" },
+        "confidentiality_notice": { "type": "string" }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "content"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "title_slide",
+              "problem",
+              "solution",
+              "market_size",
+              "business_model",
+              "traction",
+              "competition",
+              "team",
+              "financials",
+              "the_ask",
+              "closing"
+            ]
+          },
+          "label": { "type": "string" },
+          "content": { "type": "string", "minLength": 20 },
+          "slide_notes": { "type": "string" },
+          "visual_description": { "type": "string" },
+          "data_points": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": { "type": "string" },
+                "value": { "type": "string" },
+                "context": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

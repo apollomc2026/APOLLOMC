@@ -1,0 +1,37 @@
+{
+  "deliverable_slug": "board-report",
+  "required_fields": [
+    { "key": "organization_name", "label": "Organization name", "type": "text", "placeholder": "Full legal entity name" },
+    { "key": "reporting_period", "label": "Reporting period", "type": "text", "placeholder": "e.g., Q4 2025, FY 2025, January - March 2026" },
+    { "key": "report_type", "label": "Report type", "type": "text", "placeholder": "e.g., Quarterly Board Report, Annual Review, Special Committee Report" },
+    { "key": "financial_highlights", "label": "Financial highlights", "type": "textarea", "placeholder": "Key financial metrics: revenue, EBITDA, net income, cash position, vs. budget and prior period..." },
+    { "key": "strategic_initiatives", "label": "Strategic initiatives update", "type": "textarea", "placeholder": "Status of major strategic initiatives, milestones achieved, and upcoming objectives..." },
+    { "key": "key_risks", "label": "Key risks and concerns", "type": "textarea", "placeholder": "Top risks facing the organization, emerging threats, and mitigation status..." }
+  ],
+  "optional_fields": [
+    { "key": "board_meeting_date", "label": "Board meeting date", "type": "date" },
+    { "key": "prepared_by", "label": "Prepared by", "type": "text", "placeholder": "e.g., Office of the CFO" },
+    { "key": "operational_metrics", "label": "Key operational metrics", "type": "textarea", "placeholder": "Employee count, customer count, churn rate, NPS, or other operational KPIs..." },
+    { "key": "compliance_updates", "label": "Compliance or regulatory updates", "type": "textarea", "placeholder": "New regulations, audit findings, compliance status changes..." },
+    { "key": "capital_expenditures", "label": "Capital expenditure update", "type": "textarea", "placeholder": "Major CapEx projects, status, and budget vs. actual..." },
+    { "key": "board_actions_needed", "label": "Board actions or approvals needed", "type": "textarea", "placeholder": "Any resolutions, approvals, or decisions the board needs to make..." },
+    { "key": "forward_guidance", "label": "Forward guidance or outlook", "type": "textarea", "placeholder": "Updated projections, market outlook, and planned initiatives for next period..." },
+    { "key": "classification", "label": "Document classification", "type": "text", "placeholder": "e.g., Board Confidential, Restricted Distribution" }
+  ],
+  "file_upload_prompts": [
+    { "kind": "financial_data", "label": "Upload financial statements, P&L, balance sheet, or cash flow data", "required": false },
+    { "kind": "reference_doc", "label": "Upload prior board reports or strategic plans for reference", "required": false },
+    { "kind": "brand_guide", "label": "Upload company brand guidelines or board report template (optional)", "required": false }
+  ],
+  "sections": [
+    { "key": "executive_summary", "label": "Executive Summary", "required": true, "min_words": 150, "max_words": 400, "instructions": "One-page summary of the most important developments, financial results, and items requiring board attention. Written for rapid consumption." },
+    { "key": "financial_performance", "label": "Financial Performance", "required": true, "min_words": 250, "max_words": 600, "instructions": "Detailed financial review covering revenue, expenses, profitability, cash flow, and balance sheet highlights. Include variance analysis vs. budget and prior period." },
+    { "key": "strategic_initiatives", "label": "Strategic Initiatives", "required": true, "min_words": 200, "max_words": 500, "instructions": "Progress update on each major strategic initiative. Use a consistent format: objective, status (green/yellow/red), milestones achieved, next steps." },
+    { "key": "operational_highlights", "label": "Operational Highlights", "required": true, "min_words": 150, "max_words": 400, "instructions": "Key operational metrics and notable achievements or challenges. Cover personnel, customers, product/service delivery, and technology." },
+    { "key": "risk_assessment", "label": "Risk Assessment", "required": true, "min_words": 150, "max_words": 400, "instructions": "Updated risk register with top risks ranked by severity. Include new or escalated risks, mitigation progress, and residual risk levels." },
+    { "key": "compliance_update", "label": "Compliance Update", "required": false, "min_words": 80, "max_words": 250, "instructions": "Regulatory compliance status, recent or upcoming regulatory changes, and any open compliance issues or audit findings." },
+    { "key": "forward_outlook", "label": "Forward Outlook", "required": true, "min_words": 100, "max_words": 300, "instructions": "Updated projections for the next reporting period. Key assumptions, opportunities, and potential headwinds." },
+    { "key": "board_actions_required", "label": "Board Actions Required", "required": true, "min_words": 50, "max_words": 200, "instructions": "Clearly enumerate any resolutions, approvals, or decisions the board needs to make at this meeting." },
+    { "key": "appendices", "label": "Appendices", "required": false, "min_words": 50, "max_words": 500, "instructions": "Detailed financial tables, departmental reports, capital expenditure tracking, and supporting data referenced in the main report." }
+  ]
+}

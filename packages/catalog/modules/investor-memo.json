@@ -1,0 +1,37 @@
+{
+  "deliverable_slug": "investor-memo",
+  "required_fields": [
+    { "key": "target_company", "label": "Target company name", "type": "text", "placeholder": "Company being evaluated for investment" },
+    { "key": "sector", "label": "Sector / industry", "type": "text", "placeholder": "e.g., Enterprise SaaS, Healthcare, Consumer Fintech" },
+    { "key": "deal_type", "label": "Deal type", "type": "text", "placeholder": "e.g., Series A equity, Growth equity, Acquisition, Debt" },
+    { "key": "investment_thesis", "label": "Investment thesis", "type": "textarea", "placeholder": "Why is this an attractive investment? What is the core thesis driving the opportunity?" },
+    { "key": "financial_overview", "label": "Financial overview", "type": "textarea", "placeholder": "Key financial metrics: revenue, growth rate, margins, burn rate, valuation, and proposed terms..." },
+    { "key": "risk_factors", "label": "Key risk factors", "type": "textarea", "placeholder": "What are the primary risks to this investment? Market, execution, competitive, regulatory..." }
+  ],
+  "optional_fields": [
+    { "key": "fund_name", "label": "Fund / firm name", "type": "text", "placeholder": "e.g., Apollo Ventures Fund III" },
+    { "key": "deal_size", "label": "Proposed investment size", "type": "text", "placeholder": "e.g., $5M for 15% equity" },
+    { "key": "valuation", "label": "Valuation", "type": "text", "placeholder": "e.g., $30M pre-money" },
+    { "key": "comparable_transactions", "label": "Comparable transactions", "type": "textarea", "placeholder": "Recent comparable deals, acquisitions, or funding rounds in the sector..." },
+    { "key": "management_assessment", "label": "Management team assessment", "type": "textarea", "placeholder": "Quality of management team, track record, and any concerns..." },
+    { "key": "due_diligence_status", "label": "Due diligence status", "type": "textarea", "placeholder": "What DD has been completed? What remains?" },
+    { "key": "exit_scenarios", "label": "Expected exit scenarios", "type": "textarea", "placeholder": "Potential exit paths, timeline, and expected returns..." },
+    { "key": "investment_committee_date", "label": "Investment committee date", "type": "date" }
+  ],
+  "file_upload_prompts": [
+    { "kind": "financial_data", "label": "Upload financial statements, models, or cap tables", "required": false },
+    { "kind": "reference_doc", "label": "Upload pitch decks, info memos, or data room documents", "required": false },
+    { "kind": "reference_doc", "label": "Upload comparable analysis or market research", "required": false },
+    { "kind": "brand_guide", "label": "Upload firm brand guidelines or memo template (optional)", "required": false }
+  ],
+  "sections": [
+    { "key": "investment_thesis", "label": "Investment Thesis", "required": true, "min_words": 150, "max_words": 400, "instructions": "Clear articulation of why this investment is attractive. Cover the core thesis, key value drivers, and expected return profile." },
+    { "key": "company_overview", "label": "Company Overview", "required": true, "min_words": 150, "max_words": 400, "instructions": "Company background, founding story, product/service description, business model, and current stage of development." },
+    { "key": "market_opportunity", "label": "Market Opportunity", "required": true, "min_words": 150, "max_words": 400, "instructions": "TAM/SAM/SOM analysis, market dynamics, growth drivers, and the company's positioning within the market." },
+    { "key": "financial_analysis", "label": "Financial Analysis", "required": true, "min_words": 200, "max_words": 500, "instructions": "Detailed financial review covering historical performance, unit economics, projections, and key assumptions. Include revenue model analysis." },
+    { "key": "valuation", "label": "Valuation Analysis", "required": true, "min_words": 100, "max_words": 300, "instructions": "Valuation methodology, comparable analysis, implied multiples, and assessment of whether the proposed valuation is fair." },
+    { "key": "risk_factors", "label": "Risk Factors", "required": true, "min_words": 150, "max_words": 400, "instructions": "Comprehensive risk assessment covering market, execution, competitive, financial, and regulatory risks with severity ratings." },
+    { "key": "due_diligence_findings", "label": "Due Diligence Findings", "required": false, "min_words": 100, "max_words": 300, "instructions": "Summary of completed due diligence including legal, financial, technical, and commercial findings. Flag any material issues." },
+    { "key": "recommendation", "label": "Recommendation", "required": true, "min_words": 80, "max_words": 250, "instructions": "Clear invest/pass recommendation with key conditions, proposed terms, and critical follow-up items before closing." }
+  ]
+}

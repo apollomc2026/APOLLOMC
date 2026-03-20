@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Business Plan",
+  "description": "Structured output schema for a business plan deliverable.",
+  "type": "object",
+  "required": ["metadata", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["deliverable_type", "title", "company_name", "date"],
+      "properties": {
+        "deliverable_type": { "type": "string", "const": "business-plan" },
+        "title": { "type": "string", "minLength": 5 },
+        "company_name": { "type": "string" },
+        "industry": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "prepared_by": { "type": "string" },
+        "version": { "type": "string" },
+        "confidentiality_notice": { "type": "string" }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 9,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "content"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "executive_summary",
+              "company_overview",
+              "market_analysis",
+              "competitive_landscape",
+              "products_services",
+              "marketing_strategy",
+              "operations_plan",
+              "management_team",
+              "financial_projections",
+              "funding_requirements",
+              "risk_analysis",
+              "appendices"
+            ]
+          },
+          "label": { "type": "string" },
+          "content": { "type": "string", "minLength": 100 },
+          "financial_tables": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "table_type": { "type": "string" },
+                "title": { "type": "string" },
+                "periods": { "type": "array", "items": { "type": "string" } },
+                "rows": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "label": { "type": "string" },
+                      "values": { "type": "array", "items": { "type": "string" } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

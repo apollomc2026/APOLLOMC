@@ -1,0 +1,36 @@
+{
+  "BucketName": "apollo-outputs-private",
+  "Region": "us-east-1",
+  "PublicAccessBlockConfiguration": {
+    "BlockPublicAcls": true,
+    "IgnorePublicAcls": true,
+    "BlockPublicPolicy": true,
+    "RestrictPublicBuckets": true
+  },
+  "VersioningConfiguration": {
+    "Status": "Enabled"
+  },
+  "LifecycleConfiguration": {
+    "Rules": [
+      {
+        "ID": "expire-previews",
+        "Filter": { "Prefix": "previews/" },
+        "Status": "Enabled",
+        "Expiration": { "Days": 7 }
+      },
+      {
+        "ID": "expire-staging",
+        "Filter": { "Prefix": "staging/" },
+        "Status": "Enabled",
+        "Expiration": { "Days": 3 }
+      }
+    ]
+  },
+  "FolderStructure": {
+    "outputs/{mission_id}/{version}/": "Watermarked production files",
+    "staging/{mission_id}/{task_id}/": "Checkpoints during build",
+    "plans/{mission_id}/": "PLAN.md and CLAUDE.md per mission",
+    "uploads/{mission_id}/": "Customer uploaded files",
+    "previews/{mission_id}/": "Degraded preview JPEGs"
+  }
+}

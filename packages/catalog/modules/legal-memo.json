@@ -1,0 +1,29 @@
+{
+  "deliverable_slug": "legal-memo",
+  "required_fields": [
+    { "key": "client_name", "label": "Client name", "type": "text", "placeholder": "e.g., Acme Corporation" },
+    { "key": "opposing_party", "label": "Opposing party", "type": "text", "placeholder": "e.g., Beta Industries LLC" },
+    { "key": "jurisdiction", "label": "Jurisdiction", "type": "text", "placeholder": "e.g., Commonwealth of Massachusetts" },
+    { "key": "legal_issue", "label": "Core legal issue", "type": "textarea", "placeholder": "Describe the primary legal question to be analyzed..." },
+    { "key": "relevant_statutes", "label": "Relevant statutes or regulations", "type": "textarea", "placeholder": "List any known statutes, case law, or regulations that apply..." },
+    { "key": "desired_outcome", "label": "Desired outcome", "type": "textarea", "placeholder": "What conclusion or position should the memo support?" }
+  ],
+  "optional_fields": [
+    { "key": "deadline", "label": "Filing deadline", "type": "date" },
+    { "key": "budget_constraint", "label": "Budget constraint or scope limit", "type": "text", "placeholder": "e.g., Focus only on federal claims" },
+    { "key": "audience", "label": "Intended audience", "type": "text", "placeholder": "e.g., Senior partner, client, court" },
+    { "key": "prior_proceedings", "label": "Prior proceedings or rulings", "type": "textarea", "placeholder": "Summarize any prior court rulings or procedural history..." },
+    { "key": "confidentiality_level", "label": "Confidentiality level", "type": "text", "placeholder": "e.g., Attorney-client privileged" }
+  ],
+  "file_upload_prompts": [
+    { "kind": "reference_doc", "label": "Upload any relevant case files, prior memos, or court filings", "required": false },
+    { "kind": "brand_guide", "label": "Upload firm letterhead or brand guidelines (optional)", "required": false }
+  ],
+  "sections": [
+    { "key": "issue_statement", "label": "Issue Statement", "required": true, "min_words": 100, "max_words": 300, "instructions": "State the legal question(s) presented in precise, neutral terms. Frame each question to be answerable with a yes/no followed by explanation." },
+    { "key": "brief_answer", "label": "Brief Answer", "required": true, "min_words": 50, "max_words": 150, "instructions": "Provide a direct, concise answer to each question stated above. Include the key reasoning in one or two sentences per question." },
+    { "key": "facts", "label": "Statement of Facts", "required": true, "min_words": 200, "max_words": 600, "instructions": "Present the relevant facts objectively and chronologically. Include only facts material to the legal analysis. Cite to record where applicable." },
+    { "key": "analysis", "label": "Analysis", "required": true, "min_words": 500, "max_words": 1500, "instructions": "Apply the relevant legal standards to the facts. Organize by issue. Discuss favorable and unfavorable authority. Use proper Bluebook citation format." },
+    { "key": "conclusion", "label": "Conclusion", "required": true, "min_words": 100, "max_words": 300, "instructions": "Summarize the analysis and restate the answers to each question presented. Include practical recommendations for next steps." }
+  ]
+}

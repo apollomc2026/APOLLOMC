@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Federal Proposal Response",
+  "description": "Structured output schema for a federal proposal response deliverable.",
+  "type": "object",
+  "required": ["metadata", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["deliverable_type", "title", "solicitation_number", "agency", "offeror", "date"],
+      "properties": {
+        "deliverable_type": { "type": "string", "const": "federal-proposal" },
+        "title": { "type": "string", "minLength": 5 },
+        "solicitation_number": { "type": "string" },
+        "agency": { "type": "string" },
+        "office": { "type": "string" },
+        "offeror": { "type": "string" },
+        "cage_code": { "type": "string" },
+        "duns_uei": { "type": "string" },
+        "naics_code": { "type": "string" },
+        "set_aside": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "proposal_valid_through": { "type": "string" }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "content"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "cover_letter",
+              "executive_summary",
+              "technical_approach",
+              "management_approach",
+              "staffing_plan",
+              "past_performance",
+              "quality_assurance",
+              "transition_plan",
+              "pricing_volume",
+              "compliance_matrix",
+              "appendices"
+            ]
+          },
+          "label": { "type": "string" },
+          "content": { "type": "string", "minLength": 50 },
+          "compliance_references": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "requirement_id": { "type": "string" },
+                "requirement_text": { "type": "string" },
+                "response_location": { "type": "string" },
+                "compliant": { "type": "boolean" }
+              }
+            }
+          },
+          "past_performance_refs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "contract_name": { "type": "string" },
+                "agency": { "type": "string" },
+                "contract_number": { "type": "string" },
+                "value": { "type": "string" },
+                "period": { "type": "string" },
+                "relevance": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

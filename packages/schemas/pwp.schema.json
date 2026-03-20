@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Past Performance Write-Up",
+  "description": "Structured output schema for a past performance write-up deliverable.",
+  "type": "object",
+  "required": ["metadata", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["deliverable_type", "company_name", "contract_name", "date"],
+      "properties": {
+        "deliverable_type": { "type": "string", "const": "pwp" },
+        "company_name": { "type": "string" },
+        "contract_name": { "type": "string" },
+        "contract_number": { "type": "string" },
+        "client_agency": { "type": "string" },
+        "contract_value": { "type": "string" },
+        "period_of_performance": { "type": "string" },
+        "target_solicitation": { "type": "string" },
+        "date": { "type": "string", "format": "date" }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "content"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "project_overview",
+              "scope_and_complexity",
+              "challenges_and_solutions",
+              "outcomes_and_results",
+              "relevance_to_opportunity",
+              "client_reference"
+            ]
+          },
+          "label": { "type": "string" },
+          "content": { "type": "string", "minLength": 50 },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "metric": { "type": "string" },
+                "value": { "type": "string" },
+                "context": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

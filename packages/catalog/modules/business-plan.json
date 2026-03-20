@@ -1,0 +1,41 @@
+{
+  "deliverable_slug": "business-plan",
+  "required_fields": [
+    { "key": "company_name", "label": "Company name", "type": "text", "placeholder": "Full legal entity name or proposed name" },
+    { "key": "industry_sector", "label": "Industry / sector", "type": "text", "placeholder": "e.g., B2B SaaS, Healthcare Services, E-commerce" },
+    { "key": "business_description", "label": "Business description", "type": "textarea", "placeholder": "Describe what your company does or will do in 2-3 sentences..." },
+    { "key": "target_market", "label": "Target market", "type": "textarea", "placeholder": "Who are your customers? Describe your ideal customer profile and market segments..." },
+    { "key": "revenue_model", "label": "Revenue model", "type": "textarea", "placeholder": "How does/will the business make money? Describe pricing, channels, and revenue streams..." },
+    { "key": "competitive_advantage", "label": "Competitive advantage", "type": "textarea", "placeholder": "What differentiates you from competitors? What is your unfair advantage or moat?" },
+    { "key": "funding_stage", "label": "Current stage and funding needs", "type": "textarea", "placeholder": "e.g., Pre-revenue seeking $500K seed, Series A with $2M ARR seeking $10M..." },
+    { "key": "team_overview", "label": "Founding / management team", "type": "textarea", "placeholder": "Key team members, their roles, and relevant experience..." }
+  ],
+  "optional_fields": [
+    { "key": "current_revenue", "label": "Current annual revenue", "type": "text", "placeholder": "e.g., $0 (pre-revenue), $500K ARR" },
+    { "key": "current_customers", "label": "Current customer count", "type": "text", "placeholder": "e.g., 50 paying customers, 1,000 free users" },
+    { "key": "key_metrics", "label": "Key traction metrics", "type": "textarea", "placeholder": "Growth rates, retention, LTV, CAC, or other key metrics..." },
+    { "key": "geographic_focus", "label": "Geographic focus", "type": "text", "placeholder": "e.g., US initially, expanding to Europe in Year 2" },
+    { "key": "regulatory_considerations", "label": "Regulatory or licensing requirements", "type": "textarea", "placeholder": "Any regulations, licenses, or certifications required..." },
+    { "key": "technology_stack", "label": "Technology / IP overview", "type": "textarea", "placeholder": "Key technology, patents, proprietary systems..." },
+    { "key": "projection_timeframe", "label": "Financial projection timeframe", "type": "text", "placeholder": "e.g., 3-year, 5-year" }
+  ],
+  "file_upload_prompts": [
+    { "kind": "financial_data", "label": "Upload financial statements, projections, or models", "required": false },
+    { "kind": "reference_doc", "label": "Upload market research, competitor analysis, or pitch decks", "required": false },
+    { "kind": "brand_guide", "label": "Upload brand guidelines (optional)", "required": false }
+  ],
+  "sections": [
+    { "key": "executive_summary", "label": "Executive Summary", "required": true, "min_words": 300, "max_words": 600, "instructions": "Comprehensive overview of the entire business plan. Must stand alone as a complete briefing covering problem, solution, market, model, team, financials, and ask." },
+    { "key": "company_overview", "label": "Company Overview", "required": true, "min_words": 200, "max_words": 500, "instructions": "Company history, mission, vision, legal structure, location, and current stage. Include key milestones achieved to date." },
+    { "key": "market_analysis", "label": "Market Analysis", "required": true, "min_words": 300, "max_words": 700, "instructions": "Total addressable market (TAM), serviceable addressable market (SAM), serviceable obtainable market (SOM) with data sources. Industry trends and growth drivers." },
+    { "key": "competitive_landscape", "label": "Competitive Landscape", "required": true, "min_words": 200, "max_words": 500, "instructions": "Direct and indirect competitors, their strengths and weaknesses, and your differentiated positioning. Include competitive matrix." },
+    { "key": "products_services", "label": "Products and Services", "required": true, "min_words": 200, "max_words": 500, "instructions": "Detailed description of offerings, value proposition, development roadmap, and intellectual property position." },
+    { "key": "marketing_strategy", "label": "Marketing and Sales Strategy", "required": true, "min_words": 200, "max_words": 500, "instructions": "Go-to-market strategy, customer acquisition channels, sales process, pricing strategy, and key partnerships." },
+    { "key": "operations_plan", "label": "Operations Plan", "required": true, "min_words": 150, "max_words": 400, "instructions": "Operational workflow, technology infrastructure, supply chain (if applicable), key vendors, and scaling plan." },
+    { "key": "management_team", "label": "Management Team", "required": true, "min_words": 150, "max_words": 400, "instructions": "Detailed bios of key team members, relevant experience, advisory board, and key hires planned." },
+    { "key": "financial_projections", "label": "Financial Projections", "required": true, "min_words": 300, "max_words": 700, "instructions": "Revenue projections, expense breakdown, P&L, cash flow, and break-even analysis with clearly stated assumptions. Include 3-5 year projections." },
+    { "key": "funding_requirements", "label": "Funding Requirements", "required": true, "min_words": 100, "max_words": 300, "instructions": "Amount sought, use of funds breakdown, proposed terms or valuation expectations, and path to next milestone." },
+    { "key": "risk_analysis", "label": "Risk Analysis", "required": true, "min_words": 100, "max_words": 300, "instructions": "Key risks to the business including market, execution, regulatory, and financial risks with mitigation strategies." },
+    { "key": "appendices", "label": "Appendices", "required": false, "min_words": 50, "max_words": 500, "instructions": "Supporting materials including detailed financial models, market research data, letters of intent, patents, and team resumes." }
+  ]
+}

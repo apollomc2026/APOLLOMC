@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "One-Pager",
+  "description": "Structured output schema for a one-pager deliverable.",
+  "type": "object",
+  "required": ["metadata", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["deliverable_type", "company_name", "date"],
+      "properties": {
+        "deliverable_type": { "type": "string", "const": "one-pager" },
+        "company_name": { "type": "string" },
+        "tagline": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "website": { "type": "string" },
+        "contact_email": { "type": "string" },
+        "contact_phone": { "type": "string" }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "content"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "headline",
+              "value_proposition",
+              "problem_solution",
+              "key_features",
+              "traction",
+              "market_opportunity",
+              "call_to_action"
+            ]
+          },
+          "label": { "type": "string" },
+          "content": { "type": "string", "minLength": 10 },
+          "bullet_points": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "stat_callouts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": { "type": "string" },
+                "value": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

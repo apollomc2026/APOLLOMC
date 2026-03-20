@@ -1,0 +1,46 @@
+{
+  "deliverable_slug": "federal-proposal",
+  "required_fields": [
+    { "key": "solicitation_number", "label": "Solicitation number", "type": "text", "placeholder": "e.g., W911QY-26-R-0001" },
+    { "key": "solicitation_title", "label": "Solicitation title", "type": "text", "placeholder": "Full title from the solicitation" },
+    { "key": "issuing_agency", "label": "Issuing agency and office", "type": "text", "placeholder": "e.g., Department of Defense, Army Contracting Command" },
+    { "key": "offeror_name", "label": "Offeror company name", "type": "text", "placeholder": "Your full legal entity name" },
+    { "key": "naics_code", "label": "NAICS code", "type": "text", "placeholder": "e.g., 541512" },
+    { "key": "set_aside", "label": "Set-aside status", "type": "text", "placeholder": "e.g., 8(a), SDVOSB, HUBZone, Full and open" },
+    { "key": "technical_approach_summary", "label": "Technical approach summary", "type": "textarea", "placeholder": "Describe your proposed technical approach to fulfilling the requirements..." },
+    { "key": "management_approach_summary", "label": "Management approach summary", "type": "textarea", "placeholder": "How will you manage and staff this contract? Describe your PM methodology and key personnel..." },
+    { "key": "past_performance_summary", "label": "Relevant past performance", "type": "textarea", "placeholder": "Describe 3-5 relevant contracts you have performed, including agency, value, and outcomes..." }
+  ],
+  "optional_fields": [
+    { "key": "cage_code", "label": "CAGE code", "type": "text", "placeholder": "e.g., 1ABC2" },
+    { "key": "duns_uei", "label": "UEI number", "type": "text", "placeholder": "Your SAM.gov Unique Entity Identifier" },
+    { "key": "contract_type", "label": "Contract type", "type": "text", "placeholder": "e.g., FFP, T&M, CPFF, IDIQ" },
+    { "key": "period_of_performance", "label": "Period of performance", "type": "text", "placeholder": "e.g., 1 base year + 4 option years" },
+    { "key": "teaming_partners", "label": "Teaming partners or subcontractors", "type": "textarea", "placeholder": "Names, roles, and relevant qualifications of team members..." },
+    { "key": "key_personnel", "label": "Key personnel", "type": "textarea", "placeholder": "Names, titles, clearances, and qualifications of key personnel..." },
+    { "key": "certifications", "label": "Relevant certifications", "type": "textarea", "placeholder": "e.g., CMMI Level 3, ISO 27001, FedRAMP" },
+    { "key": "proposal_due_date", "label": "Proposal due date", "type": "date" },
+    { "key": "page_limit", "label": "Page limit from solicitation", "type": "text", "placeholder": "e.g., Technical volume: 50 pages" },
+    { "key": "evaluation_criteria", "label": "Evaluation criteria", "type": "textarea", "placeholder": "List the evaluation factors and their relative importance from the solicitation..." }
+  ],
+  "file_upload_prompts": [
+    { "kind": "reference_doc", "label": "Upload the solicitation document (RFP/RFQ/RFI)", "required": true },
+    { "kind": "reference_doc", "label": "Upload any amendments, Q&A documents, or attachments", "required": false },
+    { "kind": "reference_doc", "label": "Upload resumes of key personnel", "required": false },
+    { "kind": "reference_doc", "label": "Upload past performance documentation (CPARs, references)", "required": false },
+    { "kind": "brand_guide", "label": "Upload company brand guidelines or proposal template (optional)", "required": false }
+  ],
+  "sections": [
+    { "key": "cover_letter", "label": "Cover Letter", "required": true, "min_words": 150, "max_words": 400, "instructions": "Professional cover letter on company letterhead addressed to the contracting officer. Summarize the proposal and express commitment." },
+    { "key": "executive_summary", "label": "Executive Summary", "required": true, "min_words": 300, "max_words": 700, "instructions": "Compelling summary of the entire proposal. Clearly articulate understanding of the requirement, solution overview, key discriminators, and relevant experience. Ghost the competition where appropriate." },
+    { "key": "technical_approach", "label": "Technical Approach", "required": true, "min_words": 800, "max_words": 3000, "instructions": "Detailed technical solution mapped to PWS/SOW requirements. Demonstrate understanding of the problem, describe methodology, tools, and innovation. Include workflow diagrams and traceability to requirements." },
+    { "key": "management_approach", "label": "Management Approach", "required": true, "min_words": 500, "max_words": 1500, "instructions": "Project management methodology, organizational structure, communication plan, risk management, and quality control processes. Include org chart." },
+    { "key": "staffing_plan", "label": "Staffing Plan", "required": true, "min_words": 300, "max_words": 800, "instructions": "Key personnel qualifications, staffing levels by labor category, surge capability, and retention strategy. Reference resumes in appendix." },
+    { "key": "past_performance", "label": "Past Performance", "required": true, "min_words": 400, "max_words": 1200, "instructions": "3-5 relevant past performance references with contract details, scope, outcomes, and relevance to current requirement. Emphasize similar size, scope, and complexity." },
+    { "key": "quality_assurance", "label": "Quality Assurance", "required": true, "min_words": 200, "max_words": 500, "instructions": "QA/QC processes, metrics, continuous improvement methodology, and how quality will be measured and reported." },
+    { "key": "transition_plan", "label": "Transition Plan", "required": false, "min_words": 150, "max_words": 400, "instructions": "Phase-in and phase-out plan ensuring minimal disruption. Include knowledge transfer, staffing ramp-up timeline, and risk mitigation during transition." },
+    { "key": "pricing_volume", "label": "Pricing Volume", "required": true, "min_words": 100, "max_words": 400, "instructions": "Pricing narrative explaining the basis of estimate, labor rate rationale, and cost assumptions. Reference detailed pricing tables in appendix." },
+    { "key": "compliance_matrix", "label": "Compliance Matrix", "required": true, "min_words": 100, "max_words": 500, "instructions": "Traceability matrix mapping each solicitation requirement to the proposal section where it is addressed, with compliance status." },
+    { "key": "appendices", "label": "Appendices", "required": false, "min_words": 50, "max_words": 500, "instructions": "Supporting materials including resumes, certifications, letters of commitment from teaming partners, and detailed pricing tables." }
+  ]
+}

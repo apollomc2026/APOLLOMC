@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Board Report",
+  "description": "Structured output schema for a board report deliverable.",
+  "type": "object",
+  "required": ["metadata", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["deliverable_type", "title", "organization", "reporting_period", "date"],
+      "properties": {
+        "deliverable_type": { "type": "string", "const": "board-report" },
+        "title": { "type": "string", "minLength": 5 },
+        "organization": { "type": "string" },
+        "reporting_period": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "prepared_by": { "type": "string" },
+        "board_meeting_date": { "type": "string" },
+        "classification": { "type": "string" }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "content"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "executive_summary",
+              "financial_performance",
+              "strategic_initiatives",
+              "operational_highlights",
+              "risk_assessment",
+              "compliance_update",
+              "forward_outlook",
+              "board_actions_required",
+              "appendices"
+            ]
+          },
+          "label": { "type": "string" },
+          "content": { "type": "string", "minLength": 50 },
+          "kpis": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "metric": { "type": "string" },
+                "current_value": { "type": "string" },
+                "prior_value": { "type": "string" },
+                "target_value": { "type": "string" },
+                "trend": { "type": "string", "enum": ["up", "down", "flat"] },
+                "commentary": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

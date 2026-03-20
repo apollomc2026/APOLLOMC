@@ -1,0 +1,219 @@
+{
+  "industries": [
+    {
+      "slug": "legal",
+      "label": "Legal",
+      "description": "Law firms, corporate legal, compliance",
+      "icon_key": "scale",
+      "sort_order": 1,
+      "deliverables": [
+        {
+          "slug": "legal-memo",
+          "label": "Legal Memorandum",
+          "description": "Structured legal analysis memorandum covering issue statement, facts, analysis, and conclusion with proper legal citation formatting.",
+          "estimated_pages_min": 4,
+          "estimated_pages_max": 8,
+          "estimated_minutes": 8,
+          "base_price_cents": 6500,
+          "schema_file": "legal-memo.schema.json"
+        },
+        {
+          "slug": "contract-package",
+          "label": "Contract Package",
+          "description": "Complete contract package including master agreement, exhibits, schedules, and signature blocks with customizable terms and conditions.",
+          "estimated_pages_min": 8,
+          "estimated_pages_max": 20,
+          "estimated_minutes": 14,
+          "base_price_cents": 9500,
+          "schema_file": "contract-package.schema.json"
+        },
+        {
+          "slug": "discovery-summary",
+          "label": "Discovery Summary",
+          "description": "Organized summary of discovery materials including document review findings, deposition highlights, and key evidence categorization.",
+          "estimated_pages_min": 6,
+          "estimated_pages_max": 15,
+          "estimated_minutes": 10,
+          "base_price_cents": 7500,
+          "schema_file": "discovery-summary.schema.json"
+        },
+        {
+          "slug": "compliance-report",
+          "label": "Compliance Report",
+          "description": "Regulatory compliance assessment report covering current state analysis, gap identification, risk scoring, and remediation roadmap.",
+          "estimated_pages_min": 8,
+          "estimated_pages_max": 20,
+          "estimated_minutes": 12,
+          "base_price_cents": 8500,
+          "schema_file": "compliance-report.schema.json"
+        }
+      ]
+    },
+    {
+      "slug": "consulting",
+      "label": "Consulting",
+      "description": "Management consulting, professional services",
+      "icon_key": "briefcase",
+      "sort_order": 2,
+      "deliverables": [
+        {
+          "slug": "exec-presentation",
+          "label": "Executive Presentation",
+          "description": "Board-ready executive presentation with strategic narrative, data visualizations, and actionable recommendations.",
+          "estimated_pages_min": 12,
+          "estimated_pages_max": 25,
+          "estimated_minutes": 12,
+          "base_price_cents": 9500,
+          "schema_file": "exec-presentation.schema.json"
+        },
+        {
+          "slug": "business-plan",
+          "label": "Business Plan",
+          "description": "Comprehensive business plan covering market analysis, operational strategy, financial projections, and growth roadmap.",
+          "estimated_pages_min": 20,
+          "estimated_pages_max": 40,
+          "estimated_minutes": 20,
+          "base_price_cents": 14500,
+          "schema_file": "business-plan.schema.json"
+        },
+        {
+          "slug": "sow",
+          "label": "Statement of Work",
+          "description": "Detailed statement of work defining project scope, deliverables, timeline, milestones, acceptance criteria, and pricing.",
+          "estimated_pages_min": 6,
+          "estimated_pages_max": 12,
+          "estimated_minutes": 8,
+          "base_price_cents": 6500,
+          "schema_file": "sow.schema.json"
+        },
+        {
+          "slug": "market-analysis",
+          "label": "Market Analysis",
+          "description": "In-depth market analysis covering industry landscape, competitive positioning, target segments, and market entry strategy.",
+          "estimated_pages_min": 10,
+          "estimated_pages_max": 20,
+          "estimated_minutes": 14,
+          "base_price_cents": 8500,
+          "schema_file": "market-analysis.schema.json"
+        }
+      ]
+    },
+    {
+      "slug": "government",
+      "label": "Government",
+      "description": "Federal proposals, compliance, capability statements",
+      "icon_key": "landmark",
+      "sort_order": 3,
+      "deliverables": [
+        {
+          "slug": "federal-proposal",
+          "label": "Federal Proposal Response",
+          "description": "Full federal proposal response including technical approach, management plan, past performance, and pricing volume aligned to solicitation requirements.",
+          "estimated_pages_min": 20,
+          "estimated_pages_max": 50,
+          "estimated_minutes": 30,
+          "base_price_cents": 19500,
+          "schema_file": "federal-proposal.schema.json"
+        },
+        {
+          "slug": "capability-statement",
+          "label": "Capability Statement",
+          "description": "Concise capability statement highlighting core competencies, past performance, differentiators, and contact information formatted for government audiences.",
+          "estimated_pages_min": 2,
+          "estimated_pages_max": 4,
+          "estimated_minutes": 5,
+          "base_price_cents": 4500,
+          "schema_file": "capability-statement.schema.json"
+        },
+        {
+          "slug": "pwp",
+          "label": "Past Performance Write-Up",
+          "description": "Detailed past performance narrative covering project scope, challenges, solutions, outcomes, and relevance to target opportunity.",
+          "estimated_pages_min": 4,
+          "estimated_pages_max": 8,
+          "estimated_minutes": 8,
+          "base_price_cents": 6500,
+          "schema_file": "pwp.schema.json"
+        }
+      ]
+    },
+    {
+      "slug": "finance",
+      "label": "Finance",
+      "description": "Financial services, accounting, audit",
+      "icon_key": "bar-chart",
+      "sort_order": 4,
+      "deliverables": [
+        {
+          "slug": "board-report",
+          "label": "Board Report",
+          "description": "Quarterly or annual board report covering financial performance, strategic initiatives, risk assessment, and forward outlook.",
+          "estimated_pages_min": 8,
+          "estimated_pages_max": 20,
+          "estimated_minutes": 12,
+          "base_price_cents": 8500,
+          "schema_file": "board-report.schema.json"
+        },
+        {
+          "slug": "investor-memo",
+          "label": "Investor Memo",
+          "description": "Investment memorandum presenting thesis, market opportunity, financial analysis, risk factors, and recommended action.",
+          "estimated_pages_min": 6,
+          "estimated_pages_max": 15,
+          "estimated_minutes": 10,
+          "base_price_cents": 7500,
+          "schema_file": "investor-memo.schema.json"
+        },
+        {
+          "slug": "audit-readiness",
+          "label": "Audit Readiness Report",
+          "description": "Pre-audit readiness assessment covering control environment, documentation status, gap analysis, and remediation timeline.",
+          "estimated_pages_min": 10,
+          "estimated_pages_max": 25,
+          "estimated_minutes": 16,
+          "base_price_cents": 9500,
+          "schema_file": "audit-readiness.schema.json"
+        }
+      ]
+    },
+    {
+      "slug": "startup",
+      "label": "Startup",
+      "description": "Entrepreneurs, venture, early-stage companies",
+      "icon_key": "rocket",
+      "sort_order": 5,
+      "deliverables": [
+        {
+          "slug": "pitch-deck",
+          "label": "Pitch Deck",
+          "description": "Investor-ready pitch deck covering problem, solution, market, traction, team, financials, and ask with compelling visual narrative.",
+          "estimated_pages_min": 12,
+          "estimated_pages_max": 20,
+          "estimated_minutes": 9,
+          "base_price_cents": 7500,
+          "schema_file": "pitch-deck.schema.json"
+        },
+        {
+          "slug": "one-pager",
+          "label": "One-Pager",
+          "description": "Single-page company overview distilling value proposition, market opportunity, traction, and contact information into a scannable format.",
+          "estimated_pages_min": 1,
+          "estimated_pages_max": 2,
+          "estimated_minutes": 4,
+          "base_price_cents": 4500,
+          "schema_file": "one-pager.schema.json"
+        },
+        {
+          "slug": "investor-update",
+          "label": "Investor Update",
+          "description": "Monthly or quarterly investor update covering KPIs, milestones, challenges, burn rate, and upcoming priorities.",
+          "estimated_pages_min": 4,
+          "estimated_pages_max": 8,
+          "estimated_minutes": 6,
+          "base_price_cents": 5500,
+          "schema_file": "investor-update.schema.json"
+        }
+      ]
+    }
+  ]
+}

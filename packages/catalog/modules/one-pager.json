@@ -1,0 +1,36 @@
+{
+  "deliverable_slug": "one-pager",
+  "required_fields": [
+    { "key": "company_name", "label": "Company name", "type": "text", "placeholder": "Your company name" },
+    { "key": "tagline", "label": "Tagline or headline", "type": "text", "placeholder": "A compelling one-liner that captures what you do" },
+    { "key": "value_proposition", "label": "Value proposition", "type": "textarea", "placeholder": "In 2-3 sentences, what do you do and why does it matter to your target customer?" },
+    { "key": "target_audience", "label": "Target audience for this one-pager", "type": "text", "placeholder": "e.g., VCs, enterprise buyers, potential partners, conference attendees" },
+    { "key": "key_features", "label": "Key features or offerings", "type": "textarea", "placeholder": "List your top 3-4 product features, service capabilities, or key offerings..." }
+  ],
+  "optional_fields": [
+    { "key": "traction_metrics", "label": "Traction metrics or proof points", "type": "textarea", "placeholder": "Revenue, customer count, growth rate, awards, press mentions..." },
+    { "key": "market_opportunity", "label": "Market opportunity", "type": "textarea", "placeholder": "Brief description of the market size or opportunity..." },
+    { "key": "customer_logos", "label": "Notable customers or partners", "type": "textarea", "placeholder": "Names of recognizable customers or partners..." },
+    { "key": "founding_date", "label": "Year founded", "type": "text", "placeholder": "e.g., 2024" },
+    { "key": "team_size", "label": "Team size", "type": "text", "placeholder": "e.g., 15 employees" },
+    { "key": "funding_status", "label": "Funding status", "type": "text", "placeholder": "e.g., Seed funded, $2M raised" },
+    { "key": "call_to_action", "label": "Call to action", "type": "text", "placeholder": "What do you want the reader to do? e.g., Schedule a demo, Visit website" },
+    { "key": "website", "label": "Website", "type": "text" },
+    { "key": "contact_email", "label": "Contact email", "type": "text" },
+    { "key": "contact_phone", "label": "Contact phone", "type": "text" }
+  ],
+  "file_upload_prompts": [
+    { "kind": "brand_guide", "label": "Upload brand guidelines, logo, or color palette", "required": false },
+    { "kind": "reference_doc", "label": "Upload any existing one-pagers or marketing materials for reference", "required": false },
+    { "kind": "reference_image", "label": "Upload product screenshots or images to include", "required": false }
+  ],
+  "sections": [
+    { "key": "headline", "label": "Headline", "required": true, "min_words": 3, "max_words": 15, "instructions": "A bold, attention-grabbing headline that communicates the core value proposition in one line." },
+    { "key": "value_proposition", "label": "Value Proposition", "required": true, "min_words": 20, "max_words": 80, "instructions": "2-3 sentences explaining what you do, who you serve, and why you are the best choice. Must be instantly understandable." },
+    { "key": "problem_solution", "label": "Problem / Solution", "required": true, "min_words": 30, "max_words": 100, "instructions": "Brief, punchy description of the problem and how you solve it. Use contrast to make the before/after clear." },
+    { "key": "key_features", "label": "Key Features", "required": true, "min_words": 20, "max_words": 80, "instructions": "3-4 bullet points, each with a short title and one-line description. Focus on benefits, not technical specs." },
+    { "key": "traction", "label": "Traction / Proof Points", "required": false, "min_words": 10, "max_words": 60, "instructions": "2-3 compelling metrics or proof points that build credibility. Use large numbers and specific outcomes." },
+    { "key": "market_opportunity", "label": "Market Opportunity", "required": false, "min_words": 10, "max_words": 50, "instructions": "One-line market size statement with source. Keep it high-impact and easy to absorb." },
+    { "key": "call_to_action", "label": "Call to Action", "required": true, "min_words": 5, "max_words": 30, "instructions": "Clear next step with contact information. What should the reader do right now?" }
+  ]
+}

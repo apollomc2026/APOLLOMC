@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Audit Readiness Report",
+  "description": "Structured output schema for an audit readiness report deliverable.",
+  "type": "object",
+  "required": ["metadata", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["deliverable_type", "title", "organization", "audit_type", "date"],
+      "properties": {
+        "deliverable_type": { "type": "string", "const": "audit-readiness" },
+        "title": { "type": "string", "minLength": 5 },
+        "organization": { "type": "string" },
+        "audit_type": { "type": "string" },
+        "audit_framework": { "type": "string" },
+        "target_audit_date": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "prepared_by": { "type": "string" },
+        "classification": { "type": "string" }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "content"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "executive_summary",
+              "scope_and_objectives",
+              "control_environment",
+              "documentation_status",
+              "gap_analysis",
+              "risk_heat_map",
+              "remediation_timeline",
+              "resource_requirements",
+              "appendices"
+            ]
+          },
+          "label": { "type": "string" },
+          "content": { "type": "string", "minLength": 50 },
+          "control_findings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "control_id": { "type": "string" },
+                "control_name": { "type": "string" },
+                "status": { "type": "string", "enum": ["ready", "partially_ready", "not_ready", "not_applicable"] },
+                "gap_description": { "type": "string" },
+                "remediation_action": { "type": "string" },
+                "owner": { "type": "string" },
+                "target_date": { "type": "string" },
+                "priority": { "type": "string", "enum": ["critical", "high", "medium", "low"] }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Capability Statement",
+  "description": "Structured output schema for a capability statement deliverable.",
+  "type": "object",
+  "required": ["metadata", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["deliverable_type", "company_name", "date"],
+      "properties": {
+        "deliverable_type": { "type": "string", "const": "capability-statement" },
+        "company_name": { "type": "string" },
+        "cage_code": { "type": "string" },
+        "duns_uei": { "type": "string" },
+        "naics_codes": { "type": "array", "items": { "type": "string" } },
+        "set_aside_status": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "website": { "type": "string" },
+        "contact_name": { "type": "string" },
+        "contact_email": { "type": "string" },
+        "contact_phone": { "type": "string" }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "content"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "core_competencies",
+              "past_performance",
+              "differentiators",
+              "company_overview",
+              "contact_information"
+            ]
+          },
+          "label": { "type": "string" },
+          "content": { "type": "string", "minLength": 20 },
+          "bullet_points": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "past_performance_entries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "client": { "type": "string" },
+                "project": { "type": "string" },
+                "value": { "type": "string" },
+                "outcome": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

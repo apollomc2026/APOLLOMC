@@ -1,0 +1,36 @@
+{
+  "deliverable_slug": "pwp",
+  "required_fields": [
+    { "key": "company_name", "label": "Company name", "type": "text", "placeholder": "Full legal entity name" },
+    { "key": "contract_name", "label": "Contract or project name", "type": "text", "placeholder": "e.g., Enterprise IT Modernization Support" },
+    { "key": "client_agency", "label": "Client agency or organization", "type": "text", "placeholder": "e.g., Department of Veterans Affairs, Office of Information Technology" },
+    { "key": "contract_value", "label": "Contract value", "type": "text", "placeholder": "e.g., $4.2M over 3 years" },
+    { "key": "period_of_performance", "label": "Period of performance", "type": "text", "placeholder": "e.g., March 2023 - March 2026" },
+    { "key": "scope_description", "label": "Scope of work performed", "type": "textarea", "placeholder": "Describe the full scope of work you performed on this contract..." },
+    { "key": "challenges_and_solutions", "label": "Key challenges and how you solved them", "type": "textarea", "placeholder": "Describe the most significant challenges encountered and how your team addressed them..." },
+    { "key": "outcomes_and_results", "label": "Measurable outcomes and results", "type": "textarea", "placeholder": "Quantifiable results: cost savings, efficiency gains, metrics improved, deadlines met..." }
+  ],
+  "optional_fields": [
+    { "key": "contract_number", "label": "Contract number", "type": "text", "placeholder": "e.g., GS-35F-0001X, Task Order 47QTCA-20-F-0001" },
+    { "key": "contract_type", "label": "Contract type", "type": "text", "placeholder": "e.g., FFP, T&M, CPFF" },
+    { "key": "target_solicitation", "label": "Target solicitation this supports", "type": "text", "placeholder": "Solicitation number of the opportunity you are pursuing" },
+    { "key": "target_requirements", "label": "Requirements from target solicitation to map to", "type": "textarea", "placeholder": "Key requirements from the new opportunity that this past performance demonstrates..." },
+    { "key": "team_size", "label": "Team size", "type": "text", "placeholder": "e.g., 12 FTEs" },
+    { "key": "subcontractors", "label": "Subcontractor roles", "type": "textarea", "placeholder": "Any subcontractors involved and their roles..." },
+    { "key": "reference_contact", "label": "Client reference contact", "type": "textarea", "placeholder": "Name, title, phone, email of the client point of contact" },
+    { "key": "cpars_rating", "label": "CPARS rating (if available)", "type": "text", "placeholder": "e.g., Exceptional, Very Good, Satisfactory" }
+  ],
+  "file_upload_prompts": [
+    { "kind": "reference_doc", "label": "Upload CPARS reports, performance evaluations, or award letters", "required": false },
+    { "kind": "reference_doc", "label": "Upload the target solicitation for relevance mapping", "required": false },
+    { "kind": "brand_guide", "label": "Upload company brand guidelines (optional)", "required": false }
+  ],
+  "sections": [
+    { "key": "project_overview", "label": "Project Overview", "required": true, "min_words": 100, "max_words": 300, "instructions": "Provide context on the contract including client mission, urgency, and why this work mattered. Set the stage for demonstrating competence." },
+    { "key": "scope_and_complexity", "label": "Scope and Complexity", "required": true, "min_words": 150, "max_words": 400, "instructions": "Detail the technical and management complexity of the work performed. Emphasize elements that mirror the target opportunity's requirements." },
+    { "key": "challenges_and_solutions", "label": "Challenges and Solutions", "required": true, "min_words": 200, "max_words": 500, "instructions": "Describe 2-3 significant challenges and your innovative solutions. Use the Problem-Action-Result format. Quantify where possible." },
+    { "key": "outcomes_and_results", "label": "Outcomes and Results", "required": true, "min_words": 150, "max_words": 400, "instructions": "Present measurable outcomes with specific metrics. Cost savings, schedule performance, quality indicators, and client satisfaction scores." },
+    { "key": "relevance_to_opportunity", "label": "Relevance to Target Opportunity", "required": true, "min_words": 100, "max_words": 300, "instructions": "Explicitly connect this past performance to the requirements of the target solicitation. Draw parallels in scope, complexity, environment, and mission." },
+    { "key": "client_reference", "label": "Client Reference", "required": false, "min_words": 20, "max_words": 100, "instructions": "Provide client reference contact information including name, title, organization, phone, and email." }
+  ]
+}

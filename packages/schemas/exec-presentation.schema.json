@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Executive Presentation",
+  "description": "Structured output schema for an executive presentation deliverable.",
+  "type": "object",
+  "required": ["metadata", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["deliverable_type", "title", "organization", "date", "audience"],
+      "properties": {
+        "deliverable_type": { "type": "string", "const": "exec-presentation" },
+        "title": { "type": "string", "minLength": 5 },
+        "subtitle": { "type": "string" },
+        "organization": { "type": "string" },
+        "presenter": { "type": "string" },
+        "audience": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "confidentiality": { "type": "string" }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "content"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "title_slide",
+              "executive_summary",
+              "situation_analysis",
+              "strategic_options",
+              "recommendation",
+              "financial_impact",
+              "implementation_timeline",
+              "risk_assessment",
+              "next_steps",
+              "appendix"
+            ]
+          },
+          "label": { "type": "string" },
+          "content": { "type": "string", "minLength": 20 },
+          "slide_notes": { "type": "string" },
+          "data_visualizations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "chart_type": { "type": "string", "enum": ["bar", "line", "pie", "table", "matrix", "flow"] },
+                "title": { "type": "string" },
+                "data_description": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

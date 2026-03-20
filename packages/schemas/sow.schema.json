@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Statement of Work",
+  "description": "Structured output schema for a statement of work deliverable.",
+  "type": "object",
+  "required": ["metadata", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["deliverable_type", "title", "client_name", "provider_name", "date"],
+      "properties": {
+        "deliverable_type": { "type": "string", "const": "sow" },
+        "title": { "type": "string", "minLength": 5 },
+        "sow_number": { "type": "string" },
+        "client_name": { "type": "string" },
+        "provider_name": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "version": { "type": "string" },
+        "master_agreement_ref": { "type": "string" }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "content"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "purpose_and_background",
+              "scope_of_work",
+              "deliverables",
+              "timeline_and_milestones",
+              "acceptance_criteria",
+              "roles_and_responsibilities",
+              "pricing_and_payment",
+              "assumptions_and_constraints",
+              "change_management",
+              "governance",
+              "signature_block"
+            ]
+          },
+          "label": { "type": "string" },
+          "content": { "type": "string", "minLength": 30 },
+          "milestones": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "milestone_id": { "type": "string" },
+                "name": { "type": "string" },
+                "due_date": { "type": "string" },
+                "deliverables": { "type": "array", "items": { "type": "string" } },
+                "acceptance_criteria": { "type": "string" },
+                "payment_amount": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

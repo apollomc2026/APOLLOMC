@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Discovery Summary",
+  "description": "Structured output schema for a discovery summary deliverable.",
+  "type": "object",
+  "required": ["metadata", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["deliverable_type", "title", "case_name", "date"],
+      "properties": {
+        "deliverable_type": { "type": "string", "const": "discovery-summary" },
+        "title": { "type": "string", "minLength": 5 },
+        "case_name": { "type": "string" },
+        "case_number": { "type": "string" },
+        "court": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "prepared_by": { "type": "string" },
+        "confidentiality_notice": { "type": "string" }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "content"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "executive_summary",
+              "discovery_overview",
+              "document_review_findings",
+              "deposition_highlights",
+              "key_evidence",
+              "timeline",
+              "recommendations"
+            ]
+          },
+          "label": { "type": "string" },
+          "content": { "type": "string", "minLength": 50 },
+          "exhibits": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "exhibit_id": { "type": "string" },
+                "description": { "type": "string" },
+                "relevance": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

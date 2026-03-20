@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Investor Update",
+  "description": "Structured output schema for an investor update deliverable.",
+  "type": "object",
+  "required": ["metadata", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["deliverable_type", "company_name", "reporting_period", "date"],
+      "properties": {
+        "deliverable_type": { "type": "string", "const": "investor-update" },
+        "company_name": { "type": "string" },
+        "reporting_period": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "ceo_name": { "type": "string" },
+        "round": { "type": "string" },
+        "confidentiality_notice": { "type": "string" }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "content"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "tldr",
+              "key_metrics",
+              "milestones",
+              "challenges",
+              "burn_and_runway",
+              "product_updates",
+              "team_updates",
+              "upcoming_priorities",
+              "asks"
+            ]
+          },
+          "label": { "type": "string" },
+          "content": { "type": "string", "minLength": 20 },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "metric": { "type": "string" },
+                "current": { "type": "string" },
+                "previous": { "type": "string" },
+                "change_pct": { "type": "string" },
+                "target": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

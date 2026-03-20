@@ -1,0 +1,38 @@
+{
+  "deliverable_slug": "audit-readiness",
+  "required_fields": [
+    { "key": "organization_name", "label": "Organization name", "type": "text", "placeholder": "Full legal entity name" },
+    { "key": "audit_type", "label": "Type of audit", "type": "text", "placeholder": "e.g., External financial audit, SOC 2 Type II, SOX 404, Internal audit" },
+    { "key": "audit_framework", "label": "Audit framework or standard", "type": "text", "placeholder": "e.g., GAAP, COSO, COBIT, AICPA TSC, ISO 27001" },
+    { "key": "target_audit_date", "label": "Target audit date", "type": "date" },
+    { "key": "scope_description", "label": "Audit scope", "type": "textarea", "placeholder": "Which business units, systems, or processes are in scope for the audit?" },
+    { "key": "current_readiness", "label": "Current readiness self-assessment", "type": "textarea", "placeholder": "How ready do you feel for the audit? What areas are you most and least confident about?" }
+  ],
+  "optional_fields": [
+    { "key": "prior_audit_results", "label": "Prior audit results", "type": "textarea", "placeholder": "Summary of last audit findings, open items, and remediation status..." },
+    { "key": "auditor_firm", "label": "Audit firm", "type": "text", "placeholder": "e.g., Deloitte, BDO, Grant Thornton" },
+    { "key": "key_controls", "label": "Key controls to assess", "type": "textarea", "placeholder": "Specific controls you want evaluated for readiness..." },
+    { "key": "known_gaps", "label": "Known gaps or weaknesses", "type": "textarea", "placeholder": "Areas where you already know there are deficiencies..." },
+    { "key": "system_landscape", "label": "Key systems in scope", "type": "textarea", "placeholder": "ERP, CRM, HRIS, financial systems, cloud platforms..." },
+    { "key": "team_resources", "label": "Available remediation resources", "type": "textarea", "placeholder": "Internal team capacity for remediation work..." },
+    { "key": "budget_constraints", "label": "Remediation budget", "type": "text", "placeholder": "Budget available for addressing gaps" },
+    { "key": "classification", "label": "Document classification", "type": "text", "placeholder": "e.g., Confidential, Internal Use Only" }
+  ],
+  "file_upload_prompts": [
+    { "kind": "reference_doc", "label": "Upload prior audit reports, management letters, or findings", "required": false },
+    { "kind": "reference_doc", "label": "Upload existing control documentation, policies, or procedure manuals", "required": false },
+    { "kind": "reference_doc", "label": "Upload system architecture diagrams or data flow maps", "required": false },
+    { "kind": "brand_guide", "label": "Upload company brand guidelines (optional)", "required": false }
+  ],
+  "sections": [
+    { "key": "executive_summary", "label": "Executive Summary", "required": true, "min_words": 150, "max_words": 400, "instructions": "Overall readiness assessment with a clear readiness score or rating. Summarize the number of controls assessed, readiness distribution, and critical items requiring immediate action." },
+    { "key": "scope_and_objectives", "label": "Scope and Objectives", "required": true, "min_words": 100, "max_words": 300, "instructions": "Define the assessment boundaries, audit framework applied, and what this readiness report covers and excludes." },
+    { "key": "control_environment", "label": "Control Environment Assessment", "required": true, "min_words": 250, "max_words": 600, "instructions": "Evaluate the overall control environment including tone at the top, organizational structure, policies, and governance. Map to the audit framework's control domains." },
+    { "key": "documentation_status", "label": "Documentation Status", "required": true, "min_words": 150, "max_words": 400, "instructions": "Inventory of required documentation and its current state. Identify missing, outdated, or incomplete documentation by control area." },
+    { "key": "gap_analysis", "label": "Gap Analysis", "required": true, "min_words": 200, "max_words": 600, "instructions": "Detailed control-by-control gap assessment. For each gap: describe the expected state, current state, severity, and what evidence is needed." },
+    { "key": "risk_heat_map", "label": "Risk Heat Map", "required": true, "min_words": 100, "max_words": 300, "instructions": "Visual risk matrix showing each finding plotted by likelihood of audit failure and impact severity. Provide a narrative summary of the risk landscape." },
+    { "key": "remediation_timeline", "label": "Remediation Timeline", "required": true, "min_words": 150, "max_words": 400, "instructions": "Prioritized remediation plan with specific actions, responsible owners, target completion dates, and dependencies. Align timeline to audit date." },
+    { "key": "resource_requirements", "label": "Resource Requirements", "required": true, "min_words": 80, "max_words": 250, "instructions": "Personnel, budget, and external support needed to close gaps before the audit. Include both internal effort estimates and any third-party costs." },
+    { "key": "appendices", "label": "Appendices", "required": false, "min_words": 50, "max_words": 500, "instructions": "Supporting materials including detailed control matrices, evidence checklists, documentation templates, and framework mapping tables." }
+  ]
+}

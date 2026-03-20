@@ -1,0 +1,37 @@
+{
+  "deliverable_slug": "exec-presentation",
+  "required_fields": [
+    { "key": "organization_name", "label": "Organization name", "type": "text", "placeholder": "Your company or client name" },
+    { "key": "presentation_topic", "label": "Presentation topic", "type": "textarea", "placeholder": "What is the core subject of this presentation? e.g., Q4 strategic review, market expansion proposal..." },
+    { "key": "audience", "label": "Target audience", "type": "text", "placeholder": "e.g., Board of directors, C-suite, senior leadership team" },
+    { "key": "key_message", "label": "Key message or recommendation", "type": "textarea", "placeholder": "What is the single most important takeaway you want the audience to leave with?" },
+    { "key": "context_and_background", "label": "Context and background", "type": "textarea", "placeholder": "What background does the audience need? What prompted this presentation?" },
+    { "key": "desired_action", "label": "Desired action from audience", "type": "textarea", "placeholder": "What decision, approval, or action do you want the audience to take after this presentation?" }
+  ],
+  "optional_fields": [
+    { "key": "presenter_name", "label": "Presenter name and title", "type": "text", "placeholder": "e.g., Jane Smith, VP of Strategy" },
+    { "key": "presentation_date", "label": "Presentation date", "type": "date" },
+    { "key": "time_limit", "label": "Presentation time limit", "type": "text", "placeholder": "e.g., 20 minutes with 10 minutes Q&A" },
+    { "key": "financial_data", "label": "Key financial data to include", "type": "textarea", "placeholder": "Revenue figures, growth rates, cost data, projections..." },
+    { "key": "competitive_context", "label": "Competitive context", "type": "textarea", "placeholder": "Relevant competitor moves or market dynamics..." },
+    { "key": "sensitive_topics", "label": "Sensitive topics to handle carefully", "type": "textarea", "placeholder": "Any politically sensitive issues, layoffs, bad news..." },
+    { "key": "slide_count_preference", "label": "Preferred slide count", "type": "text", "placeholder": "e.g., 15-20 slides" }
+  ],
+  "file_upload_prompts": [
+    { "kind": "reference_doc", "label": "Upload supporting data, reports, or prior presentations", "required": false },
+    { "kind": "financial_data", "label": "Upload financial data (spreadsheets, reports) to incorporate", "required": false },
+    { "kind": "brand_guide", "label": "Upload brand guidelines or presentation template (optional)", "required": false }
+  ],
+  "sections": [
+    { "key": "title_slide", "label": "Title Slide", "required": true, "min_words": 10, "max_words": 50, "instructions": "Create a compelling title slide with presentation title, subtitle, presenter name, date, and any required disclaimers." },
+    { "key": "executive_summary", "label": "Executive Summary", "required": true, "min_words": 50, "max_words": 200, "instructions": "One slide that captures the entire presentation in 3-5 bullet points. This slide should stand alone as a complete briefing." },
+    { "key": "situation_analysis", "label": "Situation Analysis", "required": true, "min_words": 100, "max_words": 400, "instructions": "2-3 slides covering the current state, market context, and key challenges or opportunities. Use data visualizations where appropriate." },
+    { "key": "strategic_options", "label": "Strategic Options", "required": true, "min_words": 100, "max_words": 400, "instructions": "Present 2-3 strategic options with pros, cons, and trade-offs for each. Use a comparison framework (table or matrix) for clarity." },
+    { "key": "recommendation", "label": "Recommendation", "required": true, "min_words": 80, "max_words": 300, "instructions": "Present the recommended path forward with clear rationale. Connect back to the key message and desired audience action." },
+    { "key": "financial_impact", "label": "Financial Impact", "required": true, "min_words": 80, "max_words": 300, "instructions": "Quantify the financial implications of the recommendation including investment required, expected returns, and timeline to impact." },
+    { "key": "implementation_timeline", "label": "Implementation Timeline", "required": true, "min_words": 50, "max_words": 200, "instructions": "Visual timeline showing key milestones, dependencies, and resource requirements for executing the recommendation." },
+    { "key": "risk_assessment", "label": "Risk Assessment", "required": false, "min_words": 50, "max_words": 200, "instructions": "Identify top 3-5 risks to the recommended approach with likelihood, impact, and mitigation strategies." },
+    { "key": "next_steps", "label": "Next Steps", "required": true, "min_words": 30, "max_words": 100, "instructions": "Clear, actionable next steps with owners and deadlines. End with the specific ask of the audience." },
+    { "key": "appendix", "label": "Appendix", "required": false, "min_words": 50, "max_words": 500, "instructions": "Supporting detail slides for reference during Q&A. Include detailed data, methodology notes, and backup analysis." }
+  ]
+}

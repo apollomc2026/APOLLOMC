@@ -1,0 +1,26 @@
+{
+  "Domain": "apollomc.ai",
+  "VerificationType": "Domain",
+  "DkimEnabled": true,
+  "MailFromDomain": "mail.apollomc.ai",
+  "Identities": [
+    {
+      "Identity": "missions@apollomc.ai",
+      "IdentityType": "EmailAddress",
+      "Purpose": "Transactional mission notifications"
+    },
+    {
+      "Identity": "support@apollomc.ai",
+      "IdentityType": "EmailAddress",
+      "Purpose": "Support communications"
+    }
+  ],
+  "DnsRecords": {
+    "Note": "After running 'aws ses verify-domain-identity', add the returned CNAME records to Hostinger DNS panel",
+    "Commands": [
+      "aws ses verify-domain-identity --domain apollomc.ai",
+      "aws ses verify-domain-dkim --domain apollomc.ai",
+      "aws ses get-identity-verification-attributes --identities apollomc.ai"
+    ]
+  }
+}

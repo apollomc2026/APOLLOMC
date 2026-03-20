@@ -1,0 +1,34 @@
+{
+  "deliverable_slug": "compliance-report",
+  "required_fields": [
+    { "key": "organization_name", "label": "Organization name", "type": "text", "placeholder": "Full legal entity name" },
+    { "key": "regulatory_framework", "label": "Regulatory framework", "type": "text", "placeholder": "e.g., SOX, HIPAA, GDPR, CCPA, PCI-DSS, SOC 2" },
+    { "key": "assessment_scope", "label": "Assessment scope", "type": "textarea", "placeholder": "Which departments, systems, or processes are in scope for this assessment?" },
+    { "key": "assessment_period", "label": "Assessment period", "type": "text", "placeholder": "e.g., January 1 - December 31, 2025" },
+    { "key": "current_compliance_status", "label": "Current compliance status", "type": "textarea", "placeholder": "Describe your current understanding of compliance posture (e.g., first assessment, previously compliant with known gaps)..." },
+    { "key": "key_concerns", "label": "Primary compliance concerns", "type": "textarea", "placeholder": "What specific areas of non-compliance or risk are you most concerned about?" }
+  ],
+  "optional_fields": [
+    { "key": "prior_audit_findings", "label": "Prior audit or assessment findings", "type": "textarea", "placeholder": "Summarize findings from any previous assessments..." },
+    { "key": "industry_sector", "label": "Industry sector", "type": "text", "placeholder": "e.g., Healthcare, Financial Services, Technology" },
+    { "key": "employee_count", "label": "Approximate employee count", "type": "text", "placeholder": "e.g., 250" },
+    { "key": "geographic_scope", "label": "Geographic scope of operations", "type": "text", "placeholder": "e.g., US only, US and EU, Global" },
+    { "key": "target_completion", "label": "Target remediation completion date", "type": "date" },
+    { "key": "compliance_officer", "label": "Compliance officer or point of contact", "type": "text", "placeholder": "Name and title" }
+  ],
+  "file_upload_prompts": [
+    { "kind": "reference_doc", "label": "Upload any existing compliance documentation, policies, or prior audit reports", "required": false },
+    { "kind": "reference_doc", "label": "Upload relevant regulatory guidance documents or checklists", "required": false },
+    { "kind": "brand_guide", "label": "Upload company brand guidelines for report formatting (optional)", "required": false }
+  ],
+  "sections": [
+    { "key": "executive_summary", "label": "Executive Summary", "required": true, "min_words": 150, "max_words": 400, "instructions": "Summarize the overall compliance posture, number and severity of findings, and top-priority remediation items. Write for C-suite and board-level audience." },
+    { "key": "scope_and_methodology", "label": "Scope and Methodology", "required": true, "min_words": 100, "max_words": 300, "instructions": "Define the assessment boundaries, frameworks applied, evaluation methods, and any limitations or exclusions." },
+    { "key": "regulatory_landscape", "label": "Regulatory Landscape", "required": true, "min_words": 150, "max_words": 400, "instructions": "Overview the applicable regulations, recent changes, enforcement trends, and their specific applicability to the organization." },
+    { "key": "current_state_assessment", "label": "Current State Assessment", "required": true, "min_words": 300, "max_words": 800, "instructions": "Detail the current compliance posture across each control domain. Include evidence of compliance and identified deficiencies organized by control area." },
+    { "key": "gap_analysis", "label": "Gap Analysis", "required": true, "min_words": 200, "max_words": 600, "instructions": "Map each identified gap between current state and regulatory requirements. Classify each gap by severity (critical, high, medium, low) with clear rationale." },
+    { "key": "risk_scoring", "label": "Risk Scoring Matrix", "required": true, "min_words": 100, "max_words": 300, "instructions": "Present a risk matrix scoring each finding by likelihood of exploitation and potential impact. Provide an overall risk score and category." },
+    { "key": "remediation_roadmap", "label": "Remediation Roadmap", "required": true, "min_words": 200, "max_words": 500, "instructions": "Provide a prioritized, time-bound remediation plan for each finding. Include responsible party, estimated effort, dependencies, and milestone dates." },
+    { "key": "appendices", "label": "Appendices", "required": false, "min_words": 50, "max_words": 300, "instructions": "Include supporting materials such as control mapping tables, evidence logs, glossary of terms, and regulatory reference links." }
+  ]
+}
