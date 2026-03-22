@@ -26,9 +26,14 @@ export default function HomePage() {
             Sign In
           </Link>
         </div>
-        <p className="mt-12 text-gray-600 text-sm">
-          On Spot Solutions LLC — Boston, Massachusetts
-        </p>
+        <div className="mt-12 text-gray-600 text-sm">
+          <p>On Spot Solutions LLC — Boston, Massachusetts</p>
+          <div className="mt-2 flex items-center justify-center gap-4">
+            <Link href="/terms" className="hover:text-gray-400">Terms of Service</Link>
+            <span>·</span>
+            <Link href="/privacy" className="hover:text-gray-400">Privacy Policy</Link>
+          </div>
+        </div>
       </div>
     </div>
   )

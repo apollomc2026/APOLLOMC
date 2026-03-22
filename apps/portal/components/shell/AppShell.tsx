@@ -104,6 +104,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <LogOut className="w-5 h-5" />
                 Sign out
               </button>
+              <div className="flex items-center gap-3 px-3 pt-2 text-xs text-gray-600">
+                <Link href="/terms" className="hover:text-gray-400">Terms</Link>
+                <span>·</span>
+                <Link href="/privacy" className="hover:text-gray-400">Privacy</Link>
+              </div>
             </div>
           </div>
         </aside>
