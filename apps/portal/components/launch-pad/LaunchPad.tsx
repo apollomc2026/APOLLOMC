@@ -63,7 +63,6 @@ export default function LaunchPad() {
       setMission(m as Mission)
       setDeliverable((m as unknown as Record<string, unknown>).deliverable_types as DeliverableType)
 
-      // Load or create intake session
       const { data: existing } = await supabase
         .from('intake_sessions')
         .select('*')
@@ -82,7 +81,6 @@ export default function LaunchPad() {
         setSession(newSession)
       }
 
-      // Load uploaded files
       const { data: files } = await supabase
         .from('uploaded_files')
         .select('id, original_name, kind')
@@ -92,7 +90,6 @@ export default function LaunchPad() {
         (files || []).map((f) => ({ id: f.id, name: f.original_name, kind: f.kind }))
       )
 
-      // Load module definition
       const slug = (m as unknown as Record<string, Record<string, string>>).deliverable_types?.slug
       if (slug) {
         try {
@@ -101,7 +98,7 @@ export default function LaunchPad() {
             setModule(await res.json())
           }
         } catch {
-          // Module not found — use empty
+          // Module not found
         }
       }
 
@@ -154,14 +151,13 @@ export default function LaunchPad() {
       .update({ collected, complete: true })
       .eq('id', session.id)
 
-    // Trigger plan assembly
     await fetch(`/api/missions/${missionId}/assemble`, { method: 'POST' })
 
     router.push(`/new-mission/brief?mission=${missionId}`)
   }
 
   if (loading || !module) {
-    return <div className="animate-pulse h-96 bg-gray-900 rounded-xl" />
+    return <div className="animate-pulse h-96 bg-[var(--apollo-navy)] rounded-xl" />
   }
 
   const allFields = [...module.required_fields, ...module.optional_fields]
@@ -175,12 +171,10 @@ export default function LaunchPad() {
   ).length
   const progress = totalRequired > 0 ? Math.round((completedRequired / totalRequired) * 100) : 0
 
-  // Group fields into steps of 3
   const steps: ModuleField[][] = []
   for (let i = 0; i < allFields.length; i += 3) {
     steps.push(allFields.slice(i, i + 3))
   }
-  // Add file upload step
   const hasFileUploads = module.file_upload_prompts.length > 0
 
   return (
@@ -188,12 +182,12 @@ export default function LaunchPad() {
       {/* Progress bar */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-gray-400">Intake progress</span>
-          <span className="text-sm font-medium">{progress}%</span>
+          <span className="label-caps">Mission Readiness</span>
+          <span className="text-sm font-medium text-[var(--apollo-blue)]">{progress}%</span>
         </div>
-        <div className="h-2 bg-gray-800 rounded-full">
+        <div className="h-2 bg-[var(--apollo-surface)] rounded-full overflow-hidden">
           <div
-            className="h-2 bg-red-600 rounded-full transition-all duration-300"
+            className="h-2 bg-[var(--apollo-blue)] rounded-full transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -204,10 +198,10 @@ export default function LaunchPad() {
         <div className="space-y-6">
           {steps[currentStep].map((field) => (
             <div key={field.key}>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="label-caps block mb-2">
                 {field.label}
                 {module.required_fields.some((f) => f.key === field.key) && (
-                  <span className="text-red-400 ml-1">*</span>
+                  <span className="text-[var(--apollo-danger)] ml-1">*</span>
                 )}
               </label>
               {field.type === 'textarea' ? (
@@ -216,13 +210,13 @@ export default function LaunchPad() {
                   onChange={(e) => saveField(field.key, e.target.value)}
                   rows={4}
                   placeholder={field.placeholder}
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                  className="w-full px-4 py-3 bg-[var(--apollo-surface)] border border-[var(--apollo-border)] rounded-lg text-white placeholder-[var(--apollo-text-faint)] focus:outline-none focus:ring-2 focus:ring-[var(--apollo-blue)] focus:border-transparent resize-none"
                 />
               ) : field.type === 'select' ? (
                 <select
                   value={collected[field.key] || ''}
                   onChange={(e) => saveField(field.key, e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-4 py-3 bg-[var(--apollo-surface)] border border-[var(--apollo-border)] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[var(--apollo-blue)] focus:border-transparent"
                 >
                   <option value="">Select...</option>
                   {field.options?.map((opt) => (
@@ -235,7 +229,7 @@ export default function LaunchPad() {
                   value={collected[field.key] || ''}
                   onChange={(e) => saveField(field.key, e.target.value)}
                   placeholder={field.placeholder}
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-4 py-3 bg-[var(--apollo-surface)] border border-[var(--apollo-border)] rounded-lg text-white placeholder-[var(--apollo-text-faint)] focus:outline-none focus:ring-2 focus:ring-[var(--apollo-blue)] focus:border-transparent"
                 />
               )}
             </div>
@@ -246,13 +240,13 @@ export default function LaunchPad() {
       {/* File upload step */}
       {currentStep === steps.length && hasFileUploads && (
         <div className="space-y-6">
-          <h3 className="text-lg font-semibold">Upload Documents</h3>
+          <p className="label-caps">Upload Documents</p>
           {module.file_upload_prompts.map((prompt) => (
-            <div key={prompt.kind} className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-              <p className="text-sm text-gray-300 mb-3">{prompt.label}</p>
-              <label className="flex items-center justify-center gap-2 px-4 py-8 border-2 border-dashed border-gray-700 rounded-lg cursor-pointer hover:border-gray-600 transition-colors">
-                <Upload className="w-5 h-5 text-gray-500" />
-                <span className="text-sm text-gray-400">
+            <div key={prompt.kind} className="bg-[var(--apollo-navy)] border border-[var(--apollo-border)] rounded-xl p-5">
+              <p className="text-sm text-[var(--apollo-text-muted)] mb-3">{prompt.label}</p>
+              <label className="flex items-center justify-center gap-2 px-4 py-8 border-2 border-dashed border-[var(--apollo-border)] rounded-lg cursor-pointer hover:border-[var(--apollo-blue)]/40 transition-colors">
+                <Upload className="w-5 h-5 text-[var(--apollo-text-faint)]" />
+                <span className="text-sm text-[var(--apollo-text-muted)]">
                   {uploading ? 'Uploading...' : 'Click to upload'}
                 </span>
                 <input
@@ -268,7 +262,7 @@ export default function LaunchPad() {
               {uploadedFiles
                 .filter((f) => f.kind === prompt.kind)
                 .map((f) => (
-                  <div key={f.id} className="flex items-center gap-2 mt-2 text-sm text-green-400">
+                  <div key={f.id} className="flex items-center gap-2 mt-2 text-sm text-[var(--apollo-success)]">
                     <Check className="w-4 h-4" />
                     {f.name}
                   </div>
@@ -283,7 +277,7 @@ export default function LaunchPad() {
         <button
           onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
           disabled={currentStep === 0}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[var(--apollo-surface)] hover:bg-[var(--apollo-border)] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors border border-[var(--apollo-border)]"
         >
           <ChevronLeft className="w-4 h-4" />
           Previous
@@ -292,7 +286,7 @@ export default function LaunchPad() {
         {currentStep < steps.length - 1 + (hasFileUploads ? 1 : 0) ? (
           <button
             onClick={() => setCurrentStep(currentStep + 1)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[var(--apollo-surface)] hover:bg-[var(--apollo-border)] text-white rounded-lg transition-colors border border-[var(--apollo-border)]"
           >
             Next
             <ChevronRight className="w-4 h-4" />
@@ -301,7 +295,7 @@ export default function LaunchPad() {
           <button
             onClick={launchMission}
             disabled={!requiredComplete}
-            className="flex items-center gap-2 px-6 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+            className="flex items-center gap-2 px-6 py-2.5 bg-[var(--apollo-blue)] hover:bg-[var(--apollo-blue-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all glow-blue"
           >
             <Rocket className="w-4 h-4" />
             Launch Mission

@@ -54,22 +54,22 @@ export default function FileSystem() {
     : missions.filter((m) => m.status === filter)
 
   if (loading) {
-    return <div className="animate-pulse h-96 bg-gray-900 rounded-xl" />
+    return <div className="animate-pulse h-96 bg-[var(--apollo-navy)] rounded-xl" />
   }
 
   return (
     <div>
       {/* Filters */}
       <div className="flex items-center gap-2 mb-6">
-        <Filter className="w-4 h-4 text-gray-500" />
+        <Filter className="w-4 h-4 text-[var(--apollo-text-faint)]" />
         {['all', 'delivered', 'review', 'awaiting_payment'].map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               filter === f
-                ? 'bg-red-600/10 text-red-400'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                ? 'bg-[var(--apollo-blue-subtle)] text-[var(--apollo-blue)] border border-[var(--apollo-blue)]/20'
+                : 'bg-[var(--apollo-surface)] text-[var(--apollo-text-muted)] hover:bg-[var(--apollo-border)] border border-transparent'
             }`}
           >
             {f === 'all' ? 'All' : f.replace(/_/g, ' ')}
@@ -78,24 +78,24 @@ export default function FileSystem() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="text-center py-16 bg-gray-900 border border-gray-800 rounded-xl">
-          <FileText className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-300">No files yet</h3>
-          <p className="text-gray-500 mt-1">Completed missions will appear here.</p>
+        <div className="text-center py-16 bg-[var(--apollo-navy)] border border-[var(--apollo-border)] rounded-xl">
+          <FileText className="w-12 h-12 text-[var(--apollo-text-faint)] mx-auto mb-4" />
+          <h3 className="text-lg font-medium">No Files Yet</h3>
+          <p className="text-[var(--apollo-text-muted)] mt-1">Completed missions will appear here.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {filtered.map((mission) => (
             <div
               key={mission.id}
-              className="bg-gray-900 border border-gray-800 rounded-xl p-5"
+              className="bg-[var(--apollo-navy)] rounded-xl p-5 mission-card"
             >
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-medium">
                     {mission.deliverable_types?.label || 'Untitled'}
                   </h3>
-                  <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                  <div className="flex items-center gap-4 mt-1 text-sm text-[var(--apollo-text-faint)]">
                     <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       {new Date(mission.created_at).toLocaleDateString()}
@@ -103,8 +103,8 @@ export default function FileSystem() {
                     <span
                       className={
                         mission.status === 'delivered'
-                          ? 'text-green-400'
-                          : 'text-yellow-400'
+                          ? 'text-[var(--apollo-success)]'
+                          : 'text-[var(--apollo-warning)]'
                       }
                     >
                       {mission.status.replace(/_/g, ' ')}
@@ -118,7 +118,7 @@ export default function FileSystem() {
                   <button
                     onClick={() => handleRedownload(mission.id)}
                     disabled={downloading === mission.id}
-                    className="flex items-center gap-2 px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-colors"
+                    className="flex items-center gap-2 px-3 py-2 bg-[var(--apollo-surface)] hover:bg-[var(--apollo-border)] rounded-lg text-sm transition-colors border border-[var(--apollo-border)]"
                   >
                     <Download className="w-4 h-4" />
                     {downloading === mission.id ? 'Preparing...' : 'Re-download'}

@@ -7,11 +7,11 @@ import { CheckCircle, Loader2, Clock, AlertCircle, ArrowRight } from 'lucide-rea
 import Link from 'next/link'
 
 const taskStatusConfig = {
-  queued: { icon: Clock, color: 'text-gray-400', bg: 'bg-gray-800', label: 'Queued' },
-  running: { icon: Loader2, color: 'text-amber-400', bg: 'bg-amber-900/20', label: 'Building' },
-  complete: { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-900/20', label: 'Complete' },
-  failed: { icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-900/20', label: 'Failed' },
-  skipped: { icon: Clock, color: 'text-gray-500', bg: 'bg-gray-800', label: 'Skipped' },
+  queued: { icon: Clock, color: 'text-[var(--apollo-text-muted)]', bg: 'bg-[var(--apollo-surface)]', label: 'Queued' },
+  running: { icon: Loader2, color: 'text-[var(--apollo-warning)]', bg: 'bg-[var(--apollo-warning)]/10', label: 'Building' },
+  complete: { icon: CheckCircle, color: 'text-[var(--apollo-success)]', bg: 'bg-[var(--apollo-success)]/10', label: 'Complete' },
+  failed: { icon: AlertCircle, color: 'text-[var(--apollo-danger)]', bg: 'bg-[var(--apollo-danger)]/10', label: 'Failed' },
+  skipped: { icon: Clock, color: 'text-[var(--apollo-text-faint)]', bg: 'bg-[var(--apollo-surface)]', label: 'Skipped' },
 }
 
 interface Props {
@@ -43,7 +43,6 @@ export default function MissionStatus({ missionId }: Props) {
     }
     load()
 
-    // Subscribe to real-time updates on tasks
     const taskChannel = supabase
       .channel(`tasks-${missionId}`)
       .on(
@@ -69,7 +68,6 @@ export default function MissionStatus({ missionId }: Props) {
       )
       .subscribe()
 
-    // Subscribe to mission status changes
     const missionChannel = supabase
       .channel(`mission-${missionId}`)
       .on(
@@ -93,7 +91,7 @@ export default function MissionStatus({ missionId }: Props) {
   }, [missionId])
 
   if (loading) {
-    return <div className="animate-pulse h-96 bg-gray-900 rounded-xl" />
+    return <div className="animate-pulse h-96 bg-[var(--apollo-navy)] rounded-xl" />
   }
 
   const completedTasks = tasks.filter((t) => t.status === 'complete').length
@@ -106,26 +104,22 @@ export default function MissionStatus({ missionId }: Props) {
   return (
     <div className="space-y-6">
       {/* Progress header */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+      <div className="bg-[var(--apollo-navy)] border border-[var(--apollo-border)] rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-lg font-semibold">
-              {isComplete
-                ? 'Build Complete'
-                : isFailed
-                  ? 'Build Failed'
-                  : 'Building...'}
-            </h2>
-            <p className="text-sm text-gray-400 mt-1">
-              {completedTasks} of {totalTasks} sections complete
+            <p className="label-caps mb-1">
+              {isComplete ? 'Build Complete' : isFailed ? 'Build Failed' : 'Building'}
             </p>
+            <h2 className="text-lg font-semibold">
+              {completedTasks} of {totalTasks} sections complete
+            </h2>
           </div>
-          <span className="text-2xl font-bold">{progress}%</span>
+          <span className="text-2xl font-bold text-[var(--apollo-blue)]">{progress}%</span>
         </div>
-        <div className="h-3 bg-gray-800 rounded-full overflow-hidden">
+        <div className="h-3 bg-[var(--apollo-surface)] rounded-full overflow-hidden">
           <div
             className={`h-3 rounded-full transition-all duration-500 ${
-              isFailed ? 'bg-red-600' : isComplete ? 'bg-green-600' : 'bg-red-600'
+              isFailed ? 'bg-[var(--apollo-danger)]' : isComplete ? 'bg-[var(--apollo-success)]' : 'bg-[var(--apollo-blue)]'
             }`}
             style={{ width: `${progress}%` }}
           />
@@ -134,16 +128,16 @@ export default function MissionStatus({ missionId }: Props) {
         {isComplete && (
           <Link
             href={`/review/${missionId}`}
-            className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
+            className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-[var(--apollo-blue)] hover:bg-[var(--apollo-blue-hover)] text-white font-semibold rounded-lg transition-all glow-blue"
           >
-            Review your deliverable
+            Review Deliverable
             <ArrowRight className="w-4 h-4" />
           </Link>
         )}
       </div>
 
       {/* Task list */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl divide-y divide-gray-800">
+      <div className="bg-[var(--apollo-navy)] border border-[var(--apollo-border)] rounded-xl divide-y divide-[var(--apollo-border)]">
         {tasks.map((task) => {
           const config = taskStatusConfig[task.status] || taskStatusConfig.queued
           const Icon = config.icon
@@ -161,7 +155,7 @@ export default function MissionStatus({ missionId }: Props) {
                   Section {(task.section_index ?? 0) + 1}: {task.section_key?.replace(/_/g, ' ')}
                 </p>
                 {task.error_message && (
-                  <p className="text-xs text-red-400 mt-0.5 truncate">{task.error_message}</p>
+                  <p className="text-xs text-[var(--apollo-danger)] mt-0.5 truncate">{task.error_message}</p>
                 )}
               </div>
               <span className={`text-xs font-medium ${config.color}`}>{config.label}</span>

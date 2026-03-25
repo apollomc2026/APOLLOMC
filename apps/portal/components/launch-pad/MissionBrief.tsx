@@ -67,25 +67,26 @@ export default function MissionBrief() {
   }
 
   if (loading || !brief) {
-    return <div className="animate-pulse h-96 bg-gray-900 rounded-xl" />
+    return <div className="animate-pulse h-96 bg-[var(--apollo-navy)] rounded-xl" />
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+      <div className="bg-[var(--apollo-navy)] border border-[var(--apollo-border)] rounded-xl p-6">
+        <p className="label-caps mb-2">Mission Brief</p>
         <h2 className="text-xl font-bold mb-1">{brief.deliverable.label}</h2>
-        <p className="text-gray-400">{brief.deliverable.description}</p>
+        <p className="text-[var(--apollo-text-muted)]">{brief.deliverable.description}</p>
         <div className="flex items-center gap-6 mt-4 text-sm">
-          <span className="flex items-center gap-1 text-gray-400">
+          <span className="flex items-center gap-1 text-[var(--apollo-text-muted)]">
             <FileText className="w-4 h-4" />
             {brief.estimated_pages.min}–{brief.estimated_pages.max} pages
           </span>
-          <span className="flex items-center gap-1 text-gray-400">
+          <span className="flex items-center gap-1 text-[var(--apollo-text-muted)]">
             <Clock className="w-4 h-4" />
             ~{brief.estimated_minutes} min build time
           </span>
-          <span className="flex items-center gap-1 text-green-400 font-medium">
+          <span className="flex items-center gap-1 text-[var(--apollo-success)] font-medium">
             <DollarSign className="w-4 h-4" />
             ${(brief.price_cents / 100).toFixed(2)}
           </span>
@@ -93,24 +94,24 @@ export default function MissionBrief() {
       </div>
 
       {/* Style */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+      <div className="bg-[var(--apollo-navy)] border border-[var(--apollo-border)] rounded-xl p-6">
         <h3 className="font-semibold mb-2 flex items-center gap-2">
-          <Layers className="w-4 h-4 text-red-400" />
+          <Layers className="w-4 h-4 text-[var(--apollo-blue)]" />
           Style Template
         </h3>
         <p className="text-white">{brief.style.label}</p>
         {brief.style.description && (
-          <p className="text-sm text-gray-400 mt-1">{brief.style.description}</p>
+          <p className="text-sm text-[var(--apollo-text-muted)] mt-1">{brief.style.description}</p>
         )}
       </div>
 
       {/* Sections */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+      <div className="bg-[var(--apollo-navy)] border border-[var(--apollo-border)] rounded-xl p-6">
         <h3 className="font-semibold mb-3">Sections to Build ({brief.sections.length})</h3>
         <div className="space-y-2">
           {brief.sections.map((s, i) => (
             <div key={s.key} className="flex items-center gap-3 text-sm">
-              <span className="w-6 h-6 rounded-full bg-gray-800 text-gray-400 text-xs flex items-center justify-center font-medium">
+              <span className="w-6 h-6 rounded-full bg-[var(--apollo-surface)] text-[var(--apollo-text-muted)] text-xs flex items-center justify-center font-medium">
                 {i + 1}
               </span>
               <span>{s.label}</span>
@@ -121,18 +122,18 @@ export default function MissionBrief() {
 
       {/* Files */}
       {brief.files_received.length > 0 && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <div className="bg-[var(--apollo-navy)] border border-[var(--apollo-border)] rounded-xl p-6">
           <h3 className="font-semibold mb-3">Files Received</h3>
           <div className="space-y-2">
             {brief.files_received.map((f, i) => (
               <div key={i} className="flex items-center gap-2 text-sm">
                 {f.extraction_status === 'complete' ? (
-                  <CheckCircle className="w-4 h-4 text-green-400" />
+                  <CheckCircle className="w-4 h-4 text-[var(--apollo-success)]" />
                 ) : (
-                  <AlertCircle className="w-4 h-4 text-yellow-400" />
+                  <AlertCircle className="w-4 h-4 text-[var(--apollo-warning)]" />
                 )}
                 <span>{f.name}</span>
-                <span className="text-gray-500">({f.extraction_status})</span>
+                <span className="text-[var(--apollo-text-faint)]">({f.extraction_status})</span>
               </div>
             ))}
           </div>
@@ -140,12 +141,12 @@ export default function MissionBrief() {
       )}
 
       {/* Inputs Summary */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+      <div className="bg-[var(--apollo-navy)] border border-[var(--apollo-border)] rounded-xl p-6">
         <h3 className="font-semibold mb-3">Your Inputs</h3>
         <dl className="space-y-2">
           {Object.entries(brief.inputs_summary).map(([key, value]) => (
             <div key={key} className="text-sm">
-              <dt className="text-gray-500 font-medium">{key.replace(/_/g, ' ')}</dt>
+              <dt className="text-[var(--apollo-text-faint)] font-medium">{key.replace(/_/g, ' ')}</dt>
               <dd className="text-white mt-0.5">{value as string}</dd>
             </div>
           ))}
@@ -153,18 +154,18 @@ export default function MissionBrief() {
       </div>
 
       {/* Approve button */}
-      <div className="bg-gray-900 border border-amber-800/50 rounded-xl p-6">
-        <p className="text-sm text-amber-300 mb-4">
+      <div className="bg-[var(--apollo-navy)] border border-[var(--apollo-blue)]/20 rounded-xl p-6">
+        <p className="text-sm text-[var(--apollo-text-muted)] mb-4">
           By approving this mission, you confirm your inputs and authorize Apollo MC to build
           your deliverable. No build starts until you approve.
         </p>
         <button
           onClick={handleApprove}
           disabled={approving}
-          className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-medium rounded-lg transition-colors"
+          className="flex items-center gap-2 px-6 py-3 bg-[var(--apollo-blue)] hover:bg-[var(--apollo-blue-hover)] disabled:opacity-50 text-white font-semibold rounded-lg transition-all glow-blue"
         >
           <Rocket className="w-4 h-4" />
-          {approving ? 'Launching...' : 'Approve & Launch Mission'}
+          {approving ? 'Launching...' : 'Approve & Launch'}
         </button>
       </div>
     </div>

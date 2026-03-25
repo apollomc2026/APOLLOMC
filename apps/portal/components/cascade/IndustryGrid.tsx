@@ -59,7 +59,7 @@ export default function IndustryGrid() {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="h-40 bg-gray-900 border border-gray-800 rounded-xl animate-pulse" />
+          <div key={i} className="h-40 bg-[var(--apollo-navy)] border border-[var(--apollo-border)] rounded-xl animate-pulse" />
         ))}
       </div>
     )
@@ -73,11 +73,11 @@ export default function IndustryGrid() {
           <button
             key={industry.id}
             onClick={() => selectIndustry(industry)}
-            className="text-left bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-red-500/50 hover:bg-gray-900/80 transition-all group"
+            className="text-left bg-[var(--apollo-navy)] rounded-xl p-6 mission-card group"
           >
-            <Icon className="w-8 h-8 text-red-500 mb-3 group-hover:scale-110 transition-transform" />
+            <Icon className="w-8 h-8 text-[var(--apollo-blue)] mb-3 group-hover:scale-110 transition-transform" />
             <h3 className="text-lg font-semibold mb-1">{industry.label}</h3>
-            <p className="text-sm text-gray-400">{industry.description}</p>
+            <p className="text-sm text-[var(--apollo-text-muted)]">{industry.description}</p>
           </button>
         )
       })}

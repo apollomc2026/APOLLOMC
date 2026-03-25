@@ -53,7 +53,7 @@ export default function StyleGallery() {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-56 bg-gray-900 border border-gray-800 rounded-xl animate-pulse" />
+          <div key={i} className="h-56 bg-[var(--apollo-navy)] border border-[var(--apollo-border)] rounded-xl animate-pulse" />
         ))}
       </div>
     )
@@ -71,21 +71,21 @@ export default function StyleGallery() {
               className={`
                 text-left rounded-xl p-5 transition-all border-2
                 ${isSelected
-                  ? 'bg-red-600/10 border-red-500'
-                  : 'bg-gray-900 border-gray-800 hover:border-gray-700'
+                  ? 'bg-[var(--apollo-blue-subtle)] border-[var(--apollo-blue)]'
+                  : 'bg-[var(--apollo-navy)] border-[var(--apollo-border)] hover:border-[var(--apollo-border-bright)]'
                 }
               `}
             >
               <div className="flex items-start justify-between mb-3">
-                <Paintbrush className={`w-6 h-6 ${isSelected ? 'text-red-400' : 'text-gray-500'}`} />
-                {isSelected && <Check className="w-5 h-5 text-red-400" />}
+                <Paintbrush className={`w-6 h-6 ${isSelected ? 'text-[var(--apollo-blue)]' : 'text-[var(--apollo-text-faint)]'}`} />
+                {isSelected && <Check className="w-5 h-5 text-[var(--apollo-blue)]" />}
               </div>
               <h3 className="text-lg font-semibold mb-1">{style.label}</h3>
               {style.description && (
-                <p className="text-sm text-gray-400">{style.description}</p>
+                <p className="text-sm text-[var(--apollo-text-muted)]">{style.description}</p>
               )}
               {style.preview_s3_key && (
-                <div className="mt-3 h-24 bg-gray-800 rounded-lg flex items-center justify-center text-gray-600 text-xs">
+                <div className="mt-3 h-24 bg-[var(--apollo-surface)] rounded-lg flex items-center justify-center text-[var(--apollo-text-faint)] text-xs">
                   Preview
                 </div>
               )}
@@ -98,9 +98,9 @@ export default function StyleGallery() {
         <div className="mt-6 flex justify-end">
           <button
             onClick={confirmStyle}
-            className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
+            className="px-6 py-3 bg-[var(--apollo-blue)] hover:bg-[var(--apollo-blue-hover)] text-white font-semibold rounded-lg transition-all glow-blue"
           >
-            Continue with this style
+            Confirm Style
           </button>
         </div>
       )}

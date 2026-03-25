@@ -12,13 +12,13 @@ import {
   Menu,
   X,
   LogOut,
-  Rocket,
+  Activity,
 } from 'lucide-react'
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/new-mission/industry', label: 'New Mission', icon: Plus },
-  { href: '/files', label: 'My Files', icon: FolderOpen },
+  { href: '/dashboard', label: 'Missions', icon: LayoutDashboard },
+  { href: '/new-mission/industry', label: 'Launch New', icon: Plus },
+  { href: '/files', label: 'Files', icon: FolderOpen },
 ]
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -32,16 +32,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-[var(--apollo-void)] text-[var(--apollo-text)]">
       {/* Mobile header */}
-      <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-gray-800">
-        <div className="flex items-center gap-2">
-          <Rocket className="w-6 h-6 text-red-500" />
-          <span className="font-bold text-lg">Apollo MC</span>
+      <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-[var(--apollo-navy)] border-b border-[var(--apollo-border)]">
+        <div className="flex items-center gap-3">
+          <img
+            src="https://apollomc.ai/assets/apollo_logo_transparent.png"
+            alt="Apollo MC"
+            className="h-7 w-auto"
+          />
+          <span className="font-bold text-lg tracking-tight">Apollo MC</span>
         </div>
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-2 text-gray-400 hover:text-white"
+          className="p-2 text-[var(--apollo-text-muted)] hover:text-white"
         >
           {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
@@ -51,7 +55,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {/* Sidebar */}
         <aside
           className={`
-            fixed inset-y-0 left-0 z-40 w-64 bg-gray-900 border-r border-gray-800
+            fixed inset-y-0 left-0 z-40 w-64 bg-[var(--apollo-navy)] border-r border-[var(--apollo-border)]
             transform transition-transform duration-200 ease-in-out
             lg:translate-x-0 lg:static lg:inset-auto
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -59,13 +63,26 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         >
           <div className="flex flex-col h-full">
             {/* Logo */}
-            <div className="hidden lg:flex items-center gap-2 px-6 py-5 border-b border-gray-800">
-              <Rocket className="w-7 h-7 text-red-500" />
+            <div className="hidden lg:flex items-center gap-3 px-6 py-5 border-b border-[var(--apollo-border)]">
+              <img
+                src="https://apollomc.ai/assets/apollo_logo_transparent.png"
+                alt="Apollo MC"
+                className="h-8 w-auto"
+              />
               <span className="font-bold text-xl tracking-tight">Apollo MC</span>
+            </div>
+
+            {/* Status indicator */}
+            <div className="px-6 py-3 border-b border-[var(--apollo-border)]">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[var(--apollo-success)] status-pulse" />
+                <span className="label-caps text-[var(--apollo-success)]">Systems Operational</span>
+              </div>
             </div>
 
             {/* Navigation */}
             <nav className="flex-1 px-3 py-4 space-y-1">
+              <p className="label-caps px-3 mb-2">Navigation</p>
               {navItems.map((item) => {
                 const isActive = pathname.startsWith(item.href)
                 return (
@@ -74,10 +91,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
                     className={`
-                      flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                      flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all
                       ${isActive
-                        ? 'bg-red-600/10 text-red-400'
-                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                        ? 'bg-[var(--apollo-blue-subtle)] text-[var(--apollo-blue)] border border-[var(--apollo-blue)]/20'
+                        : 'text-[var(--apollo-text-muted)] hover:bg-[var(--apollo-surface)] hover:text-white border border-transparent'
                       }
                     `}
                   >
@@ -89,25 +106,26 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </nav>
 
             {/* Footer */}
-            <div className="px-3 py-4 border-t border-gray-800 space-y-1">
+            <div className="px-3 py-4 border-t border-[var(--apollo-border)] space-y-1">
+              <p className="label-caps px-3 mb-2">Commander</p>
               <Link
                 href="/account"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--apollo-text-muted)] hover:bg-[var(--apollo-surface)] hover:text-white transition-colors"
               >
                 <User className="w-5 h-5" />
-                Account
+                Settings
               </Link>
               <button
                 onClick={handleSignOut}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--apollo-text-muted)] hover:bg-[var(--apollo-surface)] hover:text-white transition-colors"
               >
                 <LogOut className="w-5 h-5" />
-                Sign out
+                Disconnect
               </button>
-              <div className="flex items-center gap-3 px-3 pt-2 text-xs text-gray-600">
-                <Link href="/terms" className="hover:text-gray-400">Terms</Link>
+              <div className="flex items-center gap-3 px-3 pt-3 text-xs text-[var(--apollo-text-faint)]">
+                <Link href="/terms" className="hover:text-[var(--apollo-text-muted)] transition-colors">Terms</Link>
                 <span>·</span>
-                <Link href="/privacy" className="hover:text-gray-400">Privacy</Link>
+                <Link href="/privacy" className="hover:text-[var(--apollo-text-muted)] transition-colors">Privacy</Link>
               </div>
             </div>
           </div>
@@ -116,13 +134,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {/* Overlay */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+            className="fixed inset-0 z-30 bg-black/60 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
 
         {/* Main content */}
-        <main className="flex-1 min-h-screen lg:min-h-0">
+        <main className="flex-1 min-h-screen lg:min-h-0 grid-bg">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {children}
           </div>
@@ -130,7 +148,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Mobile bottom nav */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 flex">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-[var(--apollo-navy)] border-t border-[var(--apollo-border)] flex">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href)
           return (
@@ -139,7 +157,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               href={item.href}
               className={`
                 flex-1 flex flex-col items-center gap-1 py-3 text-xs font-medium transition-colors
-                ${isActive ? 'text-red-400' : 'text-gray-500'}
+                ${isActive ? 'text-[var(--apollo-blue)]' : 'text-[var(--apollo-text-faint)]'}
               `}
             >
               <item.icon className="w-5 h-5" />

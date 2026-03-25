@@ -8,7 +8,6 @@ import {
   Edit3,
   RefreshCw,
   Save,
-  CheckCircle,
   Loader2,
   DollarSign,
   Eye,
@@ -103,7 +102,6 @@ export default function ReviewWindow({ missionId }: Props) {
     setRebuilding(true)
 
     try {
-      // Reset the task with feedback appended
       await supabase
         .from('tasks')
         .update({
@@ -115,7 +113,6 @@ export default function ReviewWindow({ missionId }: Props) {
         })
         .eq('id', taskId)
 
-      // Store rebuild feedback as event
       await supabase.from('events').insert({
         mission_id: missionId,
         event_type: 'section_rebuild_requested',
@@ -128,7 +125,6 @@ export default function ReviewWindow({ missionId }: Props) {
       setRebuildSection(null)
       setRebuildFeedback('')
 
-      // Trigger the job worker
       fetch('/api/jobs', { method: 'POST' })
     } finally {
       setRebuilding(false)
@@ -140,25 +136,25 @@ export default function ReviewWindow({ missionId }: Props) {
   }
 
   if (loading) {
-    return <div className="animate-pulse h-96 bg-gray-900 rounded-xl" />
+    return <div className="animate-pulse h-96 bg-[var(--apollo-navy)] rounded-xl" />
   }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Left panel — Preview */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+      <div className="bg-[var(--apollo-navy)] border border-[var(--apollo-border)] rounded-xl p-6">
         <h3 className="font-semibold mb-4 flex items-center gap-2">
-          <Eye className="w-4 h-4 text-gray-400" />
+          <Eye className="w-4 h-4 text-[var(--apollo-text-muted)]" />
           Preview
         </h3>
         {previewUrl ? (
           <img
             src={previewUrl}
             alt="Document preview"
-            className="w-full rounded-lg border border-gray-700"
+            className="w-full rounded-lg border border-[var(--apollo-border)]"
           />
         ) : (
-          <div className="aspect-[8.5/11] bg-gray-800 rounded-lg flex items-center justify-center text-gray-500">
+          <div className="aspect-[8.5/11] bg-[var(--apollo-surface)] rounded-lg flex items-center justify-center text-[var(--apollo-text-faint)]">
             <p className="text-center text-sm px-8">
               Preview will be available once the document is compiled.
               Review individual sections below.
@@ -170,13 +166,13 @@ export default function ReviewWindow({ missionId }: Props) {
       {/* Right panel — Sections */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Sections</h3>
+          <p className="label-caps">Sections</p>
           <button
             onClick={proceedToPayment}
-            className="flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 bg-[var(--apollo-blue)] hover:bg-[var(--apollo-blue-hover)] text-white font-semibold rounded-lg transition-all glow-blue"
           >
             <DollarSign className="w-4 h-4" />
-            Looks good — download
+            Deploy & Download
           </button>
         </div>
 
@@ -191,7 +187,7 @@ export default function ReviewWindow({ missionId }: Props) {
           return (
             <div
               key={task.id}
-              className="bg-gray-900 border border-gray-800 rounded-xl p-5"
+              className="bg-[var(--apollo-navy)] border border-[var(--apollo-border)] rounded-xl p-5"
             >
               <div className="flex items-center justify-between mb-3">
                 <h4 className="font-medium text-sm">
@@ -199,7 +195,7 @@ export default function ReviewWindow({ missionId }: Props) {
                 </h4>
                 <div className="flex items-center gap-2">
                   {task.status === 'running' && (
-                    <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
+                    <Loader2 className="w-4 h-4 text-[var(--apollo-warning)] animate-spin" />
                   )}
                   {task.status === 'complete' && (
                     <>
@@ -209,7 +205,7 @@ export default function ReviewWindow({ missionId }: Props) {
                           setEditContent(content)
                           setRebuildSection(null)
                         }}
-                        className="text-xs px-2 py-1 bg-gray-800 hover:bg-gray-700 rounded transition-colors flex items-center gap-1"
+                        className="text-xs px-2 py-1 bg-[var(--apollo-surface)] hover:bg-[var(--apollo-border)] rounded transition-colors flex items-center gap-1"
                       >
                         <Edit3 className="w-3 h-3" />
                         Edit
@@ -219,7 +215,7 @@ export default function ReviewWindow({ missionId }: Props) {
                           setRebuildSection(task.id)
                           setEditingSection(null)
                         }}
-                        className="text-xs px-2 py-1 bg-gray-800 hover:bg-gray-700 rounded transition-colors flex items-center gap-1"
+                        className="text-xs px-2 py-1 bg-[var(--apollo-surface)] hover:bg-[var(--apollo-border)] rounded transition-colors flex items-center gap-1"
                       >
                         <RefreshCw className="w-3 h-3" />
                         Rebuild
@@ -229,45 +225,42 @@ export default function ReviewWindow({ missionId }: Props) {
                 </div>
               </div>
 
-              {/* Content display */}
               {!isEditing && !isRebuilding && task.status === 'complete' && (
-                <p className="text-sm text-gray-300 whitespace-pre-wrap line-clamp-6">
+                <p className="text-sm text-[var(--apollo-text-muted)] whitespace-pre-wrap line-clamp-6">
                   {content}
                 </p>
               )}
 
-              {/* Edit mode */}
               {isEditing && (
                 <div className="space-y-3">
                   <textarea
                     value={editContent}
                     onChange={(e) => setEditContent(e.target.value)}
                     rows={8}
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white resize-none focus:outline-none focus:ring-2 focus:ring-red-500"
+                    className="w-full px-3 py-2 bg-[var(--apollo-surface)] border border-[var(--apollo-border)] rounded-lg text-sm text-white resize-none focus:outline-none focus:ring-2 focus:ring-[var(--apollo-blue)]"
                   />
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleSaveEdit(task.id)}
                       disabled={saving}
-                      className="text-xs px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded transition-colors flex items-center gap-1"
+                      className="text-xs px-3 py-1.5 bg-[var(--apollo-success)] hover:bg-[var(--apollo-success)]/80 rounded transition-colors flex items-center gap-1"
                     >
                       <Save className="w-3 h-3" />
                       {saving ? 'Saving...' : 'Save'}
                     </button>
                     <button
                       onClick={() => setEditingSection(null)}
-                      className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded transition-colors"
+                      className="text-xs px-3 py-1.5 bg-[var(--apollo-surface)] hover:bg-[var(--apollo-border)] rounded transition-colors"
                     >
-                      Cancel
+                      Abort
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Rebuild mode */}
               {isRebuilding && (
                 <div className="space-y-3">
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-[var(--apollo-text-muted)]">
                     Describe what should change about this section:
                   </p>
                   <textarea
@@ -275,32 +268,32 @@ export default function ReviewWindow({ missionId }: Props) {
                     onChange={(e) => setRebuildFeedback(e.target.value)}
                     rows={3}
                     placeholder="e.g., Make the tone more formal, add specific metrics..."
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white resize-none focus:outline-none focus:ring-2 focus:ring-red-500"
+                    className="w-full px-3 py-2 bg-[var(--apollo-surface)] border border-[var(--apollo-border)] rounded-lg text-sm text-white resize-none focus:outline-none focus:ring-2 focus:ring-[var(--apollo-blue)]"
                   />
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleRebuild(task.id)}
                       disabled={rebuilding || !rebuildFeedback.trim()}
-                      className="text-xs px-3 py-1.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 rounded transition-colors flex items-center gap-1"
+                      className="text-xs px-3 py-1.5 bg-[var(--apollo-warning)] hover:bg-[var(--apollo-warning)]/80 disabled:opacity-50 rounded transition-colors flex items-center gap-1 text-black"
                     >
                       <RefreshCw className={`w-3 h-3 ${rebuilding ? 'animate-spin' : ''}`} />
                       {rebuilding ? 'Rebuilding...' : 'Rebuild Section'}
                     </button>
                     <button
                       onClick={() => setRebuildSection(null)}
-                      className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded transition-colors"
+                      className="text-xs px-3 py-1.5 bg-[var(--apollo-surface)] hover:bg-[var(--apollo-border)] rounded transition-colors"
                     >
-                      Cancel
+                      Abort
                     </button>
                   </div>
                 </div>
               )}
 
               {task.status === 'queued' && (
-                <p className="text-sm text-gray-500 italic">Waiting to build...</p>
+                <p className="text-sm text-[var(--apollo-text-faint)] italic">Waiting to build...</p>
               )}
               {task.status === 'running' && (
-                <p className="text-sm text-amber-400 italic">Building this section...</p>
+                <p className="text-sm text-[var(--apollo-warning)] italic">Building this section...</p>
               )}
             </div>
           )

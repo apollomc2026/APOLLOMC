@@ -8,8 +8,11 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Apollo MC — Professional Documents, Powered by AI',
-  description: 'Create professional documents in minutes. Legal memos, business plans, pitch decks, and more.',
+  title: 'Apollo MC — Mission Control',
+  description: 'Mission-grade documents. Built by AI. Delivered with precision.',
+  icons: {
+    icon: 'https://apollomc.ai/assets/apollo_logo_transparent.png',
+  },
 }
 
 export default function RootLayout({
@@ -19,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.variable} font-sans antialiased bg-gray-950 text-white`}>
+      <body className={`${inter.variable} font-sans antialiased`}>
         {children}
       </body>
     </html>
