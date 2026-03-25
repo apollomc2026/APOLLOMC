@@ -1,5 +1,3 @@
-import AppShell from '@/components/shell/AppShell'
-
 export const dynamic = 'force-dynamic'
 
 export default function ProtectedLayout({
@@ -7,5 +5,5 @@ export default function ProtectedLayout({
 }: {
   children: React.ReactNode
 }) {
-  return <AppShell>{children}</AppShell>
+  return <>{children}</>
 }

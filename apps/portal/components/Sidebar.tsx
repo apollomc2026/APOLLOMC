@@ -30,10 +30,11 @@ export function Sidebar({ userName = 'Commander', userEmail, tier = 'MERCURY' }:
     <aside className="sidebar">
       {/* Logo */}
       <Link href="/dashboard" className="sidebar-logo">
-        <div className="sidebar-logo-icon">
-          <div className="sidebar-logo-planet" />
-          <div className="sidebar-logo-ring" />
-        </div>
+        <img
+          src="https://apollomc.ai/assets/apollo_logo_transparent.png"
+          alt="Apollo MC"
+          className="sidebar-logo-img"
+        />
         <div>
           <div className="sidebar-logo-text">APOLLO</div>
           <span className="sidebar-logo-sub">Mission Control</span>
@@ -46,7 +47,7 @@ export function Sidebar({ userName = 'Commander', userEmail, tier = 'MERCURY' }:
         <Link
           key={item.href}
           href={item.href}
-          className={`sidebar-nav-item ${pathname === item.href ? 'active' : ''}`}
+          className={`sidebar-nav-item ${pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)) ? 'active' : ''}`}
         >
           <span className="sidebar-nav-icon">{item.icon}</span>
           {item.label}
@@ -55,7 +56,7 @@ export function Sidebar({ userName = 'Commander', userEmail, tier = 'MERCURY' }:
       ))}
 
       {/* System Nav */}
-      <div className="sidebar-section-label" style={{ marginTop: 'var(--space-6)' }}>System</div>
+      <div className="sidebar-section-label" style={{ marginTop: 'var(--sp-6)' }}>System</div>
       {NAV_SYSTEM.map(item => (
         <Link
           key={item.href}
