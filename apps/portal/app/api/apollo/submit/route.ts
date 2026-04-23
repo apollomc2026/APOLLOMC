@@ -4,7 +4,7 @@ import { loadTemplate, validateInputs } from '@/lib/apollo/templates'
 import { loadBrand, isAllowedBrandSlug } from '@/lib/apollo/brands'
 import { generateDocumentHtml, type ImageInput } from '@/lib/apollo/generate'
 import { buildDocx } from '@/lib/apollo/docx'
-import { uploadToDrive } from '@/lib/apollo/drive'
+import { uploadSubmissionOutput } from '@/lib/apollo/storage'
 import { corsHeaders, preflight, requireApiKey } from '@/lib/apollo/cors'
 
 export const dynamic = 'force-dynamic'
@@ -175,14 +175,11 @@ export async function POST(request: Request) {
       templateLabel: template.label,
     })
 
-    const timestamp = Date.now()
-    const subfolderName = `${templateSlug}_${todayStamp()}_${shortId()}`
-    const docxFilename = `${templateSlug}_${brandSlug}_${timestamp}.docx`
+    const docxFilename = `${templateSlug}_${brandSlug}_${todayStamp()}_${shortId()}.docx`
 
-    const driveResult = await uploadToDrive({
-      subfolderName,
+    const uploadResult = await uploadSubmissionOutput({
+      submissionId,
       docxBuffer,
-      docxFilename,
       submissionJson: {
         submission_id: submissionId,
         template_slug: templateSlug,
@@ -191,15 +188,16 @@ export async function POST(request: Request) {
         inputs,
         created_at: new Date().toISOString(),
       },
+      filename: docxFilename,
     })
 
     await serviceClient
       .from('apollo_submissions')
       .update({
         status: 'delivered',
-        drive_folder_id: driveResult.folder_id,
-        drive_file_id: driveResult.file_id,
-        drive_file_url: driveResult.file_url,
+        s3_prefix: uploadResult.s3Prefix,
+        s3_key: uploadResult.s3Key,
+        download_url: uploadResult.downloadUrl,
         completed_at: new Date().toISOString(),
       })
       .eq('id', submissionId)
@@ -208,7 +206,8 @@ export async function POST(request: Request) {
       {
         success: true,
         submission_id: submissionId,
-        drive_url: driveResult.file_url,
+        download_url: uploadResult.downloadUrl,
+        expires_at: uploadResult.expiresAt,
       },
       { headers: cors }
     )

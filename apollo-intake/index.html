@@ -32,7 +32,20 @@
     font-size: 15px;
     line-height: 1.5;
     min-height: 100vh;
+    position: relative;
   }
+  /* Mission-control sunburst — decorative only, behind all content */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 900px 500px at 50% -80px, rgba(255,107,26,0.10), rgba(255,107,26,0) 72%),
+      radial-gradient(ellipse 700px 400px at 50% -40px, rgba(164,214,94,0.06), rgba(164,214,94,0) 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  body > * { position: relative; z-index: 1; }
   a { color: var(--orange); text-decoration: none; }
   a:hover { text-decoration: underline; }
 
@@ -115,7 +128,16 @@
   }
   .card:hover {
     border-color: var(--orange);
-    box-shadow: 0 2px 8px rgba(255, 107, 26, 0.12);
+    box-shadow: 0 6px 18px rgba(255, 107, 26, 0.14);
+    transform: translateY(-2px);
+  }
+  .card:active {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(255, 107, 26, 0.16);
+  }
+  .card.selected {
+    border-color: var(--orange);
+    background: rgba(255, 107, 26, 0.04);
   }
   .card.brand-card {
     align-items: center;
@@ -346,11 +368,23 @@
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 120ms ease, box-shadow 120ms ease;
+    transition: background 120ms ease, box-shadow 160ms ease, transform 120ms ease;
   }
   .btn:disabled { opacity: 0.55; cursor: not-allowed; }
-  .btn.primary { background: var(--orange); color: #fff; }
-  .btn.primary:hover:not(:disabled) { background: var(--orange-d); }
+  .btn.primary {
+    background: var(--orange);
+    color: #fff;
+    box-shadow: 0 1px 2px rgba(255, 107, 26, 0.2);
+  }
+  .btn.primary:hover:not(:disabled) {
+    background: var(--orange-d);
+    box-shadow: 0 4px 14px rgba(255, 107, 26, 0.28);
+    transform: translateY(-1px);
+  }
+  .btn.primary:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(255, 107, 26, 0.2);
+  }
   .btn.primary.large { padding: 14px 28px; font-size: 15px; }
   .btn.secondary {
     background: var(--bg);
@@ -360,6 +394,15 @@
   }
   .btn.secondary:hover:not(:disabled) { border-color: var(--charcoal); }
 
+  .expiry-note {
+    margin-top: 12px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
   .nav-row {
     display: flex;
     justify-content: space-between;
@@ -367,17 +410,56 @@
     gap: 12px;
   }
 
-  /* Result / progress */
-  .spinner {
-    width: 48px;
-    height: 48px;
-    border: 3px solid var(--rule);
-    border-top-color: var(--orange);
-    border-radius: 50%;
-    margin: 0 auto 16px;
-    animation: spin 1s linear infinite;
+  /* Mission-control transmission indicator */
+  .transmit {
+    width: 200px;
+    margin: 0 auto 20px;
+    text-align: left;
   }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  .transmit .track {
+    position: relative;
+    height: 3px;
+    background: #F0F0F0;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .transmit .beam {
+    position: absolute;
+    left: -40%;
+    top: 0;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent 0%, var(--orange) 40%, var(--lime) 70%, transparent 100%);
+    animation: transmit-scan 1.6s linear infinite;
+  }
+  .transmit .label {
+    margin-top: 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--orange);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .transmit .label::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--orange);
+    box-shadow: 0 0 0 0 var(--orange);
+    animation: transmit-pulse 1.2s ease-out infinite;
+  }
+  @keyframes transmit-scan {
+    0%   { left: -40%; }
+    100% { left: 100%; }
+  }
+  @keyframes transmit-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(255,107,26,0.55); }
+    100% { box-shadow: 0 0 0 10px rgba(255,107,26,0);  }
+  }
   .alert {
     padding: 20px;
     border-radius: 12px;
@@ -524,6 +606,7 @@
     images: [],
     submitting: false,
     resultUrl: null,
+    resultExpiresAt: null,
     resultError: null,
     missingIds: [],
   };
@@ -976,7 +1059,8 @@
 
     try {
       const json = await apiSubmit(form);
-      state.resultUrl = json.drive_url;
+      state.resultUrl = json.download_url;
+      state.resultExpiresAt = json.expires_at || null;
     } catch (err) {
       if (err.message === 'AUTH') {
         clearKey();
@@ -993,10 +1077,13 @@
 
   function renderResult(main) {
     if (state.submitting) {
-      main.appendChild(el('div', { style: 'padding:32px;text-align:center;' },
-        el('div', { class: 'spinner' }),
-        el('div', { style: 'font-size:15px;color:var(--charcoal);font-weight:600;' }, 'Generating your document…'),
-        el('div', { style: 'font-size:12px;color:var(--muted);margin-top:6px;' }, 'This typically takes 20–60 seconds.'),
+      main.appendChild(el('div', { style: 'padding:32px 24px;text-align:center;' },
+        el('div', { class: 'transmit' },
+          el('div', { class: 'track' }, el('div', { class: 'beam' })),
+          el('div', { class: 'label' }, 'Transmitting'),
+        ),
+        el('div', { style: 'font-family:var(--font-display);font-size:18px;color:var(--charcoal);font-weight:600;margin-top:4px;' }, 'Generating deliverable'),
+        el('div', { style: 'font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-top:6px;letter-spacing:0.08em;text-transform:uppercase;' }, 'Estimated completion · 20–60 seconds'),
       ));
       return;
     }
@@ -1013,18 +1100,19 @@
     }
     if (state.resultUrl) {
       main.appendChild(el('div', { class: 'alert success' },
-        el('div', { class: 'alert-title' }, 'Delivered'),
-        el('div', { style: 'font-size:13px;margin-bottom:16px;' }, 'Your document is in Google Drive.'),
+        el('div', { class: 'alert-title' }, 'Mission complete'),
+        el('div', { style: 'font-size:13px;margin-bottom:16px;' }, 'Deliverable packaged and ready for download.'),
         el('a', {
           class: 'btn primary',
           href: state.resultUrl,
-          target: '_blank',
+          download: '',
           rel: 'noreferrer',
           style: 'display:inline-block;text-decoration:none;',
-        }, 'Open in Drive ↗'),
+        }, 'Download DOCX ↓'),
+        el('div', { class: 'expiry-note' }, 'Link expires in 7 days.'),
       ));
-      main.appendChild(el('div', { style: 'margin-top:20px;' },
-        el('button', { class: 'btn secondary', type: 'button', onclick: reset }, 'Create another'),
+      main.appendChild(el('div', { style: 'margin-top:20px;display:flex;gap:12px;' },
+        el('button', { class: 'btn secondary', type: 'button', onclick: reset }, 'Generate another'),
       ));
       return;
     }
@@ -1038,6 +1126,7 @@
     state.images = [];
     state.missingIds = [];
     state.resultUrl = null;
+    state.resultExpiresAt = null;
     state.resultError = null;
     render();
   }
