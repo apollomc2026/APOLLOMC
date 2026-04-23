@@ -17,3 +17,19 @@ key.pub
 
 run-me/
 .vercel
+
+# Claude Code session state
+.claude/
+
+# Supabase CLI working state
+supabase/.temp/
+
+# Playwright test artifacts (per-app + repo-root fallback)
+test-results/
+apps/portal/test-results/
+
+# Local generated output (not source)
+output/
+
+# Ad-hoc local scripts not part of Apollo
+src/
