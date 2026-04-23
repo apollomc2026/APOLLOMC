@@ -69,14 +69,30 @@ function buildAttachmentsBlock(images: BuildDocxArgs['images']): string {
   `
 }
 
+// html-to-docx's internal XML serializer rejects anything it would have to emit
+// with an invalid XML Name (leading `@`, etc.). Strip the constructs Claude
+// sometimes emits that trip it up: Vue-/Alpine-style attribute names starting
+// with `@`, and inline <style> blocks whose CSS at-rules (@media, @keyframes,
+// @font-face) can appear in the transformed DOM.
+function sanitizeForDocx(html: string): string {
+  let out = html
+  // Remove <style>...</style> blocks entirely (case-insensitive, multi-line).
+  out = out.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
+  // Remove attributes whose name starts with `@` (e.g. @click="..." or @media-...).
+  // Matches: whitespace + @word + (optional =value-with-quotes-or-bare).
+  out = out.replace(/\s@[A-Za-z][\w.:-]*(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/g, '')
+  return out
+}
+
 export async function buildDocx(args: BuildDocxArgs): Promise<Buffer> {
   const header = buildHeaderBlock(args)
   const attachments = buildAttachmentsBlock(args.images)
+  const sanitizedContent = sanitizeForDocx(args.contentHtml)
 
   const fullHtml = `
     <html><head><meta charset="utf-8"></head><body>
       ${header}
-      <div>${args.contentHtml}</div>
+      <div>${sanitizedContent}</div>
       ${attachments}
     </body></html>
   `

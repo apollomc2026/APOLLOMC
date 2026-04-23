@@ -27,7 +27,7 @@ Rules:
 - For sections marked "hybrid": fill the structured slots (tables, lists) from user input.
 - Apply the brand's voice and tone from the brand.md content provided.
 - Use the brand's color scheme via inline HTML/CSS in your output.
-- Output valid HTML that will be converted to DOCX. Use semantic tags (h1, h2, p, ul, table). No script tags, no external stylesheets, no images (logos are inserted by the pipeline).
+- Output valid HTML that will be converted to DOCX. Use semantic tags (h1, h2, p, ul, table). Apply colors and brand styling only through inline style="..." attributes. Do NOT emit <style> blocks, <script> tags, <link> tags, CSS at-rules (@media, @font-face, @keyframes), or attributes whose names start with "@" (these are framework template directives and are not valid HTML). No images — logos are inserted by the pipeline.
 - Keep output within realistic document length. Do not pad.`
 
 function formatInputs(template: Template, inputs: Record<string, unknown>): string {
