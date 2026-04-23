@@ -69,16 +69,22 @@ function buildAttachmentsBlock(images: BuildDocxArgs['images']): string {
   `
 }
 
-// html-to-docx's internal XML serializer rejects anything it would have to emit
-// with an invalid XML Name (leading `@`, etc.). Strip constructs that trip it up.
+// html-to-docx@1.8.0 has a serializer bug where mapping certain CSS properties
+// (letter-spacing, text-transform, font-family with a stack, etc.) from an
+// inline style attribute into WordprocessingML produces an invalid XML Name
+// such as "@w" and throws mid-serialization. Rather than whitelist safe CSS
+// properties one at a time, strip every inline style attribute from Claude's
+// output before handing it to html-to-docx. We keep the structural tags
+// (h1/h2/p/ul/table) and rely on DOCX's default typography — the brand logo
+// and title live in the header block we construct ourselves and are unaffected.
+//
+// Also strip <style>/<script> blocks defensively and drop attributes whose
+// names start with "@".
 function sanitizeForDocx(html: string): string {
   let out = html
-  // Remove <style>...</style> and <script>...</script> blocks entirely.
   out = out.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
   out = out.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
-  // Strip every `@` that appears inside a tag (element name, attribute name, or
-  // attribute value). Preserves `@` in visible text content. This is the
-  // forceful fix for the class of html-to-docx error "Invalid XML name: @w".
+  out = out.replace(/\s+style\s*=\s*(?:"[^"]*"|'[^']*')/gi, '')
   out = out.replace(/<[^>]*>/g, (tag) => tag.replace(/@/g, ''))
   return out
 }
