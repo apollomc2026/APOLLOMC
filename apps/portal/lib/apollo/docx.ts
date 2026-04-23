@@ -70,17 +70,16 @@ function buildAttachmentsBlock(images: BuildDocxArgs['images']): string {
 }
 
 // html-to-docx's internal XML serializer rejects anything it would have to emit
-// with an invalid XML Name (leading `@`, etc.). Strip the constructs Claude
-// sometimes emits that trip it up: Vue-/Alpine-style attribute names starting
-// with `@`, and inline <style> blocks whose CSS at-rules (@media, @keyframes,
-// @font-face) can appear in the transformed DOM.
+// with an invalid XML Name (leading `@`, etc.). Strip constructs that trip it up.
 function sanitizeForDocx(html: string): string {
   let out = html
-  // Remove <style>...</style> blocks entirely (case-insensitive, multi-line).
+  // Remove <style>...</style> and <script>...</script> blocks entirely.
   out = out.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
-  // Remove attributes whose name starts with `@` (e.g. @click="..." or @media-...).
-  // Matches: whitespace + @word + (optional =value-with-quotes-or-bare).
-  out = out.replace(/\s@[A-Za-z][\w.:-]*(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/g, '')
+  out = out.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+  // Strip every `@` that appears inside a tag (element name, attribute name, or
+  // attribute value). Preserves `@` in visible text content. This is the
+  // forceful fix for the class of html-to-docx error "Invalid XML name: @w".
+  out = out.replace(/<[^>]*>/g, (tag) => tag.replace(/@/g, ''))
   return out
 }
 
@@ -97,10 +96,19 @@ export async function buildDocx(args: BuildDocxArgs): Promise<Buffer> {
     </body></html>
   `
 
-  const result = await htmlToDocx(fullHtml, null, {
-    table: { row: { cantSplit: true } },
-    font: 'Calibri',
-  })
+  let result: Buffer | Blob | ArrayBuffer
+  try {
+    result = await htmlToDocx(fullHtml, null, {
+      table: { row: { cantSplit: true } },
+      font: 'Calibri',
+    })
+  } catch (err) {
+    // Surface a prefix of the HTML input so the Supabase error_message row is
+    // actionable instead of just echoing a bare DOM-API exception.
+    const snippet = fullHtml.slice(0, 800).replace(/\s+/g, ' ')
+    const msg = err instanceof Error ? err.message : String(err)
+    throw new Error(`html-to-docx failed: ${msg} :: input_head=${snippet}`)
+  }
 
   if (Buffer.isBuffer(result)) return result
   if (result instanceof ArrayBuffer) return Buffer.from(result)
