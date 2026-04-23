@@ -1,0 +1,79 @@
+{
+  "slug": "meeting-minutes",
+  "label": "Meeting Minutes / Decision Log",
+  "description": "Structured meeting minutes with attendees, decisions, and action items.",
+  "category": "operations",
+  "supports_images": false,
+  "fields": [
+    {
+      "id": "meeting_title",
+      "label": "Meeting title",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "meeting_date",
+      "label": "Meeting date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "id": "meeting_time",
+      "label": "Meeting time",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "attendees",
+      "label": "Attendees",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "absent",
+      "label": "Absent",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "id": "agenda_items",
+      "label": "Agenda items (one per line)",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "discussion_notes",
+      "label": "Discussion notes",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "decisions_made",
+      "label": "Decisions made",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "action_items",
+      "label": "Action items (owner | action | due date, one per line)",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "next_meeting_date",
+      "label": "Next meeting date",
+      "type": "date",
+      "required": false
+    }
+  ],
+  "sections": [
+    { "id": "header", "label": "Header", "type": "fixed" },
+    { "id": "attendance", "label": "Attendance", "type": "prose" },
+    { "id": "agenda", "label": "Agenda", "type": "prose" },
+    { "id": "discussion", "label": "Discussion", "type": "prose" },
+    { "id": "decisions", "label": "Decisions", "type": "prose" },
+    { "id": "action_items", "label": "Action items", "type": "hybrid" },
+    { "id": "next_steps", "label": "Next steps", "type": "prose" }
+  ],
+  "generation_notes": "Minute-taker voice: third-person, past tense, matter-of-fact. Preserve the user's exact language for decisions and action items — these are the record. Action items section is hybrid: render as a table with columns Owner / Action / Due date parsed from the input."
+}

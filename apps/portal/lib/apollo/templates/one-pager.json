@@ -1,0 +1,60 @@
+{
+  "slug": "one-pager",
+  "label": "Executive One-Pager",
+  "description": "Single-page summary of a product, service, company, or opportunity.",
+  "category": "marketing",
+  "supports_images": false,
+  "fields": [
+    {
+      "id": "subject_title",
+      "label": "Subject title",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "subject_type",
+      "label": "Subject type",
+      "type": "select",
+      "required": true,
+      "options": ["Product", "Service", "Company", "Opportunity", "Capability"]
+    },
+    {
+      "id": "value_proposition",
+      "label": "Value proposition",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "key_differentiators",
+      "label": "Key differentiators (one per line)",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "target_audience",
+      "label": "Target audience",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "call_to_action",
+      "label": "Call to action",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "contact_info",
+      "label": "Contact info",
+      "type": "textarea",
+      "required": true
+    }
+  ],
+  "sections": [
+    { "id": "hero", "label": "Hero", "type": "prose" },
+    { "id": "value_proposition", "label": "Value proposition", "type": "prose" },
+    { "id": "differentiators", "label": "Differentiators", "type": "prose" },
+    { "id": "who_its_for", "label": "Who it's for", "type": "prose" },
+    { "id": "call_to_action", "label": "Call to action", "type": "prose" }
+  ],
+  "generation_notes": "SINGLE PAGE — this is a hard constraint. Keep total word count under ~350. Hero is a punchy title + tagline. Differentiators render as 3–5 tight bullets, not paragraphs. Close with the call to action and contact info. Do not pad. Do not add filler sections."
+}

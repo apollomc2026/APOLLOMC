@@ -1,0 +1,83 @@
+{
+  "slug": "proposal",
+  "label": "Consulting/Services Proposal",
+  "description": "Full services proposal with executive summary, approach, team, and pricing.",
+  "category": "sales",
+  "supports_images": false,
+  "fields": [
+    {
+      "id": "prospect_name",
+      "label": "Prospect contact name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "prospect_organization",
+      "label": "Prospect organization",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "proposal_date",
+      "label": "Proposal date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "id": "problem_statement",
+      "label": "Problem statement",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "proposed_approach",
+      "label": "Proposed approach",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "deliverables",
+      "label": "Deliverables",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "team_qualifications",
+      "label": "Team and qualifications",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "timeline",
+      "label": "Timeline",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "investment",
+      "label": "Investment / pricing",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "validity_period_days",
+      "label": "Proposal validity period (days)",
+      "type": "number",
+      "required": false,
+      "default": 30
+    }
+  ],
+  "sections": [
+    { "id": "cover", "label": "Cover", "type": "fixed" },
+    { "id": "executive_summary", "label": "Executive summary", "type": "prose" },
+    { "id": "understanding_of_need", "label": "Understanding of need", "type": "prose" },
+    { "id": "proposed_approach", "label": "Proposed approach", "type": "prose" },
+    { "id": "deliverables", "label": "Deliverables", "type": "prose" },
+    { "id": "team_and_qualifications", "label": "Team and qualifications", "type": "prose" },
+    { "id": "timeline", "label": "Timeline", "type": "prose" },
+    { "id": "investment", "label": "Investment", "type": "prose" },
+    { "id": "next_steps", "label": "Next steps", "type": "prose" },
+    { "id": "appendix", "label": "Appendix", "type": "prose" }
+  ],
+  "generation_notes": "Sales-forward but professional — no hype, no clichés. Executive summary should open with the prospect's problem in their own language, then bridge to the approach. Investment section should restate pricing cleanly; do not editorialize value. Appendix can be brief — case studies, credentials, contact — or omitted if thin."
+}

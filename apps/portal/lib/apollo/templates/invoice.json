@@ -1,0 +1,79 @@
+{
+  "slug": "invoice",
+  "label": "Invoice",
+  "description": "Formal invoice with billing info, line items, totals, and payment instructions.",
+  "category": "finance",
+  "supports_images": false,
+  "fields": [
+    {
+      "id": "invoice_number",
+      "label": "Invoice number",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "invoice_date",
+      "label": "Invoice date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "id": "due_date",
+      "label": "Due date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "id": "bill_to_name",
+      "label": "Bill to (name)",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "bill_to_address",
+      "label": "Bill to (address)",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "line_items",
+      "label": "Line items (description | quantity | unit price, one per line)",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "subtotal_notes",
+      "label": "Subtotal notes",
+      "type": "text",
+      "required": false
+    },
+    {
+      "id": "tax_rate_percent",
+      "label": "Tax rate (%)",
+      "type": "number",
+      "required": false,
+      "default": 0
+    },
+    {
+      "id": "payment_instructions",
+      "label": "Payment instructions",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "notes",
+      "label": "Notes",
+      "type": "textarea",
+      "required": false
+    }
+  ],
+  "sections": [
+    { "id": "header", "label": "Header", "type": "fixed" },
+    { "id": "billing_info", "label": "Billing info", "type": "fixed" },
+    { "id": "line_items", "label": "Line items", "type": "hybrid" },
+    { "id": "totals", "label": "Totals", "type": "hybrid" },
+    { "id": "payment_instructions", "label": "Payment instructions", "type": "prose" },
+    { "id": "footer", "label": "Footer", "type": "fixed" }
+  ],
+  "generation_notes": "Invoice is primarily a structured document, not prose. Line items section is hybrid: parse each line as 'description | quantity | unit price' and render as a table. Totals section is hybrid: compute subtotal = sum of qty * unit_price, tax = subtotal * tax_rate_percent / 100, total = subtotal + tax. Show each on its own row. Payment instructions is the only prose section and should be short."
+}

@@ -1,0 +1,68 @@
+{
+  "slug": "nda",
+  "label": "Non-Disclosure Agreement",
+  "description": "Mutual NDA for professional engagements.",
+  "category": "legal",
+  "supports_images": false,
+  "fields": [
+    {
+      "id": "disclosing_party",
+      "label": "Disclosing party (legal name)",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g., On Spot Solutions LLC",
+      "help": "The entity sharing confidential information."
+    },
+    {
+      "id": "receiving_party",
+      "label": "Receiving party (legal name)",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g., Acme Consulting Inc."
+    },
+    {
+      "id": "effective_date",
+      "label": "Effective date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "id": "term_years",
+      "label": "Confidentiality term (years)",
+      "type": "number",
+      "required": true,
+      "default": 3
+    },
+    {
+      "id": "purpose_of_disclosure",
+      "label": "Purpose of disclosure",
+      "type": "textarea",
+      "required": true,
+      "help": "Why the parties are sharing information (e.g., evaluating a potential engagement)."
+    },
+    {
+      "id": "governing_state",
+      "label": "Governing state",
+      "type": "text",
+      "required": false,
+      "default": "Massachusetts"
+    },
+    {
+      "id": "specific_exclusions",
+      "label": "Specific exclusions from confidential information",
+      "type": "textarea",
+      "required": false,
+      "help": "Optional. Beyond the standard carve-outs."
+    }
+  ],
+  "sections": [
+    { "id": "header", "label": "Header", "type": "fixed" },
+    { "id": "definitions", "label": "Definitions", "type": "prose" },
+    { "id": "obligations", "label": "Obligations of receiving party", "type": "prose" },
+    { "id": "permitted_disclosures", "label": "Permitted disclosures", "type": "prose" },
+    { "id": "term_and_termination", "label": "Term and termination", "type": "prose" },
+    { "id": "governing_law", "label": "Governing law", "type": "prose" },
+    { "id": "signatures", "label": "Signature blocks", "type": "fixed" }
+  ],
+  "generation_notes": "Standard mutual NDA structure. Keep legal precision. Do not invent obligations not implied by user inputs. Include standard carve-outs (publicly available information, independently developed, lawfully received from a third party, required by subpoena/court order). Use formal legal register regardless of brand voice — brand voice affects tone of prose sections but not defined legal terms."
+}

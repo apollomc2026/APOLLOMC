@@ -1,0 +1,78 @@
+{
+  "slug": "sow",
+  "label": "Scope of Work",
+  "description": "Fixed-scope or T&M statement of work for a client engagement.",
+  "category": "contracts",
+  "supports_images": false,
+  "fields": [
+    {
+      "id": "client_name",
+      "label": "Client name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "project_title",
+      "label": "Project title",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "start_date",
+      "label": "Start date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "id": "end_date",
+      "label": "End date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "id": "project_summary",
+      "label": "Project summary",
+      "type": "textarea",
+      "required": true,
+      "help": "One to three paragraphs describing the project at a high level."
+    },
+    {
+      "id": "deliverables",
+      "label": "Deliverables (one per line)",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "assumptions",
+      "label": "Assumptions and exclusions",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "id": "fee_structure",
+      "label": "Fee structure",
+      "type": "textarea",
+      "required": true,
+      "placeholder": "Fixed fee $X — or — T&M at $Y/hr, not-to-exceed $Z"
+    },
+    {
+      "id": "payment_terms",
+      "label": "Payment terms",
+      "type": "text",
+      "required": false,
+      "default": "Net 30"
+    }
+  ],
+  "sections": [
+    { "id": "cover", "label": "Cover page", "type": "fixed" },
+    { "id": "executive_summary", "label": "Executive summary", "type": "prose" },
+    { "id": "scope", "label": "Scope of work", "type": "prose" },
+    { "id": "deliverables", "label": "Deliverables", "type": "prose" },
+    { "id": "timeline", "label": "Timeline", "type": "prose" },
+    { "id": "assumptions_and_exclusions", "label": "Assumptions and exclusions", "type": "prose" },
+    { "id": "fees_and_terms", "label": "Fees and payment terms", "type": "prose" },
+    { "id": "acceptance", "label": "Acceptance criteria", "type": "prose" },
+    { "id": "signatures", "label": "Signatures", "type": "fixed" }
+  ],
+  "generation_notes": "Professional services SOW. Use deliverables-oriented language. Do not invent scope items not in user input. Keep timeline realistic — if start and end dates are given, surface the duration. If assumptions is empty, generate a conservative default set (client responsiveness, access to systems, out-of-scope items)."
+}

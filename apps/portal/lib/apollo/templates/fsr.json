@@ -1,0 +1,89 @@
+{
+  "slug": "fsr",
+  "label": "Field Service Report",
+  "description": "Technician visit report with photos, equipment notes, and follow-up.",
+  "category": "field-service",
+  "supports_images": true,
+  "fields": [
+    {
+      "id": "site_name",
+      "label": "Site name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "site_address",
+      "label": "Site address",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "visit_date",
+      "label": "Visit date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "id": "technician_name",
+      "label": "Technician name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "equipment_involved",
+      "label": "Equipment involved",
+      "type": "text",
+      "required": true,
+      "help": "Make/model, lane/gate identifier, asset tag if applicable."
+    },
+    {
+      "id": "issue_reported",
+      "label": "Issue reported",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "work_performed",
+      "label": "Work performed",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "parts_used",
+      "label": "Parts used",
+      "type": "textarea",
+      "required": false,
+      "placeholder": "Part name | part number | qty — one per line"
+    },
+    {
+      "id": "time_on_site_hours",
+      "label": "Time on site (hours)",
+      "type": "number",
+      "required": true
+    },
+    {
+      "id": "follow_up_required",
+      "label": "Follow-up required",
+      "type": "select",
+      "required": true,
+      "options": ["None", "Parts order", "Return visit", "Escalation"]
+    },
+    {
+      "id": "customer_signature_name",
+      "label": "Customer sign-off (printed name)",
+      "type": "text",
+      "required": false
+    }
+  ],
+  "sections": [
+    { "id": "cover", "label": "Cover page", "type": "fixed" },
+    { "id": "visit_details", "label": "Visit details", "type": "prose" },
+    { "id": "issue_description", "label": "Issue description", "type": "prose" },
+    { "id": "work_performed", "label": "Work performed", "type": "prose" },
+    { "id": "parts_and_materials", "label": "Parts and materials", "type": "prose" },
+    { "id": "photos", "label": "Photos", "type": "fixed" },
+    { "id": "follow_up", "label": "Follow-up", "type": "prose" },
+    { "id": "technician_attestation", "label": "Technician attestation", "type": "fixed" }
+  ],
+  "generation_notes": "Field-authentic voice. Technician writing a service ticket, not marketing copy. Be concrete — part numbers, amperage, specific observations. If photos are provided, reference them in the Work performed and Issue description sections with figure numbers (e.g., 'as shown in Figure 1'). The photos section itself is fixed — the pipeline embeds the images."
+}

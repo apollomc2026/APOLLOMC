@@ -1,0 +1,68 @@
+{
+  "slug": "change-order",
+  "label": "Change Order",
+  "description": "Formal amendment to an existing SOW with schedule and fee impact.",
+  "category": "contracts",
+  "supports_images": false,
+  "fields": [
+    {
+      "id": "original_sow_reference",
+      "label": "Original SOW reference",
+      "type": "text",
+      "required": true,
+      "placeholder": "SOW number or title"
+    },
+    {
+      "id": "client_name",
+      "label": "Client name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "change_date",
+      "label": "Change order date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "id": "reason_for_change",
+      "label": "Reason for change",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "scope_changes",
+      "label": "Scope changes (additions/removals)",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "schedule_impact",
+      "label": "Schedule impact",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "fee_impact",
+      "label": "Fee impact",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "effective_date",
+      "label": "Effective date",
+      "type": "date",
+      "required": true
+    }
+  ],
+  "sections": [
+    { "id": "header", "label": "Header", "type": "fixed" },
+    { "id": "reference_to_original", "label": "Reference to original SOW", "type": "prose" },
+    { "id": "change_description", "label": "Change description", "type": "prose" },
+    { "id": "schedule_impact", "label": "Schedule impact", "type": "prose" },
+    { "id": "fee_impact", "label": "Fee impact", "type": "prose" },
+    { "id": "acceptance", "label": "Acceptance", "type": "prose" },
+    { "id": "signatures", "label": "Signatures", "type": "fixed" }
+  ],
+  "generation_notes": "Terse, precise amendment language. State the change in concrete terms — do not soften or editorialize. Confirm that all other terms of the original SOW remain in force except as modified here."
+}

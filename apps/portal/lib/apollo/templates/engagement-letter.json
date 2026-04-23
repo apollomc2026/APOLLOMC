@@ -1,0 +1,69 @@
+{
+  "slug": "engagement-letter",
+  "label": "Client Engagement Letter",
+  "description": "Formal engagement letter establishing scope, fees, and terms with a client.",
+  "category": "contracts",
+  "supports_images": false,
+  "fields": [
+    {
+      "id": "client_name",
+      "label": "Client name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "engagement_type",
+      "label": "Engagement type",
+      "type": "select",
+      "required": true,
+      "options": ["Consulting", "Advisory", "Technical services", "Retainer"]
+    },
+    {
+      "id": "start_date",
+      "label": "Start date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "id": "scope_summary",
+      "label": "Scope summary",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "fee_arrangement",
+      "label": "Fee arrangement",
+      "type": "textarea",
+      "required": true,
+      "placeholder": "Monthly retainer, hourly rate, project-based, etc."
+    },
+    {
+      "id": "termination_terms",
+      "label": "Termination terms",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "id": "point_of_contact_client",
+      "label": "Client point of contact",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "point_of_contact_provider",
+      "label": "Provider point of contact",
+      "type": "text",
+      "required": true
+    }
+  ],
+  "sections": [
+    { "id": "cover_letter", "label": "Cover letter", "type": "prose" },
+    { "id": "engagement_scope", "label": "Engagement scope", "type": "prose" },
+    { "id": "fees_and_billing", "label": "Fees and billing", "type": "prose" },
+    { "id": "responsibilities", "label": "Responsibilities of each party", "type": "prose" },
+    { "id": "confidentiality", "label": "Confidentiality", "type": "prose" },
+    { "id": "termination", "label": "Termination", "type": "prose" },
+    { "id": "signatures", "label": "Signatures", "type": "fixed" }
+  ],
+  "generation_notes": "Formal engagement letter written in first-person from the provider to the client. Open with a greeting, express appreciation for the opportunity, then move directly to the terms. Keep confidentiality language standard if none provided. Termination section should cover both for-cause and for-convenience at a minimum."
+}

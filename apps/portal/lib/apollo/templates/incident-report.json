@@ -1,0 +1,89 @@
+{
+  "slug": "incident-report",
+  "label": "Incident Report",
+  "description": "Formal incident report with witness statements, damage assessment, and recommended actions.",
+  "category": "field-service",
+  "supports_images": true,
+  "fields": [
+    {
+      "id": "incident_date",
+      "label": "Incident date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "id": "incident_time",
+      "label": "Incident time (24hr)",
+      "type": "text",
+      "required": true,
+      "placeholder": "14:30"
+    },
+    {
+      "id": "location",
+      "label": "Location",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "reporter_name",
+      "label": "Reporter name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "persons_involved",
+      "label": "Persons involved",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "incident_description",
+      "label": "Incident description",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "immediate_actions_taken",
+      "label": "Immediate actions taken",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "witnesses",
+      "label": "Witnesses",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "id": "injuries_or_damage",
+      "label": "Injuries or damage",
+      "type": "textarea",
+      "required": true
+    },
+    {
+      "id": "root_cause_hypothesis",
+      "label": "Root cause hypothesis",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "id": "recommended_actions",
+      "label": "Recommended actions",
+      "type": "textarea",
+      "required": true
+    }
+  ],
+  "sections": [
+    { "id": "cover", "label": "Cover", "type": "fixed" },
+    { "id": "incident_summary", "label": "Incident summary", "type": "prose" },
+    { "id": "detailed_description", "label": "Detailed description", "type": "prose" },
+    { "id": "immediate_response", "label": "Immediate response", "type": "prose" },
+    { "id": "witnesses_and_statements", "label": "Witnesses and statements", "type": "prose" },
+    { "id": "damage_assessment", "label": "Damage assessment", "type": "prose" },
+    { "id": "photos", "label": "Photos", "type": "fixed" },
+    { "id": "root_cause_analysis", "label": "Root cause analysis", "type": "prose" },
+    { "id": "recommendations", "label": "Recommendations", "type": "prose" },
+    { "id": "reporter_attestation", "label": "Reporter attestation", "type": "fixed" }
+  ],
+  "generation_notes": "Factual, neutral, chronological. No speculation outside the root-cause section. Root cause analysis is hypothetical unless the reporter provided one — make that clear. If photos are provided, reference them in the detailed description and damage assessment with figure numbers."
+}
