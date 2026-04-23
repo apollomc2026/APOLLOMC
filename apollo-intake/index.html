@@ -1,300 +1,630 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Apollo — Deliverable Intake</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Apollo Mission Control</title>
+
+<link rel="manifest" href="/apollo/manifest.json">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Apollo">
+<link rel="apple-touch-icon" sizes="192x192" href="/apollo/icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="/apollo/icons/icon-512.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/apollo/icons/icon-192.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
 <style>
   :root {
-    --orange:   #FF6B1A;
-    --orange-d: #E05400;
-    --lime:     #A4D65E;
-    --charcoal: #2B2B2B;
-    --muted:    #6B7280;
-    --rule:     #E5E5E5;
-    --bg:       #FFFFFF;
-    --bg-soft:  #FAFAFA;
-    --error:    #E5484D;
-    --success:  #00B86B;
-    --font-display: 'Syne', system-ui, sans-serif;
-    --font-body:    'Inter', system-ui, sans-serif;
-    --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+    --bg: #0a0a0f;
+    --bg-rad: radial-gradient(ellipse at center, rgba(20,30,60,0.3) 0%, rgba(10,10,15,1) 100%);
+    --text: #ffffff;
+    --text-2: rgba(255,255,255,0.8);
+    --text-3: rgba(255,255,255,0.6);
+    --text-4: rgba(255,255,255,0.4);
+    --cyan: #6be3ff;
+    --cyan-dim: rgba(107,227,255,0.6);
+    --blue: #4a9eff;
+    --orange: #ff7a00;
+    --green: #7bff9f;
+    --border: rgba(107,227,255,0.2);
+    --border-strong: #6be3ff;
+    --card-bg: rgba(10,10,15,0.6);
+    --header-bg: rgba(10,10,15,0.95);
+    --alert-bg: linear-gradient(135deg, rgba(107,227,255,0.15), rgba(255,122,0,0.15));
+    --input-bg: rgba(0,0,0,0.3);
+    --input-border: rgba(107,227,255,0.3);
+    --radius: 16px;
+    --radius-sm: 8px;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
-    font-family: var(--font-body);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background: var(--bg);
-    color: var(--charcoal);
-    font-size: 15px;
-    line-height: 1.5;
+    color: var(--text);
     min-height: 100vh;
-    position: relative;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+    overflow-x: hidden;
   }
-  /* Mission-control sunburst — decorative only, behind all content */
   body::before {
     content: '';
     position: fixed;
     inset: 0;
-    background:
-      radial-gradient(ellipse 900px 500px at 50% -80px, rgba(255,107,26,0.10), rgba(255,107,26,0) 72%),
-      radial-gradient(ellipse 700px 400px at 50% -40px, rgba(164,214,94,0.06), rgba(164,214,94,0) 70%);
+    background: var(--bg-rad);
     pointer-events: none;
     z-index: 0;
   }
   body > * { position: relative; z-index: 1; }
-  a { color: var(--orange); text-decoration: none; }
-  a:hover { text-decoration: underline; }
 
+  button { font-family: inherit; color: inherit; }
+  a { color: var(--cyan); text-decoration: none; }
+  a:hover { opacity: 0.85; }
+
+  /* Warp speed background */
+  .warp-container {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+  }
+  .warp-line {
+    position: absolute;
+    height: 1px;
+    width: 100%;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    opacity: 0.5;
+    animation: warpSpeed 3s linear infinite;
+  }
+  @keyframes warpSpeed {
+    0%   { transform: translateX(-100%) scaleX(0); opacity: 0; }
+    10%  { transform: translateX(-100%) scaleX(1); opacity: 1; }
+    90%  { transform: translateX(100%)  scaleX(1); opacity: 1; }
+    100% { transform: translateX(100%)  scaleX(0); opacity: 0; }
+  }
+  body.generating .warp-line { opacity: 0.85; animation-duration: 1.4s; }
+
+  /* Header */
   header {
-    border-bottom: 1px solid var(--rule);
-    padding: 16px 24px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: var(--header-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: #fff;
-    position: sticky;
-    top: 0;
-    z-index: 10;
   }
-  .brand-lockup { display: flex; align-items: center; gap: 12px; }
-  .brand-lockup img { height: 36px; max-width: 140px; object-fit: contain; }
-  .brand-lockup .wordmark {
-    font-family: var(--font-display);
-    font-size: 20px;
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text);
+  }
+  .logo img { height: 32px; width: auto; display: block; }
+  .logo span {
     font-weight: 700;
-    color: var(--charcoal);
-  }
-  .brand-lockup .wordmark em { color: var(--orange); font-style: normal; }
-  .brand-lockup .tagline {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    font-size: 16px;
+    letter-spacing: 0.3px;
   }
 
-  .progress-bar { height: 3px; background: #F0F0F0; }
-  .progress-bar > div {
-    height: 100%;
-    background: linear-gradient(90deg, var(--orange), var(--lime));
-    transition: width 220ms ease;
+  /* User menu */
+  .user-menu { position: relative; }
+  .user-menu-trigger {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 4px 14px 4px 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
   }
+  .user-menu-trigger:hover { border-color: var(--cyan); }
+  .user-menu-trigger .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #1a1a2a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cyan);
+    overflow: hidden;
+  }
+  .user-menu-trigger .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .user-menu-trigger .user-name {
+    font-size: 14px;
+    font-weight: 500;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .user-menu-trigger .chevron { color: var(--text-3); font-size: 10px; }
+  .user-menu-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 240px;
+    background: rgba(10,10,15,0.98);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  }
+  .user-menu-email {
+    font-size: 13px;
+    color: var(--text-3);
+    padding: 6px 10px 10px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+    word-break: break-all;
+  }
+  .signout-btn {
+    width: 100%;
+    background: transparent;
+    border: none;
+    text-align: left;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-2);
+    transition: all 0.15s ease;
+  }
+  .signout-btn:hover { background: rgba(255,122,0,0.1); color: var(--orange); }
 
+  /* Main layout */
   main {
-    max-width: 1040px;
-    margin: 0 auto;
-    padding: 32px 24px 80px;
-  }
-  .step-tag {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-  h1.page-title {
-    font-family: var(--font-display);
-    font-size: 28px;
-    margin: 4px 0 24px 0;
-    font-weight: 700;
-  }
-
-  /* Cards */
-  .card-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
-  }
-  .card-grid.brands {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  }
-  .card {
+    padding: 92px 24px 48px;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
-    background: var(--bg);
-    border: 1px solid var(--rule);
+  }
+
+  /* Buttons */
+  .btn {
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    border: none;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--cyan), var(--blue));
+    color: #000;
+    padding: 14px 28px;
+  }
+  .btn-primary:not([disabled]):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(107,227,255,0.3);
+  }
+  .btn-primary:not([disabled]):active { transform: translateY(0); }
+  .btn-secondary {
+    background: transparent;
+    color: var(--cyan);
+    border: 2px solid var(--cyan);
+    padding: 12px 24px;
+  }
+  .btn-secondary:not([disabled]):hover { background: var(--cyan); color: #000; }
+  .btn-sm { padding: 10px 18px; font-size: 14px; }
+  .btn-lg { padding: 16px 40px; font-size: 16px; min-width: 320px; }
+
+  /* Centered card (signed-out, not-authorized, loading) */
+  .auth-card {
+    max-width: 520px;
+    margin: auto;
+    padding: 48px 40px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    text-align: center;
+  }
+  .auth-card .logo-large {
+    height: 64px;
+    margin-bottom: 24px;
+  }
+  .auth-card h1 {
+    margin: 0 0 12px 0;
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #ffffff, var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .auth-card p.subtitle {
+    margin: 0 0 28px 0;
+    color: var(--text-3);
+    font-size: 15px;
+  }
+  .auth-card .google-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .auth-card .google-cta svg { width: 20px; height: 20px; }
+  .auth-card .footer-note {
+    margin-top: 24px;
+    font-size: 12px;
+    color: var(--text-4);
+    letter-spacing: 0.3px;
+  }
+  .auth-card .email-callout {
+    background: rgba(255,122,0,0.08);
+    border: 1px solid rgba(255,122,0,0.3);
     border-radius: 12px;
-    padding: 20px;
+    padding: 14px 18px;
+    margin: 12px 0 24px 0;
+    color: var(--text-2);
+    font-size: 13px;
+  }
+  .auth-card .email-callout strong { color: var(--orange); word-break: break-all; }
+
+  .connect-pulse {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--cyan);
+    margin: 20px auto 12px;
+    box-shadow: 0 0 0 0 rgba(107,227,255,0.7);
+    animation: pulse 1.5s ease-out infinite;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(107,227,255,0.6); }
+    100% { box-shadow: 0 0 0 24px rgba(107,227,255,0); }
+  }
+  .connect-text {
+    color: var(--text-3);
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  /* Intake shell */
+  .intake {
+    max-width: 960px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* Step indicator */
+  .steps {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    max-width: 820px;
+    margin: 0 auto 40px;
+  }
+  .step {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+  }
+  .step-circle {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-3);
+    transition: all 0.3s ease;
+    background: var(--bg);
+  }
+  .step.active .step-circle {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    box-shadow: 0 0 20px rgba(107,227,255,0.4);
+  }
+  .step.done .step-circle {
+    background: var(--cyan);
+    border-color: var(--cyan);
+    color: #000;
+  }
+  .step-label {
+    margin-left: 10px;
+    font-size: 13px;
+    color: var(--text-3);
+    font-weight: 500;
+  }
+  .step.active .step-label { color: var(--cyan); }
+  .step.done .step-label { color: var(--text-2); }
+  .step-line {
+    flex: 1 1 auto;
+    height: 2px;
+    background: rgba(255,255,255,0.08);
+    margin: 0 4px;
+  }
+  .step.done + .step-line { background: var(--cyan-dim); }
+
+  @media (max-width: 780px) {
+    .step-label { display: none; }
+    .steps { max-width: 460px; }
+  }
+
+  /* Step content */
+  .step-head {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .step-head h2 {
+    margin: 0 0 8px 0;
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #ffffff, var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .step-head p {
+    margin: 0;
+    color: var(--text-3);
+    font-size: 15px;
+  }
+
+  /* Card grids */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  @media (max-width: 900px) { .card-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .card-grid { grid-template-columns: 1fr; } }
+  .grid-brands { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 900px) { .grid-brands { grid-template-columns: repeat(2, 1fr); } }
+
+  .select-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
     cursor: pointer;
     text-align: left;
-    transition: all 150ms ease;
+    transition: all 0.3s ease;
+    position: relative;
     font-family: inherit;
     color: inherit;
     font-size: inherit;
   }
-  .card:hover {
-    border-color: var(--orange);
-    box-shadow: 0 6px 18px rgba(255, 107, 26, 0.14);
+  .select-card:hover {
+    border-color: var(--cyan);
     transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(107,227,255,0.15);
   }
-  .card:active {
-    transform: translateY(-1px);
-    box-shadow: 0 3px 10px rgba(255, 107, 26, 0.16);
+  .select-card.selected {
+    border-color: var(--cyan);
+    background: linear-gradient(135deg, rgba(107,227,255,0.12), rgba(74,158,255,0.05));
   }
-  .card.selected {
-    border-color: var(--orange);
-    background: rgba(255, 107, 26, 0.04);
-  }
-  .card.brand-card {
-    align-items: center;
-    justify-content: center;
-    min-height: 150px;
-    gap: 10px;
-    text-align: center;
-  }
-  .card .category {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--orange);
-    font-weight: 600;
+  .select-card .card-title {
+    font-size: 18px;
+    font-weight: 700;
     margin-bottom: 6px;
+    color: var(--text);
+  }
+  .select-card .card-desc {
+    font-size: 13px;
+    color: var(--text-3);
+    line-height: 1.4;
+  }
+  .select-card .card-meta {
     display: flex;
     align-items: center;
     gap: 8px;
+    margin-top: 12px;
+    font-size: 11px;
+    color: var(--text-3);
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
   }
-  .card .img-pill {
-    padding: 2px 8px;
-    background: rgba(164, 214, 94, 0.18);
-    color: #3E7200;
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
     border-radius: 999px;
-    font-size: 9px;
-    letter-spacing: 0.08em;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: rgba(107,227,255,0.14);
+    color: var(--cyan);
   }
-  .card .label {
-    font-family: var(--font-display);
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 6px;
+  .pill-orange { background: rgba(255,122,0,0.14); color: var(--orange); }
+  .pill-green  { background: rgba(123,255,159,0.14); color: var(--green); }
+  .select-card .check {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--cyan);
+    color: #000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
   }
-  .card .desc {
-    font-size: 13px;
-    color: var(--muted);
-    line-height: 1.4;
+  .select-card.selected .check { display: flex; }
+
+  /* Brand card */
+  .brand-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    cursor: pointer;
+    text-align: center;
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    transition: all 0.3s ease;
+    position: relative;
+    font-family: inherit;
+    color: inherit;
+    font-size: inherit;
   }
-  .card.brand-card img {
-    max-height: 60px;
-    max-width: 160px;
+  .brand-card:hover {
+    border-color: var(--cyan);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(107,227,255,0.15);
+  }
+  .brand-card.selected {
+    border-color: var(--cyan);
+    background: linear-gradient(135deg, rgba(107,227,255,0.12), rgba(74,158,255,0.05));
+  }
+  .brand-card img {
+    max-width: 150px;
+    max-height: 56px;
     object-fit: contain;
+    filter: brightness(1.1);
   }
-  .brand-placeholder {
-    height: 60px;
-    width: 60px;
-    border-radius: 30px;
-    background: var(--bg-soft);
-    border: 1px dashed var(--rule);
+  .brand-card .brand-ph {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(107,227,255,0.1);
+    border: 1px solid var(--border);
+    color: var(--cyan);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--muted);
-    font-size: 18px;
+    font-size: 22px;
+    font-weight: 700;
   }
-  .brand-card .name { font-weight: 600; font-size: 14px; }
-  .brand-card .note {
+  .brand-card .brand-name {
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .brand-card .brand-note {
     font-size: 11px;
-    color: var(--muted);
-    text-align: center;
-    font-style: italic;
-  }
-
-  /* Context banner */
-  .context-banner {
-    display: flex;
-    gap: 16px;
-    padding: 10px 14px;
-    border-radius: 8px;
-    background: var(--bg-soft);
-    border: 1px solid var(--rule);
-    font-size: 12px;
-    flex-wrap: wrap;
-    margin-bottom: 16px;
-  }
-  .context-banner .k {
-    font-family: var(--font-mono);
-    color: var(--muted);
+    color: var(--text-4);
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
   }
-  .context-banner .v { color: var(--charcoal); font-weight: 600; }
+  .brand-card .check {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--cyan);
+    color: #000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 13px;
+  }
+  .brand-card.selected .check { display: flex; }
 
   /* Form */
-  .form-fields { display: grid; gap: 18px; }
-  label.field-label {
+  .form { display: grid; gap: 20px; max-width: 720px; margin: 0 auto; }
+  .field label {
     display: block;
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 6px;
-    color: var(--charcoal);
-  }
-  label.field-label .req { color: var(--orange); }
-  input[type="text"],
-  input[type="number"],
-  input[type="date"],
-  textarea,
-  select {
-    width: 100%;
-    padding: 10px 12px;
     font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: var(--text-2);
+  }
+  .field label .req { color: var(--orange); }
+  .field input[type="text"],
+  .field input[type="number"],
+  .field input[type="date"],
+  .field textarea,
+  .field select {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 15px;
     font-family: inherit;
-    border: 1px solid var(--rule);
-    border-radius: 8px;
-    color: var(--charcoal);
-    background: var(--bg);
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    transition: all 0.2s ease;
   }
-  textarea { resize: vertical; min-height: 96px; }
-  input:focus, textarea:focus, select:focus {
+  .field textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
+  .field input::placeholder, .field textarea::placeholder { color: var(--text-4); }
+  .field input:focus, .field textarea:focus, .field select:focus {
     outline: none;
-    border-color: var(--orange);
-    box-shadow: 0 0 0 3px rgba(255, 107, 26, 0.15);
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 3px rgba(107,227,255,0.15);
   }
-  .field-help {
-    font-size: 12px;
-    color: var(--muted);
-    margin-top: 4px;
-  }
-  .field-error input, .field-error textarea, .field-error select {
-    border-color: var(--error);
-  }
-  .multi-chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .field.missing input,
+  .field.missing textarea,
+  .field.missing select { border-color: var(--orange); }
+  .field .help { font-size: 12px; color: var(--text-4); margin-top: 4px; }
+  .field .inline-err { font-size: 12px; color: var(--orange); margin-top: 4px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .chip {
-    padding: 6px 12px;
-    border: 1px solid var(--rule);
-    background: var(--bg);
-    border-radius: 999px;
-    font-size: 13px;
-    cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
-  }
-  .chip.on { border-color: var(--orange); background: rgba(255,107,26,0.08); }
-  .chip input { margin: 0; }
-
-  .error-banner {
-    color: var(--error);
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--input-border);
+    background: var(--input-bg);
+    color: var(--text-2);
     font-size: 13px;
-    margin-top: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
   }
+  .chip input { margin: 0; }
+  .chip.on { border-color: var(--cyan); background: rgba(107,227,255,0.1); color: var(--cyan); }
 
-  /* Image upload */
+  /* Drop zone */
   .drop-zone {
     display: block;
-    border: 2px dashed var(--rule);
-    border-radius: 12px;
-    padding: 32px;
+    border: 2px dashed var(--input-border);
+    border-radius: var(--radius);
+    padding: 40px 20px;
     text-align: center;
     cursor: pointer;
-    background: var(--bg-soft);
-    transition: border-color 150ms ease;
+    background: rgba(107,227,255,0.04);
+    transition: all 0.25s ease;
   }
-  .drop-zone.hot { border-color: var(--orange); background: rgba(255,107,26,0.04); }
-  .drop-zone .dz-headline { font-size: 14px; color: var(--charcoal); font-weight: 600; }
-  .drop-zone .dz-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .drop-zone.hot { border-color: var(--cyan); background: rgba(107,227,255,0.1); }
+  .drop-zone svg { width: 40px; height: 40px; color: var(--cyan); margin-bottom: 10px; }
+  .drop-zone .dz-headline { font-weight: 600; color: var(--text); }
+  .drop-zone .dz-sub { font-size: 12px; color: var(--text-3); margin-top: 4px; }
   .thumb-grid {
     margin-top: 16px;
     display: grid;
@@ -303,10 +633,10 @@
   }
   .thumb {
     position: relative;
-    border: 1px solid var(--rule);
-    border-radius: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
     padding: 8px;
-    background: var(--bg);
+    background: var(--input-bg);
   }
   .thumb img {
     width: 100%;
@@ -317,7 +647,7 @@
   .thumb .fname {
     font-size: 11px;
     margin-top: 6px;
-    color: var(--muted);
+    color: var(--text-3);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -329,570 +659,644 @@
     width: 22px;
     height: 22px;
     border-radius: 11px;
-    background: rgba(0,0,0,0.55);
+    background: rgba(0,0,0,0.65);
     color: #fff;
-    border: none;
+    border: 1px solid var(--border);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1;
     padding: 0;
   }
 
-  /* Summary */
-  .summary-box {
-    border: 1px solid var(--rule);
-    border-radius: 12px;
+  /* Review */
+  .review {
+    background: var(--alert-bg);
+    border: 1px solid var(--cyan);
+    border-radius: var(--radius);
     padding: 24px;
-    background: var(--bg-soft);
+    max-width: 720px;
+    margin: 0 auto;
   }
-  .summary-row {
-    display: flex;
-    padding: 6px 0;
+  .review h3 {
+    margin: 0 0 12px 0;
     font-size: 13px;
-    gap: 12px;
-  }
-  .summary-row .k { width: 180px; color: var(--muted); flex-shrink: 0; }
-  .summary-row .v { color: var(--charcoal); white-space: pre-wrap; word-break: break-word; }
-  .summary-box hr {
-    border: none;
-    border-top: 1px solid var(--rule);
-    margin: 12px 0;
-  }
-
-  /* Buttons */
-  .btn {
-    padding: 10px 20px;
-    border-radius: 8px;
-    border: 1px solid transparent;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 120ms ease, box-shadow 160ms ease, transform 120ms ease;
-  }
-  .btn:disabled { opacity: 0.55; cursor: not-allowed; }
-  .btn.primary {
-    background: var(--orange);
-    color: #fff;
-    box-shadow: 0 1px 2px rgba(255, 107, 26, 0.2);
-  }
-  .btn.primary:hover:not(:disabled) {
-    background: var(--orange-d);
-    box-shadow: 0 4px 14px rgba(255, 107, 26, 0.28);
-    transform: translateY(-1px);
-  }
-  .btn.primary:active:not(:disabled) {
-    transform: translateY(0);
-    box-shadow: 0 1px 3px rgba(255, 107, 26, 0.2);
-  }
-  .btn.primary.large { padding: 14px 28px; font-size: 15px; }
-  .btn.secondary {
-    background: var(--bg);
-    color: var(--charcoal);
-    border-color: var(--rule);
-    font-weight: 500;
-  }
-  .btn.secondary:hover:not(:disabled) { border-color: var(--charcoal); }
-
-  .expiry-note {
-    margin-top: 12px;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--muted);
+    letter-spacing: 0.2em;
+    color: var(--cyan);
+  }
+  .review-row {
+    display: flex;
+    gap: 12px;
+    padding: 8px 0;
+    font-size: 14px;
+    border-bottom: 1px solid rgba(107,227,255,0.1);
+  }
+  .review-row:last-child { border-bottom: none; }
+  .review-row .k {
+    flex: 0 0 160px;
+    color: var(--text-3);
+    font-size: 13px;
+  }
+  .review-row .v {
+    flex: 1 1 auto;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  @media (max-width: 600px) {
+    .review-row { flex-direction: column; gap: 2px; }
+    .review-row .k { flex: none; }
   }
 
+  /* Nav row */
   .nav-row {
     display: flex;
     justify-content: space-between;
-    margin-top: 32px;
     gap: 12px;
+    margin-top: 36px;
+    max-width: 960px;
+    margin-left: auto;
+    margin-right: auto;
   }
+  .nav-row .spacer { flex: 1 1 auto; }
 
-  /* Mission-control transmission indicator */
-  .transmit {
-    width: 200px;
+  /* Result */
+  .result-wrap {
+    max-width: 520px;
+    margin: 40px auto 0;
+    text-align: center;
+  }
+  .result-wrap .launch-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 24px;
+    color: var(--cyan);
+  }
+  .result-wrap .launching {
+    animation: launch 1.4s ease-in-out infinite;
+  }
+  @keyframes launch {
+    0%,100% { transform: translateY(0); }
+    50%     { transform: translateY(-10px); }
+  }
+  .result-wrap h2 {
+    margin: 0 0 8px 0;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .result-wrap p.sub {
+    margin: 0 0 28px 0;
+    color: var(--text-3);
+    font-size: 14px;
+  }
+  .checkmark {
+    width: 72px;
+    height: 72px;
     margin: 0 auto 20px;
-    text-align: left;
   }
-  .transmit .track {
-    position: relative;
-    height: 3px;
-    background: #F0F0F0;
-    border-radius: 2px;
-    overflow: hidden;
+  .checkmark circle {
+    stroke: var(--cyan);
+    stroke-width: 3;
+    stroke-dasharray: 180;
+    stroke-dashoffset: 180;
+    fill: rgba(107,227,255,0.08);
+    animation: drawCircle 0.5s ease forwards;
   }
-  .transmit .beam {
-    position: absolute;
-    left: -40%;
-    top: 0;
-    width: 40%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent 0%, var(--orange) 40%, var(--lime) 70%, transparent 100%);
-    animation: transmit-scan 1.6s linear infinite;
+  .checkmark path {
+    stroke: var(--cyan);
+    stroke-width: 4;
+    stroke-dasharray: 40;
+    stroke-dashoffset: 40;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    animation: drawCheck 0.4s 0.3s ease forwards;
   }
-  .transmit .label {
-    margin-top: 10px;
-    font-family: var(--font-mono);
+  @keyframes drawCircle { to { stroke-dashoffset: 0; } }
+  @keyframes drawCheck  { to { stroke-dashoffset: 0; } }
+  .result-wrap .expiry {
+    margin-top: 14px;
     font-size: 11px;
-    letter-spacing: 0.22em;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: var(--orange);
+    color: var(--text-4);
+  }
+  .result-wrap .result-actions {
     display: flex;
-    align-items: center;
-    gap: 8px;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 10px;
   }
-  .transmit .label::before {
-    content: '';
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--orange);
-    box-shadow: 0 0 0 0 var(--orange);
-    animation: transmit-pulse 1.2s ease-out infinite;
+  .err-card {
+    background: rgba(255,122,0,0.08);
+    border: 1px solid rgba(255,122,0,0.4);
+    border-radius: var(--radius);
+    padding: 24px;
   }
-  @keyframes transmit-scan {
-    0%   { left: -40%; }
-    100% { left: 100%; }
+  .err-card .err-title {
+    color: var(--orange);
+    font-weight: 700;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 13px;
   }
-  @keyframes transmit-pulse {
-    0%   { box-shadow: 0 0 0 0 rgba(255,107,26,0.55); }
-    100% { box-shadow: 0 0 0 10px rgba(255,107,26,0);  }
-  }
-  .alert {
-    padding: 20px;
-    border-radius: 12px;
-    border: 1px solid transparent;
-  }
-  .alert.error {
-    background: #FCE4E0;
-    border-color: #E58577;
-    color: #8A1F12;
-  }
-  .alert.success {
-    background: rgba(164,214,94,0.16);
-    border-color: var(--lime);
-  }
-  .alert .alert-title { font-weight: 700; margin-bottom: 6px; }
-  .alert.success .alert-title { color: #3E7200; }
-  .alert pre {
+  .err-card pre {
+    margin: 0;
+    color: var(--text-2);
+    font-family: ui-monospace, 'SF Mono', Monaco, monospace;
+    font-size: 12px;
     white-space: pre-wrap;
     word-break: break-word;
-    margin: 0;
-    font-family: var(--font-mono);
-    font-size: 12px;
   }
 
-  /* Modal for API key */
-  .modal-backdrop {
+  /* Toast */
+  .toast {
     position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    z-index: 100;
+    top: 84px;
+    right: 24px;
+    background: rgba(10,10,15,0.98);
+    border: 1px solid rgba(255,122,0,0.5);
+    color: var(--text);
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    z-index: 200;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    max-width: 360px;
   }
-  .modal {
-    background: #fff;
-    border-radius: 16px;
-    padding: 28px;
-    max-width: 440px;
-    width: 100%;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-  }
-  .modal h2 {
-    font-family: var(--font-display);
-    font-size: 22px;
-    margin: 0 0 8px 0;
-  }
-  .modal p { color: var(--muted); font-size: 13px; margin: 0 0 16px 0; }
-  .modal form { display: grid; gap: 12px; }
-
-  footer {
-    border-top: 1px solid var(--rule);
-    padding: 16px 24px;
-    font-size: 12px;
-    color: var(--muted);
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  footer .actions a { cursor: pointer; }
 
   .hidden { display: none !important; }
-
-  /* Mobile */
-  @media (max-width: 640px) {
-    main { padding: 20px 16px 60px; }
-    h1.page-title { font-size: 22px; }
-    .card-grid { grid-template-columns: 1fr; }
-    .card-grid.brands { grid-template-columns: repeat(2, 1fr); }
-    .summary-row { flex-direction: column; gap: 2px; }
-    .summary-row .k { width: auto; }
-    header { padding: 12px 16px; }
-    .brand-lockup img { height: 28px; }
-    .brand-lockup .tagline { display: none; }
-  }
 </style>
 </head>
 <body>
 
+<div class="warp-container" aria-hidden="true">
+  <div class="warp-lines" id="warpLines"></div>
+</div>
+
 <header>
-  <div class="brand-lockup">
-    <img src="./logo.png" alt="Apollo" onerror="this.style.display='none'" />
-    <div>
-      <div class="wordmark">Apollo <em>Intake</em></div>
-      <div class="tagline">Deliverable Generator</div>
-    </div>
-  </div>
-  <div id="header-meta" class="step-tag"></div>
+  <a href="/apollo/" class="logo">
+    <img src="/apollo/logo.png" alt="" onerror="this.style.display='none'">
+    <span>Apollo</span>
+  </a>
+  <div id="userMenu"></div>
 </header>
 
-<div class="progress-bar"><div id="progress-fill" style="width: 0"></div></div>
+<main id="mainContent"></main>
 
-<main id="main">
-  <!-- Step content rendered here -->
-</main>
-
-<footer>
-  <div>Apollo MC · On Spot Solutions</div>
-  <div class="actions">
-    <a id="reset-key-link">Reset API key</a>
-  </div>
-</footer>
-
-<!-- API key modal -->
-<div id="key-modal" class="modal-backdrop hidden">
-  <div class="modal">
-    <h2>Enter API key</h2>
-    <p>Paste your Apollo API key. Stored in this browser only (localStorage).</p>
-    <form id="key-form">
-      <input type="password" id="key-input" placeholder="apollo-api-key..." autocomplete="off" required />
-      <div id="key-error" class="error-banner hidden"></div>
-      <button class="btn primary" type="submit">Unlock</button>
-    </form>
-  </div>
-</div>
+<div id="toastHost"></div>
 
 <script>
 (() => {
   'use strict';
 
-  // ------ Config ------
-  const API_BASE = (function () {
-    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-      // During local testing the HTML is served on :8080, but the API runs
-      // on :3000 (next dev) or on the deployed Vercel URL. Prefer the dev
-      // server if present.
-      return 'http://localhost:3000';
-    }
-    return 'https://portal.apollomc.ai';
-  })();
-  const KEY_STORAGE = 'apolloApiKey';
-  const STEPS = ['template', 'brand', 'fields', 'images', 'review', 'result'];
+  const API = 'https://portal.apollomc.ai';
+  const STEPS = [
+    { key: 'template', label: 'Template' },
+    { key: 'brand',    label: 'Brand'    },
+    { key: 'details',  label: 'Details'  },
+    { key: 'images',   label: 'Images'   },
+    { key: 'review',   label: 'Review'   },
+    { key: 'result',   label: 'Result'   },
+  ];
 
-  // ------ State ------
+  // ---- State ----
   const state = {
-    step: 'template',
+    view: 'loading', // loading | signed-out | not-authorized | intake
+    user: null,      // { email, name, avatar }
+    step: 1,         // 1..6
     templates: [],
     brands: [],
-    templateSlug: null,
-    brandSlug: null,
-    inputs: {},
+    brandLogos: new Map(), // slug -> objectURL
+    selectedTemplate: null,
+    selectedBrand: null,
+    formValues: {},
+    missingIds: [],
     images: [],
     submitting: false,
-    resultUrl: null,
-    resultExpiresAt: null,
-    resultError: null,
-    missingIds: [],
+    submitResult: null, // { download_url, expires_at, submission_id }
+    submitError: null,
   };
 
-  // ------ DOM helpers ------
+  // ---- DOM helpers ----
   const $ = (sel) => document.querySelector(sel);
-  const el = (tag, attrs, ...children) => {
-    const node = document.createElement(tag);
+  const el = (tag, attrs, ...kids) => {
+    const n = document.createElement(tag);
     if (attrs) {
       for (const [k, v] of Object.entries(attrs)) {
-        if (k === 'class') node.className = v;
-        else if (k === 'style') node.setAttribute('style', v);
-        else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2), v);
-        else if (v === true) node.setAttribute(k, '');
-        else if (v === false || v == null) {}
-        else node.setAttribute(k, v);
+        if (v == null || v === false) continue;
+        if (k === 'class') n.className = v;
+        else if (k === 'style') n.setAttribute('style', v);
+        else if (k.startsWith('on') && typeof v === 'function') n.addEventListener(k.slice(2), v);
+        else if (v === true) n.setAttribute(k, '');
+        else n.setAttribute(k, v);
       }
     }
-    for (const child of children) {
-      if (child == null || child === false) continue;
-      if (Array.isArray(child)) child.forEach((c) => c && node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c));
-      else if (typeof child === 'string') node.appendChild(document.createTextNode(child));
-      else node.appendChild(child);
+    for (const kid of kids) {
+      if (kid == null || kid === false) continue;
+      if (Array.isArray(kid)) kid.forEach((k) => k != null && k !== false && n.appendChild(typeof k === 'string' ? document.createTextNode(k) : k));
+      else if (typeof kid === 'string') n.appendChild(document.createTextNode(kid));
+      else n.appendChild(kid);
     }
-    return node;
+    return n;
   };
-  const esc = (s) => (s == null ? '' : String(s));
 
-  // ------ API client ------
-  function getKey() { return localStorage.getItem(KEY_STORAGE) || ''; }
-  function setKey(k) { localStorage.setItem(KEY_STORAGE, k); }
-  function clearKey() { localStorage.removeItem(KEY_STORAGE); }
+  function toast(msg) {
+    const t = el('div', { class: 'toast' }, msg);
+    $('#toastHost').appendChild(t);
+    setTimeout(() => t.remove(), 4500);
+  }
 
-  async function apiGet(path) {
-    const res = await fetch(API_BASE + path, {
-      method: 'GET',
-      headers: { 'X-Apollo-Key': getKey() },
+  // ---- API ----
+  async function api(path, init = {}) {
+    const res = await fetch(API + path, {
+      credentials: 'include',
+      ...init,
+      headers: { ...(init.headers || {}) },
     });
-    if (res.status === 401) throw new Error('AUTH');
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    return res.json();
+    return res;
   }
-  async function apiSubmit(form) {
-    const res = await fetch(API_BASE + '/api/apollo/submit', {
-      method: 'POST',
-      headers: { 'X-Apollo-Key': getKey() },
-      body: form,
-    });
-    const json = await res.json().catch(() => ({}));
-    if (res.status === 401) throw new Error('AUTH');
-    if (!res.ok || !json.success) throw new Error(json.error || ('HTTP ' + res.status));
-    return json;
+  async function getJson(path) {
+    const r = await api(path);
+    if (r.status === 401) { state.view = 'signed-out'; render(); throw new Error('AUTH'); }
+    if (r.status === 403) { state.view = 'not-authorized'; render(); throw new Error('FORBIDDEN'); }
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
   }
 
-  // ------ API key gate ------
-  function showKeyModal(errMsg) {
-    const modal = $('#key-modal');
-    modal.classList.remove('hidden');
-    const err = $('#key-error');
-    if (errMsg) { err.textContent = errMsg; err.classList.remove('hidden'); }
-    else err.classList.add('hidden');
-    $('#key-input').focus();
+  // ---- Warp speed background ----
+  function renderWarpLines() {
+    const host = $('#warpLines');
+    host.innerHTML = '';
+    for (let i = 0; i < 8; i++) {
+      const line = el('div', { class: 'warp-line' });
+      line.style.top = Math.floor(Math.random() * 100) + '%';
+      line.style.animationDelay = (Math.random() * 3).toFixed(2) + 's';
+      host.appendChild(line);
+    }
   }
-  function hideKeyModal() { $('#key-modal').classList.add('hidden'); }
 
-  $('#key-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const val = $('#key-input').value.trim();
-    if (!val) return;
-    setKey(val);
-    hideKeyModal();
-    await bootstrap();
+  // ---- Header user menu ----
+  function renderUserMenu() {
+    const host = $('#userMenu');
+    host.innerHTML = '';
+    if (state.view !== 'intake' || !state.user) return;
+
+    const initials = (state.user.name || state.user.email || '?')
+      .split(/\s+/).map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+
+    const avatar = state.user.avatar
+      ? el('div', { class: 'avatar' }, el('img', { src: state.user.avatar, alt: '', referrerpolicy: 'no-referrer' }))
+      : el('div', { class: 'avatar' }, initials || 'A');
+
+    const firstName = (state.user.name || state.user.email).split(/[\s@]/)[0];
+
+    const trigger = el('button', {
+      class: 'user-menu-trigger',
+      'aria-expanded': 'false',
+      onclick: (e) => { e.stopPropagation(); toggleDropdown(); },
+    },
+      avatar,
+      el('span', { class: 'user-name' }, firstName),
+      el('span', { class: 'chevron' }, '▾'),
+    );
+
+    const dropdown = el('div', { class: 'user-menu-dropdown hidden', id: 'dropdown' },
+      el('div', { class: 'user-menu-email' }, state.user.email),
+      el('button', { class: 'signout-btn', onclick: signOut }, 'Sign out'),
+    );
+
+    const wrap = el('div', { class: 'user-menu' }, trigger, dropdown);
+    host.appendChild(wrap);
+  }
+
+  function toggleDropdown(forceClose) {
+    const dd = document.getElementById('dropdown');
+    if (!dd) return;
+    const trig = document.querySelector('.user-menu-trigger');
+    if (forceClose || !dd.classList.contains('hidden')) {
+      dd.classList.add('hidden');
+      if (trig) trig.setAttribute('aria-expanded', 'false');
+    } else {
+      dd.classList.remove('hidden');
+      if (trig) trig.setAttribute('aria-expanded', 'true');
+    }
+  }
+  document.addEventListener('click', (e) => {
+    const inside = e.target.closest('.user-menu');
+    if (!inside) toggleDropdown(true);
   });
-  $('#reset-key-link').addEventListener('click', (e) => {
-    e.preventDefault();
-    clearKey();
-    location.reload();
-  });
 
-  // ------ Bootstrap ------
-  async function bootstrap() {
-    if (!getKey()) { showKeyModal(); return; }
+  async function signOut() {
     try {
-      const [tplRes, brandRes] = await Promise.all([
-        apiGet('/api/apollo/templates'),
-        apiGet('/api/apollo/brands'),
-      ]);
-      state.templates = tplRes.templates || [];
-      state.brands = brandRes.brands || [];
-      state.step = 'template';
-      render();
-    } catch (err) {
-      if (err.message === 'AUTH') {
-        clearKey();
-        showKeyModal('That key did not work. Try again.');
+      await fetch(API + '/api/apollo/auth/signout', { method: 'POST', credentials: 'include' });
+    } catch {}
+    window.location.reload();
+  }
+
+  // ---- Bootstrap ----
+  async function bootstrap() {
+    renderWarpLines();
+    try {
+      const r = await fetch(API + '/api/apollo/auth/me', { credentials: 'include' });
+      if (!r.ok) throw new Error('auth/me HTTP ' + r.status);
+      const data = await r.json();
+      if (!data.authenticated) {
+        state.view = 'signed-out';
+      } else if (!data.authorized) {
+        state.user = { email: data.email, name: data.name, avatar: data.avatar };
+        state.view = 'not-authorized';
       } else {
-        renderFatal('Could not load templates or brands: ' + err.message);
+        state.user = { email: data.email, name: data.name, avatar: data.avatar };
+        state.view = 'intake';
+        state.step = 1;
+        await loadTemplates();
+        await loadBrands();
       }
+    } catch (err) {
+      state.view = 'signed-out';
     }
-  }
-
-  function renderFatal(msg) {
-    $('#main').innerHTML = '';
-    $('#main').appendChild(el('div', { class: 'alert error' },
-      el('div', { class: 'alert-title' }, 'Unable to load'),
-      el('pre', null, msg),
-    ));
-  }
-
-  // ------ Render dispatcher ------
-  function stepIndex() { return STEPS.indexOf(state.step); }
-  function totalSteps() {
-    const t = currentTemplate();
-    return (t && t.supports_images) ? 6 : 5;
-  }
-  function setProgress() {
-    const pct = Math.round((stepIndex() / 5) * 100);
-    $('#progress-fill').style.width = pct + '%';
-    $('#header-meta').textContent = 'Step ' + (stepIndex() + 1) + ' of ' + totalSteps();
-  }
-  function currentTemplate() {
-    return state.templates.find((t) => t.slug === state.templateSlug) || null;
-  }
-  function currentBrand() {
-    return state.brands.find((b) => b.slug === state.brandSlug) || null;
-  }
-
-  function render() {
-    setProgress();
-    const main = $('#main');
-    main.innerHTML = '';
-    const labels = {
-      template: 'Select deliverable',
-      brand: 'Select brand',
-      fields: 'Fill questionnaire',
-      images: 'Upload images',
-      review: 'Review & generate',
-      result: 'Result',
-    };
-    main.appendChild(el('div', { class: 'step-tag' }, 'Step ' + (stepIndex() + 1) + ' of ' + totalSteps()));
-    main.appendChild(el('h1', { class: 'page-title' }, labels[state.step]));
-
-    if (state.step === 'template') renderTemplates(main);
-    else if (state.step === 'brand') renderBrands(main);
-    else if (state.step === 'fields') renderFields(main);
-    else if (state.step === 'images') renderImages(main);
-    else if (state.step === 'review') renderReview(main);
-    else if (state.step === 'result') renderResult(main);
-  }
-
-  // ------ Steps ------
-  function renderTemplates(main) {
-    const grid = el('div', { class: 'card-grid' });
-    for (const t of state.templates) {
-      const categoryBits = [t.category];
-      const card = el('button', {
-        class: 'card',
-        type: 'button',
-        onclick: () => selectTemplate(t.slug),
-      },
-        el('div', { class: 'category' },
-          esc(t.category),
-          t.supports_images ? el('span', { class: 'img-pill' }, 'IMG') : null,
-        ),
-        el('div', { class: 'label' }, esc(t.label)),
-        el('div', { class: 'desc' }, esc(t.description)),
-      );
-      grid.appendChild(card);
-    }
-    main.appendChild(grid);
-  }
-
-  function selectTemplate(slug) {
-    state.templateSlug = slug;
-    const t = currentTemplate();
-    state.inputs = {};
-    if (t) {
-      for (const f of t.fields) {
-        if (f.default !== undefined) state.inputs[f.id] = f.default;
-      }
-    }
-    state.images = [];
-    state.missingIds = [];
-    state.step = 'brand';
     render();
   }
 
-  function renderBrands(main) {
-    const t = currentTemplate();
-    main.appendChild(contextBanner([['Template', t ? t.label : '']]));
-    const grid = el('div', { class: 'card-grid brands' });
-    const imgNodes = [];
+  async function loadTemplates() {
+    try {
+      const d = await getJson('/api/apollo/templates');
+      state.templates = d.templates || [];
+    } catch {}
+  }
+  async function loadBrands() {
+    try {
+      const d = await getJson('/api/apollo/brands');
+      state.brands = d.brands || [];
+    } catch {}
+  }
+
+  // ---- Render dispatcher ----
+  function render() {
+    renderUserMenu();
+    const main = $('#mainContent');
+    main.innerHTML = '';
+    if (state.view === 'loading') return renderLoading(main);
+    if (state.view === 'signed-out') return renderSignedOut(main);
+    if (state.view === 'not-authorized') return renderNotAuthorized(main);
+    if (state.view === 'intake') return renderIntake(main);
+  }
+
+  function renderLoading(main) {
+    main.appendChild(el('div', { class: 'auth-card' },
+      el('img', { class: 'logo-large', src: '/apollo/logo.png', alt: 'Apollo', onerror: "this.style.display='none'" }),
+      el('div', { class: 'connect-pulse' }),
+      el('div', { class: 'connect-text' }, 'Establishing connection'),
+    ));
+  }
+
+  function renderSignedOut(main) {
+    main.appendChild(el('div', { class: 'auth-card' },
+      el('img', { class: 'logo-large', src: '/apollo/logo.png', alt: 'Apollo', onerror: "this.style.display='none'" }),
+      el('h1', null, 'Apollo Mission Control'),
+      el('p', { class: 'subtitle' }, 'Deliverables generation. Invite-only access.'),
+      el('a', {
+        class: 'btn btn-primary google-cta',
+        href: API + '/api/apollo/auth/signin',
+      },
+        googleIcon(),
+        'Sign in with Google',
+      ),
+      el('div', { class: 'footer-note' }, 'Access is email-whitelisted. Contact Jon for an invite.'),
+    ));
+  }
+
+  function googleIcon() {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    const paths = [
+      ['M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z', '#4285F4'],
+      ['M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z', '#34A853'],
+      ['M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18a11 11 0 0 0 0 9.86l3.66-2.84z', '#FBBC05'],
+      ['M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z', '#EA4335'],
+    ];
+    for (const [d, fill] of paths) {
+      const p = document.createElementNS(ns, 'path');
+      p.setAttribute('d', d);
+      p.setAttribute('fill', fill);
+      svg.appendChild(p);
+    }
+    return svg;
+  }
+
+  function renderNotAuthorized(main) {
+    main.appendChild(el('div', { class: 'auth-card' },
+      el('img', { class: 'logo-large', src: '/apollo/logo.png', alt: 'Apollo', onerror: "this.style.display='none'" }),
+      el('h1', null, 'Access denied'),
+      el('p', { class: 'subtitle' }, 'This email is not on the Apollo access list.'),
+      el('div', { class: 'email-callout' },
+        'Signed in as ',
+        el('strong', null, state.user?.email || '(unknown)'),
+      ),
+      el('button', {
+        class: 'btn btn-secondary',
+        onclick: signOut,
+      }, 'Sign out'),
+      el('div', { class: 'footer-note' }, 'Contact Jon to request access.'),
+    ));
+  }
+
+  // ---- Intake ----
+  function currentSteps() {
+    // Skip images step if template doesn't support it
+    const supports = !!state.selectedTemplate?.supports_images;
+    return supports ? STEPS : STEPS.filter(s => s.key !== 'images');
+  }
+
+  function stepIndexFor(stateStep) {
+    // stateStep is 1..6 against STEPS, but effective visible index depends on supports_images.
+    const eff = currentSteps();
+    const stepKey = STEPS[stateStep - 1]?.key;
+    if (!stepKey) return 0;
+    const i = eff.findIndex(s => s.key === stepKey);
+    return i === -1 ? 0 : i;
+  }
+
+  function nextStep() {
+    const supports = !!state.selectedTemplate?.supports_images;
+    if (state.step === 3 && !supports) { state.step = 5; return; }
+    state.step = Math.min(6, state.step + 1);
+  }
+  function prevStep() {
+    const supports = !!state.selectedTemplate?.supports_images;
+    if (state.step === 5 && !supports) { state.step = 3; return; }
+    state.step = Math.max(1, state.step - 1);
+  }
+
+  function renderIntake(main) {
+    const wrap = el('div', { class: 'intake' });
+    wrap.appendChild(renderSteps());
+    const contentHost = el('div', { id: 'stepHost' });
+    wrap.appendChild(contentHost);
+    main.appendChild(wrap);
+
+    if (state.step === 1) renderStepTemplate(contentHost);
+    else if (state.step === 2) renderStepBrand(contentHost);
+    else if (state.step === 3) renderStepDetails(contentHost);
+    else if (state.step === 4) renderStepImages(contentHost);
+    else if (state.step === 5) renderStepReview(contentHost);
+    else if (state.step === 6) renderStepResult(contentHost);
+  }
+
+  function renderSteps() {
+    const eff = currentSteps();
+    const iCurrent = stepIndexFor(state.step);
+    const bar = el('div', { class: 'steps' });
+    eff.forEach((s, i) => {
+      const st = i < iCurrent ? 'done' : (i === iCurrent ? 'active' : '');
+      const marker = st === 'done' ? '✓' : String(i + 1);
+      bar.appendChild(el('div', { class: 'step ' + st },
+        el('div', { class: 'step-circle' }, marker),
+        el('span', { class: 'step-label' }, s.label),
+      ));
+      if (i < eff.length - 1) {
+        bar.appendChild(el('div', { class: 'step-line' + (i < iCurrent ? ' done' : '') }));
+      }
+    });
+    return bar;
+  }
+
+  // ---- Step 1: template ----
+  function categoryPillClass(cat) {
+    const c = (cat || '').toLowerCase();
+    if (c.includes('legal') || c.includes('contract')) return 'pill pill-orange';
+    if (c.includes('financ') || c.includes('invoice')) return 'pill pill-green';
+    return 'pill';
+  }
+
+  function renderStepTemplate(host) {
+    host.appendChild(el('div', { class: 'step-head' },
+      el('h2', null, 'Select Template'),
+      el('p', null, 'What deliverable are you generating?'),
+    ));
+    const grid = el('div', { class: 'card-grid' });
+    for (const t of state.templates) {
+      const isSel = state.selectedTemplate?.slug === t.slug;
+      const card = el('button', {
+        class: 'select-card' + (isSel ? ' selected' : ''),
+        type: 'button',
+        onclick: () => { state.selectedTemplate = t; state.formValues = {}; state.missingIds = []; render(); },
+      },
+        el('div', { class: 'check' }, '✓'),
+        el('div', { class: 'card-title' }, t.label),
+        el('div', { class: 'card-desc' }, t.description),
+        el('div', { class: 'card-meta' },
+          el('span', { class: categoryPillClass(t.category) }, t.category),
+          t.supports_images ? el('span', { style: 'color:var(--cyan);font-size:11px;' }, '📷 Supports images') : null,
+        ),
+      );
+      grid.appendChild(card);
+    }
+    host.appendChild(grid);
+    host.appendChild(navRow({
+      next: () => { if (state.selectedTemplate) { state.step = 2; render(); } },
+      nextDisabled: !state.selectedTemplate,
+    }));
+  }
+
+  // ---- Step 2: brand ----
+  function renderStepBrand(host) {
+    host.appendChild(el('div', { class: 'step-head' },
+      el('h2', null, 'Select Brand'),
+      el('p', null, 'Whose voice should the document carry?'),
+    ));
+    const grid = el('div', { class: 'card-grid grid-brands' });
+    const toLoad = [];
     for (const b of state.brands) {
+      const isSel = state.selectedBrand?.slug === b.slug;
       let logoNode;
       if (b.logo_url) {
         const img = el('img', { alt: b.label });
         logoNode = img;
-        imgNodes.push({ img, url: b.logo_url });
+        toLoad.push({ img, path: b.logo_url, slug: b.slug });
       } else {
-        logoNode = brandPlaceholder();
+        logoNode = el('div', { class: 'brand-ph' }, b.slug === 'other' ? '?' : '—');
       }
-      const isPlaceholderBrand = b.slug === 'habi' || b.slug === 'themis';
-      const isOther = b.slug === 'other';
-      const note = isPlaceholderBrand
-        ? el('div', { class: 'note' }, 'placeholder — limited support')
-        : (isOther ? el('div', { class: 'note' }, 'generates unbranded output') : null);
       const card = el('button', {
-        class: 'card brand-card',
+        class: 'brand-card' + (isSel ? ' selected' : ''),
         type: 'button',
-        onclick: () => selectBrand(b.slug),
+        onclick: () => { state.selectedBrand = b; render(); },
       },
+        el('div', { class: 'check' }, '✓'),
         logoNode,
-        el('div', { class: 'name' }, esc(b.label)),
-        note,
+        el('div', { class: 'brand-name' }, b.label),
+        b.slug === 'habi' || b.slug === 'themis'
+          ? el('div', { class: 'brand-note' }, 'Placeholder')
+          : (b.slug === 'other' ? el('div', { class: 'brand-note' }, 'Unbranded') : null),
       );
       grid.appendChild(card);
     }
-    main.appendChild(grid);
-    main.appendChild(navRow({ back: () => { state.step = 'template'; render(); }, backLabel: 'Change deliverable' }));
-    // Fetch protected logos with API key header, then swap to object URLs.
-    for (const { img, url } of imgNodes) {
-      fetch(API_BASE + url, { headers: { 'X-Apollo-Key': getKey() } })
-        .then((r) => r.ok ? r.blob() : null)
-        .then((blob) => { if (blob) img.src = URL.createObjectURL(blob); else img.replaceWith(brandPlaceholder()); })
-        .catch(() => img.replaceWith(brandPlaceholder()));
-    }
-  }
-  function brandPlaceholder() { return el('div', { class: 'brand-placeholder' }, '—'); }
-
-  function selectBrand(slug) {
-    state.brandSlug = slug;
-    state.step = 'fields';
-    render();
-  }
-
-  function renderFields(main) {
-    const t = currentTemplate();
-    const b = currentBrand();
-    if (!t) { state.step = 'template'; render(); return; }
-    main.appendChild(contextBanner([
-      ['Template', t.label],
-      ['Brand', b ? b.label : ''],
-    ]));
-    const wrap = el('div', { class: 'form-fields' });
-    for (const f of t.fields) {
-      wrap.appendChild(renderField(f));
-    }
-    if (state.missingIds.length > 0) {
-      wrap.appendChild(el('div', { class: 'error-banner' }, 'Please complete the required fields highlighted in red.'));
-    }
-    main.appendChild(wrap);
-    main.appendChild(navRow({
-      back: () => { state.step = 'brand'; render(); },
-      next: () => goFromFields(),
-      nextLabel: 'Continue',
+    host.appendChild(grid);
+    host.appendChild(navRow({
+      back: () => { state.step = 1; render(); },
+      next: () => { if (state.selectedBrand) { state.step = 3; render(); } },
+      nextDisabled: !state.selectedBrand,
     }));
+
+    // Load brand logos with credentials
+    for (const { img, path, slug } of toLoad) {
+      if (state.brandLogos.has(slug)) { img.src = state.brandLogos.get(slug); continue; }
+      fetch(API + path, { credentials: 'include' })
+        .then(r => r.ok ? r.blob() : null)
+        .then(blob => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            state.brandLogos.set(slug, url);
+            img.src = url;
+          } else {
+            const ph = el('div', { class: 'brand-ph' }, '—');
+            img.replaceWith(ph);
+          }
+        })
+        .catch(() => {
+          const ph = el('div', { class: 'brand-ph' }, '—');
+          img.replaceWith(ph);
+        });
+    }
   }
 
-  function goFromFields() {
-    const t = currentTemplate();
-    if (!t) return;
-    const missing = [];
-    for (const f of t.fields) {
-      if (!f.required) continue;
-      const v = state.inputs[f.id];
-      if (v == null || (typeof v === 'string' && v.trim() === '') || (Array.isArray(v) && v.length === 0)) {
-        missing.push(f.id);
-      }
-    }
-    state.missingIds = missing;
-    if (missing.length > 0) { render(); return; }
-    state.step = t.supports_images ? 'images' : 'review';
-    render();
+  // ---- Step 3: details ----
+  function renderStepDetails(host) {
+    const t = state.selectedTemplate;
+    if (!t) { state.step = 1; render(); return; }
+    host.appendChild(el('div', { class: 'step-head' },
+      el('h2', null, 'Details'),
+      el('p', null, 'Fill the required fields. Optional fields improve the output.'),
+    ));
+    const form = el('div', { class: 'form' });
+    for (const f of t.fields) form.appendChild(renderField(f));
+    host.appendChild(form);
+    host.appendChild(navRow({
+      back: () => { state.step = 2; render(); },
+      next: () => goFromDetails(),
+    }));
   }
 
   function renderField(f) {
     const isMissing = state.missingIds.includes(f.id);
-    const wrap = el('div', { class: isMissing ? 'field-error' : '' });
-    const label = el('label', { class: 'field-label' },
-      esc(f.label),
+    const wrap = el('div', { class: 'field' + (isMissing ? ' missing' : '') });
+    const label = el('label', null,
+      f.label,
       f.required ? el('span', { class: 'req' }, ' *') : null,
     );
     wrap.appendChild(label);
+    const v = state.formValues[f.id];
+    const setV = (val) => { state.formValues[f.id] = val; };
     let input;
-    const v = state.inputs[f.id];
-    const setV = (val) => { state.inputs[f.id] = val; };
     if (f.type === 'textarea') {
       input = el('textarea', {
         rows: 4,
@@ -901,10 +1305,7 @@
       });
       input.value = v != null ? v : '';
     } else if (f.type === 'date') {
-      input = el('input', {
-        type: 'date',
-        oninput: (e) => setV(e.target.value),
-      });
+      input = el('input', { type: 'date', oninput: (e) => setV(e.target.value) });
       input.value = v != null ? v : '';
     } else if (f.type === 'number') {
       input = el('input', {
@@ -912,28 +1313,25 @@
         placeholder: f.placeholder || '',
         oninput: (e) => setV(e.target.value === '' ? '' : Number(e.target.value)),
       });
-      input.value = v != null && v !== '' ? v : '';
+      input.value = (v == null || v === '') ? (f.default != null ? f.default : '') : v;
+      if (v == null && f.default != null) state.formValues[f.id] = f.default;
     } else if (f.type === 'select') {
       input = el('select', { onchange: (e) => setV(e.target.value) });
       input.appendChild(el('option', { value: '' }, '— Select —'));
       for (const opt of (f.options || [])) input.appendChild(el('option', { value: opt }, opt));
       input.value = v != null ? v : '';
     } else if (f.type === 'multi_select') {
-      const row = el('div', { class: 'multi-chip-row' });
+      const row = el('div', { class: 'chips' });
       const sel = Array.isArray(v) ? v.slice() : [];
       for (const opt of (f.options || [])) {
         const checked = sel.includes(opt);
         const chip = el('label', { class: 'chip' + (checked ? ' on' : '') },
           el('input', {
             type: 'checkbox',
-            checked: checked,
+            checked,
             onchange: (e) => {
-              if (e.target.checked) {
-                if (!sel.includes(opt)) sel.push(opt);
-              } else {
-                const idx = sel.indexOf(opt);
-                if (idx >= 0) sel.splice(idx, 1);
-              }
+              if (e.target.checked) { if (!sel.includes(opt)) sel.push(opt); }
+              else { const i = sel.indexOf(opt); if (i >= 0) sel.splice(i, 1); }
               setV(sel.slice());
               chip.classList.toggle('on', e.target.checked);
             },
@@ -943,7 +1341,7 @@
         row.appendChild(chip);
       }
       wrap.appendChild(row);
-      if (f.help) wrap.appendChild(el('div', { class: 'field-help' }, f.help));
+      if (f.help) wrap.appendChild(el('div', { class: 'help' }, f.help));
       return wrap;
     } else {
       input = el('input', {
@@ -954,13 +1352,33 @@
       input.value = v != null ? v : '';
     }
     wrap.appendChild(input);
-    if (f.help) wrap.appendChild(el('div', { class: 'field-help' }, f.help));
+    if (isMissing) wrap.appendChild(el('div', { class: 'inline-err' }, 'This field is required.'));
+    else if (f.help) wrap.appendChild(el('div', { class: 'help' }, f.help));
     return wrap;
   }
 
-  function renderImages(main) {
-    main.appendChild(el('p', { style: 'font-size:14px;color:var(--muted);margin-top:0;' },
-      'Optional. Up to 10 images, max 5MB each. JPG / PNG / WebP. They will be embedded in the output document and referenced in the generated prose.'
+  function goFromDetails() {
+    const t = state.selectedTemplate;
+    if (!t) return;
+    const missing = [];
+    for (const f of t.fields) {
+      if (!f.required) continue;
+      const v = state.formValues[f.id];
+      if (v == null || (typeof v === 'string' && v.trim() === '') || (Array.isArray(v) && v.length === 0)) {
+        missing.push(f.id);
+      }
+    }
+    state.missingIds = missing;
+    if (missing.length > 0) { render(); return; }
+    nextStep();
+    render();
+  }
+
+  // ---- Step 4: images ----
+  function renderStepImages(host) {
+    host.appendChild(el('div', { class: 'step-head' },
+      el('h2', null, 'Images'),
+      el('p', null, 'Optional. Up to 10 images, 5 MB each. JPG, PNG, WebP.'),
     ));
     const dz = el('label', {
       class: 'drop-zone',
@@ -975,10 +1393,11 @@
         style: 'display:none',
         onchange: (e) => addImages(e.target.files),
       }),
-      el('div', { class: 'dz-headline' }, 'Drop images here, or click to select'),
+      uploadIcon(),
+      el('div', { class: 'dz-headline' }, 'Drag images or click to browse'),
       el('div', { class: 'dz-sub' }, state.images.length + '/10 selected'),
     );
-    main.appendChild(dz);
+    host.appendChild(dz);
     if (state.images.length > 0) {
       const grid = el('div', { class: 'thumb-grid' });
       state.images.forEach((img, idx) => {
@@ -994,186 +1413,254 @@
         );
         grid.appendChild(thumb);
       });
-      main.appendChild(grid);
+      host.appendChild(grid);
     }
-    main.appendChild(navRow({
-      back: () => { state.step = 'fields'; render(); },
-      next: () => { state.step = 'review'; render(); },
-      nextLabel: 'Continue',
+    host.appendChild(navRow({
+      back: () => { state.step = 3; render(); },
+      next: () => { state.step = 5; render(); },
     }));
+  }
+
+  function uploadIcon() {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '2');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+    const parts = [
+      'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4',
+      'M17 8l-5-5-5 5',
+      'M12 3v12',
+    ];
+    for (const d of parts) {
+      const p = document.createElementNS(ns, 'path');
+      p.setAttribute('d', d);
+      svg.appendChild(p);
+    }
+    return svg;
   }
 
   function addImages(fileList) {
     if (!fileList) return;
-    const incoming = Array.from(fileList);
-    for (const f of incoming) {
+    for (const f of Array.from(fileList)) {
       if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) continue;
-      if (f.size > 5 * 1024 * 1024) continue;
+      if (f.size > 5 * 1024 * 1024) { toast(f.name + ' exceeds 5MB'); continue; }
       if (state.images.length >= 10) break;
       state.images.push(f);
     }
     render();
   }
 
-  function renderReview(main) {
-    const t = currentTemplate();
-    const b = currentBrand();
-    if (!t || !b) { state.step = 'template'; render(); return; }
-    const box = el('div', { class: 'summary-box' });
-    box.appendChild(summaryRow('Template', t.label));
-    box.appendChild(summaryRow('Brand', b.label));
-    box.appendChild(summaryRow('Image count', String(state.images.length)));
-    box.appendChild(el('hr'));
+  // ---- Step 5: review ----
+  function renderStepReview(host) {
+    const t = state.selectedTemplate;
+    const b = state.selectedBrand;
+    if (!t || !b) { state.step = 1; render(); return; }
+    host.appendChild(el('div', { class: 'step-head' },
+      el('h2', null, 'Mission Brief'),
+      el('p', null, 'Review, then launch generation.'),
+    ));
+    const r = el('div', { class: 'review' });
+    r.appendChild(el('h3', null, 'Mission'));
+    r.appendChild(reviewRow('Template', t.label));
+    r.appendChild(reviewRow('Brand', b.label));
+    r.appendChild(reviewRow('Images', String(state.images.length)));
     for (const f of t.fields) {
-      const v = state.inputs[f.id];
-      const display = (v == null || v === '')
-        ? '—'
-        : Array.isArray(v) ? v.join(', ') : String(v);
-      box.appendChild(summaryRow(f.label, display));
+      const v = state.formValues[f.id];
+      const display = (v == null || v === '') ? '—' : (Array.isArray(v) ? v.join(', ') : String(v));
+      r.appendChild(reviewRow(f.label, display));
     }
-    main.appendChild(box);
-    main.appendChild(navRow({
-      back: () => { state.step = t.supports_images ? 'images' : 'fields'; render(); },
-      next: () => submit(),
-      nextLabel: state.submitting ? 'Generating…' : 'Generate Document',
-      nextDisabled: state.submitting,
-      nextLarge: true,
-    }));
+    host.appendChild(r);
+    host.appendChild(el('div', {
+      style: 'display:flex;justify-content:center;margin-top:28px;gap:12px;flex-wrap:wrap;'
+    },
+      el('button', { class: 'btn btn-secondary', onclick: () => { prevStep(); render(); } }, 'Back'),
+      el('button', {
+        class: 'btn btn-primary btn-lg',
+        onclick: submit,
+        disabled: state.submitting,
+      }, state.submitting ? 'Launching…' : 'Generate Document'),
+    ));
+  }
+
+  function reviewRow(k, v) {
+    return el('div', { class: 'review-row' },
+      el('div', { class: 'k' }, k),
+      el('div', { class: 'v' }, v),
+    );
   }
 
   async function submit() {
-    const t = currentTemplate();
-    const b = currentBrand();
+    const t = state.selectedTemplate;
+    const b = state.selectedBrand;
     if (!t || !b) return;
     state.submitting = true;
-    state.resultError = null;
-    state.resultUrl = null;
-    state.step = 'result';
+    state.submitError = null;
+    state.submitResult = null;
+    state.step = 6;
+    document.body.classList.add('generating');
     render();
 
     const form = new FormData();
     form.set('template_slug', t.slug);
     form.set('brand_slug', b.slug);
-    form.set('inputs', JSON.stringify(state.inputs));
+    form.set('inputs', JSON.stringify(state.formValues));
     for (const img of state.images) form.append('images', img);
 
     try {
-      const json = await apiSubmit(form);
-      state.resultUrl = json.download_url;
-      state.resultExpiresAt = json.expires_at || null;
-    } catch (err) {
-      if (err.message === 'AUTH') {
-        clearKey();
-        showKeyModal('API key was rejected. Re-enter.');
-        state.resultError = 'Unauthorized — re-enter your API key.';
-      } else {
-        state.resultError = err.message || String(err);
+      const r = await fetch(API + '/api/apollo/submit', {
+        method: 'POST',
+        credentials: 'include',
+        body: form,
+      });
+      if (r.status === 401) { state.view = 'signed-out'; document.body.classList.remove('generating'); render(); return; }
+      if (r.status === 403) { state.view = 'not-authorized'; document.body.classList.remove('generating'); render(); return; }
+      const json = await r.json().catch(() => ({}));
+      if (!r.ok || !json.success) {
+        throw new Error(json.error || ('HTTP ' + r.status));
       }
+      state.submitResult = json;
+    } catch (err) {
+      state.submitError = err.message || String(err);
     } finally {
       state.submitting = false;
+      document.body.classList.remove('generating');
       render();
     }
   }
 
-  function renderResult(main) {
+  // ---- Step 6: result ----
+  function renderStepResult(host) {
     if (state.submitting) {
-      main.appendChild(el('div', { style: 'padding:32px 24px;text-align:center;' },
-        el('div', { class: 'transmit' },
-          el('div', { class: 'track' }, el('div', { class: 'beam' })),
-          el('div', { class: 'label' }, 'Transmitting'),
+      host.appendChild(el('div', { class: 'result-wrap' },
+        rocketIcon(true),
+        el('h2', null, 'Launching mission…'),
+        el('p', { class: 'sub' },
+          'Generating ' + (state.selectedTemplate?.label || '') + ' for ' + (state.selectedBrand?.label || '') + '.',
         ),
-        el('div', { style: 'font-family:var(--font-display);font-size:18px;color:var(--charcoal);font-weight:600;margin-top:4px;' }, 'Generating deliverable'),
-        el('div', { style: 'font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-top:6px;letter-spacing:0.08em;text-transform:uppercase;' }, 'Estimated completion · 20–60 seconds'),
       ));
       return;
     }
-    if (state.resultError) {
-      main.appendChild(el('div', { class: 'alert error' },
-        el('div', { class: 'alert-title' }, 'Generation failed'),
-        el('pre', null, state.resultError),
-      ));
-      main.appendChild(el('div', { style: 'display:flex;gap:12px;margin-top:20px;' },
-        el('button', { class: 'btn secondary', type: 'button', onclick: reset }, 'Start over'),
-        el('button', { class: 'btn primary', type: 'button', onclick: submit }, 'Try again'),
-      ));
-      return;
-    }
-    if (state.resultUrl) {
-      main.appendChild(el('div', { class: 'alert success' },
-        el('div', { class: 'alert-title' }, 'Mission complete'),
-        el('div', { style: 'font-size:13px;margin-bottom:16px;' }, 'Deliverable packaged and ready for download.'),
-        el('a', {
-          class: 'btn primary',
-          href: state.resultUrl,
-          download: '',
-          rel: 'noreferrer',
-          style: 'display:inline-block;text-decoration:none;',
-        }, 'Download DOCX ↓'),
-        el('div', { class: 'expiry-note' }, 'Link expires in 7 days.'),
-      ));
-      main.appendChild(el('div', { style: 'margin-top:20px;display:flex;gap:12px;' },
-        el('button', { class: 'btn secondary', type: 'button', onclick: reset }, 'Generate another'),
+    if (state.submitError) {
+      host.appendChild(el('div', { class: 'result-wrap' },
+        el('div', { class: 'err-card' },
+          el('div', { class: 'err-title' }, 'Mission aborted'),
+          el('pre', null, state.submitError),
+        ),
+        el('div', { class: 'result-actions', style: 'margin-top:20px;' },
+          el('button', { class: 'btn btn-secondary', onclick: () => { state.step = 5; render(); } }, 'Try again'),
+          el('button', { class: 'btn btn-secondary', onclick: reset }, 'New mission'),
+        ),
       ));
       return;
     }
+    if (state.submitResult) {
+      host.appendChild(el('div', { class: 'result-wrap' },
+        checkmarkSvg(),
+        el('h2', null, 'Mission complete'),
+        el('p', { class: 'sub' }, 'Deliverable packaged and ready for download.'),
+        el('div', { class: 'result-actions' },
+          el('a', {
+            class: 'btn btn-primary btn-lg',
+            href: state.submitResult.download_url,
+            download: '',
+            rel: 'noreferrer',
+            target: '_blank',
+          }, 'Download DOCX ↓'),
+        ),
+        el('div', { class: 'expiry' }, 'Link expires in 7 days'),
+        el('div', { class: 'result-actions', style: 'margin-top:24px;' },
+          el('button', { class: 'btn btn-secondary', onclick: reset }, 'New mission'),
+        ),
+      ));
+    }
+  }
+
+  function rocketIcon(launching) {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '1.6');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+    svg.setAttribute('class', 'launch-icon' + (launching ? ' launching' : ''));
+    const parts = [
+      'M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z',
+      'M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z',
+      'M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0',
+      'M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5',
+    ];
+    for (const d of parts) {
+      const p = document.createElementNS(ns, 'path');
+      p.setAttribute('d', d);
+      svg.appendChild(p);
+    }
+    return svg;
+  }
+
+  function checkmarkSvg() {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 72 72');
+    svg.setAttribute('class', 'checkmark');
+    const c = document.createElementNS(ns, 'circle');
+    c.setAttribute('cx', '36');
+    c.setAttribute('cy', '36');
+    c.setAttribute('r', '30');
+    svg.appendChild(c);
+    const p = document.createElementNS(ns, 'path');
+    p.setAttribute('d', 'M22 38 L32 48 L52 26');
+    svg.appendChild(p);
+    return svg;
   }
 
   function reset() {
-    state.step = 'template';
-    state.templateSlug = null;
-    state.brandSlug = null;
-    state.inputs = {};
-    state.images = [];
+    state.step = 1;
+    state.selectedTemplate = null;
+    state.selectedBrand = null;
+    state.formValues = {};
     state.missingIds = [];
-    state.resultUrl = null;
-    state.resultExpiresAt = null;
-    state.resultError = null;
+    state.images = [];
+    state.submitting = false;
+    state.submitResult = null;
+    state.submitError = null;
     render();
   }
 
-  // ------ Shared UI helpers ------
-  function summaryRow(k, v) {
-    return el('div', { class: 'summary-row' },
-      el('div', { class: 'k' }, k),
-      el('div', { class: 'v' }, v),
-    );
-  }
-  function contextBanner(pairs) {
-    const wrap = el('div', { class: 'context-banner' });
-    for (const [k, v] of pairs) {
-      wrap.appendChild(el('div', null,
-        el('span', { class: 'k' }, k + ':'),
-        ' ',
-        el('span', { class: 'v' }, v),
-      ));
-    }
-    return wrap;
-  }
-  function navRow({ back, backLabel, next, nextLabel, nextDisabled, nextLarge }) {
+  function navRow({ back, next, nextDisabled }) {
     const row = el('div', { class: 'nav-row' });
     if (back) {
-      row.appendChild(el('button', {
-        class: 'btn secondary',
-        type: 'button',
-        onclick: back,
-      }, '← ' + (backLabel || 'Back')));
+      row.appendChild(el('button', { class: 'btn btn-secondary', onclick: back }, '← Back'));
     } else {
-      row.appendChild(el('div'));
+      row.appendChild(el('div', { class: 'spacer' }));
     }
     if (next) {
       row.appendChild(el('button', {
-        class: 'btn primary' + (nextLarge ? ' large' : ''),
-        type: 'button',
+        class: 'btn btn-primary',
         onclick: next,
         disabled: !!nextDisabled,
-      }, (nextLabel || 'Next') + ' →'));
+      }, 'Next →'));
     }
     return row;
   }
 
-  // ------ Boot ------
+  // ---- Boot ----
   bootstrap();
 })();
 </script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/apollo/service-worker.js').catch(() => {})
+    })
+  }
+</script>
+
 </body>
 </html>
