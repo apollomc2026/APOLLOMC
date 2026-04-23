@@ -103,11 +103,22 @@ export async function buildDocx(args: BuildDocxArgs): Promise<Buffer> {
       font: 'Calibri',
     })
   } catch (err) {
-    // Surface a prefix of the HTML input so the Supabase error_message row is
-    // actionable instead of just echoing a bare DOM-API exception.
-    const snippet = fullHtml.slice(0, 800).replace(/\s+/g, ' ')
+    // Isolate where the offending "@w" is coming from. Report both the raw
+    // Claude HTML around any `@w` occurrence and the first 500 chars of
+    // sanitizedContent (not the fullHtml, which is dominated by the logo PNG).
     const msg = err instanceof Error ? err.message : String(err)
-    throw new Error(`html-to-docx failed: ${msg} :: input_head=${snippet}`)
+    const atWIndex = args.contentHtml.indexOf('@w')
+    const atWContext =
+      atWIndex >= 0
+        ? `raw_at_w_context="${args.contentHtml.slice(Math.max(0, atWIndex - 80), atWIndex + 80).replace(/\s+/g, ' ')}"`
+        : 'raw_at_w_context=(none_found_in_raw_html)'
+    const sanContext = sanitizedContent.indexOf('@w') >= 0
+      ? `san_at_w=present`
+      : 'san_at_w=absent'
+    const contentHead = sanitizedContent.slice(0, 500).replace(/\s+/g, ' ')
+    throw new Error(
+      `html-to-docx failed: ${msg} :: ${atWContext} :: ${sanContext} :: content_head="${contentHead}"`
+    )
   }
 
   if (Buffer.isBuffer(result)) return result
