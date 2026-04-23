@@ -5,7 +5,8 @@ import { loadBrand, isAllowedBrandSlug } from '@/lib/apollo/brands'
 import { generateDocumentHtml, type ImageInput } from '@/lib/apollo/generate'
 import { buildDocx } from '@/lib/apollo/docx'
 import { uploadSubmissionOutput } from '@/lib/apollo/storage'
-import { corsHeaders, preflight, requireApiKey } from '@/lib/apollo/cors'
+import { corsHeaders, preflight } from '@/lib/apollo/cors'
+import { requireAllowedUser } from '@/lib/apollo/auth'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -31,10 +32,11 @@ export async function OPTIONS(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const unauth = requireApiKey(request)
-  if (unauth) return unauth
-
   const cors = corsHeaders(request)
+  const auth = await requireAllowedUser()
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status, headers: cors })
+  }
 
   let form: FormData
   try {
@@ -132,6 +134,8 @@ export async function POST(request: Request) {
       inputs,
       image_count: images.length,
       status: 'generating',
+      user_id: auth.user.userId,
+      user_email: auth.user.email,
     })
     .select('id')
     .single()
@@ -186,6 +190,8 @@ export async function POST(request: Request) {
         brand_slug: brandSlug,
         image_count: images.length,
         inputs,
+        user_id: auth.user.userId,
+        user_email: auth.user.email,
         created_at: new Date().toISOString(),
       },
       filename: docxFilename,

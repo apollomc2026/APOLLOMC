@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { listTemplates } from '@/lib/apollo/templates'
-import { corsHeaders, preflight, requireApiKey } from '@/lib/apollo/cors'
+import { corsHeaders, preflight } from '@/lib/apollo/cors'
+import { requireAllowedUser } from '@/lib/apollo/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,8 +10,11 @@ export async function OPTIONS(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const unauth = requireApiKey(request)
-  if (unauth) return unauth
+  const cors = corsHeaders(request)
+  const auth = await requireAllowedUser()
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status, headers: cors })
+  }
 
   const templates = await listTemplates()
   const summary = templates.map((t) => ({
@@ -20,5 +24,5 @@ export async function GET(request: Request) {
     category: t.category,
     supports_images: t.supports_images,
   }))
-  return NextResponse.json({ templates: summary }, { headers: corsHeaders(request) })
+  return NextResponse.json({ templates: summary }, { headers: cors })
 }

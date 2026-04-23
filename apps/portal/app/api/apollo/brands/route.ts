@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { listBrands } from '@/lib/apollo/brands'
-import { corsHeaders, preflight, requireApiKey } from '@/lib/apollo/cors'
+import { corsHeaders, preflight } from '@/lib/apollo/cors'
+import { requireAllowedUser } from '@/lib/apollo/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,8 +10,11 @@ export async function OPTIONS(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const unauth = requireApiKey(request)
-  if (unauth) return unauth
+  const cors = corsHeaders(request)
+  const auth = await requireAllowedUser()
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status, headers: cors })
+  }
 
   const brands = await listBrands()
   const summary = brands.map((b) => ({
@@ -19,5 +23,5 @@ export async function GET(request: Request) {
     logo_url: b.logo_path,
   }))
   summary.push({ slug: 'other', label: 'Other', logo_url: null })
-  return NextResponse.json({ brands: summary }, { headers: corsHeaders(request) })
+  return NextResponse.json({ brands: summary }, { headers: cors })
 }
