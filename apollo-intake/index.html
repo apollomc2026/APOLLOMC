@@ -1,0 +1,1090 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Apollo — Deliverable Intake</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --orange:   #FF6B1A;
+    --orange-d: #E05400;
+    --lime:     #A4D65E;
+    --charcoal: #2B2B2B;
+    --muted:    #6B7280;
+    --rule:     #E5E5E5;
+    --bg:       #FFFFFF;
+    --bg-soft:  #FAFAFA;
+    --error:    #E5484D;
+    --success:  #00B86B;
+    --font-display: 'Syne', system-ui, sans-serif;
+    --font-body:    'Inter', system-ui, sans-serif;
+    --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--charcoal);
+    font-size: 15px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  a { color: var(--orange); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  header {
+    border-bottom: 1px solid var(--rule);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .brand-lockup { display: flex; align-items: center; gap: 12px; }
+  .brand-lockup img { height: 36px; max-width: 140px; object-fit: contain; }
+  .brand-lockup .wordmark {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--charcoal);
+  }
+  .brand-lockup .wordmark em { color: var(--orange); font-style: normal; }
+  .brand-lockup .tagline {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .progress-bar { height: 3px; background: #F0F0F0; }
+  .progress-bar > div {
+    height: 100%;
+    background: linear-gradient(90deg, var(--orange), var(--lime));
+    transition: width 220ms ease;
+  }
+
+  main {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+  .step-tag {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  h1.page-title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    margin: 4px 0 24px 0;
+    font-weight: 700;
+  }
+
+  /* Cards */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .card-grid.brands {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+  .card {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 150ms ease;
+    font-family: inherit;
+    color: inherit;
+    font-size: inherit;
+  }
+  .card:hover {
+    border-color: var(--orange);
+    box-shadow: 0 2px 8px rgba(255, 107, 26, 0.12);
+  }
+  .card.brand-card {
+    align-items: center;
+    justify-content: center;
+    min-height: 150px;
+    gap: 10px;
+    text-align: center;
+  }
+  .card .category {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--orange);
+    font-weight: 600;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card .img-pill {
+    padding: 2px 8px;
+    background: rgba(164, 214, 94, 0.18);
+    color: #3E7200;
+    border-radius: 999px;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+  }
+  .card .label {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .card .desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .card.brand-card img {
+    max-height: 60px;
+    max-width: 160px;
+    object-fit: contain;
+  }
+  .brand-placeholder {
+    height: 60px;
+    width: 60px;
+    border-radius: 30px;
+    background: var(--bg-soft);
+    border: 1px dashed var(--rule);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 18px;
+  }
+  .brand-card .name { font-weight: 600; font-size: 14px; }
+  .brand-card .note {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    font-style: italic;
+  }
+
+  /* Context banner */
+  .context-banner {
+    display: flex;
+    gap: 16px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: var(--bg-soft);
+    border: 1px solid var(--rule);
+    font-size: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .context-banner .k {
+    font-family: var(--font-mono);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .context-banner .v { color: var(--charcoal); font-weight: 600; }
+
+  /* Form */
+  .form-fields { display: grid; gap: 18px; }
+  label.field-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--charcoal);
+  }
+  label.field-label .req { color: var(--orange); }
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  textarea,
+  select {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    color: var(--charcoal);
+    background: var(--bg);
+  }
+  textarea { resize: vertical; min-height: 96px; }
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--orange);
+    box-shadow: 0 0 0 3px rgba(255, 107, 26, 0.15);
+  }
+  .field-help {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .field-error input, .field-error textarea, .field-error select {
+    border-color: var(--error);
+  }
+  .multi-chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    padding: 6px 12px;
+    border: 1px solid var(--rule);
+    background: var(--bg);
+    border-radius: 999px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .chip.on { border-color: var(--orange); background: rgba(255,107,26,0.08); }
+  .chip input { margin: 0; }
+
+  .error-banner {
+    color: var(--error);
+    font-size: 13px;
+    margin-top: 8px;
+  }
+
+  /* Image upload */
+  .drop-zone {
+    display: block;
+    border: 2px dashed var(--rule);
+    border-radius: 12px;
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    background: var(--bg-soft);
+    transition: border-color 150ms ease;
+  }
+  .drop-zone.hot { border-color: var(--orange); background: rgba(255,107,26,0.04); }
+  .drop-zone .dz-headline { font-size: 14px; color: var(--charcoal); font-weight: 600; }
+  .drop-zone .dz-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .thumb-grid {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  .thumb {
+    position: relative;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 8px;
+    background: var(--bg);
+  }
+  .thumb img {
+    width: 100%;
+    height: 90px;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+  .thumb .fname {
+    font-size: 11px;
+    margin-top: 6px;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .thumb .remove {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 22px;
+    height: 22px;
+    border-radius: 11px;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+    padding: 0;
+  }
+
+  /* Summary */
+  .summary-box {
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 24px;
+    background: var(--bg-soft);
+  }
+  .summary-row {
+    display: flex;
+    padding: 6px 0;
+    font-size: 13px;
+    gap: 12px;
+  }
+  .summary-row .k { width: 180px; color: var(--muted); flex-shrink: 0; }
+  .summary-row .v { color: var(--charcoal); white-space: pre-wrap; word-break: break-word; }
+  .summary-box hr {
+    border: none;
+    border-top: 1px solid var(--rule);
+    margin: 12px 0;
+  }
+
+  /* Buttons */
+  .btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 120ms ease, box-shadow 120ms ease;
+  }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  .btn.primary { background: var(--orange); color: #fff; }
+  .btn.primary:hover:not(:disabled) { background: var(--orange-d); }
+  .btn.primary.large { padding: 14px 28px; font-size: 15px; }
+  .btn.secondary {
+    background: var(--bg);
+    color: var(--charcoal);
+    border-color: var(--rule);
+    font-weight: 500;
+  }
+  .btn.secondary:hover:not(:disabled) { border-color: var(--charcoal); }
+
+  .nav-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 32px;
+    gap: 12px;
+  }
+
+  /* Result / progress */
+  .spinner {
+    width: 48px;
+    height: 48px;
+    border: 3px solid var(--rule);
+    border-top-color: var(--orange);
+    border-radius: 50%;
+    margin: 0 auto 16px;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .alert {
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+  }
+  .alert.error {
+    background: #FCE4E0;
+    border-color: #E58577;
+    color: #8A1F12;
+  }
+  .alert.success {
+    background: rgba(164,214,94,0.16);
+    border-color: var(--lime);
+  }
+  .alert .alert-title { font-weight: 700; margin-bottom: 6px; }
+  .alert.success .alert-title { color: #3E7200; }
+  .alert pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  /* Modal for API key */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 100;
+  }
+  .modal {
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px;
+    max-width: 440px;
+    width: 100%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+  }
+  .modal h2 {
+    font-family: var(--font-display);
+    font-size: 22px;
+    margin: 0 0 8px 0;
+  }
+  .modal p { color: var(--muted); font-size: 13px; margin: 0 0 16px 0; }
+  .modal form { display: grid; gap: 12px; }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding: 16px 24px;
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  footer .actions a { cursor: pointer; }
+
+  .hidden { display: none !important; }
+
+  /* Mobile */
+  @media (max-width: 640px) {
+    main { padding: 20px 16px 60px; }
+    h1.page-title { font-size: 22px; }
+    .card-grid { grid-template-columns: 1fr; }
+    .card-grid.brands { grid-template-columns: repeat(2, 1fr); }
+    .summary-row { flex-direction: column; gap: 2px; }
+    .summary-row .k { width: auto; }
+    header { padding: 12px 16px; }
+    .brand-lockup img { height: 28px; }
+    .brand-lockup .tagline { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand-lockup">
+    <img src="./logo.png" alt="Apollo" onerror="this.style.display='none'" />
+    <div>
+      <div class="wordmark">Apollo <em>Intake</em></div>
+      <div class="tagline">Deliverable Generator</div>
+    </div>
+  </div>
+  <div id="header-meta" class="step-tag"></div>
+</header>
+
+<div class="progress-bar"><div id="progress-fill" style="width: 0"></div></div>
+
+<main id="main">
+  <!-- Step content rendered here -->
+</main>
+
+<footer>
+  <div>Apollo MC · On Spot Solutions</div>
+  <div class="actions">
+    <a id="reset-key-link">Reset API key</a>
+  </div>
+</footer>
+
+<!-- API key modal -->
+<div id="key-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <h2>Enter API key</h2>
+    <p>Paste your Apollo API key. Stored in this browser only (localStorage).</p>
+    <form id="key-form">
+      <input type="password" id="key-input" placeholder="apollo-api-key..." autocomplete="off" required />
+      <div id="key-error" class="error-banner hidden"></div>
+      <button class="btn primary" type="submit">Unlock</button>
+    </form>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ------ Config ------
+  const API_BASE = (function () {
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+      // During local testing the HTML is served on :8080, but the API runs
+      // on :3000 (next dev) or on the deployed Vercel URL. Prefer the dev
+      // server if present.
+      return 'http://localhost:3000';
+    }
+    return 'https://portal.apollomc.ai';
+  })();
+  const KEY_STORAGE = 'apolloApiKey';
+  const STEPS = ['template', 'brand', 'fields', 'images', 'review', 'result'];
+
+  // ------ State ------
+  const state = {
+    step: 'template',
+    templates: [],
+    brands: [],
+    templateSlug: null,
+    brandSlug: null,
+    inputs: {},
+    images: [],
+    submitting: false,
+    resultUrl: null,
+    resultError: null,
+    missingIds: [],
+  };
+
+  // ------ DOM helpers ------
+  const $ = (sel) => document.querySelector(sel);
+  const el = (tag, attrs, ...children) => {
+    const node = document.createElement(tag);
+    if (attrs) {
+      for (const [k, v] of Object.entries(attrs)) {
+        if (k === 'class') node.className = v;
+        else if (k === 'style') node.setAttribute('style', v);
+        else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2), v);
+        else if (v === true) node.setAttribute(k, '');
+        else if (v === false || v == null) {}
+        else node.setAttribute(k, v);
+      }
+    }
+    for (const child of children) {
+      if (child == null || child === false) continue;
+      if (Array.isArray(child)) child.forEach((c) => c && node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c));
+      else if (typeof child === 'string') node.appendChild(document.createTextNode(child));
+      else node.appendChild(child);
+    }
+    return node;
+  };
+  const esc = (s) => (s == null ? '' : String(s));
+
+  // ------ API client ------
+  function getKey() { return localStorage.getItem(KEY_STORAGE) || ''; }
+  function setKey(k) { localStorage.setItem(KEY_STORAGE, k); }
+  function clearKey() { localStorage.removeItem(KEY_STORAGE); }
+
+  async function apiGet(path) {
+    const res = await fetch(API_BASE + path, {
+      method: 'GET',
+      headers: { 'X-Apollo-Key': getKey() },
+    });
+    if (res.status === 401) throw new Error('AUTH');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+  async function apiSubmit(form) {
+    const res = await fetch(API_BASE + '/api/apollo/submit', {
+      method: 'POST',
+      headers: { 'X-Apollo-Key': getKey() },
+      body: form,
+    });
+    const json = await res.json().catch(() => ({}));
+    if (res.status === 401) throw new Error('AUTH');
+    if (!res.ok || !json.success) throw new Error(json.error || ('HTTP ' + res.status));
+    return json;
+  }
+
+  // ------ API key gate ------
+  function showKeyModal(errMsg) {
+    const modal = $('#key-modal');
+    modal.classList.remove('hidden');
+    const err = $('#key-error');
+    if (errMsg) { err.textContent = errMsg; err.classList.remove('hidden'); }
+    else err.classList.add('hidden');
+    $('#key-input').focus();
+  }
+  function hideKeyModal() { $('#key-modal').classList.add('hidden'); }
+
+  $('#key-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const val = $('#key-input').value.trim();
+    if (!val) return;
+    setKey(val);
+    hideKeyModal();
+    await bootstrap();
+  });
+  $('#reset-key-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    clearKey();
+    location.reload();
+  });
+
+  // ------ Bootstrap ------
+  async function bootstrap() {
+    if (!getKey()) { showKeyModal(); return; }
+    try {
+      const [tplRes, brandRes] = await Promise.all([
+        apiGet('/api/apollo/templates'),
+        apiGet('/api/apollo/brands'),
+      ]);
+      state.templates = tplRes.templates || [];
+      state.brands = brandRes.brands || [];
+      state.step = 'template';
+      render();
+    } catch (err) {
+      if (err.message === 'AUTH') {
+        clearKey();
+        showKeyModal('That key did not work. Try again.');
+      } else {
+        renderFatal('Could not load templates or brands: ' + err.message);
+      }
+    }
+  }
+
+  function renderFatal(msg) {
+    $('#main').innerHTML = '';
+    $('#main').appendChild(el('div', { class: 'alert error' },
+      el('div', { class: 'alert-title' }, 'Unable to load'),
+      el('pre', null, msg),
+    ));
+  }
+
+  // ------ Render dispatcher ------
+  function stepIndex() { return STEPS.indexOf(state.step); }
+  function totalSteps() {
+    const t = currentTemplate();
+    return (t && t.supports_images) ? 6 : 5;
+  }
+  function setProgress() {
+    const pct = Math.round((stepIndex() / 5) * 100);
+    $('#progress-fill').style.width = pct + '%';
+    $('#header-meta').textContent = 'Step ' + (stepIndex() + 1) + ' of ' + totalSteps();
+  }
+  function currentTemplate() {
+    return state.templates.find((t) => t.slug === state.templateSlug) || null;
+  }
+  function currentBrand() {
+    return state.brands.find((b) => b.slug === state.brandSlug) || null;
+  }
+
+  function render() {
+    setProgress();
+    const main = $('#main');
+    main.innerHTML = '';
+    const labels = {
+      template: 'Select deliverable',
+      brand: 'Select brand',
+      fields: 'Fill questionnaire',
+      images: 'Upload images',
+      review: 'Review & generate',
+      result: 'Result',
+    };
+    main.appendChild(el('div', { class: 'step-tag' }, 'Step ' + (stepIndex() + 1) + ' of ' + totalSteps()));
+    main.appendChild(el('h1', { class: 'page-title' }, labels[state.step]));
+
+    if (state.step === 'template') renderTemplates(main);
+    else if (state.step === 'brand') renderBrands(main);
+    else if (state.step === 'fields') renderFields(main);
+    else if (state.step === 'images') renderImages(main);
+    else if (state.step === 'review') renderReview(main);
+    else if (state.step === 'result') renderResult(main);
+  }
+
+  // ------ Steps ------
+  function renderTemplates(main) {
+    const grid = el('div', { class: 'card-grid' });
+    for (const t of state.templates) {
+      const categoryBits = [t.category];
+      const card = el('button', {
+        class: 'card',
+        type: 'button',
+        onclick: () => selectTemplate(t.slug),
+      },
+        el('div', { class: 'category' },
+          esc(t.category),
+          t.supports_images ? el('span', { class: 'img-pill' }, 'IMG') : null,
+        ),
+        el('div', { class: 'label' }, esc(t.label)),
+        el('div', { class: 'desc' }, esc(t.description)),
+      );
+      grid.appendChild(card);
+    }
+    main.appendChild(grid);
+  }
+
+  function selectTemplate(slug) {
+    state.templateSlug = slug;
+    const t = currentTemplate();
+    state.inputs = {};
+    if (t) {
+      for (const f of t.fields) {
+        if (f.default !== undefined) state.inputs[f.id] = f.default;
+      }
+    }
+    state.images = [];
+    state.missingIds = [];
+    state.step = 'brand';
+    render();
+  }
+
+  function renderBrands(main) {
+    const t = currentTemplate();
+    main.appendChild(contextBanner([['Template', t ? t.label : '']]));
+    const grid = el('div', { class: 'card-grid brands' });
+    const imgNodes = [];
+    for (const b of state.brands) {
+      let logoNode;
+      if (b.logo_url) {
+        const img = el('img', { alt: b.label });
+        logoNode = img;
+        imgNodes.push({ img, url: b.logo_url });
+      } else {
+        logoNode = brandPlaceholder();
+      }
+      const isPlaceholderBrand = b.slug === 'habi' || b.slug === 'themis';
+      const isOther = b.slug === 'other';
+      const note = isPlaceholderBrand
+        ? el('div', { class: 'note' }, 'placeholder — limited support')
+        : (isOther ? el('div', { class: 'note' }, 'generates unbranded output') : null);
+      const card = el('button', {
+        class: 'card brand-card',
+        type: 'button',
+        onclick: () => selectBrand(b.slug),
+      },
+        logoNode,
+        el('div', { class: 'name' }, esc(b.label)),
+        note,
+      );
+      grid.appendChild(card);
+    }
+    main.appendChild(grid);
+    main.appendChild(navRow({ back: () => { state.step = 'template'; render(); }, backLabel: 'Change deliverable' }));
+    // Fetch protected logos with API key header, then swap to object URLs.
+    for (const { img, url } of imgNodes) {
+      fetch(API_BASE + url, { headers: { 'X-Apollo-Key': getKey() } })
+        .then((r) => r.ok ? r.blob() : null)
+        .then((blob) => { if (blob) img.src = URL.createObjectURL(blob); else img.replaceWith(brandPlaceholder()); })
+        .catch(() => img.replaceWith(brandPlaceholder()));
+    }
+  }
+  function brandPlaceholder() { return el('div', { class: 'brand-placeholder' }, '—'); }
+
+  function selectBrand(slug) {
+    state.brandSlug = slug;
+    state.step = 'fields';
+    render();
+  }
+
+  function renderFields(main) {
+    const t = currentTemplate();
+    const b = currentBrand();
+    if (!t) { state.step = 'template'; render(); return; }
+    main.appendChild(contextBanner([
+      ['Template', t.label],
+      ['Brand', b ? b.label : ''],
+    ]));
+    const wrap = el('div', { class: 'form-fields' });
+    for (const f of t.fields) {
+      wrap.appendChild(renderField(f));
+    }
+    if (state.missingIds.length > 0) {
+      wrap.appendChild(el('div', { class: 'error-banner' }, 'Please complete the required fields highlighted in red.'));
+    }
+    main.appendChild(wrap);
+    main.appendChild(navRow({
+      back: () => { state.step = 'brand'; render(); },
+      next: () => goFromFields(),
+      nextLabel: 'Continue',
+    }));
+  }
+
+  function goFromFields() {
+    const t = currentTemplate();
+    if (!t) return;
+    const missing = [];
+    for (const f of t.fields) {
+      if (!f.required) continue;
+      const v = state.inputs[f.id];
+      if (v == null || (typeof v === 'string' && v.trim() === '') || (Array.isArray(v) && v.length === 0)) {
+        missing.push(f.id);
+      }
+    }
+    state.missingIds = missing;
+    if (missing.length > 0) { render(); return; }
+    state.step = t.supports_images ? 'images' : 'review';
+    render();
+  }
+
+  function renderField(f) {
+    const isMissing = state.missingIds.includes(f.id);
+    const wrap = el('div', { class: isMissing ? 'field-error' : '' });
+    const label = el('label', { class: 'field-label' },
+      esc(f.label),
+      f.required ? el('span', { class: 'req' }, ' *') : null,
+    );
+    wrap.appendChild(label);
+    let input;
+    const v = state.inputs[f.id];
+    const setV = (val) => { state.inputs[f.id] = val; };
+    if (f.type === 'textarea') {
+      input = el('textarea', {
+        rows: 4,
+        placeholder: f.placeholder || '',
+        oninput: (e) => setV(e.target.value),
+      });
+      input.value = v != null ? v : '';
+    } else if (f.type === 'date') {
+      input = el('input', {
+        type: 'date',
+        oninput: (e) => setV(e.target.value),
+      });
+      input.value = v != null ? v : '';
+    } else if (f.type === 'number') {
+      input = el('input', {
+        type: 'number',
+        placeholder: f.placeholder || '',
+        oninput: (e) => setV(e.target.value === '' ? '' : Number(e.target.value)),
+      });
+      input.value = v != null && v !== '' ? v : '';
+    } else if (f.type === 'select') {
+      input = el('select', { onchange: (e) => setV(e.target.value) });
+      input.appendChild(el('option', { value: '' }, '— Select —'));
+      for (const opt of (f.options || [])) input.appendChild(el('option', { value: opt }, opt));
+      input.value = v != null ? v : '';
+    } else if (f.type === 'multi_select') {
+      const row = el('div', { class: 'multi-chip-row' });
+      const sel = Array.isArray(v) ? v.slice() : [];
+      for (const opt of (f.options || [])) {
+        const checked = sel.includes(opt);
+        const chip = el('label', { class: 'chip' + (checked ? ' on' : '') },
+          el('input', {
+            type: 'checkbox',
+            checked: checked,
+            onchange: (e) => {
+              if (e.target.checked) {
+                if (!sel.includes(opt)) sel.push(opt);
+              } else {
+                const idx = sel.indexOf(opt);
+                if (idx >= 0) sel.splice(idx, 1);
+              }
+              setV(sel.slice());
+              chip.classList.toggle('on', e.target.checked);
+            },
+          }),
+          opt,
+        );
+        row.appendChild(chip);
+      }
+      wrap.appendChild(row);
+      if (f.help) wrap.appendChild(el('div', { class: 'field-help' }, f.help));
+      return wrap;
+    } else {
+      input = el('input', {
+        type: 'text',
+        placeholder: f.placeholder || '',
+        oninput: (e) => setV(e.target.value),
+      });
+      input.value = v != null ? v : '';
+    }
+    wrap.appendChild(input);
+    if (f.help) wrap.appendChild(el('div', { class: 'field-help' }, f.help));
+    return wrap;
+  }
+
+  function renderImages(main) {
+    main.appendChild(el('p', { style: 'font-size:14px;color:var(--muted);margin-top:0;' },
+      'Optional. Up to 10 images, max 5MB each. JPG / PNG / WebP. They will be embedded in the output document and referenced in the generated prose.'
+    ));
+    const dz = el('label', {
+      class: 'drop-zone',
+      ondragover: (e) => { e.preventDefault(); dz.classList.add('hot'); },
+      ondragleave: () => dz.classList.remove('hot'),
+      ondrop: (e) => { e.preventDefault(); dz.classList.remove('hot'); addImages(e.dataTransfer.files); },
+    },
+      el('input', {
+        type: 'file',
+        accept: 'image/jpeg,image/png,image/webp',
+        multiple: true,
+        style: 'display:none',
+        onchange: (e) => addImages(e.target.files),
+      }),
+      el('div', { class: 'dz-headline' }, 'Drop images here, or click to select'),
+      el('div', { class: 'dz-sub' }, state.images.length + '/10 selected'),
+    );
+    main.appendChild(dz);
+    if (state.images.length > 0) {
+      const grid = el('div', { class: 'thumb-grid' });
+      state.images.forEach((img, idx) => {
+        const thumb = el('div', { class: 'thumb' },
+          el('img', { src: URL.createObjectURL(img), alt: img.name }),
+          el('div', { class: 'fname' }, img.name),
+          el('button', {
+            class: 'remove',
+            type: 'button',
+            'aria-label': 'Remove',
+            onclick: () => { state.images.splice(idx, 1); render(); },
+          }, '×'),
+        );
+        grid.appendChild(thumb);
+      });
+      main.appendChild(grid);
+    }
+    main.appendChild(navRow({
+      back: () => { state.step = 'fields'; render(); },
+      next: () => { state.step = 'review'; render(); },
+      nextLabel: 'Continue',
+    }));
+  }
+
+  function addImages(fileList) {
+    if (!fileList) return;
+    const incoming = Array.from(fileList);
+    for (const f of incoming) {
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) continue;
+      if (f.size > 5 * 1024 * 1024) continue;
+      if (state.images.length >= 10) break;
+      state.images.push(f);
+    }
+    render();
+  }
+
+  function renderReview(main) {
+    const t = currentTemplate();
+    const b = currentBrand();
+    if (!t || !b) { state.step = 'template'; render(); return; }
+    const box = el('div', { class: 'summary-box' });
+    box.appendChild(summaryRow('Template', t.label));
+    box.appendChild(summaryRow('Brand', b.label));
+    box.appendChild(summaryRow('Image count', String(state.images.length)));
+    box.appendChild(el('hr'));
+    for (const f of t.fields) {
+      const v = state.inputs[f.id];
+      const display = (v == null || v === '')
+        ? '—'
+        : Array.isArray(v) ? v.join(', ') : String(v);
+      box.appendChild(summaryRow(f.label, display));
+    }
+    main.appendChild(box);
+    main.appendChild(navRow({
+      back: () => { state.step = t.supports_images ? 'images' : 'fields'; render(); },
+      next: () => submit(),
+      nextLabel: state.submitting ? 'Generating…' : 'Generate Document',
+      nextDisabled: state.submitting,
+      nextLarge: true,
+    }));
+  }
+
+  async function submit() {
+    const t = currentTemplate();
+    const b = currentBrand();
+    if (!t || !b) return;
+    state.submitting = true;
+    state.resultError = null;
+    state.resultUrl = null;
+    state.step = 'result';
+    render();
+
+    const form = new FormData();
+    form.set('template_slug', t.slug);
+    form.set('brand_slug', b.slug);
+    form.set('inputs', JSON.stringify(state.inputs));
+    for (const img of state.images) form.append('images', img);
+
+    try {
+      const json = await apiSubmit(form);
+      state.resultUrl = json.drive_url;
+    } catch (err) {
+      if (err.message === 'AUTH') {
+        clearKey();
+        showKeyModal('API key was rejected. Re-enter.');
+        state.resultError = 'Unauthorized — re-enter your API key.';
+      } else {
+        state.resultError = err.message || String(err);
+      }
+    } finally {
+      state.submitting = false;
+      render();
+    }
+  }
+
+  function renderResult(main) {
+    if (state.submitting) {
+      main.appendChild(el('div', { style: 'padding:32px;text-align:center;' },
+        el('div', { class: 'spinner' }),
+        el('div', { style: 'font-size:15px;color:var(--charcoal);font-weight:600;' }, 'Generating your document…'),
+        el('div', { style: 'font-size:12px;color:var(--muted);margin-top:6px;' }, 'This typically takes 20–60 seconds.'),
+      ));
+      return;
+    }
+    if (state.resultError) {
+      main.appendChild(el('div', { class: 'alert error' },
+        el('div', { class: 'alert-title' }, 'Generation failed'),
+        el('pre', null, state.resultError),
+      ));
+      main.appendChild(el('div', { style: 'display:flex;gap:12px;margin-top:20px;' },
+        el('button', { class: 'btn secondary', type: 'button', onclick: reset }, 'Start over'),
+        el('button', { class: 'btn primary', type: 'button', onclick: submit }, 'Try again'),
+      ));
+      return;
+    }
+    if (state.resultUrl) {
+      main.appendChild(el('div', { class: 'alert success' },
+        el('div', { class: 'alert-title' }, 'Delivered'),
+        el('div', { style: 'font-size:13px;margin-bottom:16px;' }, 'Your document is in Google Drive.'),
+        el('a', {
+          class: 'btn primary',
+          href: state.resultUrl,
+          target: '_blank',
+          rel: 'noreferrer',
+          style: 'display:inline-block;text-decoration:none;',
+        }, 'Open in Drive ↗'),
+      ));
+      main.appendChild(el('div', { style: 'margin-top:20px;' },
+        el('button', { class: 'btn secondary', type: 'button', onclick: reset }, 'Create another'),
+      ));
+      return;
+    }
+  }
+
+  function reset() {
+    state.step = 'template';
+    state.templateSlug = null;
+    state.brandSlug = null;
+    state.inputs = {};
+    state.images = [];
+    state.missingIds = [];
+    state.resultUrl = null;
+    state.resultError = null;
+    render();
+  }
+
+  // ------ Shared UI helpers ------
+  function summaryRow(k, v) {
+    return el('div', { class: 'summary-row' },
+      el('div', { class: 'k' }, k),
+      el('div', { class: 'v' }, v),
+    );
+  }
+  function contextBanner(pairs) {
+    const wrap = el('div', { class: 'context-banner' });
+    for (const [k, v] of pairs) {
+      wrap.appendChild(el('div', null,
+        el('span', { class: 'k' }, k + ':'),
+        ' ',
+        el('span', { class: 'v' }, v),
+      ));
+    }
+    return wrap;
+  }
+  function navRow({ back, backLabel, next, nextLabel, nextDisabled, nextLarge }) {
+    const row = el('div', { class: 'nav-row' });
+    if (back) {
+      row.appendChild(el('button', {
+        class: 'btn secondary',
+        type: 'button',
+        onclick: back,
+      }, '← ' + (backLabel || 'Back')));
+    } else {
+      row.appendChild(el('div'));
+    }
+    if (next) {
+      row.appendChild(el('button', {
+        class: 'btn primary' + (nextLarge ? ' large' : ''),
+        type: 'button',
+        onclick: next,
+        disabled: !!nextDisabled,
+      }, (nextLabel || 'Next') + ' →'));
+    }
+    return row;
+  }
+
+  // ------ Boot ------
+  bootstrap();
+})();
+</script>
+</body>
+</html>
