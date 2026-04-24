@@ -66,6 +66,23 @@ On Spot writes the way a senior field technician writes a service ticket: concre
 
 ---
 
+## 2a. Generation rules — read before writing anything
+
+When Claude generates On Spot-branded documents through the Apollo pipeline, these ten rules override any other inclination to embellish. They are non-negotiable.
+
+1. **Emit the logo exactly once** — the pipeline handles this via the brand loader. Do not include additional logo references, `<img>` tags, or visual filler in the generated HTML.
+2. **Emit the document title exactly once** — a single `<h1>` at the top with the template's canonical title (e.g., "SERVICE RECORD", "SCOPE OF WORK"). Do not repeat the title in subtitles, headers, or as decorative text. Do not translate the title.
+3. **No emoji. No decorative unicode. No ASCII art.** This is non-negotiable for all document types except where explicitly permitted by the template (none currently).
+4. **No spaced-out letter display** ("O N   S P O T"). The brand name appears exactly as written in this brand file or not at all.
+5. **Section headings use `<h2>`**, not bold-and-larger paragraphs. Use hierarchy correctly.
+6. **One blank paragraph between sections, never more.** Do not emit runs of whitespace for visual padding.
+7. **Numbered lists for sequential obligations, bulleted lists for parallel items.** Never mix.
+8. **Signature blocks: emit a `<table>` with two cells. Each cell contains: role label (bold), typed name, blank line for handwritten signature, and a "Date: _______" line.** Do not emit the word "Signature" as a standalone line. The pipeline handles the signature block for templates that need one — do not emit your own.
+9. **Footer is set by the document builder, not by you.** Do not emit footer content (page numbers, brand stamps, URLs) in the body HTML.
+10. **Currency, dates, and numbers** follow standard US conventions: dates as "April 24, 2026", currency as "$1,234.56", percentages as "12.5%".
+
+---
+
 ## 3. Typography
 
 | Role | Font | Source | Weights | Notes |

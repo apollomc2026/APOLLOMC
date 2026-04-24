@@ -1,118 +1,76 @@
-# Apollo MC Brand Guide
+# Apollo MC — Brand Reference
 
-> Last updated: 2026-04-23
+> Canonical source of truth for Apollo-branded deliverables.
+> Last updated: 2026-04-24
 
 ## Identity
-- Name: Apollo MC
-- Slug: apollo
-- Tagline: Mission Control for Deliverables
-- Description: Apollo MC is an AI-powered deliverables execution platform that converts professional services intake into completed, board-ready documents through deterministic orchestration — not chat.
-- Parent: On Spot Solutions LLC
+- **Legal name:** Apollo MC (operating as a product of On Spot Solutions LLC)
+- **Tagline:** Mission Control for Deliverables
+- **One-sentence:** Apollo is a deliverables execution platform that turns structured intake into polished, professional documents.
+- **Parent:** On Spot Solutions LLC, Revere, Massachusetts
 
 ## Voice
-- Tone: Precise, operational, confident, terse. Mission-control register — briefings, not prose. Never apologetic, never effusive.
-- Example (correct): "Mission complete. Deliverable packaged and ready for download."
-- Example (correct): "Queue depth: 3. Estimated completion: 14 minutes."
-- Example (wrong): "Yay! 🎉 We finished your awesome report — hope you love it!"
-- Example (wrong): "Sorry if this isn't quite what you were looking for. Let me know if you'd like me to try again!"
-- Avoid: emojis in product copy, exclamation points, hedging language ("maybe," "I think," "sort of"), apologetic framing ("sorry," "unfortunately"), consumer-AI-assistant tropes ("happy to help," "let me know if you need anything else"), the word "prompt" used as a product feature, generic SaaS clichés ("seamless," "revolutionary," "powered by AI"). Write like a flight director, not a hype account.
+Apollo's voice is mission-control precision. Confident, terse, operational. It does not explain itself, does not apologize, does not pad.
+
+**Correct:** "Mission complete. Download your deliverable below."
+**Correct:** "This NDA is executed between the parties listed below and governs the confidential information exchanged in connection with the stated purpose."
+**Wrong:** "Great news! Your document is ready!"
+**Wrong:** "This Non-Disclosure Agreement is hereby enthusiastically entered into..."
+
+Avoid: exclamation points, emoji, filler phrases ("please note that," "it is important to understand that"), marketing language in legal/financial documents.
+
+## Visual identity
+- **Primary background:** #0a0a0f (deep near-black with blue undertone) — for web surfaces only. **Documents use white.**
+- **Primary accent (for web):** #6be3ff (cyan)
+- **Secondary accent (for web):** #4a9eff (blue)
+- **Tertiary accent (for web):** #ff7a00 (orange) — used sparingly, for warnings and emphasis
+- **Document text:** #1a1a1a (near-black, never pure black)
+- **Document accent (for headings, section dividers):** #0a1628 (dark navy)
+- **Document muted text:** #555555 (for labels, captions, footer text)
+
+**Critical distinction:** Apollo's *web interface* uses dark backgrounds with cyan/orange accents. Apollo's *generated documents* use white backgrounds with dark-navy accents. Do not apply web colors to documents — they're unprofessional in printed form.
 
 ## Typography
-- Headings: Syne — Google Fonts — weights 500 / 600 / 700 / 800. Used for all display type, cover titles, H1–H3.
-- Body: Inter — Google Fonts — weights 400 / 500 / 600. Used for paragraph text and long-form reading.
-- Mono: JetBrains Mono — Google Fonts — weights 400 / 500 / 600. Used for labels, badges, IDs, timestamps, technical data, and any mission-telemetry style element.
+- **Web surfaces:** Inter (300/400/500/600/700/800/900)
+- **Documents:**
+  - Headings: "Calibri" (or "Segoe UI Semibold" as fallback), weight 600-700
+  - Body: "Calibri" (or "Segoe UI"), weight 400
+  - Monospace (code blocks, technical references): "Cascadia Mono" or "Consolas"
 
-## Color palette
+Do not use display fonts (Syne, Playfair, etc.) in generated documents. They read as gimmicky in professional contexts.
 
-Deliverables palette — use for all generated client-facing documents (DOCX, PDF, printed output) and any light-background surface:
+## Logo usage in documents
+- **Primary logo file:** `apollo_logo_master.png` (repo: `brand-assets/apollo/`)
+- **Rendered size:** Maximum 1.5 inches wide (EMU ~1371600). The DOCX builder enforces this — do not attempt to override.
+- **Position:** Top-left of first page only. Not repeated in headers/footers.
+- **Clear space:** 0.25" on all sides.
 
-| Role             | Name            | Hex       |
-|------------------|-----------------|-----------|
-| Primary accent   | Cone Orange     | `#FF6B1A` |
-| Secondary accent | Lime Green      | `#A4D65E` |
-| Text             | Charcoal        | `#2B2B2B` |
-| Background       | White           | `#FFFFFF` |
+## Generation rules — read before writing anything
+When generating Apollo-branded documents, Claude must:
 
-Semantic (deliverables):
+1. **Emit the logo exactly once** — the pipeline handles this via the brand loader. Do not include additional logo references, `<img>` tags, or visual filler in the generated HTML.
+2. **Emit the document title exactly once** — a single `<h1>` at the top with the template's canonical title (e.g., "NON-DISCLOSURE AGREEMENT"). Do not repeat the title in subtitles, headers, or as decorative text. Do not translate the title.
+3. **No emoji. No decorative unicode. No ASCII art.** This is non-negotiable for all document types except where explicitly permitted by the template (none currently).
+4. **No spaced-out letter display** ("A T L A S"). The brand name appears exactly as written in the brand file or not at all.
+5. **Section headings use `<h2>`**, not bold-and-larger paragraphs. Use hierarchy correctly.
+6. **One blank paragraph between sections, never more.** Do not emit runs of whitespace for visual padding.
+7. **Numbered lists for sequential obligations, bulleted lists for parallel items.** Never mix.
+8. **Signature blocks: emit a `<table>` with two cells. Each cell contains: role label (bold), typed name, blank line for handwritten signature, and a "Date: _______" line.** Do not emit the word "Signature" as a standalone line.
+9. **Footer is set by the document builder, not by you.** Do not emit footer content (page numbers, brand stamps, URLs) in the body HTML.
+10. **Currency, dates, and numbers** follow standard US conventions: dates as "April 24, 2026", currency as "$1,234.56", percentages as "12.5%".
 
-| Role    | Name        | Hex       |
-|---------|-------------|-----------|
-| Success | Signal Green | `#00B86B` |
-| Warning | Caution Amber | `#F5A524` |
-| Error   | Alert Red    | `#E5484D` |
-| Muted   | Gray 500     | `#6B7280` |
+## Positioning — what this brand IS
+- A professional deliverables platform for business users
+- Output-focused — the generated document is the product, the UI is incidental
+- Invite-only while under development
 
-## Product surface palette (dark)
-
-Used only for the Apollo MC portal and in-product UI at `portal.apollomc.ai`. Never used for generated deliverables.
-
-| Role             | Name            | Hex       |
-|------------------|-----------------|-----------|
-| Void background  | Apollo Void     | `#080810` |
-| Surface (glass)  | Glass White 4%  | `rgba(255,255,255,0.048)` |
-| Primary accent   | Signal Cyan     | `#5EE7FF` |
-| Secondary accent | Launch Orange   | `#FF8C1A` |
-| Text primary     | Pure White      | `#FFFFFF` |
-| Text secondary   | White 65%       | `rgba(255,255,255,0.65)` |
-| Success          | Telemetry Green | `#00E87A` |
-| Error            | Abort Red       | `#FF4560` |
-| Legal vertical   | Counsel Purple  | `#B06EFF` |
-
-## Logo usage
-
-All logo assets live alongside this file in the `apollo/` folder. Reference them by relative filename.
-
-| Role | File | Notes |
-|------|------|-------|
-| Primary wordmark — master (color, light backgrounds) | `apollo_logo_master.png` | Canonical wordmark source |
-| Primary wordmark — transparent | `apollo_logo_transparent.png` | Use when compositing over non-white light surfaces |
-| Alternate wordmark (Apollo MC lockup) | `apollomc-logo.png` | Apollo MC product lockup variant |
-| Icon / mark (rocket) | `Rocket.png` | Use when the wordmark would fall below its minimum width |
-| Icon / mark (rocket, transparent) | `Rocket_transparent.png` | Rocket mark over non-white surfaces |
-| UDI Apollo variant | `UDI_APOLLO.png` | <!-- inferred from filename — retain pending role clarification --> |
-
-<!-- TODO: no inverted wordmark variant in folder as of 2026-04-23 — use primary transparent on dark surfaces only with a navy plate behind it -->
-<!-- TODO: no favicon.ico or social card (1200×630 OG image) in folder as of 2026-04-23 -->
-
-Usage rules:
-
-- Minimum width: 120px for the full wordmark. Below that, use the icon-only mark.
-- Icon minimum: 24px.
-- Clear space: 1× logo height on all sides. No text, graphic, or edge may enter that zone.
-- Never stretch, skew, rotate, or recolor the logo.
-- Never apply drop shadows, outlines, or gradients that are not part of the master file.
-- Never place the color logo on busy photographic backgrounds without a solid color plate behind it.
-- Never place the color logo on the Cone Orange fill — use the inverted logo on orange surfaces.
-- Never reproduce the logo below 72 DPI for print.
-
-## Document conventions
-
-- Cover page: Apollo logo top-left (120px wide), deliverable title centered in Syne 32pt Cone Orange, client name in Inter 14pt Charcoal directly below, date bottom-right in JetBrains Mono 10pt Charcoal.
-- Section headings: Syne 18pt weight 700, Cone Orange `#FF6B1A`.
-- Subsection headings: Syne 14pt weight 600, Charcoal `#2B2B2B`.
-- Body text: Inter 11pt weight 400, Charcoal `#2B2B2B`, line height 1.5.
-- Callout / emphasis blocks: 2px left border in Lime Green `#A4D65E`, Inter 11pt body, 6pt left padding.
-- Footer (every page except cover): `Generated by Apollo MC · apollomc.ai · Page X of Y` — JetBrains Mono 9pt, Charcoal 60% opacity, centered. Page numbers in the same style right-aligned.
-- Tables: header row in Lime Green `#A4D65E` background with white text, body rows alternating white and `#F7F7F7`, 0.5pt Charcoal 20% grid lines.
-- Watermarks: none on production deliverables. Drafts may carry a `DRAFT` watermark in Cone Orange 15% opacity, Syne 72pt, rotated -30°.
-- No dark themes on deliverables. Ever. All generated documents are white-background.
-
-## Positioning
-
-**Apollo MC is:**
-- A deterministic deliverables execution platform for professional services firms where document production directly gates revenue (consulting, government contracting, legal).
-- A completion engine — it sells finished, board-ready outputs, not prompts, drafts, or suggestions.
-- A mission-control interface: structured intake in, orchestrated task graph executed, packaged deliverable out.
-
-**Apollo MC is NOT:**
-- Not a chatbot. It does not converse, it executes.
-- Not an AI writing assistant. It does not suggest — it delivers.
-- Not consumer-facing. It is a B2B platform for professionals whose time is billable.
-- Not a prompt tool. Users never write prompts; they complete structured intake.
+## Positioning — what this brand is NOT
+- A chatbot
+- An AI writing assistant
+- Consumer-facing social content
+- A marketing platform
 
 ## Contact
-
-- Domain: `apollomc.ai`
-- Product: `portal.apollomc.ai`
-- Support: `support@apollomc.ai`
-- Parent entity: On Spot Solutions LLC · Revere, MA
+- Domain: apollomc.ai
+- Support: support@apollomc.ai
+- Parent company: On Spot Solutions LLC (onspot-solutions.com)
