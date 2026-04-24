@@ -113,6 +113,31 @@ function stripLeadingTitle(html: string): string {
   return html.replace(/^\s*<h1\b[^>]*>[\s\S]*?<\/h1>/i, '').trim()
 }
 
+// Defensive strip of EVERY <h1> in the body, not just a leading one.
+// Claude sometimes emits a cover-like wordmark as an <h1> in the middle
+// of the body, or a duplicate title later in the doc. Any <h1> that
+// reaches the PDF creates a visible duplicate of the cover title — the
+// cover page is the only place the title belongs.
+function stripAllH1(html: string): string {
+  return html.replace(/<h1\b[^>]*>[\s\S]*?<\/h1>/gi, '')
+}
+
+// Strip decorative content that appears before the first <h2>. Claude
+// sometimes opens with a spaced-letter banner ("N O N - D I S C L O S U R E"),
+// a document ID row, or brand-name filler — visual noise we don't want.
+// Heuristic: if the pre-first-<h2> prose is shorter than ~20 words, treat
+// it as decorative and remove. If it's longer, keep it — that's a real
+// recital/preamble that extractPreamble() can style separately.
+function stripPreH2Banner(html: string): string {
+  const firstH2Index = html.search(/<h2\b/i)
+  if (firstH2Index <= 0) return html
+  const preamble = html.slice(0, firstH2Index)
+  const textOnly = preamble.replace(/<[^>]+>/g, '').trim()
+  const wordCount = textOnly.split(/\s+/).filter(Boolean).length
+  if (wordCount >= 20) return html
+  return html.slice(firstH2Index)
+}
+
 // Walk <h2> elements, assign Roman-numeral section numbers, wrap each
 // section as a dedicated block with its own opener. Returns the transformed
 // body HTML and the ordered list of sections for the TOC.
@@ -275,9 +300,17 @@ function renderWatermarkHtml(logoDataUri: string | null): string {
 
 function watermarkCss(): string {
   return `
+    /* A single fixed-position element repeats on every paged-media page.
+       Setting it small enough + positioning it in the page margin keeps
+       it visible as brand stationery without overlapping the signature
+       block on the signatures page. */
     .apollo-watermark {
       position: fixed;
-      inset: 0;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: auto;
+      height: 38%;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -285,10 +318,18 @@ function watermarkCss(): string {
       z-index: -1;
     }
     .apollo-watermark img {
-      width: 40%;
-      max-width: 4in;
-      opacity: 0.06;
+      width: 32%;
+      max-width: 3.2in;
+      opacity: 0.08;
       filter: grayscale(1);
+    }
+    /* Signature page gets an extra fainter pass — we can't reliably gate
+       a fixed-position element to specific pages in Chromium's paged-media
+       layer, but the higher-specificity rule takes precedence on the
+       signatures page when the wrapper sits inside that section. */
+    .signatures-page .apollo-watermark img,
+    .signatures-page ~ .apollo-watermark img {
+      opacity: 0.04;
     }
   `
 }
@@ -420,7 +461,7 @@ function buildContractHtml(args: BuildPdfArgs): string {
   const logoDataUri = resolveLogoDataUri(args.brand)
   const watermarkHtml = flags.hasWatermark ? renderWatermarkHtml(logoDataUri) : ''
   const sigMarkHtml = flags.hasSigMark ? renderSigMarkHtml(logoDataUri) : ''
-  const bodySource = stripLeadingTitle(args.contentHtml)
+  const bodySource = stripPreH2Banner(stripAllH1(stripLeadingTitle(args.contentHtml)))
   const { preamble, body: bodyAfterPreamble } = extractPreamble(bodySource)
   const { html: numberedBody, sections } = numberSections(bodyAfterPreamble)
   const tocHtml = args.template.has_toc === false ? '' : renderTocHtml(sections)
@@ -688,10 +729,15 @@ hr.hairline, .hairline {
   text-align: left;
 }
 .preamble p {
-  font-family: var(--font-display);
+  /* Body font (not display). The display font breaks under the Technical
+     preset which uses a monospace for display — italic monospace reads as
+     "computer error code," not "legal recital." Body font stays legible
+     in italic across all five presets. */
+  font-family: var(--font-body);
   font-style: italic;
-  font-size: 12.5pt;
-  line-height: 1.55;
+  font-weight: var(--weight-body-regular);
+  font-size: 12pt;
+  line-height: 1.65;
   color: var(--ink);
   margin: 0 0 10pt 0;
 }
@@ -830,7 +876,7 @@ function buildInvoiceHtml(args: BuildPdfArgs): string {
   // Pass Claude's body through unchanged except: strip leading h1 (we own
   // the title), strip Claude's duplicated header metadata (it often
   // re-emits invoice # and dates which we render in our own header).
-  const body = stripLeadingTitle(args.contentHtml)
+  const body = stripAllH1(stripLeadingTitle(args.contentHtml))
 
   return `<!doctype html>
 <html lang="en">${sharedHead(palette, preset, docTitle)}
@@ -952,7 +998,7 @@ function buildOnePagerHtml(args: BuildPdfArgs): string {
   const wordmark = brandWordmark(args.brand.slug)
   const docTitle = args.template.label
   const subjectTitle = readString(args.inputs, 'subject_title') || docTitle
-  const body = stripLeadingTitle(args.contentHtml)
+  const body = stripAllH1(stripLeadingTitle(args.contentHtml))
 
   return `<!doctype html>
 <html lang="en">${sharedHead(palette, preset, docTitle)}
@@ -1045,7 +1091,7 @@ function buildMinutesHtml(args: BuildPdfArgs): string {
   // For minutes, strip the h1 and extract a plain preamble (if any);
   // otherwise just pass through. We keep section numbering for the agenda
   // items, which matches the "by agenda item" discussion convention.
-  const bodySource = stripLeadingTitle(args.contentHtml)
+  const bodySource = stripAllH1(stripLeadingTitle(args.contentHtml))
   const { preamble, body: bodyAfterPreamble } = extractPreamble(bodySource)
   const { html: numberedBody } = numberSections(bodyAfterPreamble)
   const preambleHtml = preamble
