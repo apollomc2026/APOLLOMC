@@ -200,7 +200,7 @@ function renderSignatureBlock(args: BuildPdfArgs): string {
   return `
     <section class="signatures-page">
       <p class="eyebrow sig-eyebrow">Execution</p>
-      <h2 class="sig-heading">Signatures</h2>
+      <h2 class="sig-heading">${parties.length === 1 ? 'Attestation' : 'Signatures'}</h2>
       <hr class="section-rule" />
       <div class="sig-grid sig-grid-${parties.length}">${cells}</div>
     </section>
@@ -270,12 +270,80 @@ function brandWordmark(brandSlug: string): string {
   }
 }
 
+// Shared typographic tokens + font imports used across every layout. Each
+// layout appends its own layout-specific CSS block but inherits these
+// baseline values — palette variables, font families, paper color.
+function sharedHead(palette: Palette, docTitle: string): string {
+  return `
+<head>
+<meta charset="utf-8" />
+<title>${escapeHtml(docTitle)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: ${palette.paper};
+  --ink: ${palette.ink};
+  --accent: ${palette.accent};
+  --metadata: ${palette.metadata};
+  --hairline: rgba(20, 21, 26, 0.22);
+}
+html, body {
+  background: var(--paper);
+  color: var(--ink);
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.62;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+strong { font-weight: 600; }
+.eyebrow {
+  font-family: 'Inter', sans-serif;
+  font-size: 8pt;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--metadata);
+  margin: 0 0 12pt 0;
+}
+hr.hairline {
+  border: 0;
+  border-top: 0.5pt solid var(--hairline);
+  margin: 18pt 0;
+}
+</style>
+`
+}
+
+// Dispatch to the right layout renderer. Default is the contract layout
+// (cover + TOC + numbered sections + signatures).
 function buildFullHtml(args: BuildPdfArgs): string {
+  const layout = args.template.layout ?? 'contract'
+  switch (layout) {
+    case 'invoice':
+      return buildInvoiceHtml(args)
+    case 'one-pager':
+      return buildOnePagerHtml(args)
+    case 'minutes':
+      return buildMinutesHtml(args)
+    case 'letter':
+    case 'contract':
+    default:
+      return buildContractHtml(args)
+  }
+}
+
+function buildContractHtml(args: BuildPdfArgs): string {
   const palette = paletteForBrand(args.brand.slug)
   const bodySource = stripLeadingTitle(args.contentHtml)
   const { preamble, body: bodyAfterPreamble } = extractPreamble(bodySource)
   const { html: numberedBody, sections } = numberSections(bodyAfterPreamble)
-  const tocHtml = renderTocHtml(sections)
+  const tocHtml = args.template.has_toc === false ? '' : renderTocHtml(sections)
   const preambleHtml = preamble
     ? `<section class="preamble">${preamble}</section>`
     : ''
@@ -604,7 +672,10 @@ hr.hairline, .hairline {
   gap: 48pt;
   margin-top: 36pt;
 }
-.sig-grid-1 { grid-template-columns: 1fr 1fr; }
+.sig-grid-1 {
+  grid-template-columns: minmax(0, 3.6in);
+  justify-content: center;
+}
 .sig-cell { display: flex; flex-direction: column; }
 .sig-cell .eyebrow { margin-bottom: 10pt; }
 .sig-name {
@@ -673,6 +744,319 @@ ${numberedBody}
 <!-- SIGNATURES -->
 ${signaturesHtml}
 
+</body>
+</html>`
+}
+
+// ============================================================================
+// INVOICE LAYOUT
+// Single-page structured document. No cover, no TOC, no signatures.
+// Minimal masthead → bill-to block → line items table → totals → payment
+// instructions → notes. Numbers-first hierarchy.
+// ============================================================================
+function buildInvoiceHtml(args: BuildPdfArgs): string {
+  const palette = paletteForBrand(args.brand.slug)
+  const wordmark = brandWordmark(args.brand.slug)
+  const docTitle = args.template.label
+  const invoiceNumber = readString(args.inputs, 'invoice_number') || args.documentId
+  const invoiceDate = readString(args.inputs, 'invoice_date') || args.preparedDate
+  const dueDate = readString(args.inputs, 'due_date')
+  const billToName = readString(args.inputs, 'bill_to_name')
+  const billToAddress = readString(args.inputs, 'bill_to_address')
+
+  // Pass Claude's body through unchanged except: strip leading h1 (we own
+  // the title), strip Claude's duplicated header metadata (it often
+  // re-emits invoice # and dates which we render in our own header).
+  const body = stripLeadingTitle(args.contentHtml)
+
+  return `<!doctype html>
+<html lang="en">${sharedHead(palette, docTitle)}
+<style>
+@page { size: 8.5in 11in; margin: 0.9in 0.9in 0.9in 0.9in; }
+.invoice { display: flex; flex-direction: column; gap: 36pt; }
+.invoice-masthead {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding-bottom: 16pt; border-bottom: 0.75pt solid var(--accent);
+}
+.invoice-wordmark {
+  font-family: 'Inter', sans-serif; font-size: 10pt; font-weight: 600;
+  letter-spacing: 0.38em; color: var(--ink);
+}
+.invoice-title-block { text-align: right; }
+.invoice-title {
+  font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic;
+  font-weight: 400; font-size: 34pt; line-height: 1; color: var(--ink);
+  margin: 0 0 8pt 0;
+}
+.invoice-meta { display: grid; grid-template-columns: auto auto; column-gap: 18pt; justify-content: end; }
+.invoice-meta .label { font-family: 'Inter', sans-serif; font-size: 8pt;
+  font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--metadata); text-align: right; padding-right: 0; }
+.invoice-meta .value { font-family: 'Inter', sans-serif; font-size: 10pt;
+  color: var(--ink); text-align: right; }
+.invoice-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 48pt; }
+.invoice-party-label { font-family: 'Inter', sans-serif; font-size: 8pt;
+  font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--metadata); margin: 0 0 8pt 0; }
+.invoice-party-name { font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 14pt; font-weight: 500; margin: 0 0 4pt 0; }
+.invoice-party-address { font-family: 'Inter', sans-serif; font-size: 10pt;
+  color: var(--ink); white-space: pre-line; margin: 0; }
+.invoice-body {
+  font-family: 'Inter', sans-serif; font-size: 10pt; line-height: 1.6;
+}
+.invoice-body table { width: 100%; border-collapse: collapse; margin: 16pt 0; }
+.invoice-body thead th {
+  font-family: 'Inter', sans-serif; font-size: 8pt; font-weight: 500;
+  letter-spacing: 0.22em; text-transform: uppercase; color: var(--metadata);
+  text-align: left; padding: 8pt 0; border-bottom: 0.5pt solid var(--accent);
+}
+.invoice-body thead th:last-child,
+.invoice-body tbody td:last-child { text-align: right; }
+.invoice-body thead th.num, .invoice-body tbody td.num { text-align: right; }
+.invoice-body tbody td {
+  font-family: 'Inter', sans-serif; font-size: 10pt; color: var(--ink);
+  padding: 8pt 0; border-bottom: 0.25pt solid var(--hairline);
+  vertical-align: top;
+}
+.invoice-body h2 {
+  font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500;
+  font-size: 16pt; color: var(--ink); margin: 28pt 0 10pt 0;
+}
+.invoice-body h3 {
+  font-family: 'Inter', sans-serif; font-size: 9pt; font-weight: 500;
+  letter-spacing: 0.22em; text-transform: uppercase; color: var(--metadata);
+  margin: 22pt 0 6pt 0;
+}
+.invoice-body p { margin: 0 0 8pt 0; }
+.invoice-body ul { margin: 8pt 0; padding-left: 18pt; }
+/* Make Claude's totals render aligned right, gracefully */
+.invoice-body .totals, .invoice-body strong { font-variant-numeric: tabular-nums; }
+</style>
+<body>
+<div class="invoice">
+  <div class="invoice-masthead">
+    <div>
+      <div class="invoice-wordmark">${escapeHtml(wordmark)}</div>
+    </div>
+    <div class="invoice-title-block">
+      <h1 class="invoice-title">Invoice</h1>
+      <div class="invoice-meta">
+        <div class="label">Invoice No.</div><div class="value">${escapeHtml(invoiceNumber)}</div>
+        <div class="label">Invoice Date</div><div class="value">${escapeHtml(invoiceDate)}</div>
+        ${dueDate ? `<div class="label">Due</div><div class="value">${escapeHtml(dueDate)}</div>` : ''}
+      </div>
+    </div>
+  </div>
+  ${
+    billToName || billToAddress
+      ? `<div class="invoice-parties">
+    <div>
+      <p class="invoice-party-label">Bill To</p>
+      <p class="invoice-party-name">${escapeHtml(billToName)}</p>
+      <p class="invoice-party-address">${escapeHtml(billToAddress)}</p>
+    </div>
+    <div>
+      <p class="invoice-party-label">From</p>
+      <p class="invoice-party-name">${escapeHtml(wordmark)}</p>
+    </div>
+  </div>`
+      : ''
+  }
+  <div class="invoice-body">
+    ${body}
+  </div>
+</div>
+</body>
+</html>`
+}
+
+// ============================================================================
+// ONE-PAGER LAYOUT
+// Single-page marketing document. Quiet luxury on one page means generous
+// negative space and a typographic-forward hero. No cover, no TOC, no
+// signatures. One h1 (handled by us), Claude's body provides the substance.
+// ============================================================================
+function buildOnePagerHtml(args: BuildPdfArgs): string {
+  const palette = paletteForBrand(args.brand.slug)
+  const wordmark = brandWordmark(args.brand.slug)
+  const docTitle = args.template.label
+  const subjectTitle = readString(args.inputs, 'subject_title') || docTitle
+  const body = stripLeadingTitle(args.contentHtml)
+
+  return `<!doctype html>
+<html lang="en">${sharedHead(palette, docTitle)}
+<style>
+@page { size: 8.5in 11in; margin: 1.1in 1.2in 1in 1.2in; }
+.onepager { display: flex; flex-direction: column; height: 8.5in; }
+.op-masthead {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-bottom: 12pt; border-bottom: 0.5pt solid var(--hairline);
+}
+.op-wordmark { font-family: 'Inter', sans-serif; font-size: 9pt;
+  font-weight: 600; letter-spacing: 0.38em; color: var(--ink); }
+.op-docid { font-family: 'Inter', sans-serif; font-size: 7.5pt;
+  letter-spacing: 0.18em; text-transform: uppercase; color: var(--metadata); }
+.op-hero { margin-top: 36pt; }
+.op-kicker { font-family: 'Inter', sans-serif; font-size: 8.5pt;
+  font-weight: 500; letter-spacing: 0.32em; text-transform: uppercase;
+  color: var(--metadata); margin: 0 0 14pt 0; }
+.op-title { font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic; font-weight: 400; font-size: 42pt; line-height: 1.05;
+  color: var(--ink); margin: 0 0 20pt 0; max-width: 5.8in; }
+.op-body { font-family: 'Inter', sans-serif; font-size: 10.5pt;
+  line-height: 1.6; margin-top: 20pt; }
+.op-body h2 {
+  font-family: 'Inter', sans-serif; font-size: 8.5pt; font-weight: 500;
+  letter-spacing: 0.24em; text-transform: uppercase; color: var(--accent);
+  margin: 22pt 0 8pt 0; border-top: 0; padding-top: 0;
+}
+.op-body h2:first-child { margin-top: 0; }
+.op-body p { margin: 0 0 10pt 0; max-width: 5.8in; }
+.op-body ul { margin: 8pt 0 14pt 0; padding-left: 0; list-style: none; }
+.op-body li {
+  position: relative; padding-left: 18pt; margin-bottom: 8pt;
+  max-width: 5.8in;
+}
+.op-body li::before {
+  content: ''; position: absolute; left: 0; top: 9pt;
+  width: 8pt; height: 0; border-top: 0.75pt solid var(--accent);
+}
+.op-footer { margin-top: auto; padding-top: 20pt;
+  border-top: 0.5pt solid var(--hairline);
+  display: flex; justify-content: space-between;
+  font-family: 'Inter', sans-serif; font-size: 8.5pt;
+  letter-spacing: 0.18em; text-transform: uppercase; color: var(--metadata); }
+</style>
+<body>
+<div class="onepager">
+  <div class="op-masthead">
+    <span class="op-wordmark">${escapeHtml(wordmark)}</span>
+    <span class="op-docid">${escapeHtml(args.documentId)}</span>
+  </div>
+  <div class="op-hero">
+    <p class="op-kicker">${escapeHtml(docTitle.toUpperCase())}</p>
+    <h1 class="op-title">${escapeHtml(subjectTitle)}</h1>
+  </div>
+  <div class="op-body">${body}</div>
+  <div class="op-footer">
+    <span>${escapeHtml(args.preparedDate)}</span>
+    <span>${escapeHtml(wordmark)}</span>
+  </div>
+</div>
+</body>
+</html>`
+}
+
+// ============================================================================
+// MEETING MINUTES LAYOUT
+// Operations document. Structured metadata header (meeting title + date +
+// time + location + attendance) instead of a cover page; then sections
+// flow as a contract's body would. No TOC, no signatures.
+// ============================================================================
+function buildMinutesHtml(args: BuildPdfArgs): string {
+  const palette = paletteForBrand(args.brand.slug)
+  const wordmark = brandWordmark(args.brand.slug)
+  const docTitle = args.template.label
+  const meetingTitle = readString(args.inputs, 'meeting_title') || docTitle
+  const meetingDate = readString(args.inputs, 'meeting_date') || args.preparedDate
+  const meetingTime = readString(args.inputs, 'meeting_time')
+  const location = readString(args.inputs, 'location') || readString(args.inputs, 'platform')
+  const attendees = readString(args.inputs, 'attendees')
+  const absent = readString(args.inputs, 'absent')
+
+  // For minutes, strip the h1 and extract a plain preamble (if any);
+  // otherwise just pass through. We keep section numbering for the agenda
+  // items, which matches the "by agenda item" discussion convention.
+  const bodySource = stripLeadingTitle(args.contentHtml)
+  const { preamble, body: bodyAfterPreamble } = extractPreamble(bodySource)
+  const { html: numberedBody } = numberSections(bodyAfterPreamble)
+  const preambleHtml = preamble
+    ? `<section class="mm-preamble">${preamble}</section>`
+    : ''
+
+  return `<!doctype html>
+<html lang="en">${sharedHead(palette, docTitle)}
+<style>
+@page { size: 8.5in 11in; margin: 1.1in 1.2in 1in 1.2in; }
+.mm-masthead {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-bottom: 10pt; border-bottom: 0.5pt solid var(--hairline);
+  margin-bottom: 28pt;
+}
+.mm-wordmark { font-family: 'Inter', sans-serif; font-size: 9pt;
+  font-weight: 600; letter-spacing: 0.38em; color: var(--ink); }
+.mm-docid { font-family: 'Inter', sans-serif; font-size: 7.5pt;
+  letter-spacing: 0.18em; text-transform: uppercase; color: var(--metadata); }
+.mm-header { margin-bottom: 36pt; }
+.mm-kicker { font-family: 'Inter', sans-serif; font-size: 8.5pt;
+  font-weight: 500; letter-spacing: 0.32em; text-transform: uppercase;
+  color: var(--metadata); margin: 0 0 10pt 0; }
+.mm-title { font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic; font-weight: 400; font-size: 30pt; line-height: 1.1;
+  color: var(--ink); margin: 0 0 20pt 0; max-width: 6in; }
+.mm-facts { display: grid; grid-template-columns: auto 1fr; column-gap: 22pt; row-gap: 6pt; }
+.mm-facts .label { font-family: 'Inter', sans-serif; font-size: 8pt;
+  font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--metadata); padding-top: 1pt; }
+.mm-facts .value { font-family: 'Inter', sans-serif; font-size: 10pt;
+  color: var(--ink); }
+.mm-facts .value-serif { font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 12pt; font-weight: 500; color: var(--ink); }
+.mm-preamble {
+  margin: 20pt 0 32pt 0; padding: 16pt 0;
+  border-top: 0.5pt solid var(--hairline);
+  border-bottom: 0.5pt solid var(--hairline);
+  font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic;
+  font-size: 12pt; line-height: 1.55; color: var(--ink);
+}
+.mm-preamble p { margin: 0 0 8pt 0; } .mm-preamble p:last-child { margin-bottom: 0; }
+.mm-body { font-family: 'Inter', sans-serif; font-size: 10.5pt; line-height: 1.62; }
+.mm-body .section-opener { margin-top: 34pt; margin-bottom: 6pt; break-inside: avoid; }
+.mm-body .section-opener:first-child { margin-top: 0; }
+.mm-body .section-opener .eyebrow { margin-bottom: 6pt; }
+.mm-body .section-opener h2 {
+  font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500;
+  font-size: 18pt; color: var(--ink); margin: 4pt 0 0 0;
+}
+.mm-body .section-rule {
+  border: 0; border-top: 0.5pt solid var(--accent);
+  width: 1.2in; margin: 10pt 0 18pt 0;
+}
+.mm-body p { margin: 0 0 10pt 0; }
+.mm-body ul, .mm-body ol { margin: 8pt 0 14pt 0; padding-left: 20pt; }
+.mm-body li { margin-bottom: 6pt; }
+.mm-body table { width: 100%; border-collapse: collapse; margin: 14pt 0; }
+.mm-body thead th {
+  font-family: 'Inter', sans-serif; font-size: 8pt; font-weight: 500;
+  letter-spacing: 0.22em; text-transform: uppercase; color: var(--metadata);
+  text-align: left; padding: 8pt 8pt 8pt 0;
+  border-bottom: 0.5pt solid var(--accent);
+}
+.mm-body tbody td {
+  font-family: 'Inter', sans-serif; font-size: 10pt; color: var(--ink);
+  padding: 8pt 8pt 8pt 0; border-bottom: 0.25pt solid var(--hairline);
+  vertical-align: top;
+}
+</style>
+<body>
+<div class="mm-masthead">
+  <span class="mm-wordmark">${escapeHtml(wordmark)}</span>
+  <span class="mm-docid">${escapeHtml(args.documentId)}</span>
+</div>
+<div class="mm-header">
+  <p class="mm-kicker">${escapeHtml(docTitle.toUpperCase())}</p>
+  <h1 class="mm-title">${escapeHtml(meetingTitle)}</h1>
+  <div class="mm-facts">
+    <div class="label">Date</div><div class="value value-serif">${escapeHtml(meetingDate)}</div>
+    ${meetingTime ? `<div class="label">Time</div><div class="value">${escapeHtml(meetingTime)}</div>` : ''}
+    ${location ? `<div class="label">Location</div><div class="value">${escapeHtml(location)}</div>` : ''}
+    ${attendees ? `<div class="label">Present</div><div class="value">${escapeHtml(attendees).replace(/\n/g, ', ')}</div>` : ''}
+    ${absent ? `<div class="label">Absent</div><div class="value">${escapeHtml(absent).replace(/\n/g, ', ')}</div>` : ''}
+  </div>
+</div>
+${preambleHtml}
+<div class="mm-body">${numberedBody}</div>
 </body>
 </html>`
 }

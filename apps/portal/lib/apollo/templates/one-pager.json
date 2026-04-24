@@ -5,6 +5,8 @@
   "category": "marketing",
   "supports_images": false,
   "has_signature_block": false,
+  "has_toc": false,
+  "layout": "one-pager",
   "fields": [
     {
       "id": "subject_title",

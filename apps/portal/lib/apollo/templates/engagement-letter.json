@@ -5,6 +5,8 @@
   "category": "contracts",
   "supports_images": false,
   "has_signature_block": true,
+  "has_toc": false,
+  "layout": "letter",
   "fields": [
     {
       "id": "client_name",

@@ -28,6 +28,14 @@ export interface Template {
   category: string
   supports_images: boolean
   has_signature_block?: boolean
+  // Skip the Table of Contents page. Defaults to true. Set false for
+  // templates whose format doesn't warrant a TOC — letters, invoices,
+  // one-pagers, single-page docs, etc.
+  has_toc?: boolean
+  // High-level document layout. Defaults to "contract" (cover + TOC +
+  // numbered sections + signatures). Other layouts take very different
+  // shapes and are handled by specialized renderers in pdf.ts.
+  layout?: 'contract' | 'letter' | 'invoice' | 'one-pager' | 'minutes'
   fields: TemplateField[]
   sections: TemplateSection[]
   generation_notes: string

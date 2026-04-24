@@ -124,6 +124,50 @@ const SAMPLE_INPUTS: Record<string, Record<string, unknown>> = {
     follow_up_required: 'None',
     customer_signature_name: 'Rick Delaney',
   },
+  invoice: {
+    invoice_number: 'INV-2026-0128',
+    invoice_date: '2026-04-24',
+    due_date: '2026-05-24',
+    bill_to_name: 'Reed Partners Capital',
+    bill_to_address: '220 Madison Ave, Suite 12\nNew York, NY 10016',
+    line_items:
+      'Advisory services — April 2026 retainer | 1 | 12000\nWorkflow audit — current state assessment | 1 | 4500\nVendor evaluation report | 1 | 3200',
+    subtotal_notes: '',
+    tax_rate_percent: 0,
+    payment_instructions:
+      'Payment by wire transfer within 30 days of invoice date. Wire instructions provided upon engagement execution. Late payments accrue interest at 1.5% monthly.',
+    notes: '',
+  },
+  'one-pager': {
+    subject_title: 'Apollo MC',
+    subject_type: 'Product',
+    value_proposition:
+      'Deliverables execution platform. Turn structured intake into board-ready documents — without drafting, editing, or chasing approvals.',
+    key_differentiators:
+      'Mission-control interface — not a chatbot, not a writing assistant\nDeterministic orchestration with quality gates at every section\nBrand-locked output — every document ships at the same visual standard\nPay per deliverable, no seat licenses, no long-term commits',
+    target_audience:
+      'Professional services firms where document production directly gates revenue — consulting, government contracting, legal, finance.',
+    call_to_action:
+      'Request early access at apollomc.ai. Invite-only during beta.',
+    contact_info: 'support@apollomc.ai\napollomc.ai',
+  },
+  'meeting-minutes': {
+    meeting_title: 'Summit Property Management — Atlas Deployment Kickoff',
+    meeting_date: '2026-05-01',
+    meeting_time: '10:00 — 11:15 EDT',
+    attendees:
+      'Sarah Chen (Summit, COO)\nDavid Reed (Summit, Head of Operations)\nJon Sargent (Apollo, Managing Partner)\nMarcus Reyes (Apollo, Lead Technician)',
+    absent: '',
+    agenda_items:
+      'Deployment scope confirmation\nSite access and scheduling\nTraining program design\nSupport window terms\nNext-step commitments',
+    discussion_notes:
+      'The team reviewed the approved SOW and confirmed the scope: 12 Summit properties, hardware deployment, technician training, 60-day post-deployment support. Summit will provide site access coordinators for each property. Training will run as three half-day sessions at Summit\'s Revere facility beginning week of May 18. Support window begins at each site\'s deployment-complete signoff, not at overall project completion.',
+    decisions_made:
+      'Approved deployment sequence beginning at Summit Revere HQ on May 4\nApproved training schedule: May 18, 20, and 22\nSupport window begins per-site, not project-wide',
+    action_items:
+      'Sarah Chen | Confirm site access coordinators by 2026-05-05 | 2026-05-05\nMarcus Reyes | Deliver training curriculum draft for Summit review | 2026-05-11\nJon Sargent | Send weekly progress report every Friday | Weekly',
+    next_meeting_date: '2026-05-08',
+  },
   'incident-report': {
     incident_date: '2026-04-20',
     incident_time: '14:27',
@@ -160,6 +204,10 @@ const defaultMatrix: Job[] = [
   // Field docs — images + single/dual-party attestation
   mkJob('fsr', 'apollo', 'APL-FSR-2026-04-24'),
   mkJob('incident-report', 'apollo', 'APL-IR-2026-04-20'),
+  // Specialized layouts — invoice, one-pager, meeting minutes
+  mkJob('invoice', 'apollo', 'APL-INV-2026-0128'),
+  mkJob('one-pager', 'apollo', 'APL-OP-2026-04-24'),
+  mkJob('meeting-minutes', 'apollo', 'APL-MM-2026-05-01', '1 May 2026'),
 ]
 
 function mkJob(
