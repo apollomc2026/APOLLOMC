@@ -2,6 +2,21 @@
 
 > **Fixed at Your Fingertips.**
 
+## Document palette
+
+Machine-readable palette block consumed by the Apollo PDF pipeline. Atlas deliverables use a warm off-white paper with near-black ink and a saddle-brown accent — earth-toned, field-ready, professional.
+
+<!-- apollo-pdf-palette: START -->
+```yaml
+paper: "#fafafa"
+ink: "#14151a"
+accent: "#b8611e"
+metadata: "#6b5340"
+hairline: "rgba(20,21,26,0.22)"
+```
+<!-- apollo-pdf-palette: END -->
+
+
 Canonical brand reference for ATLAS — a field intelligence platform for parking and access control technicians, built and operated by **On Spot Solutions LLC** (Boston, Massachusetts).
 
 This file is the single source of truth. Every deliverable — print, digital, slide, spec, social, AI-generated — derives from this document. Do not modify downstream materials without first updating this file.

@@ -3,6 +3,21 @@
 > Canonical source of truth for Apollo-branded deliverables.
 > Last updated: 2026-04-24
 
+## Document palette
+
+Machine-readable palette block consumed by the Apollo PDF pipeline. Paper stays warm off-white; ink is a near-black with cool undertone; accent is a cool cyan-blue used only on hairlines and section eyebrows; metadata grey is for labels, IDs, and footer text.
+
+<!-- apollo-pdf-palette: START -->
+```yaml
+paper: "#fafafa"
+ink: "#14151a"
+accent: "#6be3ff"
+metadata: "#5a5e66"
+hairline: "rgba(20,21,26,0.22)"
+```
+<!-- apollo-pdf-palette: END -->
+
+
 ## Identity
 - **Legal name:** Apollo MC (operating as a product of On Spot Solutions LLC)
 - **Tagline:** Mission Control for Deliverables

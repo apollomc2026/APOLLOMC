@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "app/api/apollo/submit/route.ts": {
+      "memory": 3008,
+      "maxDuration": 60
+    }
+  }
+}

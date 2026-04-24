@@ -14,6 +14,25 @@ export interface LoadedBrand extends BrandInfo {
   logo_mime: string | null
 }
 
+// Structured color palette for document output. Drives the PDF pipeline's
+// paper/ink/accent/metadata/hairline CSS variables. Parsed from a YAML
+// block inside each brand.md (see loadBrandPalette below).
+export interface BrandPalette {
+  paper: string
+  ink: string
+  accent: string
+  metadata: string
+  hairline: string
+}
+
+export const DEFAULT_BRAND_PALETTE: BrandPalette = {
+  paper: '#fafafa',
+  ink: '#14151a',
+  accent: '#6be3ff',
+  metadata: '#5a5e66',
+  hairline: 'rgba(20,21,26,0.22)',
+}
+
 const BRAND_ROOT = path.join(process.cwd(), '..', '..', 'brand-assets')
 
 const BRAND_LABELS: Record<string, string> = {
@@ -147,4 +166,66 @@ export async function readBrandLogoBytes(
   const ext = path.extname(logo_file).toLowerCase()
   const mime = MIME_BY_EXT[ext] ?? 'application/octet-stream'
   return { bytes, mime, filename: logo_file }
+}
+
+// Read the structured palette YAML block from a brand.md. The block is
+// delimited by <!-- apollo-pdf-palette: START --> … <!-- apollo-pdf-palette: END -->
+// markers with a fenced YAML block between them. Returns the default palette
+// if the brand doesn't define one (or if parsing fails).
+const PALETTE_BLOCK = /<!--\s*apollo-pdf-palette:\s*START\s*-->[\s\S]*?```yaml\s*([\s\S]*?)```[\s\S]*?<!--\s*apollo-pdf-palette:\s*END\s*-->/
+
+export async function loadBrandPalette(brandSlug: string): Promise<BrandPalette> {
+  if (!isAllowedBrandSlug(brandSlug) || brandSlug === 'other') {
+    return DEFAULT_BRAND_PALETTE
+  }
+  const mdPath = path.join(BRAND_ROOT, brandSlug, 'brand.md')
+  let content: string
+  try {
+    content = await fs.readFile(mdPath, 'utf8')
+  } catch {
+    return DEFAULT_BRAND_PALETTE
+  }
+  const match = content.match(PALETTE_BLOCK)
+  if (!match) return DEFAULT_BRAND_PALETTE
+  const yaml = match[1]
+  const parsed: Partial<BrandPalette> = {}
+  for (const line of yaml.split('\n')) {
+    const m = line.match(/^\s*(\w+)\s*:\s*"?([^"\n]+?)"?\s*$/)
+    if (!m) continue
+    const key = m[1]
+    const value = m[2].trim()
+    if (
+      key === 'paper' ||
+      key === 'ink' ||
+      key === 'accent' ||
+      key === 'metadata' ||
+      key === 'hairline'
+    ) {
+      parsed[key] = value
+    }
+  }
+  return { ...DEFAULT_BRAND_PALETTE, ...parsed }
+}
+
+// Apply a per-submission partial override on top of a base palette. Unknown
+// keys are ignored. Used by the submit route when the user provides a
+// palette_override form field.
+export function applyPaletteOverride(
+  base: BrandPalette,
+  override: Partial<BrandPalette> | undefined | null
+): BrandPalette {
+  if (!override || typeof override !== 'object') return base
+  const allowedKeys: Array<keyof BrandPalette> = [
+    'paper',
+    'ink',
+    'accent',
+    'metadata',
+    'hairline',
+  ]
+  const clean: Partial<BrandPalette> = {}
+  for (const k of allowedKeys) {
+    const v = override[k]
+    if (typeof v === 'string' && v.trim().length > 0) clean[k] = v.trim()
+  }
+  return { ...base, ...clean }
 }
