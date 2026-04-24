@@ -21,7 +21,7 @@
 <style>
   :root {
     --bg: #0a0a0f;
-    --bg-rad: radial-gradient(ellipse at center, rgba(20,30,60,0.3) 0%, rgba(10,10,15,1) 100%);
+    --bg-rad: radial-gradient(ellipse at center, rgba(20,30,60,0.2) 0%, rgba(10,10,15,1) 100%);
     --text: #ffffff;
     --text-2: rgba(255,255,255,0.8);
     --text-3: rgba(255,255,255,0.6);
@@ -33,7 +33,7 @@
     --green: #7bff9f;
     --border: rgba(107,227,255,0.2);
     --border-strong: #6be3ff;
-    --card-bg: rgba(10,10,15,0.6);
+    --card-bg: rgba(10,10,15,0.75);
     --header-bg: rgba(10,10,15,0.95);
     --alert-bg: linear-gradient(135deg, rgba(107,227,255,0.15), rgba(255,122,0,0.15));
     --input-bg: rgba(0,0,0,0.3);
@@ -58,7 +58,7 @@
     inset: 0;
     background: var(--bg-rad);
     pointer-events: none;
-    z-index: 0;
+    z-index: -3; /* below cosmic-sunburst (-2) and watermarks (-1) */
   }
   body > * { position: relative; z-index: 1; }
 
@@ -79,7 +79,7 @@
     height: 1px;
     width: 100%;
     background: linear-gradient(90deg, transparent, var(--cyan), transparent);
-    opacity: 0.5;
+    opacity: 0.2;
     animation: warpSpeed 3s linear infinite;
   }
   @keyframes warpSpeed {
@@ -88,7 +88,7 @@
     90%  { transform: translateX(100%)  scaleX(1); opacity: 1; }
     100% { transform: translateX(100%)  scaleX(0); opacity: 0; }
   }
-  body.generating .warp-line { opacity: 0.85; animation-duration: 1.4s; }
+  body.generating .warp-line { opacity: 0.5; animation-duration: 1.4s; }
 
   /* Header */
   header {
@@ -242,8 +242,8 @@
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: 24px;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
     text-align: center;
   }
   .auth-card .logo-large {
@@ -408,6 +408,8 @@
 
   .select-card {
     background: var(--card-bg);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 22px;
@@ -483,6 +485,8 @@
   /* Brand card */
   .brand-card {
     background: var(--card-bg);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 22px;
@@ -671,6 +675,8 @@
   /* Review */
   .review {
     background: var(--alert-bg);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
     border: 1px solid var(--cyan);
     border-radius: var(--radius);
     padding: 24px;
@@ -833,9 +839,199 @@
   }
 
   .hidden { display: none !important; }
+
+  /* ════════════════════════════════════════════════════════════
+     Cosmic depth layer — sunburst + wordmark + planet watermark
+     All purely decorative. z-index < 0, aria-hidden, pointer-events:none.
+     ════════════════════════════════════════════════════════════ */
+
+  .cosmic-sunburst {
+    position: fixed;
+    top: -20vh;
+    right: -15vw;
+    width: 90vw;
+    height: 90vw;
+    max-width: 1400px;
+    max-height: 1400px;
+    pointer-events: none;
+    z-index: -2;
+    opacity: 0.8;
+  }
+  .sunburst-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      circle at center,
+      rgba(255, 122, 0, 0.22) 0%,
+      rgba(255, 122, 0, 0.14) 15%,
+      rgba(255, 122, 0, 0.06) 35%,
+      rgba(255, 122, 0, 0.02) 55%,
+      transparent 75%
+    );
+    filter: blur(40px);
+    animation: sunburstBreathe 14s ease-in-out infinite;
+  }
+  .sunburst-rays {
+    position: absolute;
+    inset: 0;
+    background: conic-gradient(
+      from 0deg at center,
+      transparent 0deg,
+      rgba(255, 122, 0, 0.04) 4deg,
+      transparent 8deg,
+      transparent 30deg,
+      rgba(255, 122, 0, 0.03) 34deg,
+      transparent 38deg,
+      transparent 60deg,
+      rgba(255, 122, 0, 0.04) 64deg,
+      transparent 68deg,
+      transparent 90deg,
+      rgba(255, 122, 0, 0.03) 94deg,
+      transparent 98deg,
+      transparent 120deg,
+      rgba(255, 122, 0, 0.04) 124deg,
+      transparent 128deg,
+      transparent 150deg,
+      rgba(255, 122, 0, 0.03) 154deg,
+      transparent 158deg,
+      transparent 180deg,
+      rgba(255, 122, 0, 0.04) 184deg,
+      transparent 188deg,
+      transparent 210deg,
+      rgba(255, 122, 0, 0.03) 214deg,
+      transparent 218deg,
+      transparent 240deg,
+      rgba(255, 122, 0, 0.04) 244deg,
+      transparent 248deg,
+      transparent 270deg,
+      rgba(255, 122, 0, 0.03) 274deg,
+      transparent 278deg,
+      transparent 300deg,
+      rgba(255, 122, 0, 0.04) 304deg,
+      transparent 308deg,
+      transparent 330deg,
+      rgba(255, 122, 0, 0.03) 334deg,
+      transparent 338deg,
+      transparent 360deg
+    );
+    filter: blur(8px);
+    animation: sunburstRotate 90s linear infinite;
+  }
+  @keyframes sunburstBreathe {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.7; transform: scale(1.05); }
+  }
+  @keyframes sunburstRotate {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  @media (max-width: 640px) {
+    .cosmic-sunburst {
+      top: -30vh;
+      right: -40vw;
+      width: 140vw;
+      height: 140vw;
+      opacity: 0.6;
+    }
+  }
+
+  .wordmark-watermark {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Inter', sans-serif;
+    font-weight: 900;
+    font-size: clamp(12rem, 22vw, 28rem);
+    letter-spacing: 0.15em;
+    color: #ff7a00;
+    opacity: 0.06;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: -1;
+    user-select: none;
+    text-shadow: 0 0 60px rgba(255, 122, 0, 0.3);
+  }
+  @media (max-width: 640px) {
+    .wordmark-watermark {
+      font-size: 9rem;
+      opacity: 0.05;
+      letter-spacing: 0.08em;
+    }
+  }
+
+  .logo-watermark {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) translateY(10vh);
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.05;
+  }
+  .apollo-planet-large {
+    position: relative;
+    width: 50vh;
+    height: 50vh;
+    max-width: 500px;
+    max-height: 500px;
+    background: radial-gradient(circle at 30% 30%, #87ceeb, #4a9eff, #2c5aa0);
+    border-radius: 50%;
+    box-shadow:
+      0 0 100px rgba(74, 158, 255, 0.5),
+      inset -24px -24px 60px rgba(0, 0, 0, 0.3);
+  }
+  .apollo-planet-large::before {
+    content: '';
+    position: absolute;
+    top: -12%;
+    left: -12%;
+    width: 124%;
+    height: 124%;
+    border: 4px dashed #ff7a00;
+    border-radius: 50%;
+    animation: orbitRotateLarge 120s linear infinite;
+  }
+  @keyframes orbitRotateLarge {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  .apollo-rocket-large {
+    position: absolute;
+    top: -10%;
+    right: -2%;
+    width: 0;
+    height: 0;
+    border-left: 2vh solid transparent;
+    border-right: 2vh solid transparent;
+    border-bottom: 6vh solid #fff;
+    filter: drop-shadow(0 0 12px #6be3ff);
+    transform: rotate(-15deg);
+  }
+  @media (max-width: 640px) {
+    .logo-watermark { opacity: 0.04; }
+    .apollo-planet-large { width: 60vw; height: 60vw; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sunburst-glow,
+    .sunburst-rays,
+    .apollo-planet-large::before { animation: none; }
+  }
 </style>
 </head>
 <body>
+
+<div class="cosmic-sunburst" aria-hidden="true">
+  <div class="sunburst-glow"></div>
+  <div class="sunburst-rays"></div>
+</div>
+<div class="wordmark-watermark" aria-hidden="true">APOLLO</div>
+<div class="logo-watermark" aria-hidden="true">
+  <div class="apollo-planet-large">
+    <div class="apollo-rocket-large"></div>
+  </div>
+</div>
 
 <div class="warp-container" aria-hidden="true">
   <div class="warp-lines" id="warpLines"></div>
