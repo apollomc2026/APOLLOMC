@@ -1,25 +1,142 @@
 {
   "slug": "nda",
   "label": "Non-Disclosure Agreement",
-  "description": "Mutual NDA for professional engagements.",
-  "category": "legal",
+  "description": "Professional mutual or one-way NDA with configurable optional clauses.",
+  "category": "contracts",
   "supports_images": false,
   "has_signature_block": true,
+  "has_toc": true,
+  "layout": "contract",
   "fields": [
     {
-      "id": "disclosing_party",
-      "label": "Disclosing party (legal name)",
-      "type": "text",
+      "id": "agreement_direction",
+      "label": "Agreement direction",
+      "type": "select",
       "required": true,
-      "placeholder": "e.g., On Spot Solutions LLC",
-      "help": "The entity sharing confidential information."
+      "options": [
+        {
+          "value": "mutual",
+          "label": "Mutual (both parties disclose and receive)"
+        },
+        {
+          "value": "one-way",
+          "label": "One-way (one party discloses, one receives)"
+        }
+      ],
+      "help": "Mutual is recommended for exploratory business discussions."
     },
     {
-      "id": "receiving_party",
-      "label": "Receiving party (legal name)",
+      "id": "disclosing_party_name",
+      "label": "Disclosing party — legal name",
       "type": "text",
+      "required": true
+    },
+    {
+      "id": "disclosing_party_entity_type",
+      "label": "Disclosing party — entity type",
+      "type": "select",
       "required": true,
-      "placeholder": "e.g., Acme Consulting Inc."
+      "options": [
+        {
+          "value": "llc",
+          "label": "LLC"
+        },
+        {
+          "value": "corporation",
+          "label": "Corporation"
+        },
+        {
+          "value": "partnership",
+          "label": "Partnership"
+        },
+        {
+          "value": "sole-proprietorship",
+          "label": "Sole proprietorship"
+        },
+        {
+          "value": "individual",
+          "label": "Individual"
+        },
+        {
+          "value": "other",
+          "label": "Other"
+        }
+      ]
+    },
+    {
+      "id": "disclosing_party_state",
+      "label": "Disclosing party — state of formation (or residence if individual)",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "disclosing_party_address",
+      "label": "Disclosing party — notice address",
+      "type": "textarea",
+      "required": true,
+      "help": "Full address for legal notices, including email."
+    },
+    {
+      "id": "receiving_party_name",
+      "label": "Receiving party — legal name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "receiving_party_entity_type",
+      "label": "Receiving party — entity type",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "llc",
+          "label": "LLC"
+        },
+        {
+          "value": "corporation",
+          "label": "Corporation"
+        },
+        {
+          "value": "partnership",
+          "label": "Partnership"
+        },
+        {
+          "value": "sole-proprietorship",
+          "label": "Sole proprietorship"
+        },
+        {
+          "value": "individual",
+          "label": "Individual (personal capacity)"
+        },
+        {
+          "value": "individual-rep",
+          "label": "Individual (representing an entity)"
+        },
+        {
+          "value": "other",
+          "label": "Other"
+        }
+      ],
+      "help": "If recipient will share information with their employer, select 'Individual representing an entity'."
+    },
+    {
+      "id": "receiving_party_represented_entity",
+      "label": "Receiving party — represented entity (if applicable)",
+      "type": "text",
+      "required": false,
+      "help": "Only fill if receiving party is representing a company."
+    },
+    {
+      "id": "receiving_party_state",
+      "label": "Receiving party — state of formation (or residence if individual)",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "receiving_party_address",
+      "label": "Receiving party — notice address",
+      "type": "textarea",
+      "required": true
     },
     {
       "id": "effective_date",
@@ -28,42 +145,218 @@
       "required": true
     },
     {
-      "id": "term_years",
-      "label": "Confidentiality term (years)",
-      "type": "number",
-      "required": true,
-      "default": 3
-    },
-    {
-      "id": "purpose_of_disclosure",
-      "label": "Purpose of disclosure",
+      "id": "purpose",
+      "label": "Purpose of disclosure — specific",
       "type": "textarea",
       "required": true,
-      "help": "Why the parties are sharing information (e.g., evaluating a potential engagement)."
+      "help": "Be specific. This clause limits how information can be used — broader purpose = weaker protection."
+    },
+    {
+      "id": "subject_matter",
+      "label": "Subject matter of Confidential Information",
+      "type": "textarea",
+      "required": true,
+      "help": "Short list of the kinds of information that will be shared."
+    },
+    {
+      "id": "marking_requirement",
+      "label": "Marking requirement",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "marked-only",
+          "label": "Marked only — only information marked 'Confidential' is protected (narrowest)"
+        },
+        {
+          "value": "marked-plus-oral",
+          "label": "Marked + oral with 30-day confirmation"
+        },
+        {
+          "value": "all-non-public",
+          "label": "All non-public information protected (broadest, default)"
+        }
+      ],
+      "help": "How Confidential Information is identified. 'All non-public' favors discloser; 'Marked only' favors recipient."
+    },
+    {
+      "id": "disclosure_period_years",
+      "label": "Disclosure period (years)",
+      "type": "number",
+      "required": true,
+      "default": 2,
+      "help": "How long parties may exchange information."
+    },
+    {
+      "id": "confidentiality_period_years",
+      "label": "Confidentiality period (years after disclosure)",
+      "type": "number",
+      "required": true,
+      "default": 5,
+      "help": "How long obligations apply. Trade secrets last indefinitely."
     },
     {
       "id": "governing_state",
-      "label": "Governing state",
+      "label": "Governing law — state",
       "type": "text",
-      "required": false,
-      "default": "Massachusetts"
+      "required": true
     },
     {
-      "id": "specific_exclusions",
-      "label": "Specific exclusions from confidential information",
-      "type": "textarea",
-      "required": false,
-      "help": "Optional. Beyond the standard carve-outs."
+      "id": "jurisdiction_county",
+      "label": "Jurisdiction — county and state for courts",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "include_non_solicitation",
+      "label": "Include non-solicitation clause?",
+      "type": "select",
+      "required": true,
+      "default": "no",
+      "options": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "employees-only",
+          "label": "Yes — employees only (12 months)"
+        },
+        {
+          "value": "employees-and-customers",
+          "label": "Yes — employees and customers (12 months)"
+        }
+      ],
+      "help": "Restricts hiring each other's employees or soliciting customers."
+    },
+    {
+      "id": "include_non_circumvention",
+      "label": "Include non-circumvention clause?",
+      "type": "select",
+      "required": true,
+      "default": "no",
+      "options": [
+        {
+          "value": "no",
+          "label": "No"
+        },
+        {
+          "value": "yes",
+          "label": "Yes — 12 months after termination"
+        }
+      ],
+      "help": "Prevents bypassing the other party to engage directly with introduced partners."
+    },
+    {
+      "id": "attorneys_fees",
+      "label": "Attorneys' fees in dispute",
+      "type": "select",
+      "required": true,
+      "default": "prevailing-party",
+      "options": [
+        {
+          "value": "none",
+          "label": "Each party bears own fees"
+        },
+        {
+          "value": "prevailing-party",
+          "label": "Prevailing party recovers fees (default)"
+        }
+      ]
+    },
+    {
+      "id": "jury_waiver",
+      "label": "Jury trial waiver",
+      "type": "select",
+      "required": true,
+      "default": "no",
+      "options": [
+        {
+          "value": "no",
+          "label": "No — retain jury trial right"
+        },
+        {
+          "value": "yes",
+          "label": "Yes — waive right to jury trial"
+        }
+      ],
+      "help": "Common in commercial agreements. Not enforceable in all jurisdictions."
+    },
+    {
+      "id": "assignment_policy",
+      "label": "Assignment policy",
+      "type": "select",
+      "required": true,
+      "default": "consent-required",
+      "options": [
+        {
+          "value": "consent-required",
+          "label": "Consent required (except M&A successors)"
+        },
+        {
+          "value": "no-assignment",
+          "label": "No assignment — strictly personal"
+        }
+      ]
     }
   ],
   "sections": [
-    { "id": "header", "label": "Header", "type": "fixed" },
-    { "id": "definitions", "label": "Definitions", "type": "prose" },
-    { "id": "obligations", "label": "Obligations of receiving party", "type": "prose" },
-    { "id": "permitted_disclosures", "label": "Permitted disclosures", "type": "prose" },
-    { "id": "term_and_termination", "label": "Term and termination", "type": "prose" },
-    { "id": "governing_law", "label": "Governing law", "type": "prose" },
-    { "id": "signatures", "label": "Signature blocks", "type": "fixed" }
+    {
+      "id": "recitals",
+      "title": "Recitals"
+    },
+    {
+      "id": "definitions",
+      "title": "Definitions"
+    },
+    {
+      "id": "obligations",
+      "title": "Obligations"
+    },
+    {
+      "id": "permitted_disclosures",
+      "title": "Permitted Disclosures"
+    },
+    {
+      "id": "purpose_limitation",
+      "title": "Purpose Limitation"
+    },
+    {
+      "id": "no_license",
+      "title": "No License; No Rights Granted"
+    },
+    {
+      "id": "return_destruction",
+      "title": "Return or Destruction"
+    },
+    {
+      "id": "term",
+      "title": "Term"
+    },
+    {
+      "id": "remedies",
+      "title": "Remedies; Injunctive Relief"
+    },
+    {
+      "id": "reps_warranties",
+      "title": "Representations and Warranties"
+    },
+    {
+      "id": "optional_modules",
+      "title": "Additional Covenants"
+    },
+    {
+      "id": "notices",
+      "title": "Notices"
+    },
+    {
+      "id": "miscellaneous",
+      "title": "Miscellaneous"
+    },
+    {
+      "id": "governing_law",
+      "title": "Governing Law and Jurisdiction"
+    }
   ],
-  "generation_notes": "Voice: Precise legal prose. No marketing language, no softening qualifiers, no filler.\n\nStructure: Follow the section order exactly. Each numbered obligation is a separate <li>, not a run-on paragraph. Definitions section uses <strong> for defined terms on first use, then plain text thereafter.\n\nRequired legal elements: (1) identification of parties with exact names as provided, (2) definition of Confidential Information with standard carve-outs (publicly known, independently developed, lawfully obtained from third party, required by law), (3) term and survival clause, (4) governing law clause with state jurisdiction, (5) entire agreement clause.\n\nTone examples:\n  CORRECT: \"Receiving Party shall hold Confidential Information in strict confidence and shall not disclose it to any third party without prior written consent of Disclosing Party.\"\n  WRONG: \"The Receiving Party will, of course, keep everything confidential and not share it with anyone!\"\n\nDo not add indemnification, non-compete, or liquidated damages clauses unless the user input explicitly requests them. Do not insert marketing language about the parties' businesses. Do not include a recital (\"WHEREAS\") section unless the template structure calls for one — this template uses a direct opening, not a recital format.\n\nLength target: 500-900 words of legal content (excluding signature block). Do not pad."
+  "generation_notes": "Voice: Professional legal drafting. Precise, terse, unambiguous. No marketing language. No softening qualifiers. No filler. Lawyer voice throughout. Use 'shall' for mandatory obligations, 'may' for permitted acts. Use defined terms with proper capitalization once defined.\n\n=== CRITICAL OUTPUT RULES ===\n\nRULE 1: DO NOT emit the document title as <h1> or in any form in your output. The rendering pipeline adds the title on the cover page. Any title in your body HTML creates a duplicate.\n\nRULE 2: DO NOT emit decorative banners, spaced-out letter wordmarks, document IDs, brand names above the first section, or any content before the first <h2> Section heading. Start directly with the Recitals section heading.\n\nRULE 3: Every section MUST have an <h2> heading with the exact title listed in 'sections'. No section may appear without a heading, including the Miscellaneous section. Do not let content drift into unlabeled prose.\n\nRULE 4: Emit ALL 14 sections in the exact order listed, even if a section is short. No section may be omitted. If 'Additional Covenants' would be empty (no non-solicitation or non-circumvention selected), omit only that section and renumber accordingly.\n\n=== SECTION-BY-SECTION REQUIREMENTS ===\n\nRECITALS (3 paragraphs): (a) Identify both parties — legal name, entity type, state of formation, one-sentence business description if entity. (b) State context — what the parties are considering. (c) Define Purpose as a capitalized defined term: 'The parties wish to exchange Confidential Information for the purpose of [purpose] (the \"Purpose\").'\n\nDEFINITIONS: Define at minimum: 'Confidential Information', 'Affiliate', 'Representative'. 'Confidential Information' scope depends on marking_requirement: if 'marked-only', require written marking of 'Confidential' or equivalent; if 'marked-plus-oral', require written marking for writings AND 30-day written confirmation for oral disclosures; if 'all-non-public', cover any non-public information regardless of marking. 'Affiliate' means any entity controlling, controlled by, or under common control with a party. 'Representative' means employees, officers, directors, agents, attorneys, accountants, and advisors with a need to know. Exclusions: (a) publicly available through no breach, (b) rightfully known prior to disclosure, (c) independently developed without reference to Confidential Information, (d) rightfully received from third party without confidentiality obligation.\n\nOBLIGATIONS: If agreement_direction='mutual', use reciprocal language — 'each Receiving Party' — and state that each party may act as Disclosing Party or Receiving Party depending on the information flow. If 'one-way', apply only to named Receiving Party. Required obligations: (1) hold in strict confidence, (2) use solely for Purpose, (3) protect with at least the same degree of care as own confidential information, not less than reasonable care, (4) limit access to Representatives with need to know who are bound by confidentiality obligations at least as protective as this Agreement, (5) Receiving Party is liable for breaches by its Representatives.\n\nPERMITTED DISCLOSURES: (a) Compelled by law, court order, or regulatory demand, provided Receiving Party gives prompt written notice and cooperates in seeking protective order. (b) To Representatives as defined. (c) Pursuant to Disclosing Party's prior written consent.\n\nPURPOSE LIMITATION: Explicit clause: 'Receiving Party shall not use Confidential Information for any purpose other than the Purpose.' Then: no reverse engineering, no use in competing products or services, no retention beyond the term except as expressly permitted.\n\nNO LICENSE; NO RIGHTS GRANTED: 'No license, express or implied, under any patent, copyright, trademark, trade secret, or other intellectual property right is granted by this Agreement. All Confidential Information remains the sole and exclusive property of Disclosing Party.'\n\nRETURN OR DESTRUCTION: Upon request of Disclosing Party or termination of this Agreement, Receiving Party shall return or destroy all Confidential Information. Exception: one archival copy may be retained by legal counsel solely for compliance verification, and information in automatic backup systems that cannot reasonably be deleted — such retained information remains subject to confidentiality obligations indefinitely.\n\nTERM: Two distinct periods. Disclosure Period: disclosure_period_years years from Effective Date, during which parties may exchange information under this Agreement. Confidentiality Period: confidentiality_period_years years following each disclosure during which obligations apply. Trade secrets remain confidential for as long as they qualify as trade secrets under applicable law, without time limit.\n\nREMEDIES; INJUNCTIVE RELIEF: Acknowledge monetary damages inadequate. Disclosing Party entitled to seek injunctive relief and specific performance without the necessity of posting a bond or proving actual damages. Remedies are cumulative and not exclusive of any other remedies at law or in equity.\n\nREPRESENTATIONS AND WARRANTIES: Each party represents it has the full right and authority to enter this Agreement. Disclosing Party represents it has the right to disclose the Confidential Information. Confidential Information is provided 'AS IS' without warranty of any kind, express or implied, including without limitation warranties of merchantability, fitness for a particular purpose, or non-infringement.\n\nADDITIONAL COVENANTS: Include ONLY if user selected non-solicitation or non-circumvention options.\n  - If include_non_solicitation='employees-only': 'For twelve (12) months after termination, neither party shall solicit for employment any employee of the other party who was involved in discussions under this Agreement.'\n  - If 'employees-and-customers': add 'and shall not solicit the business of any customer introduced by the other party during the term of this Agreement.'\n  - If include_non_circumvention='yes': 'For twelve (12) months after termination, neither party shall directly engage with any partner, vendor, or customer introduced by the other party through this relationship, without the written consent of the introducing party.'\n  - If BOTH are 'no', omit this entire section and note it is omitted.\n\nNOTICES: All notices in writing, delivered to the addresses specified in the Recitals. Effective upon: (a) personal delivery, (b) three business days after mailing by certified mail return receipt requested, or (c) one business day after email transmission with confirmation of delivery. Either party may update its notice address by written notice.\n\nMISCELLANEOUS: Include each of the following as a numbered or clearly separated sub-paragraph under this section:\n  1. Entire Agreement — supersedes all prior and contemporaneous agreements, written or oral.\n  2. Amendments — only by written instrument signed by both parties.\n  3. Severability — invalid provisions reformed or severed; rest continues in full force.\n  4. Waiver — no failure or delay to enforce constitutes waiver.\n  5. Assignment — per assignment_policy selected. If 'consent-required', allow assignment to successors in merger or acquisition without consent.\n  6. Counterparts — may be executed in counterparts including electronic signatures and scanned copies, each an original, together one instrument.\n  7. If attorneys_fees='prevailing-party': 'In any action arising out of or relating to this Agreement, the prevailing party shall be entitled to recover its reasonable attorneys' fees and costs from the non-prevailing party.'\n  8. If jury_waiver='yes': Include in ALL CAPS bold: 'EACH PARTY HEREBY IRREVOCABLY WAIVES ALL RIGHT TO TRIAL BY JURY IN ANY ACTION, PROCEEDING, OR COUNTERCLAIM ARISING OUT OF OR RELATING TO THIS AGREEMENT.'\n\nGOVERNING LAW AND JURISDICTION: Governed by and construed in accordance with the laws of governing_state, without regard to conflict-of-laws principles. Exclusive jurisdiction and venue in the state and federal courts located in jurisdiction_county.\n\n=== LENGTH ===\n1200-2200 words of legal content. This is a professional instrument — do not pad, do not skimp. Each section complete and enforceable."
 }

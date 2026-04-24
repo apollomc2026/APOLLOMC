@@ -17,8 +17,14 @@ export interface TemplateField {
 
 export interface TemplateSection {
   id: string
-  label: string
-  type: SectionType
+  // Older templates use `label`+`type`. Gold-standard rewrites (starting
+  // with nda.json) use `title` only — section type is implied by the
+  // surrounding layout. Both shapes coexist because section metadata is
+  // only used by generation prompts; pdf.ts walks <h2> tags in Claude's
+  // output rather than reading this array directly.
+  label?: string
+  title?: string
+  type?: SectionType
 }
 
 export interface Template {
