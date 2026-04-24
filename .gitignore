@@ -37,3 +37,6 @@ src/
 # Apollo regression-test artifacts
 scripts/regression-outputs/
 scripts/tmp-extract/
+
+# Apollo PDF design lab — local-only, never committed
+design-lab/
