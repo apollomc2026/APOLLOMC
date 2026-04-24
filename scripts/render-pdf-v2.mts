@@ -74,7 +74,7 @@ const pdfBuffer = await buildPdf({
 })
 console.log(`  PDF rendered: ${pdfBuffer.length} bytes, ${Date.now() - t1}ms`)
 
-const pdfOutPath = path.join(DESIGN_LAB, 'nda-apollo-v1.pdf')
+const pdfOutPath = path.join(DESIGN_LAB, 'nda-apollo-v2.pdf')
 await fs.writeFile(pdfOutPath, pdfBuffer)
 console.log(`  wrote ${pdfOutPath}`)
 
@@ -88,12 +88,12 @@ const fullHtml = buildFullHtml({
   preparedDate,
   preparedFor,
 })
-const htmlOutPath = path.join(DESIGN_LAB, 'nda-apollo-v1.html')
+const htmlOutPath = path.join(DESIGN_LAB, 'nda-apollo-v2.html')
 await fs.writeFile(htmlOutPath, fullHtml)
 console.log(`  wrote ${htmlOutPath}`)
 
 // And dump Claude's raw HTML so we can see what the model emitted
-const rawOutPath = path.join(DESIGN_LAB, 'nda-apollo-v1.claude-raw.html')
+const rawOutPath = path.join(DESIGN_LAB, 'nda-apollo-v2.claude-raw.html')
 await fs.writeFile(rawOutPath, contentHtml)
 console.log(`  wrote ${rawOutPath}`)
 
@@ -108,7 +108,7 @@ try {
   })
   await page.setContent(fullHtml, { waitUntil: 'networkidle' })
   await page.emulateMedia({ media: 'print' })
-  const previewPath = path.join(DESIGN_LAB, 'nda-apollo-v1-preview.png')
+  const previewPath = path.join(DESIGN_LAB, 'nda-apollo-v2-preview.png')
   await page.screenshot({ path: previewPath, fullPage: true })
   console.log(`  wrote ${previewPath}`)
 } finally {

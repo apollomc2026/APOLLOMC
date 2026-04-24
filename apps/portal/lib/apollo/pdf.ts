@@ -87,6 +87,19 @@ function numberSections(body: string): { html: string; sections: SectionRef[] } 
   return { html, sections }
 }
 
+// Pull any content (typically a recital / lede paragraph) that appears
+// before the first <h2> out of the body, so the pipeline can render it
+// as a dedicated "preamble" block rather than mid-body default prose.
+// Returns { preamble, body } — preamble is '' if there's no leading
+// prose before the first section heading.
+function extractPreamble(body: string): { preamble: string; body: string } {
+  const firstH2 = body.search(/<h2\b/i)
+  if (firstH2 < 0) return { preamble: '', body }
+  const preamble = body.slice(0, firstH2).trim()
+  if (!preamble) return { preamble: '', body }
+  return { preamble, body: body.slice(firstH2) }
+}
+
 function renderTocHtml(sections: SectionRef[]): string {
   if (sections.length === 0) return ''
   const rows = sections
@@ -230,8 +243,12 @@ function brandWordmark(brandSlug: string): string {
 function buildFullHtml(args: BuildPdfArgs): string {
   const palette = paletteForBrand(args.brand.slug)
   const bodySource = stripLeadingTitle(args.contentHtml)
-  const { html: numberedBody, sections } = numberSections(bodySource)
+  const { preamble, body: bodyAfterPreamble } = extractPreamble(bodySource)
+  const { html: numberedBody, sections } = numberSections(bodyAfterPreamble)
   const tocHtml = renderTocHtml(sections)
+  const preambleHtml = preamble
+    ? `<section class="preamble">${preamble}</section>`
+    : ''
   const signaturesHtml = renderSignatureBlock(args)
   const wordmark = brandWordmark(args.brand.slug)
   const docTitle = args.template.label
@@ -358,29 +375,29 @@ hr.hairline, .hairline {
   text-align: right;
 }
 .cover-center {
-  margin-top: 1.4in;
+  margin-top: 2.1in;
   text-align: center;
 }
 .cover-kicker {
   font-family: 'Inter', sans-serif;
-  font-size: 9pt;
+  font-size: 8.5pt;
   font-weight: 500;
-  letter-spacing: 0.32em;
+  letter-spacing: 0.38em;
   color: var(--metadata);
   text-transform: uppercase;
-  margin-bottom: 40pt;
+  margin-bottom: 56pt;
 }
 .cover-title {
   font-family: 'Cormorant Garamond', Georgia, serif;
   font-style: italic;
   font-weight: 400;
-  font-size: 54pt;
-  line-height: 1.05;
+  font-size: 40pt;
+  line-height: 1.1;
   color: var(--ink);
   margin: 0;
 }
 .cover-parties {
-  margin-top: 64pt;
+  margin-top: 84pt;
   text-align: center;
 }
 .cover-parties .party {
@@ -455,11 +472,18 @@ hr.hairline, .hairline {
   color: var(--ink);
   flex-shrink: 0;
 }
+/* TOC dot leaders via a repeating radial gradient — CSS dotted borders
+   render inconsistently in Chromium's PDF backend, but gradients are
+   rock-solid. Small round dots at ~4pt spacing match classical typesetting. */
 .toc-dots {
   flex: 1;
-  border-bottom: 0.5pt dotted var(--hairline);
-  transform: translateY(-4pt);
-  min-width: 24pt;
+  min-width: 32pt;
+  height: 6pt;
+  background-image: radial-gradient(circle, rgba(20, 21, 26, 0.55) 0.6pt, transparent 0.7pt);
+  background-size: 4pt 6pt;
+  background-repeat: repeat-x;
+  background-position: 0 5pt;
+  margin: 0 8pt;
 }
 
 /* ========================================================================
@@ -468,8 +492,8 @@ hr.hairline, .hairline {
 .body-content {
   font-family: 'Inter', sans-serif;
   font-size: 10.5pt;
-  line-height: 1.65;
-  text-align: justify;
+  line-height: 1.62;
+  text-align: left;
   hyphens: none;
   color: var(--ink);
 }
@@ -490,10 +514,10 @@ hr.hairline, .hairline {
 
 .section-opener {
   break-inside: avoid;
-  margin-top: 22pt;
-  margin-bottom: 4pt;
+  margin-top: 54pt;
+  margin-bottom: 6pt;
 }
-.section-opener:first-of-type { margin-top: 0; }
+.section-opener:first-of-type { margin-top: 18pt; }
 .section-opener h2 {
   font-family: 'Cormorant Garamond', Georgia, serif;
   font-weight: 500;
@@ -501,6 +525,32 @@ hr.hairline, .hairline {
   line-height: 1.15;
   color: var(--ink);
   margin: 6pt 0 0 0;
+}
+
+/* Preamble — the recital paragraph(s) above the first numbered section.
+   Rendered inside a narrower measure, in Cormorant italic, with generous
+   vertical margin and a centered hairline below to separate it from the
+   numbered body. Quiet-luxury legal-doc convention. */
+.preamble {
+  max-width: 4.9in;
+  margin: 36pt auto 48pt auto;
+  text-align: left;
+}
+.preamble p {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-size: 12.5pt;
+  line-height: 1.55;
+  color: var(--ink);
+  margin: 0 0 10pt 0;
+}
+.preamble p:last-child { margin-bottom: 0; }
+.preamble::after {
+  content: '';
+  display: block;
+  width: 0.6in;
+  margin: 32pt auto 0 auto;
+  border-top: 0.5pt solid var(--accent);
 }
 
 /* ========================================================================
@@ -586,6 +636,7 @@ ${tocHtml}
 
 <!-- BODY -->
 <main class="body-content">
+${preambleHtml}
 ${numberedBody}
 </main>
 
