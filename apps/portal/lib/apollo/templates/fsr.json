@@ -4,6 +4,7 @@
   "description": "Technician visit report with photos, equipment notes, and follow-up.",
   "category": "field-service",
   "supports_images": true,
+  "has_signature_block": true,
   "fields": [
     {
       "id": "site_name",
@@ -85,5 +86,5 @@
     { "id": "follow_up", "label": "Follow-up", "type": "prose" },
     { "id": "technician_attestation", "label": "Technician attestation", "type": "fixed" }
   ],
-  "generation_notes": "Field-authentic voice. Technician writing a service ticket, not marketing copy. Be concrete — part numbers, amperage, specific observations. If photos are provided, reference them in the Work performed and Issue description sections with figure numbers (e.g., 'as shown in Figure 1'). The photos section itself is fixed — the pipeline embeds the images."
+  "generation_notes": "Voice: Technical field-report. Factual, chronological, specific. Written as if the technician is documenting for their own records and a supervisor who wasn't there.\n\nStructure:\n- Visit Details (date, site, technician, equipment — direct data)\n- Issue Description (what was reported, observed state on arrival)\n- Work Performed (chronological actions taken, specific components touched, readings taken)\n- Parts Used (itemized if any)\n- Photos (reference embedded images by caption if images provided)\n- Follow-Up (any return visit needed, parts orders placed, escalations)\n- Technician Attestation (\"I certify the above is accurate. [Technician name], [Date]\")\n\nTone examples:\n  CORRECT: \"Arrived 09:15. Unit displayed fault code E14 on primary controller. Reset controller per manufacturer procedure; fault cleared. Verified operation through 3 cycle tests. Unit operating normally at departure 10:40.\"\n  WRONG: \"I went to the site and found some issues with the system. After troubleshooting, I was able to resolve the problem and the system is now working great!\"\n\nNever soften or embellish. If the unit is broken, say \"Unit inoperative.\" If the repair is temporary, say \"Temporary repair in place pending parts order.\"\n\nLength target: 300-700 words."
 }

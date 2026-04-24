@@ -27,6 +27,7 @@ export interface Template {
   description: string
   category: string
   supports_images: boolean
+  has_signature_block?: boolean
   fields: TemplateField[]
   sections: TemplateSection[]
   generation_notes: string

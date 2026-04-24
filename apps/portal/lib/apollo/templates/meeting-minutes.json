@@ -4,6 +4,7 @@
   "description": "Structured meeting minutes with attendees, decisions, and action items.",
   "category": "operations",
   "supports_images": false,
+  "has_signature_block": false,
   "fields": [
     {
       "id": "meeting_title",
@@ -75,5 +76,5 @@
     { "id": "action_items", "label": "Action items", "type": "hybrid" },
     { "id": "next_steps", "label": "Next steps", "type": "prose" }
   ],
-  "generation_notes": "Minute-taker voice: third-person, past tense, matter-of-fact. Preserve the user's exact language for decisions and action items — these are the record. Action items section is hybrid: render as a table with columns Owner / Action / Due date parsed from the input."
+  "generation_notes": "Voice: Meeting minutes — third-person, past-tense, factual. Records what happened, not commentary.\n\nStructure:\n- Meeting Identification (title, date, time, location/platform)\n- Attendance (present, absent)\n- Agenda (as planned)\n- Discussion (by agenda item, 1-3 sentences each unless discussion was substantive)\n- Decisions Made (clearly listed, one per bullet)\n- Action Items (formatted as: Owner | Action | Due Date)\n- Next Meeting (if scheduled)\n\nTone examples:\n  CORRECT: \"The committee reviewed Q1 financials. No concerns were raised. Budget was approved unanimously.\"\n  WRONG: \"There was great discussion about the Q1 financials and everyone was really engaged!\"\n\nNever include emotional content, side conversations, or subjective observations. Stick to decisions and actions. Preserve the user's exact language for decisions and action items — these are the record. Action items section is hybrid: render as a table with columns Owner / Action / Due date parsed from the input.\n\nLength target: 200-600 words."
 }

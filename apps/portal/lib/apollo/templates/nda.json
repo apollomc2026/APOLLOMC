@@ -4,6 +4,7 @@
   "description": "Mutual NDA for professional engagements.",
   "category": "legal",
   "supports_images": false,
+  "has_signature_block": true,
   "fields": [
     {
       "id": "disclosing_party",
@@ -64,5 +65,5 @@
     { "id": "governing_law", "label": "Governing law", "type": "prose" },
     { "id": "signatures", "label": "Signature blocks", "type": "fixed" }
   ],
-  "generation_notes": "Standard mutual NDA structure. Keep legal precision. Do not invent obligations not implied by user inputs. Include standard carve-outs (publicly available information, independently developed, lawfully received from a third party, required by subpoena/court order). Use formal legal register regardless of brand voice — brand voice affects tone of prose sections but not defined legal terms."
+  "generation_notes": "Voice: Precise legal prose. No marketing language, no softening qualifiers, no filler.\n\nStructure: Follow the section order exactly. Each numbered obligation is a separate <li>, not a run-on paragraph. Definitions section uses <strong> for defined terms on first use, then plain text thereafter.\n\nRequired legal elements: (1) identification of parties with exact names as provided, (2) definition of Confidential Information with standard carve-outs (publicly known, independently developed, lawfully obtained from third party, required by law), (3) term and survival clause, (4) governing law clause with state jurisdiction, (5) entire agreement clause.\n\nTone examples:\n  CORRECT: \"Receiving Party shall hold Confidential Information in strict confidence and shall not disclose it to any third party without prior written consent of Disclosing Party.\"\n  WRONG: \"The Receiving Party will, of course, keep everything confidential and not share it with anyone!\"\n\nDo not add indemnification, non-compete, or liquidated damages clauses unless the user input explicitly requests them. Do not insert marketing language about the parties' businesses. Do not include a recital (\"WHEREAS\") section unless the template structure calls for one — this template uses a direct opening, not a recital format.\n\nLength target: 500-900 words of legal content (excluding signature block). Do not pad."
 }

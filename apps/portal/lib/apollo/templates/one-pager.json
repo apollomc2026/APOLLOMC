@@ -4,6 +4,7 @@
   "description": "Single-page summary of a product, service, company, or opportunity.",
   "category": "marketing",
   "supports_images": false,
+  "has_signature_block": false,
   "fields": [
     {
       "id": "subject_title",
@@ -56,5 +57,5 @@
     { "id": "who_its_for", "label": "Who it's for", "type": "prose" },
     { "id": "call_to_action", "label": "Call to action", "type": "prose" }
   ],
-  "generation_notes": "SINGLE PAGE — this is a hard constraint. Keep total word count under ~350. Hero is a punchy title + tagline. Differentiators render as 3–5 tight bullets, not paragraphs. Close with the call to action and contact info. Do not pad. Do not add filler sections."
+  "generation_notes": "Voice: Marketing one-pager — punchy, outcome-focused, visually oriented but in prose form (since we're generating DOCX, not graphics).\n\nStructure (fit on ~1 page):\n- Hero: Title + Value Proposition (2-sentence hook)\n- Differentiators (3-5 bullet points)\n- Who It's For (1 paragraph describing target audience)\n- Call to Action (specific: what should the reader do next)\n- Contact information\n\nTone examples:\n  CORRECT: \"Reduce time-to-deliverable by 80% without hiring additional staff.\"\n  WRONG: \"Our company has been providing excellent service since...\"\n\nLead with outcome, not process. Lead with verbs. Avoid corporate mission-statement language.\n\nLength target: 200-400 words. This is the ONE template where shorter is always better."
 }

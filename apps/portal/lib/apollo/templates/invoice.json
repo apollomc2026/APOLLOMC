@@ -4,6 +4,7 @@
   "description": "Formal invoice with billing info, line items, totals, and payment instructions.",
   "category": "finance",
   "supports_images": false,
+  "has_signature_block": false,
   "fields": [
     {
       "id": "invoice_number",
@@ -75,5 +76,5 @@
     { "id": "payment_instructions", "label": "Payment instructions", "type": "prose" },
     { "id": "footer", "label": "Footer", "type": "fixed" }
   ],
-  "generation_notes": "Invoice is primarily a structured document, not prose. Line items section is hybrid: parse each line as 'description | quantity | unit price' and render as a table. Totals section is hybrid: compute subtotal = sum of qty * unit_price, tax = subtotal * tax_rate_percent / 100, total = subtotal + tax. Show each on its own row. Payment instructions is the only prose section and should be short."
+  "generation_notes": "Voice: Invoice — strictly factual, structured, numeric-first.\n\nStructure:\n- Header (invoice number, invoice date, due date)\n- Bill To (client name and address)\n- Line Items (in a proper table: Description | Quantity | Unit Price | Amount)\n- Subtotal\n- Tax (with rate)\n- Total\n- Payment Instructions (explicit: how and when to pay)\n- Notes (optional, one paragraph max)\n\nTone: No prose beyond payment instructions and optional notes. The invoice is a document, not a letter.\n\nTone examples:\n  CORRECT: \"Total due: $5,437.50. Payment is due by [date]. Wire transfer details below.\"\n  WRONG: \"It's been a pleasure working with you! Please see below for your invoice.\"\n\nDo not add thanks, pleasantries, or signatures. An invoice is submitted, not signed.\n\nLine items section is hybrid: parse each line as 'description | quantity | unit price' and render as a table. Totals section is hybrid: compute subtotal = sum of qty * unit_price, tax = subtotal * tax_rate_percent / 100, total = subtotal + tax. Show each on its own row.\n\nLength target: Structured table + ~50 words of payment instructions."
 }

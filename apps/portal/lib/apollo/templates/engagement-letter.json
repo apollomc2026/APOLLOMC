@@ -4,6 +4,7 @@
   "description": "Formal engagement letter establishing scope, fees, and terms with a client.",
   "category": "contracts",
   "supports_images": false,
+  "has_signature_block": true,
   "fields": [
     {
       "id": "client_name",
@@ -65,5 +66,5 @@
     { "id": "termination", "label": "Termination", "type": "prose" },
     { "id": "signatures", "label": "Signatures", "type": "fixed" }
   ],
-  "generation_notes": "Formal engagement letter written in first-person from the provider to the client. Open with a greeting, express appreciation for the opportunity, then move directly to the terms. Keep confidentiality language standard if none provided. Termination section should cover both for-cause and for-convenience at a minimum."
+  "generation_notes": "Voice: Professional services formality — lawyer/CPA/consultant issuing an engagement letter. Courteous but firm about terms.\n\nStructure:\n- Salutation (Dear [Client Name])\n- Introduction paragraph referencing prior discussions and stating the purpose of the engagement\n- Scope (specific services to be provided)\n- Fee arrangement (restate user input precisely; clarify billing cadence)\n- Responsibilities (both parties' obligations — what client provides, what provider delivers)\n- Confidentiality (standard clause)\n- Termination (standard mutual termination language)\n- Closing paragraph inviting counter-signature\n\nTone examples:\n  CORRECT: \"We are pleased to confirm our engagement to provide the services described below, subject to the terms of this letter.\"\n  WRONG: \"Thanks for choosing us! We're excited to partner with you on this journey.\"\n\nSign off with \"Very truly yours\" or \"Sincerely\" — not \"Best\" or \"Cheers.\"\n\nLength target: 400-800 words."
 }

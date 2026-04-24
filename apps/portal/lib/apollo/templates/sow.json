@@ -4,6 +4,7 @@
   "description": "Fixed-scope or T&M statement of work for a client engagement.",
   "category": "contracts",
   "supports_images": false,
+  "has_signature_block": true,
   "fields": [
     {
       "id": "client_name",
@@ -74,5 +75,5 @@
     { "id": "acceptance", "label": "Acceptance criteria", "type": "prose" },
     { "id": "signatures", "label": "Signatures", "type": "fixed" }
   ],
-  "generation_notes": "Professional services SOW. Use deliverables-oriented language. Do not invent scope items not in user input. Keep timeline realistic — if start and end dates are given, surface the duration. If assumptions is empty, generate a conservative default set (client responsiveness, access to systems, out-of-scope items)."
+  "generation_notes": "Voice: Consulting-professional. Clear, direct, unambiguous about scope and deliverables. Defensive about assumptions.\n\nStructure: Each section is mandatory and should be completed even if user input is thin — where thin, use precise placeholder language like \"To be confirmed in writing within 5 business days of execution\" rather than padding.\n\nRequired elements:\n- Executive Summary (3-5 sentences, no more)\n- Scope (bulleted list of in-scope work items with 1-2 sentence each description)\n- Deliverables (numbered list, each with a concrete output description and acceptance criteria)\n- Timeline (key milestones with target dates or \"TBD\" if not provided)\n- Assumptions & Exclusions (explicit list — what's NOT in scope)\n- Fees & Terms (restate user input precisely; add standard \"payment net 30 from invoice date\" if not specified)\n- Acceptance (single sentence explaining how deliverables are accepted)\n\nTone examples:\n  CORRECT: \"Consultant will deliver a technical architecture document, a data model ERD, and a phased implementation roadmap. Acceptance requires written sign-off from Client's designated project owner.\"\n  WRONG: \"We'll work together to create an amazing architecture that will revolutionize your business!\"\n\nNever invent deliverables the user didn't specify. If input is vague, reflect that with \"to be defined jointly during kickoff\" rather than inventing specifics.\n\nLength target: 600-1200 words."
 }

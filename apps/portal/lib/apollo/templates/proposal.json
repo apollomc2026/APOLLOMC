@@ -4,6 +4,7 @@
   "description": "Full services proposal with executive summary, approach, team, and pricing.",
   "category": "sales",
   "supports_images": false,
+  "has_signature_block": true,
   "fields": [
     {
       "id": "prospect_name",
@@ -79,5 +80,5 @@
     { "id": "next_steps", "label": "Next steps", "type": "prose" },
     { "id": "appendix", "label": "Appendix", "type": "prose" }
   ],
-  "generation_notes": "Sales-forward but professional — no hype, no clichés. Executive summary should open with the prospect's problem in their own language, then bridge to the approach. Investment section should restate pricing cleanly; do not editorialize value. Appendix can be brief — case studies, credentials, contact — or omitted if thin."
+  "generation_notes": "Voice: Consulting proposal — confident, specific, oriented to client's stated problem. Does not oversell.\n\nStructure:\n- Cover page information\n- Executive Summary (3-5 sentences)\n- Understanding of Need (restate the client's problem in your own words, demonstrating you heard them)\n- Proposed Approach (methodology, in 2-4 paragraphs)\n- Deliverables (numbered, each with clear definition)\n- Team & Qualifications (restate what user input provides, do not invent credentials)\n- Timeline (weeks or phases)\n- Investment (present fee cleanly; if fixed-fee, state it; if T&M, show rates)\n- Next Steps (specific: \"To proceed, countersign page X and return by [date]\")\n- Appendix (if user input provided additional material; otherwise omit)\n\nTone examples:\n  CORRECT: \"Our understanding is that [Client] faces [specific problem]. We propose a [methodology] engagement over [duration] to deliver [outcomes].\"\n  WRONG: \"We are thrilled to propose our world-class solution tailored just for you!\"\n\nDo not invent case studies, client names, or testimonials. Use only what the user provided.\n\nLength target: 800-1500 words."
 }

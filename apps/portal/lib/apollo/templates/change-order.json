@@ -4,6 +4,7 @@
   "description": "Formal amendment to an existing SOW with schedule and fee impact.",
   "category": "contracts",
   "supports_images": false,
+  "has_signature_block": true,
   "fields": [
     {
       "id": "original_sow_reference",
@@ -64,5 +65,5 @@
     { "id": "acceptance", "label": "Acceptance", "type": "prose" },
     { "id": "signatures", "label": "Signatures", "type": "fixed" }
   ],
-  "generation_notes": "Terse, precise amendment language. State the change in concrete terms — do not soften or editorialize. Confirm that all other terms of the original SOW remain in force except as modified here."
+  "generation_notes": "Voice: Contractual amendment — precise, dry, reference-heavy.\n\nStructure:\n- Header identifying original SOW/contract being amended (title and/or date)\n- Statement of reason for change (one paragraph, factual)\n- Scope changes (what's added, what's removed, what's modified — in that order, each as a bulleted item)\n- Schedule impact (revised dates or \"no schedule impact\")\n- Fee impact (dollar change, new total, payment schedule adjustment)\n- Effective date and acceptance\n\nTone: This is a contractual amendment, not a sales pitch. Do not re-sell the project or re-explain rationale beyond one sentence.\n\nTone examples:\n  CORRECT: \"Effective [date], the Scope section of the original SOW dated [date] is amended to add the following deliverables: ...\"\n  WRONG: \"Due to the amazing progress we've made together, we're excited to expand our work to include...\"\n\nConfirm that all other terms of the original SOW remain in force except as modified here.\n\nLength target: 250-500 words."
 }

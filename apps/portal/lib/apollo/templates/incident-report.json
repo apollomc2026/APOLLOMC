@@ -4,6 +4,7 @@
   "description": "Formal incident report with witness statements, damage assessment, and recommended actions.",
   "category": "field-service",
   "supports_images": true,
+  "has_signature_block": true,
   "fields": [
     {
       "id": "incident_date",
@@ -85,5 +86,5 @@
     { "id": "recommendations", "label": "Recommendations", "type": "prose" },
     { "id": "reporter_attestation", "label": "Reporter attestation", "type": "fixed" }
   ],
-  "generation_notes": "Factual, neutral, chronological. No speculation outside the root-cause section. Root cause analysis is hypothetical unless the reporter provided one — make that clear. If photos are provided, reference them in the detailed description and damage assessment with figure numbers."
+  "generation_notes": "Voice: Incident-report formality — objective, chronological, factual. Written as if for legal/insurance review.\n\nStructure:\n- Incident Summary (one paragraph: what, when, where, who)\n- Detailed Description (chronological narrative, specific times and actions)\n- Immediate Response (what was done at the scene)\n- Witnesses (listed if any)\n- Damage Assessment (factual, avoid speculation)\n- Photos (reference embedded images if provided)\n- Root Cause Hypothesis (clearly labeled as preliminary if stated)\n- Recommended Actions (specific, assignable)\n- Reporter Attestation\n\nTone examples:\n  CORRECT: \"At 14:27, water began discharging from the overhead sprinkler in Conference Room B. Building occupants were evacuated by 14:35. Fire suppression was contacted at 14:29.\"\n  WRONG: \"It was a really scary situation when the sprinklers suddenly went off and everyone was in a panic!\"\n\nDo not assign fault. Do not speculate beyond what evidence supports. Use past tense exclusively.\n\nLength target: 400-800 words depending on incident complexity."
 }
