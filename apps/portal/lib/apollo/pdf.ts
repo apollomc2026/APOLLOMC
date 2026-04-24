@@ -58,6 +58,17 @@ function stripTags(input: string): string {
   return input.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
 }
 
+// Claude sometimes emits numbered section titles ("1. Definitions",
+// "I. Definitions", "A) Scope"). The pipeline owns the numbering system,
+// so strip any leading numeric/roman/alphabetic prefix from the title
+// before using it. Otherwise we get "SECTION I / 1. Definitions" which
+// reads doubled.
+function cleanSectionTitle(raw: string): string {
+  return raw
+    .replace(/^\s*(?:\d{1,3}|[IVX]{1,4}|[A-Za-z])[.)]\s*/, '')
+    .trim()
+}
+
 // Strip Claude's leading <h1>. The cover page owns the document title;
 // repeating it at the top of the body is the title-repetition tell that
 // undercuts restraint.
@@ -73,7 +84,7 @@ function numberSections(body: string): { html: string; sections: SectionRef[] } 
   let sectionIndex = 0
   const html = body.replace(/<h2\b[^>]*>([\s\S]*?)<\/h2>/gi, (_m, inner) => {
     sectionIndex += 1
-    const rawTitle = stripTags(inner)
+    const rawTitle = cleanSectionTitle(stripTags(inner))
     const roman = ROMAN[sectionIndex] ?? String(sectionIndex)
     sections.push({ romanNumber: roman, rawTitle })
     return `
@@ -207,21 +218,40 @@ interface Palette {
 }
 
 function paletteForBrand(brandSlug: string): Palette {
-  // v1: Apollo only. Others fall back to Apollo for now and get their own
-  // treatment once the reference design is locked.
-  if (brandSlug === 'apollo' || brandSlug === 'other') {
-    return {
-      paper: '#FAFAF7',
-      ink: '#14151A',
-      accent: '#0A1628',
-      metadata: '#6B6B6B',
-    }
-  }
-  return {
-    paper: '#FAFAF7',
-    ink: '#14151A',
-    accent: '#0A1628',
-    metadata: '#6B6B6B',
+  // Every palette: three colors (paper, ink, one accent) + metadata grey.
+  // Accents are derived from each brand's canonical palette in brand-assets/
+  // but pulled in at hairline-weight only (never as surface fills) to
+  // preserve quiet-luxury restraint.
+  switch (brandSlug) {
+    case 'atlas':
+      // Atlas is navy-dominant in its web identity, but its brand.md specifies
+      // white canvas for legal-context deliverables. The distinguishing mark
+      // is the gold (the second-A color), used here only on rules + eyebrows.
+      return {
+        paper: '#FAFAF7',
+        ink: '#09091A',
+        accent: '#C9A84C',
+        metadata: '#6B6B6B',
+      }
+    case 'on-spot-solutions':
+      // On Spot's brand.md codifies white background "as the law" with Cone
+      // Orange as accent. At hairline weight, the orange sits quietly and
+      // signals the brand without dominating the page.
+      return {
+        paper: '#FAFAF7',
+        ink: '#2B2B2B',
+        accent: '#FF6B1A',
+        metadata: '#6B6B6B',
+      }
+    case 'apollo':
+    case 'other':
+    default:
+      return {
+        paper: '#FAFAF7',
+        ink: '#14151A',
+        accent: '#0A1628',
+        metadata: '#6B6B6B',
+      }
   }
 }
 
