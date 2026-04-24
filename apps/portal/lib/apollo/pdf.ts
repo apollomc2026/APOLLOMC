@@ -201,8 +201,11 @@ interface SignatureParty {
 
 const SIGNATURE_PARTIES: Record<string, SignatureParty[]> = {
   nda: [
-    { label: 'Disclosing Party', nameField: 'disclosing_party' },
-    { label: 'Receiving Party', nameField: 'receiving_party' },
+    // New gold-standard NDA uses disclosing_party_name / receiving_party_name.
+    // Older legacy field names are inspected as a fallback by readString's
+    // callers below — handled via the cover partyA/partyB resolution chain.
+    { label: 'Disclosing Party', nameField: 'disclosing_party_name' },
+    { label: 'Receiving Party', nameField: 'receiving_party_name' },
   ],
   sow: [
     { label: 'Client', nameField: 'client_name' },
@@ -472,12 +475,24 @@ function buildContractHtml(args: BuildPdfArgs): string {
   const wordmark = brandWordmark(args.brand.slug)
   const docTitle = args.template.label
   const docTitleUpper = docTitle.toUpperCase()
-  const preparedFor = args.preparedFor ?? readString(args.inputs, 'receiving_party') ?? readString(args.inputs, 'client_name') ?? readString(args.inputs, 'prospect_organization') ?? ''
+  const preparedFor = args.preparedFor
+    ?? readString(args.inputs, 'receiving_party_name')
+    ?? readString(args.inputs, 'receiving_party')
+    ?? readString(args.inputs, 'client_name')
+    ?? readString(args.inputs, 'prospect_organization')
+    ?? ''
 
   // Parties on the cover — for NDAs, the two named parties; for others, the
-  // client. We surface whichever input fields exist.
-  const partyA = readString(args.inputs, 'disclosing_party') || readString(args.inputs, 'client_name') || readString(args.inputs, 'prospect_organization')
-  const partyB = readString(args.inputs, 'receiving_party')
+  // client. We surface whichever input fields exist (both new gold-standard
+  // and legacy field names).
+  const partyA =
+    readString(args.inputs, 'disclosing_party_name') ||
+    readString(args.inputs, 'disclosing_party') ||
+    readString(args.inputs, 'client_name') ||
+    readString(args.inputs, 'prospect_organization')
+  const partyB =
+    readString(args.inputs, 'receiving_party_name') ||
+    readString(args.inputs, 'receiving_party')
 
   return `<!doctype html>
 <html lang="en">${sharedHead(palette, preset, docTitle)}

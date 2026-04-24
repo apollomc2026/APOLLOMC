@@ -47,13 +47,31 @@ interface Job {
 // matrix can mix-and-match templates + brands cleanly.
 const SAMPLE_INPUTS: Record<string, Record<string, unknown>> = {
   nda: {
-    disclosing_party: 'On Spot Solutions LLC',
-    receiving_party: 'Acme Widgets Inc',
+    agreement_direction: 'mutual',
+    disclosing_party_name: 'On Spot Solutions LLC',
+    disclosing_party_entity_type: 'llc',
+    disclosing_party_state: 'Massachusetts',
+    disclosing_party_address:
+      '123 Main Street, Revere, MA 02151\nsupport@onspot-solutions.com',
+    receiving_party_name: 'Acme Widgets Inc',
+    receiving_party_entity_type: 'corporation',
+    receiving_party_state: 'Delaware',
+    receiving_party_address: '500 Park Ave, New York, NY 10022\nlegal@acmewidgets.com',
     effective_date: '2026-04-24',
-    term_years: 3,
-    purpose_of_disclosure:
-      "Technical evaluation of On Spot's Apollo platform for potential integration with Acme's document workflows",
+    purpose:
+      "Technical evaluation of On Spot's Apollo deliverables platform for potential integration with Acme's document workflows",
+    subject_matter:
+      'Software architecture, source code, product roadmap, customer pricing, and financial projections.',
+    marking_requirement: 'all-non-public',
+    disclosure_period_years: 2,
+    confidentiality_period_years: 5,
     governing_state: 'Massachusetts',
+    jurisdiction_county: 'Suffolk County, Massachusetts',
+    include_non_solicitation: 'employees-only',
+    include_non_circumvention: 'yes',
+    attorneys_fees: 'prevailing-party',
+    jury_waiver: 'yes',
+    assignment_policy: 'consent-required',
   },
   sow: {
     client_name: 'Summit Property Management',
@@ -195,6 +213,9 @@ const SAMPLE_INPUTS: Record<string, Record<string, unknown>> = {
 // for every template = 30 PDFs per render cycle, which is overkill
 // until the per-template treatment is locked.
 const defaultMatrix: Job[] = [
+  // On-Spot NDA kept in the matrix so Session A3 polish verification can
+  // regenerate against the reference artifact the verify script expects.
+  mkJob('nda', 'on-spot-solutions', 'OSS-NDA-2026-04-24'),
   // Long-form contracts — should fit the existing pipeline cleanly
   mkJob('nda', 'apollo', 'APL-NDA-2026-04-24'),
   mkJob('sow', 'apollo', 'APL-SOW-2026-04-24'),
