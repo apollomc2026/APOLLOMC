@@ -714,6 +714,69 @@
     .review-row .k { flex: none; }
   }
 
+  /* Style options (advanced) — collapsible block under Mission review */
+  .style-options {
+    margin-top: 24px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 18px;
+    background: var(--bg-2);
+    max-width: 960px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .style-options summary {
+    cursor: pointer;
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    list-style: none;
+    user-select: none;
+  }
+  .style-options summary::marker,
+  .style-options summary::-webkit-details-marker { display: none; }
+  .style-options summary::after {
+    content: '+';
+    float: right;
+    color: var(--text-3);
+    font-size: 16px;
+    font-weight: 300;
+  }
+  .style-options[open] summary::after { content: '−'; }
+  .style-options[open] { padding-bottom: 18px; }
+  .so-label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 16px;
+  }
+  .so-label-text {
+    font-size: 12px;
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .so-select {
+    background: var(--bg-1);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .so-select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .so-desc {
+    font-size: 12px;
+    color: var(--text-3);
+    line-height: 1.4;
+  }
+
   /* Nav row */
   .nav-row {
     display: flex;
@@ -1079,8 +1142,16 @@
     missingIds: [],
     images: [],
     submitting: false,
-    submitResult: null, // { download_url, expires_at, submission_id }
+    submitResult: null, // { download_url, expires_at, submission_id, file_format, file_size_bytes }
     submitError: null,
+    // Style options (Phase 6 — PDF pipeline). Populated from the font-preset
+    // + logo-placement endpoints during bootstrap. Form selections live on
+    // `selectedFontPreset` + `selectedLogoPlacement`; if not set, the server
+    // applies sensible defaults.
+    fontPresets: [],
+    logoPlacements: [],
+    selectedFontPreset: 'editorial',
+    selectedLogoPlacement: 'cover-plus-header',
   };
 
   // ---- DOM helpers ----
@@ -1217,6 +1288,7 @@
         state.step = 1;
         await loadTemplates();
         await loadBrands();
+        await loadStyleOptions();
       }
     } catch (err) {
       state.view = 'signed-out';
@@ -1234,6 +1306,16 @@
     try {
       const d = await getJson('/api/apollo/brands');
       state.brands = d.brands || [];
+    } catch {}
+  }
+  async function loadStyleOptions() {
+    try {
+      const [p, l] = await Promise.all([
+        getJson('/api/apollo/font-presets').catch(() => ({ presets: [] })),
+        getJson('/api/apollo/logo-placements').catch(() => ({ placements: [] })),
+      ]);
+      state.fontPresets = p.presets || [];
+      state.logoPlacements = l.placements || [];
     } catch {}
   }
 
@@ -1708,6 +1790,7 @@
       r.appendChild(reviewRow(f.label, display));
     }
     host.appendChild(r);
+    host.appendChild(renderStyleOptions());
     host.appendChild(el('div', {
       style: 'display:flex;justify-content:center;margin-top:28px;gap:12px;flex-wrap:wrap;'
     },
@@ -1718,6 +1801,69 @@
         disabled: state.submitting,
       }, state.submitting ? 'Launching…' : 'Generate Document'),
     ));
+  }
+
+  // Collapsible style-options block. Lets advanced users pick a typography
+  // preset and a logo-placement scheme. Defaults are good; casual users
+  // never need to open this.
+  function renderStyleOptions() {
+    const wrap = el('details', { class: 'style-options' });
+    wrap.appendChild(el('summary', null, 'Style options (advanced)'));
+
+    if (state.fontPresets.length > 0) {
+      const fontSel = el('select', {
+        class: 'so-select',
+        onchange: (e) => {
+          state.selectedFontPreset = e.target.value;
+          // Re-render just this section to show the updated description.
+          const parent = wrap.parentElement;
+          if (parent) {
+            const replacement = renderStyleOptions();
+            replacement.open = true;
+            parent.replaceChild(replacement, wrap);
+          }
+        },
+      });
+      for (const p of state.fontPresets) {
+        const opt = el('option', { value: p.key }, p.label);
+        if (p.key === state.selectedFontPreset) opt.selected = true;
+        fontSel.appendChild(opt);
+      }
+      const fontDesc = (state.fontPresets.find((p) => p.key === state.selectedFontPreset) || {}).description || '';
+      wrap.appendChild(el('label', { class: 'so-label' },
+        el('span', { class: 'so-label-text' }, 'Typography preset'),
+        fontSel,
+        el('span', { class: 'so-desc' }, fontDesc),
+      ));
+    }
+
+    if (state.logoPlacements.length > 0) {
+      const placeSel = el('select', {
+        class: 'so-select',
+        onchange: (e) => {
+          state.selectedLogoPlacement = e.target.value;
+          const parent = wrap.parentElement;
+          if (parent) {
+            const replacement = renderStyleOptions();
+            replacement.open = true;
+            parent.replaceChild(replacement, wrap);
+          }
+        },
+      });
+      for (const p of state.logoPlacements) {
+        const opt = el('option', { value: p.key }, p.label);
+        if (p.key === state.selectedLogoPlacement) opt.selected = true;
+        placeSel.appendChild(opt);
+      }
+      const placeDesc = (state.logoPlacements.find((p) => p.key === state.selectedLogoPlacement) || {}).description || '';
+      wrap.appendChild(el('label', { class: 'so-label' },
+        el('span', { class: 'so-label-text' }, 'Logo placement'),
+        placeSel,
+        el('span', { class: 'so-desc' }, placeDesc),
+      ));
+    }
+
+    return wrap;
   }
 
   function reviewRow(k, v) {
@@ -1742,6 +1888,8 @@
     form.set('template_slug', t.slug);
     form.set('brand_slug', b.slug);
     form.set('inputs', JSON.stringify(state.formValues));
+    if (state.selectedFontPreset) form.set('font_preset', state.selectedFontPreset);
+    if (state.selectedLogoPlacement) form.set('logo_placement', state.selectedLogoPlacement);
     for (const img of state.images) form.append('images', img);
 
     try {
@@ -1803,7 +1951,7 @@
             download: '',
             rel: 'noreferrer',
             target: '_blank',
-          }, 'Download DOCX ↓'),
+          }, 'Download PDF ↓'),
         ),
         el('div', { class: 'expiry' }, 'Link expires in 7 days'),
         el('div', { class: 'result-actions', style: 'margin-top:24px;' },

@@ -5,6 +5,8 @@
   "category": "finance",
   "supports_images": false,
   "has_signature_block": false,
+  "has_toc": false,
+  "layout": "invoice",
   "fields": [
     {
       "id": "invoice_number",
@@ -76,5 +78,5 @@
     { "id": "payment_instructions", "label": "Payment instructions", "type": "prose" },
     { "id": "footer", "label": "Footer", "type": "fixed" }
   ],
-  "generation_notes": "Voice: Invoice — strictly factual, structured, numeric-first.\n\nStructure:\n- Header (invoice number, invoice date, due date)\n- Bill To (client name and address)\n- Line Items (in a proper table: Description | Quantity | Unit Price | Amount)\n- Subtotal\n- Tax (with rate)\n- Total\n- Payment Instructions (explicit: how and when to pay)\n- Notes (optional, one paragraph max)\n\nTone: No prose beyond payment instructions and optional notes. The invoice is a document, not a letter.\n\nTone examples:\n  CORRECT: \"Total due: $5,437.50. Payment is due by [date]. Wire transfer details below.\"\n  WRONG: \"It's been a pleasure working with you! Please see below for your invoice.\"\n\nDo not add thanks, pleasantries, or signatures. An invoice is submitted, not signed.\n\nLine items section is hybrid: parse each line as 'description | quantity | unit price' and render as a table. Totals section is hybrid: compute subtotal = sum of qty * unit_price, tax = subtotal * tax_rate_percent / 100, total = subtotal + tax. Show each on its own row.\n\nLength target: Structured table + ~50 words of payment instructions."
+  "generation_notes": "Voice: Invoice — strictly factual, structured, numeric-first.\n\nPIPELINE OWNS THE HEADER. Do NOT emit sections titled \"Invoice Details\", \"Header\", \"Bill To\", or \"From\" — the PDF pipeline renders invoice number, dates, bill-to, and from-address in a dedicated masthead at the top of the page. Your output must START with the line-items table and continue from there. Emitting duplicate header metadata creates visible duplication in the rendered PDF.\n\nStructure to emit (body only):\n- <h2>Line Items</h2> — a <table> with <thead><tr><th>Description</th><th>Quantity</th><th>Unit Price</th><th>Amount</th></tr></thead><tbody>… one <tr> per line item, Amount = Qty × Unit Price formatted as $X,XXX.XX.\n- <h2>Totals</h2> — a small <table> with rows: Subtotal / Tax (X%) / Total Due, right-aligned numeric column.\n- <h2>Payment Instructions</h2> — one paragraph, direct.\n- <h2>Notes</h2> — optional, one paragraph max. Omit entirely if not provided by user.\n\nParse each line of the input 'line_items' field as 'description | quantity | unit price' and render as a row. Compute subtotal = sum of qty * unit_price, tax = subtotal * tax_rate_percent / 100, total = subtotal + tax. Format all money as $1,234.56.\n\nTone examples:\n  CORRECT: \"Total due: $19,700.00. Payment is due by May 24, 2026. Wire transfer details provided upon engagement execution.\"\n  WRONG: \"It's been a pleasure working with you! Please see below for your invoice.\"\n\nDo not add thanks, pleasantries, or signatures. An invoice is submitted, not signed.\n\nLength target: table + ~50 words of payment instructions."
 }

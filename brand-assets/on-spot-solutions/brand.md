@@ -8,6 +8,21 @@ updated: 2026-04-23
 
 # On Spot Solutions — Brand Canon
 
+## Document palette
+
+Machine-readable palette block consumed by the Apollo PDF pipeline. On Spot deliverables use a warm off-white paper with near-black ink and a deep navy accent — contractor-professional, precise, understated.
+
+<!-- apollo-pdf-palette: START -->
+```yaml
+paper: "#fafafa"
+ink: "#14151a"
+accent: "#1a365d"
+metadata: "#4a5568"
+hairline: "rgba(20,21,26,0.22)"
+```
+<!-- apollo-pdf-palette: END -->
+
+
 > **Tagline:** *On site. On spec. On spot.*
 >
 > **One-line description:** Massachusetts-based field service firm specializing in parking access and revenue control (PARCS) systems, low-voltage electrical work, and security infrastructure.

@@ -5,6 +5,8 @@
   "category": "operations",
   "supports_images": false,
   "has_signature_block": false,
+  "has_toc": false,
+  "layout": "minutes",
   "fields": [
     {
       "id": "meeting_title",
@@ -76,5 +78,5 @@
     { "id": "action_items", "label": "Action items", "type": "hybrid" },
     { "id": "next_steps", "label": "Next steps", "type": "prose" }
   ],
-  "generation_notes": "Voice: Meeting minutes — third-person, past-tense, factual. Records what happened, not commentary.\n\nStructure:\n- Meeting Identification (title, date, time, location/platform)\n- Attendance (present, absent)\n- Agenda (as planned)\n- Discussion (by agenda item, 1-3 sentences each unless discussion was substantive)\n- Decisions Made (clearly listed, one per bullet)\n- Action Items (formatted as: Owner | Action | Due Date)\n- Next Meeting (if scheduled)\n\nTone examples:\n  CORRECT: \"The committee reviewed Q1 financials. No concerns were raised. Budget was approved unanimously.\"\n  WRONG: \"There was great discussion about the Q1 financials and everyone was really engaged!\"\n\nNever include emotional content, side conversations, or subjective observations. Stick to decisions and actions. Preserve the user's exact language for decisions and action items — these are the record. Action items section is hybrid: render as a table with columns Owner / Action / Due date parsed from the input.\n\nLength target: 200-600 words."
+  "generation_notes": "Voice: Meeting minutes — third-person, past-tense, factual. Records what happened, not commentary.\n\nPIPELINE OWNS THE HEADER. Do NOT emit sections titled \"Meeting Information\", \"Meeting Identification\", \"Meeting Details\", \"Attendance\", \"Present\", or \"Absent\" — the PDF pipeline renders the meeting title, date, time, location, present, and absent in a dedicated masthead at the top of page 1. Your output must START with the Agenda section and continue from there.\n\nStructure to emit (body only):\n- <h2>Agenda</h2> — numbered list of agenda items as provided.\n- <h2>Discussion</h2> — subheadings per agenda item (<h3>) followed by 1–3 sentences of summary per item.\n- <h2>Decisions</h2> — a bulleted list, one decision per <li>, preserving the user's exact language.\n- <h2>Action Items</h2> — a <table> with columns Owner | Action | Due Date, parsing each line of the action_items input as pipe-separated.\n- <h2>Next Meeting</h2> — one sentence, only if a next-meeting date was provided.\n\nTone examples:\n  CORRECT: \"The committee reviewed Q1 financials. No concerns were raised. Budget was approved unanimously.\"\n  WRONG: \"There was great discussion about the Q1 financials and everyone was really engaged!\"\n\nNever include emotional content, side conversations, or subjective observations. Stick to decisions and actions. Preserve the user's exact language for decisions and action items — these are the record.\n\nLength target: 200-600 words."
 }
