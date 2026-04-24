@@ -1,11 +1,25 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
-  // @sparticuz/chromium ships a Brotli-compressed Chromium binary under
-  // node_modules/@sparticuz/chromium/bin. Next.js's tracing + bundler
-  // relocates modules into /var/task at deploy time, which leaves the
-  // binary stranded. Marking the package as a server-external package
-  // keeps it on disk in its published layout so executablePath() resolves.
+  // Turbo monorepo: @sparticuz/chromium is hoisted to the repo root's
+  // node_modules/, not apps/portal/node_modules/. Next.js's default
+  // file-tracing scope is the app directory, so without this override
+  // the hoisted binary is invisible and /var/task ends up missing
+  // node_modules/@sparticuz/chromium/bin.
+  outputFileTracingRoot: path.join(__dirname, "../../"),
+
+  // Force-include every file under the chromium package in the serverless
+  // bundle for the submit route. The package ships a Brotli-compressed
+  // chrome.br plus helper shared libs — all must land in /var/task.
+  outputFileTracingIncludes: {
+    "/api/apollo/submit": [
+      "../../node_modules/@sparticuz/chromium/**/*",
+    ],
+  },
+
+  // Keep the package external so Next doesn't rewrite the import path
+  // and confuse executablePath() resolution.
   serverExternalPackages: ["@sparticuz/chromium"],
 };
 
