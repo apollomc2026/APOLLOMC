@@ -177,6 +177,9 @@ export async function POST(request: Request) {
           : null,
       images: imageBuffers,
       templateLabel: template.label,
+      templateSlug: template.slug,
+      hasSignatureBlock: template.has_signature_block === true,
+      inputs,
     })
 
     const docxFilename = `${templateSlug}_${brandSlug}_${todayStamp()}_${shortId()}.docx`
