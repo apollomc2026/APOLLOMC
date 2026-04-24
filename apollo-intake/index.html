@@ -714,67 +714,129 @@
     .review-row .k { flex: none; }
   }
 
-  /* Style options (advanced) — collapsible block under Mission review */
-  .style-options {
-    margin-top: 24px;
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 14px 18px;
-    background: var(--bg-2);
+  /* Style options panel — prominent, above Generate button. Glassmorphism
+     treatment with custom dropdowns (native <select> hit white-on-white
+     with Apollo's dark web palette). */
+  .style-panel {
+    margin: 32px auto 24px auto;
+    padding: 24px;
     max-width: 960px;
-    margin-left: auto;
-    margin-right: auto;
+    background: rgba(10, 10, 15, 0.6);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid rgba(107, 227, 255, 0.25);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
   }
-  .style-options summary {
-    cursor: pointer;
-    color: var(--accent);
+  .style-panel-header h3 {
+    margin: 0 0 6px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 0.02em;
+  }
+  .style-panel-header p {
+    margin: 0 0 20px 0;
     font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+  }
+  .style-panel-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 640px) {
+    .style-panel-grid { grid-template-columns: 1fr; }
+  }
+  .style-control label {
+    display: block;
+    font-size: 11px;
     font-weight: 500;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    list-style: none;
-    user-select: none;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 8px;
   }
-  .style-options summary::marker,
-  .style-options summary::-webkit-details-marker { display: none; }
-  .style-options summary::after {
-    content: '+';
-    float: right;
-    color: var(--text-3);
-    font-size: 16px;
-    font-weight: 300;
+  .style-hint {
+    margin: 8px 0 0 0;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 1.5;
+    min-height: 2em;
   }
-  .style-options[open] summary::after { content: '−'; }
-  .style-options[open] { padding-bottom: 18px; }
-  .so-label {
+  .custom-select { position: relative; }
+  .custom-select-trigger {
+    width: 100%;
     display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-top: 16px;
-  }
-  .so-label-text {
-    font-size: 12px;
-    color: var(--text-3);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-  .so-select {
-    background: var(--bg-1);
-    color: var(--text);
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    padding: 8px 10px;
-    font-size: 14px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(107, 227, 255, 0.3);
+    border-radius: 8px;
+    color: #fff;
     font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
   }
-  .so-select:focus {
-    outline: none;
-    border-color: var(--accent);
+  .custom-select-trigger:hover {
+    background: rgba(0, 0, 0, 0.55);
+    border-color: #6be3ff;
   }
-  .so-desc {
+  .custom-select-trigger[aria-expanded="true"] {
+    border-color: #6be3ff;
+    box-shadow: 0 0 0 3px rgba(107, 227, 255, 0.15);
+  }
+  .custom-select-chevron {
+    margin-left: 8px;
+    font-size: 16px;
+    line-height: 1;
+    color: #6be3ff;
+    transition: transform 0.2s ease;
+  }
+  .custom-select-trigger[aria-expanded="true"] .custom-select-chevron {
+    transform: rotate(180deg);
+  }
+  .custom-select-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    max-height: 340px;
+    overflow-y: auto;
+    background: rgba(10, 10, 15, 0.95);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid rgba(107, 227, 255, 0.3);
+    border-radius: 8px;
+    padding: 6px;
+    margin: 0;
+    list-style: none;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  }
+  .custom-select-option {
+    padding: 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .custom-select-option:hover {
+    background: rgba(107, 227, 255, 0.1);
+  }
+  .custom-select-option-label {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+  .custom-select-option-desc {
+    color: rgba(255, 255, 255, 0.55);
     font-size: 12px;
-    color: var(--text-3);
-    line-height: 1.4;
+    line-height: 1.45;
   }
 
   /* Nav row */
@@ -1803,67 +1865,126 @@
     ));
   }
 
-  // Collapsible style-options block. Lets advanced users pick a typography
-  // preset and a logo-placement scheme. Defaults are good; casual users
-  // never need to open this.
+  // Prominent Style Options panel. Lives above the Generate button on the
+  // Review step. Uses a custom dropdown component rather than native
+  // <select> because Apollo's dark web palette hits white-on-white on
+  // most browsers' native option lists.
   function renderStyleOptions() {
-    const wrap = el('details', { class: 'style-options' });
-    wrap.appendChild(el('summary', null, 'Style options (advanced)'));
-
-    if (state.fontPresets.length > 0) {
-      const fontSel = el('select', {
-        class: 'so-select',
-        onchange: (e) => {
-          state.selectedFontPreset = e.target.value;
-          // Re-render just this section to show the updated description.
-          const parent = wrap.parentElement;
-          if (parent) {
-            const replacement = renderStyleOptions();
-            replacement.open = true;
-            parent.replaceChild(replacement, wrap);
-          }
-        },
-      });
-      for (const p of state.fontPresets) {
-        const opt = el('option', { value: p.key }, p.label);
-        if (p.key === state.selectedFontPreset) opt.selected = true;
-        fontSel.appendChild(opt);
-      }
-      const fontDesc = (state.fontPresets.find((p) => p.key === state.selectedFontPreset) || {}).description || '';
-      wrap.appendChild(el('label', { class: 'so-label' },
-        el('span', { class: 'so-label-text' }, 'Typography preset'),
-        fontSel,
-        el('span', { class: 'so-desc' }, fontDesc),
-      ));
-    }
-
-    if (state.logoPlacements.length > 0) {
-      const placeSel = el('select', {
-        class: 'so-select',
-        onchange: (e) => {
-          state.selectedLogoPlacement = e.target.value;
-          const parent = wrap.parentElement;
-          if (parent) {
-            const replacement = renderStyleOptions();
-            replacement.open = true;
-            parent.replaceChild(replacement, wrap);
-          }
-        },
-      });
-      for (const p of state.logoPlacements) {
-        const opt = el('option', { value: p.key }, p.label);
-        if (p.key === state.selectedLogoPlacement) opt.selected = true;
-        placeSel.appendChild(opt);
-      }
-      const placeDesc = (state.logoPlacements.find((p) => p.key === state.selectedLogoPlacement) || {}).description || '';
-      wrap.appendChild(el('label', { class: 'so-label' },
-        el('span', { class: 'so-label-text' }, 'Logo placement'),
-        placeSel,
-        el('span', { class: 'so-desc' }, placeDesc),
-      ));
-    }
-
+    const wrap = el('div', { class: 'style-panel' });
+    wrap.innerHTML = `
+      <div class="style-panel-header">
+        <h3>Style Options</h3>
+        <p>Customize your document. Defaults work for most cases.</p>
+      </div>
+      <div class="style-panel-grid">
+        <div class="style-control">
+          <label>Typography</label>
+          <div class="custom-select" id="fontPresetSelect"></div>
+          <p class="style-hint" id="fontPresetHint"></p>
+        </div>
+        <div class="style-control">
+          <label>Logo Placement</label>
+          <div class="custom-select" id="logoPlacementSelect"></div>
+          <p class="style-hint" id="logoPlacementHint"></p>
+        </div>
+      </div>
+    `;
+    // Schedule the mount for after this element is in the DOM. The Review
+    // step assembles its tree via appendChild, so getElementById inside
+    // renderStyleOptions would find nothing. Microtask defer + a short
+    // RAF queue guarantees the nodes are attached before we wire them.
+    queueMicrotask(() => mountStyleControls());
     return wrap;
+  }
+
+  function mountStyleControls() {
+    if (state.fontPresets.length > 0) {
+      createCustomSelect(
+        document.getElementById('fontPresetSelect'),
+        state.fontPresets,
+        (key, opt) => {
+          state.selectedFontPreset = key;
+          const hint = document.getElementById('fontPresetHint');
+          if (hint) hint.textContent = (opt && opt.description) || '';
+        },
+        state.selectedFontPreset || 'editorial'
+      );
+      const initFont = state.fontPresets.find((o) => o.key === (state.selectedFontPreset || 'editorial'));
+      const fontHint = document.getElementById('fontPresetHint');
+      if (fontHint) fontHint.textContent = (initFont && initFont.description) || '';
+    }
+    if (state.logoPlacements.length > 0) {
+      createCustomSelect(
+        document.getElementById('logoPlacementSelect'),
+        state.logoPlacements,
+        (key, opt) => {
+          state.selectedLogoPlacement = key;
+          const hint = document.getElementById('logoPlacementHint');
+          if (hint) hint.textContent = (opt && opt.description) || '';
+        },
+        state.selectedLogoPlacement || 'cover-plus-header'
+      );
+      const initLogo = state.logoPlacements.find((o) => o.key === (state.selectedLogoPlacement || 'cover-plus-header'));
+      const logoHint = document.getElementById('logoPlacementHint');
+      if (logoHint) logoHint.textContent = (initLogo && initLogo.description) || '';
+    }
+  }
+
+  // Custom dropdown component. Replaces native <select> to avoid
+  // white-on-white option lists in the dark Apollo palette. Trigger
+  // button + absolutely-positioned menu; handles outside-click close,
+  // keyboard-friendly aria attributes.
+  function createCustomSelect(container, options, onChange, currentValue) {
+    if (!container) return;
+    const escapeAttr = (s) => String(s).replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    const escapeText = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    container.innerHTML = `
+      <button class="custom-select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+        <span class="custom-select-value"></span>
+        <span class="custom-select-chevron">⌄</span>
+      </button>
+      <ul class="custom-select-menu" role="listbox" hidden>
+        ${options.map((o) => `
+          <li class="custom-select-option" role="option" data-value="${escapeAttr(o.key)}">
+            <div class="custom-select-option-label">${escapeText(o.label)}</div>
+            ${o.description ? `<div class="custom-select-option-desc">${escapeText(o.description)}</div>` : ''}
+          </li>
+        `).join('')}
+      </ul>
+    `;
+    const trigger = container.querySelector('.custom-select-trigger');
+    const menu = container.querySelector('.custom-select-menu');
+    const valueEl = container.querySelector('.custom-select-value');
+    function setValue(key) {
+      const opt = options.find((o) => o.key === key);
+      if (!opt) return;
+      valueEl.textContent = opt.label;
+    }
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = !menu.hidden;
+      menu.hidden = isOpen;
+      trigger.setAttribute('aria-expanded', String(!isOpen));
+    });
+    menu.querySelectorAll('.custom-select-option').forEach((li) => {
+      li.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const key = li.dataset.value;
+        setValue(key);
+        menu.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+        const opt = options.find((o) => o.key === key);
+        if (onChange) onChange(key, opt);
+      });
+    });
+    const outsideClose = (e) => {
+      if (!container.contains(e.target)) {
+        menu.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+      }
+    };
+    document.addEventListener('click', outsideClose);
+    setValue(currentValue || (options[0] && options[0].key));
   }
 
   function reviewRow(k, v) {
