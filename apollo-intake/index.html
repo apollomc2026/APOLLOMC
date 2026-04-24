@@ -875,7 +875,9 @@
     templates: [],
     brands: [],
     brandLogos: new Map(), // slug -> objectURL
-    selectedTemplate: null,
+    selectedTemplate: null, // replaced with full (fields+sections+notes) on advance
+    fullTemplateCache: new Map(), // slug -> full template JSON
+    loadingTemplate: false,
     selectedBrand: null,
     formValues: {},
     missingIds: [],
@@ -1203,9 +1205,45 @@
     }
     host.appendChild(grid);
     host.appendChild(navRow({
-      next: () => { if (state.selectedTemplate) { state.step = 2; render(); } },
-      nextDisabled: !state.selectedTemplate,
+      next: advanceFromTemplate,
+      nextDisabled: !state.selectedTemplate || state.loadingTemplate,
+      nextLabel: state.loadingTemplate ? 'Loading…' : 'Next →',
     }));
+  }
+
+  async function advanceFromTemplate() {
+    if (!state.selectedTemplate || state.loadingTemplate) return;
+    const slug = state.selectedTemplate.slug;
+
+    // Already have the full template for this slug? Skip the fetch.
+    const cached = state.fullTemplateCache.get(slug);
+    if (cached) {
+      state.selectedTemplate = cached;
+      state.step = 2;
+      render();
+      return;
+    }
+
+    state.loadingTemplate = true;
+    render();
+    try {
+      const r = await fetch(API + '/api/apollo/templates/' + encodeURIComponent(slug), {
+        credentials: 'include',
+      });
+      if (r.status === 401) { state.view = 'signed-out'; state.loadingTemplate = false; render(); return; }
+      if (r.status === 403) { state.view = 'not-authorized'; state.loadingTemplate = false; render(); return; }
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const json = await r.json();
+      if (!json.template) throw new Error('empty template payload');
+      state.fullTemplateCache.set(slug, json.template);
+      state.selectedTemplate = json.template;
+      state.step = 2;
+    } catch (err) {
+      toast('Could not load template: ' + (err && err.message ? err.message : String(err)));
+    } finally {
+      state.loadingTemplate = false;
+      render();
+    }
   }
 
   // ---- Step 2: brand ----
@@ -1632,7 +1670,7 @@
     render();
   }
 
-  function navRow({ back, next, nextDisabled }) {
+  function navRow({ back, next, nextDisabled, nextLabel }) {
     const row = el('div', { class: 'nav-row' });
     if (back) {
       row.appendChild(el('button', { class: 'btn btn-secondary', onclick: back }, '← Back'));
@@ -1644,7 +1682,7 @@
         class: 'btn btn-primary',
         onclick: next,
         disabled: !!nextDisabled,
-      }, 'Next →'));
+      }, nextLabel || 'Next →'));
     }
     return row;
   }
