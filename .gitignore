@@ -33,3 +33,7 @@ output/
 
 # Ad-hoc local scripts not part of Apollo
 src/
+
+# Apollo regression-test artifacts
+scripts/regression-outputs/
+scripts/tmp-extract/

@@ -30,7 +30,9 @@ export interface BuildDocxArgs {
 // get ignored. Pre-scaling the binary + emitting explicit width/height +
 // inline style = three independent caps. All must hold for the logo to
 // exceed 1.5in, which it won't.
-const LOGO_TARGET_PX = 180
+// html-to-docx maps HTML px → EMU via px × 9525 (96 DPI). 144px = 1.5 in
+// exactly; we use 130 to leave a small margin under the cap.
+const LOGO_TARGET_PX = 130
 const MAX_ATTACHMENT_WIDTH_PX = 550
 
 function dataUri(bytes: Buffer, mime: string): string {
@@ -157,18 +159,25 @@ function readInputString(inputs: Record<string, unknown>, key: string): string {
 }
 
 function signatureCell(party: SignatureParty, inputs: Record<string, unknown>): string {
+  // html-to-docx has a bug serializing table cells that carry inline styles —
+  // some CSS→WordprocessingML attribute mappings produce invalid XML names
+  // like "@w". Keep styles OFF the <td>/<tr>/<table> tags. Text-level styling
+  // on <p> inside cells is fine.
   const typedName = party.nameField ? readInputString(inputs, party.nameField) : ''
   const nameLine = typedName
-    ? `<div style="font-weight:700;font-size:11pt;color:#1A1A1A;">${escapeHtml(typedName)}</div>`
-    : `<div style="font-size:11pt;color:#555555;">(Name)</div>`
+    ? `<p style="font-weight:700;font-size:11pt;color:#1A1A1A;margin:0 0 4pt 0;">${escapeHtml(typedName)}</p>`
+    : `<p style="font-size:11pt;color:#555555;margin:0 0 4pt 0;">(Name)</p>`
+  // Use underscores as the signature line — Word renders them as a visible
+  // writing line and they survive html-to-docx without any CSS.
+  const line = '________________________________________'
   return `
-    <td style="width:50%;padding:12pt;border:1pt solid #CBD5E1;vertical-align:top;">
-      <div style="font-weight:700;font-size:9pt;color:#555555;letter-spacing:1pt;margin-bottom:6pt;">${escapeHtml(party.label)}</div>
+    <td>
+      <p style="font-weight:700;font-size:9pt;color:#555555;margin:0 0 4pt 0;">${escapeHtml(party.label)}</p>
       ${nameLine}
-      <div style="border-bottom:1pt solid #1A1A1A;height:28pt;margin-top:22pt;">&nbsp;</div>
-      <div style="font-size:9pt;color:#555555;margin-top:4pt;">Signature</div>
-      <div style="border-bottom:1pt solid #1A1A1A;height:20pt;margin-top:14pt;">&nbsp;</div>
-      <div style="font-size:9pt;color:#555555;margin-top:4pt;">Date</div>
+      <p style="margin:24pt 0 0 0;">${line}</p>
+      <p style="font-size:9pt;color:#555555;margin:0;">Signature</p>
+      <p style="margin:18pt 0 0 0;">${line}</p>
+      <p style="font-size:9pt;color:#555555;margin:0;">Date</p>
     </td>
   `
 }
@@ -181,14 +190,11 @@ function buildSignatureBlock(args: BuildDocxArgs): string {
   ]
   const cells = parties.map((p) => signatureCell(p, args.inputs)).join('\n')
   // Pad single-party config with an empty cell so the table is always 2 cells wide.
-  const padCell =
-    parties.length === 1
-      ? `<td style="width:50%;padding:12pt;vertical-align:top;">&nbsp;</td>`
-      : ''
+  const padCell = parties.length === 1 ? `<td>&nbsp;</td>` : ''
   return `
     <div style="margin-top:28pt;">
-      <h2 style="font-size:12pt;color:#0A1628;margin-bottom:10pt;">Signatures</h2>
-      <table style="width:100%;border-collapse:collapse;">
+      <h2 style="font-size:12pt;color:#0A1628;margin:0 0 10pt 0;">Signatures</h2>
+      <table>
         <tr>
           ${cells}
           ${padCell}
@@ -224,10 +230,19 @@ function sanitizeForDocx(html: string): string {
 // to lay out decorative titles. We preserve structural whitespace between
 // block elements but collapse runs inside paragraphs and trim leading/
 // trailing whitespace at block boundaries.
+// Block-level tags whose interior whitespace is structural indentation from
+// our template literals rather than meaningful content. Collapse it.
+const BLOCK_TAGS =
+  '(?:html|head|body|div|p|h[1-6]|ul|ol|li|table|thead|tbody|tfoot|tr|td|th|section|article|header|footer)'
+
 function normalizeWhitespace(html: string): string {
-  return html
+  let out = html
+    // Normalize non-breaking spaces that weren't intended as layout
     .replace(/&nbsp;/g, ' ')
-    .replace(/ {2,}/g, ' ')
+  // Collapse whitespace between block-level tags (template-literal indentation)
+  out = out.replace(new RegExp(`>\\s+<(/?${BLOCK_TAGS})`, 'gi'), '><$1')
+  // Trim leading/trailing whitespace inside block elements
+  out = out
     .replace(/(<p[^>]*>)\s+/gi, '$1')
     .replace(/\s+(<\/p>)/gi, '$1')
     .replace(/(<h([1-6])[^>]*>)\s+/gi, '$1')
@@ -236,8 +251,11 @@ function normalizeWhitespace(html: string): string {
     .replace(/\s+(<\/li>)/gi, '$1')
     .replace(/(<td[^>]*>)\s+/gi, '$1')
     .replace(/\s+(<\/td>)/gi, '$1')
-    .replace(/(<p[^>]*>\s*<\/p>\s*){2,}/gi, '<p></p>')
-    .trim()
+  // Collapse runs of multiple spaces INSIDE text content
+  out = out.replace(/ {2,}/g, ' ')
+  // Collapse runs of empty paragraphs
+  out = out.replace(/(<p[^>]*>\s*<\/p>\s*){2,}/gi, '<p></p>')
+  return out.trim()
 }
 
 export async function buildDocx(args: BuildDocxArgs): Promise<Buffer> {
@@ -248,14 +266,12 @@ export async function buildDocx(args: BuildDocxArgs): Promise<Buffer> {
   const signatureBlock = buildSignatureBlock(args)
   const sanitizedContent = normalizeWhitespace(sanitizeForDocx(args.contentHtml))
 
-  const fullHtml = `
-    <html><head><meta charset="utf-8"></head><body>
-      ${header}
-      <div>${sanitizedContent}</div>
-      ${signatureBlock}
-      ${attachments}
-    </body></html>
-  `
+  // Pipeline-owned blocks are built from template literals; their indentation
+  // whitespace leaks into Word as visible preserve-space runs. Run the full
+  // assembled body through the same whitespace normalizer to strip those.
+  const fullHtml = normalizeWhitespace(
+    `<html><head><meta charset="utf-8"></head><body>${header}<div>${sanitizedContent}</div>${signatureBlock}${attachments}</body></html>`
+  )
 
   // Real page number field via html-to-docx's built-in footer. When both
   // `footer: true` and `pageNumber: true` are set the library emits a
@@ -281,9 +297,14 @@ export async function buildDocx(args: BuildDocxArgs): Promise<Buffer> {
     const sanContext = sanitizedContent.indexOf('@w') >= 0
       ? `san_at_w=present`
       : 'san_at_w=absent'
+    const fullAtWIndex = fullHtml.indexOf('@w')
+    const fullAtWContext =
+      fullAtWIndex >= 0
+        ? `full_at_w_context="${fullHtml.slice(Math.max(0, fullAtWIndex - 120), fullAtWIndex + 120).replace(/\s+/g, ' ')}"`
+        : 'full_at_w_context=(none_found_in_full_html)'
     const contentHead = sanitizedContent.slice(0, 500).replace(/\s+/g, ' ')
     throw new Error(
-      `html-to-docx failed: ${msg} :: ${atWContext} :: ${sanContext} :: content_head="${contentHead}"`
+      `html-to-docx failed: ${msg} :: ${atWContext} :: ${sanContext} :: ${fullAtWContext} :: content_head="${contentHead}"`
     )
   }
 
