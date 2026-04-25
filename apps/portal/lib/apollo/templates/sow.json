@@ -1,15 +1,55 @@
 {
   "slug": "sow",
   "label": "Scope of Work",
-  "description": "Fixed-scope or T&M statement of work for a client engagement.",
+  "description": "Professional consulting Statement of Work with full clause set including definitions, acceptance criteria, change control, IP ownership, liability cap, indemnification, insurance, and survival.",
   "category": "contracts",
   "supports_images": false,
   "has_signature_block": true,
+  "has_toc": true,
+  "layout": "contract",
   "fields": [
     {
       "id": "client_name",
-      "label": "Client name",
+      "label": "Client — legal name",
       "type": "text",
+      "required": true
+    },
+    {
+      "id": "client_entity_type",
+      "label": "Client — entity type",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "individual",
+          "label": "Individual"
+        },
+        {
+          "value": "llc",
+          "label": "LLC"
+        },
+        {
+          "value": "corporation",
+          "label": "Corporation"
+        },
+        {
+          "value": "partnership",
+          "label": "Partnership"
+        },
+        {
+          "value": "non-profit",
+          "label": "Non-profit"
+        },
+        {
+          "value": "other",
+          "label": "Other"
+        }
+      ]
+    },
+    {
+      "id": "client_address",
+      "label": "Client — notice address",
+      "type": "textarea",
       "required": true
     },
     {
@@ -19,6 +59,26 @@
       "required": true
     },
     {
+      "id": "engagement_model",
+      "label": "Engagement model",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "fixed-fee",
+          "label": "Fixed fee"
+        },
+        {
+          "value": "time-and-materials",
+          "label": "Time and materials (with not-to-exceed cap)"
+        },
+        {
+          "value": "hybrid",
+          "label": "Hybrid (fixed + T&M)"
+        }
+      ]
+    },
+    {
       "id": "start_date",
       "label": "Start date",
       "type": "date",
@@ -26,7 +86,7 @@
     },
     {
       "id": "end_date",
-      "label": "End date",
+      "label": "Target end date",
       "type": "date",
       "required": true
     },
@@ -35,45 +95,161 @@
       "label": "Project summary",
       "type": "textarea",
       "required": true,
-      "help": "One to three paragraphs describing the project at a high level."
+      "help": "1–3 paragraphs describing the project at a high level. Used in Executive Summary."
     },
     {
       "id": "deliverables",
       "label": "Deliverables (one per line)",
       "type": "textarea",
-      "required": true
+      "required": true,
+      "help": "Each line: deliverable name | description | acceptance criteria | format | target date."
     },
     {
       "id": "assumptions",
-      "label": "Assumptions and exclusions",
-      "type": "textarea",
-      "required": false
-    },
-    {
-      "id": "fee_structure",
-      "label": "Fee structure",
+      "label": "Assumptions",
       "type": "textarea",
       "required": true,
-      "placeholder": "Fixed fee $X — or — T&M at $Y/hr, not-to-exceed $Z"
+      "help": "What Consultant is relying on. Each item is a separate line."
+    },
+    {
+      "id": "exclusions",
+      "label": "Exclusions",
+      "type": "textarea",
+      "required": true,
+      "help": "What is explicitly NOT in scope."
+    },
+    {
+      "id": "fee_amount_dollars",
+      "label": "Total fee ($)",
+      "type": "number",
+      "required": true,
+      "help": "Fixed total or T&M not-to-exceed cap."
+    },
+    {
+      "id": "fee_detail",
+      "label": "Fee detail",
+      "type": "textarea",
+      "required": true,
+      "help": "Breakdown by role × rate if T&M; payment milestones if fixed."
     },
     {
       "id": "payment_terms",
       "label": "Payment terms",
       "type": "text",
-      "required": false,
+      "required": true,
       "default": "Net 30"
+    },
+    {
+      "id": "expense_policy",
+      "label": "Expense policy",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "client-pays-actual",
+          "label": "Client pays actual at cost"
+        },
+        {
+          "value": "included-in-fee",
+          "label": "Included in fee"
+        },
+        {
+          "value": "pre-approval-over-threshold",
+          "label": "Pre-approval required over threshold"
+        }
+      ]
+    },
+    {
+      "id": "expense_threshold_dollars",
+      "label": "Expense pre-approval threshold ($)",
+      "type": "number",
+      "required": false
+    },
+    {
+      "id": "client_pm_name",
+      "label": "Client Project Owner — name",
+      "type": "text",
+      "required": true,
+      "help": "Designated decision-maker with acceptance authority."
+    },
+    {
+      "id": "provider_pm_name",
+      "label": "Provider Engagement Lead — name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "liability_cap_multiplier",
+      "label": "Liability cap multiplier (× fees)",
+      "type": "number",
+      "required": true,
+      "default": 1,
+      "help": "1× standard; 2× for higher-risk engagements."
+    },
+    {
+      "id": "governing_state",
+      "label": "Governing state",
+      "type": "text",
+      "required": true
     }
   ],
   "sections": [
-    { "id": "cover", "label": "Cover page", "type": "fixed" },
-    { "id": "executive_summary", "label": "Executive summary", "type": "prose" },
-    { "id": "scope", "label": "Scope of work", "type": "prose" },
-    { "id": "deliverables", "label": "Deliverables", "type": "prose" },
-    { "id": "timeline", "label": "Timeline", "type": "prose" },
-    { "id": "assumptions_and_exclusions", "label": "Assumptions and exclusions", "type": "prose" },
-    { "id": "fees_and_terms", "label": "Fees and payment terms", "type": "prose" },
-    { "id": "acceptance", "label": "Acceptance criteria", "type": "prose" },
-    { "id": "signatures", "label": "Signatures", "type": "fixed" }
+    {
+      "id": "cover",
+      "title": "Cover Page"
+    },
+    {
+      "id": "definitions",
+      "title": "Definitions"
+    },
+    {
+      "id": "executive_summary",
+      "title": "Executive Summary"
+    },
+    {
+      "id": "scope_of_work",
+      "title": "Scope of Work"
+    },
+    {
+      "id": "deliverables_acceptance",
+      "title": "Deliverables and Acceptance"
+    },
+    {
+      "id": "timeline_milestones",
+      "title": "Timeline and Milestones"
+    },
+    {
+      "id": "assumptions_exclusions",
+      "title": "Assumptions and Exclusions"
+    },
+    {
+      "id": "fees_payment",
+      "title": "Fees and Payment Terms"
+    },
+    {
+      "id": "change_control",
+      "title": "Change Control"
+    },
+    {
+      "id": "intellectual_property",
+      "title": "Intellectual Property"
+    },
+    {
+      "id": "representations_independent_contractor",
+      "title": "Representations and Independent Contractor"
+    },
+    {
+      "id": "limitation_liability_insurance",
+      "title": "Limitation of Liability, Indemnification, and Insurance"
+    },
+    {
+      "id": "term_termination",
+      "title": "Term, Termination, and Survival"
+    },
+    {
+      "id": "general_provisions_signatures",
+      "title": "General Provisions and Signatures"
+    }
   ],
-  "generation_notes": "Voice: Consulting-professional. Clear, direct, unambiguous about scope and deliverables. Defensive about assumptions.\n\nStructure: Each section is mandatory and should be completed even if user input is thin — where thin, use precise placeholder language like \"To be confirmed in writing within 5 business days of execution\" rather than padding.\n\nRequired elements:\n- Executive Summary (3-5 sentences, no more)\n- Scope (bulleted list of in-scope work items with 1-2 sentence each description)\n- Deliverables (numbered list, each with a concrete output description and acceptance criteria)\n- Timeline (key milestones with target dates or \"TBD\" if not provided)\n- Assumptions & Exclusions (explicit list — what's NOT in scope)\n- Fees & Terms (restate user input precisely; add standard \"payment net 30 from invoice date\" if not specified)\n- Acceptance (single sentence explaining how deliverables are accepted)\n\nTone examples:\n  CORRECT: \"Consultant will deliver a technical architecture document, a data model ERD, and a phased implementation roadmap. Acceptance requires written sign-off from Client's designated project owner.\"\n  WRONG: \"We'll work together to create an amazing architecture that will revolutionize your business!\"\n\nNever invent deliverables the user didn't specify. If input is vague, reflect that with \"to be defined jointly during kickoff\" rather than inventing specifics.\n\nLength target: 600-1200 words."
+  "generation_notes": "Voice: Consulting-professional. Clear, direct, unambiguous about scope and deliverables. Defensive about assumptions. Use \"Consultant\" and \"Client\" as defined terms throughout — define them in the Definitions section. Do not use first-person plural (\"we\"). Use third-person formal voice (\"Consultant shall provide...\"). No marketing language. No softening qualifiers. The SOW is a contractual instrument.\n\n=== CRITICAL OUTPUT RULES ===\n\nRULE 1: DO NOT emit the document title as <h1> or in any form. The pipeline adds the title on the cover or masthead. Any title in your body HTML creates a duplicate.\n\nRULE 2: DO NOT emit decorative banners, spaced-out letter wordmarks, document IDs, brand names above the first section, or any content before the first <h2> heading. Start directly with the first section heading.\n\nRULE 3: Every section MUST have an <h2> heading with the exact title from the 'sections' array. No section may appear without a heading. Do not let content drift into unlabeled prose.\n\nRULE 4: Emit sections in the exact order listed. Do not skip required sections. Conditional sections (those gated on user input flags) may be omitted only when the input does not include them.\n\n=== SECTION REQUIREMENTS ===\n\nDEFINITIONS: Define each of the following capitalized terms with concise definitions. These terms are used throughout the document; consistency is essential.\n  - \"Consultant\" — the entity providing services (pull from brand).\n  - \"Client\" — [client_name].\n  - \"Effective Date\" — [start_date].\n  - \"Services\" — the work described in the Scope of Work section.\n  - \"Deliverables\" — the specific outputs identified in the Deliverables and Acceptance section.\n  - \"Acceptance\" — Client's written approval of a Deliverable, or expiration of the review window without written rejection.\n  - \"Project Owner\" — Client's designated decision-maker, identified as [client_pm_name], with authority to accept Deliverables and authorize changes within the scope of this SOW.\n  - \"Confidential Information\" — non-public information disclosed by either party in connection with this engagement, whether marked or not.\n  - \"Term\" — the period beginning on the Effective Date and ending as set forth in the Term, Termination, and Survival section.\nThis section is a foundation; the rest of the SOW relies on these terms being precisely defined.\n\nEXECUTIVE SUMMARY: Three to five sentences. State (1) the engagement purpose drawn from project_summary input; (2) the core Deliverables in summary form; (3) the duration from start_date to end_date; (4) the engagement_model and the fee_amount_dollars; (5) one sentence on intended outcome. No marketing language; pure factual summary.\n\nSCOPE OF WORK: Bulleted or numbered list of in-scope work items. Each item is one to two sentences describing the activity using action verbs (\"Develop\", \"Analyze\", \"Design\", \"Implement\", \"Document\"). End the section with this language tied to engagement_model:\n  - 'fixed-fee': \"The Services described above are provided for the fixed fee set forth in the Fees and Payment Terms section. Services beyond this scope require a written Change Order.\"\n  - 'time-and-materials': \"Services shall be provided on a time-and-materials basis as directed by Client through the Project Owner, subject to the not-to-exceed cap set forth in the Fees and Payment Terms section.\"\n  - 'hybrid': describe both fixed and T&M portions per fee_detail, with clear delineation of which Services fall under each.\n\nDELIVERABLES AND ACCEPTANCE: Numbered list. For each Deliverable from deliverables input, include the following structured fields:\n  (a) Deliverable name (bolded)\n  (b) Description (one to two sentences)\n  (c) Acceptance criteria — objective, measurable conditions for Acceptance\n  (d) Format (e.g., written report PDF, source code repository, presentation deck)\n  (e) Target delivery date (from timeline if available)\nAfter the list, include this acceptance procedure language verbatim: \"Each Deliverable will be deemed Accepted upon (i) Client's written approval delivered through the Project Owner, or (ii) expiration of a ten (10) business day review window beginning on the date of delivery if no written rejection is received within that period. Rejections must be in writing, must specify with particularity the deficiencies in the Deliverable, and must give Consultant a reasonable opportunity to cure (typically ten (10) business days). Consultant's cure shall be deemed complete upon redelivery; the review window restarts. Repeated rejections without specific particularity, or rejections raising matters outside the agreed acceptance criteria, do not toll the deemed-acceptance period.\"\n\nTIMELINE AND MILESTONES: Render as a milestone table or list. Include:\n  - Engagement Kickoff: [start_date]\n  - Mid-engagement check-in (if span > 30 days)\n  - Deliverable target dates per the Deliverables section\n  - Final Deliverable Acceptance: [end_date]\nAdd this language: \"Dates above are target dates and are subject to mutual cooperation and timely Client decisions per the Responsibilities section. Material delays caused by Client may result in a corresponding extension to subsequent target dates without entitlement to a Change Order; material delays caused by Consultant entitle Client to remedies as set forth in the Term, Termination, and Survival section.\"\n\nASSUMPTIONS AND EXCLUSIONS: Two distinct sub-sections rendered as <h3>:\n  <h3>Assumptions</h3> — numbered list drawn from assumptions input. Each assumption is a clear statement of what Consultant is relying on for the engagement plan and pricing (e.g., \"Client provides access to existing systems within five business days of Effective Date\", \"Project Owner is empowered to make material decisions within five business days\").\n  <h3>Exclusions</h3> — numbered list drawn from exclusions input. Each exclusion is what is explicitly NOT in scope, even though a reasonable Client might assume it is included.\nEnd the section with: \"Material deviations from these Assumptions or expansion beyond the Scope of Work will be addressed via the Change Control procedure. Pricing and timeline reflect these Assumptions; deviations may result in corresponding adjustments.\"\n\nFEES AND PAYMENT TERMS: Restate fee_amount_dollars and the engagement_model. Branch on engagement_model:\n  - 'fixed-fee': \"The total fee for the Services is $[fee_amount_dollars]. Payment milestones tied to Deliverable Acceptance are set forth below: [milestones from fee_detail input — typical structure: 25% on Effective Date, 50% on mid-engagement deliverable Acceptance, 25% on final Deliverable Acceptance]. Each milestone is invoiced upon achievement; payment is due [payment_terms] from invoice date.\"\n  - 'time-and-materials': \"Services are billed at the rates set forth below: [rates by role from fee_detail]. Total fees shall not exceed $[fee_amount_dollars] without a written Change Order. Time is billed in 0.1 hour increments. Invoices are issued monthly on the first business day for the prior month's hours; payment is due [payment_terms] from invoice date.\"\n  - 'hybrid': describe both portions per fee_detail.\nLate payment terms: \"Invoices unpaid after [payment_terms] from invoice date accrue interest at one and one-half percent (1.5%) per month, or the maximum rate permitted by applicable law, whichever is lower. Consultant may suspend Services for non-payment more than thirty (30) days past due upon ten (10) days written notice.\"\nExpenses: branch on expense_policy as in the engagement-letter template.\nWire/ACH preferred; remit-to address confirmed at invoice; international payment fees at Client cost where applicable.\n\nCHANGE CONTROL: Process for modifying this SOW. Numbered: (1) Either party may request a change in writing through the Project Owner or Consultant's engagement lead. (2) Consultant will respond within five (5) business days with a written impact assessment covering scope, schedule, and fees. (3) Changes affecting fees, schedule, or scope require a written Change Order signed by both parties before Consultant begins work on the change. (4) Changes not affecting fees or schedule (e.g., minor refinements to a Deliverable's format) may be confirmed by email between the Project Owner and Consultant's engagement lead. (5) Consultant shall not proceed with material changes prior to written authorization. Unauthorized work is at Consultant's risk.\n\nINTELLECTUAL PROPERTY: Three sub-paragraphs:\n(a) Pre-existing IP: \"Each party retains all right, title, and interest in its pre-existing intellectual property, methodologies, tools, frameworks, and templates. Nothing in this SOW transfers ownership of pre-existing IP. To the extent Consultant incorporates pre-existing IP into a Deliverable, Consultant grants Client a non-exclusive, perpetual, royalty-free license to use such pre-existing IP solely as embedded in the Deliverable for Client's internal business purposes.\"\n(b) Work Product: \"Deliverables specifically created for Client under this SOW (excluding pre-existing IP and general knowledge) become Client's property upon full payment of the fees attributable to those Deliverables. Until full payment, Consultant retains ownership and grants Client a temporary license for evaluation and review only.\"\n(c) Consultant retained rights: \"Consultant retains the right to use general knowledge, skills, experience, and ideas gained during the engagement, and to use anonymized methodologies, frameworks, and templates for other engagements, provided that doing so does not disclose Client's Confidential Information.\"\n\nREPRESENTATIONS AND INDEPENDENT CONTRACTOR: Each party represents it has full authority to enter this SOW. Consultant represents Services will be performed with the professional skill and care ordinarily exercised by consultants performing similar work. Independent contractor language: \"Consultant is an independent contractor and not an employee, agent, partner, or joint venturer of Client. Consultant is responsible for its own taxes, benefits, and compliance with employment, tax, and benefits laws applicable to its personnel. Nothing in this SOW creates a fiduciary, partnership, or employment relationship between the parties. Neither party may bind the other without express written authorization.\"\n\nLIMITATION OF LIABILITY, INDEMNIFICATION, AND INSURANCE: Three sub-paragraphs:\n(a) Liability cap: \"EXCEPT FOR (i) breaches of confidentiality obligations, (ii) gross negligence or willful misconduct, (iii) indemnification obligations under subsection (b), and (iv) infringement of third-party intellectual property rights, NEITHER PARTY'S AGGREGATE LIABILITY ARISING OUT OF OR RELATED TO THIS SOW SHALL EXCEED [liability_cap_multiplier] TIMES THE TOTAL FEES PAID OR PAYABLE UNDER THIS SOW. NEITHER PARTY SHALL BE LIABLE FOR INDIRECT, CONSEQUENTIAL, INCIDENTAL, SPECIAL, EXEMPLARY, OR PUNITIVE DAMAGES, INCLUDING LOST PROFITS, LOST REVENUE, LOST BUSINESS OPPORTUNITY, OR LOSS OF DATA, REGARDLESS OF THE FORM OF ACTION.\"\n(b) Mutual indemnification: \"Each party shall indemnify, defend, and hold harmless the other from third-party claims arising out of the indemnifying party's gross negligence, willful misconduct, or breach of this SOW, subject to (i) prompt written notice of the claim, (ii) the indemnifying party's control of defense and settlement (with no settlement requiring an admission of liability without consent), and (iii) reasonable cooperation by the indemnified party.\"\n(c) Insurance: \"Consultant maintains general commercial liability insurance with limits of at least one million dollars ($1,000,000) per occurrence and professional liability (errors and omissions) insurance with limits of at least one million dollars ($1,000,000) per claim. A certificate of insurance is available upon request. Insurance does not limit Consultant's contractual obligations under this SOW.\"\n\nTERM, TERMINATION, AND SURVIVAL: Term begins on the Effective Date and ends on the earlier of (a) end_date or (b) Acceptance of all Deliverables. Termination for cause: either party may terminate on fifteen (15) days written notice for material breach uncured within the notice period. Termination for convenience: Client may terminate on thirty (30) days written notice; Consultant entitled to fees for Services performed and Deliverables Accepted (or in progress on a quantum-meruit basis), plus reasonable wind-down costs. Survival: Confidentiality, IP, payment obligations for Services performed, limitation of liability, indemnification, and dispute resolution survive termination.\n\nGENERAL PROVISIONS AND SIGNATURES: Numbered general provisions: (1) Governing law: laws of [governing_state], without regard to conflict-of-laws principles. (2) Force majeure: standard clause covering pandemic, weather, supply chain disruption, war, terrorism, and government action — performance excused for the duration of the event, neither party liable for resulting delays. (3) Entire agreement: this SOW, together with any executed Change Orders, supersedes all prior and contemporaneous agreements, written or oral. (4) Amendments only by written instrument signed by both parties. (5) Severability: invalid provisions shall be reformed to the maximum extent enforceable; remaining provisions continue in full force. (6) Counterparts: may be executed in counterparts including electronic signatures and scanned copies, each deemed an original, together one instrument. (7) Assignment: this SOW may not be assigned without the other party's consent, except in connection with a merger, acquisition, or sale of substantially all assets. (8) Notices: in writing to the addresses set forth in this SOW; effective on personal delivery, three business days after certified mail, or one business day after email transmission with confirmation. (9) Mutual cooperation: each party shall cooperate in good faith to enable the other's performance, including timely responses, reasonable access, and designation of decision-makers. The pipeline renders the formal signature block; do not render signature lines.\n\n=== LENGTH ===\n2000–3500 words. SOWs benefit from precision; padding obscures the protective scaffolding."
 }
