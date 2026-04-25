@@ -3611,6 +3611,116 @@
     wireStationEvents();
     wireQuickSearch();
     wireMissionLogToggle();
+    wireKeyboardShortcuts();
+    wireBrandSelector();
+    startMissionClock();
+  }
+
+  // ---- Keyboard shortcuts ----
+  function wireKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      const inInput = e.target.matches('input, textarea, [contenteditable="true"]');
+      // ? toggles the help overlay regardless of focus (Shift+/ on US keyboards)
+      if (e.key === '?' && !inInput) {
+        e.preventDefault();
+        toggleHelpOverlay();
+        return;
+      }
+      if (inInput) {
+        // Inside inputs, only Esc is honored at the global level
+        if (e.key === 'Escape') {
+          if (e.target.id === 'quickSearch') {
+            const overlay = document.getElementById('searchOverlay');
+            if (overlay) overlay.hidden = true;
+            e.target.blur();
+          }
+        }
+        return;
+      }
+      if (e.key === '/') {
+        e.preventDefault();
+        const input = document.getElementById('quickSearch');
+        if (input) input.focus();
+        return;
+      }
+      if (e.key === 'Escape') {
+        // Priority: help overlay → intake overlay → search overlay → disarm
+        const help = document.getElementById('helpOverlay');
+        if (help && !help.hidden) { help.hidden = true; return; }
+        const intake = document.getElementById('intakeOverlay');
+        if (intake && !intake.hidden) { closeIntakeFlow(); return; }
+        const search = document.getElementById('searchOverlay');
+        if (search && !search.hidden) { search.hidden = true; return; }
+        if (state.armedStation) { armStation(null); return; }
+        return;
+      }
+      // 1–4 arm stations
+      const stationByNumber = { '1': 'contracts', '2': 'proposals', '3': 'operations', '4': 'finance' };
+      if (stationByNumber[e.key] && state.view === 'intake') {
+        e.preventDefault();
+        armStation(stationByNumber[e.key]);
+        return;
+      }
+    });
+  }
+  function toggleHelpOverlay() {
+    const help = document.getElementById('helpOverlay');
+    if (!help) return;
+    help.hidden = !help.hidden;
+  }
+  function closeHelpOverlay() {
+    const help = document.getElementById('helpOverlay');
+    if (help) help.hidden = true;
+  }
+
+  // ---- Brand selector ----
+  function wireBrandSelector() {
+    const host = document.getElementById('brandSelector');
+    if (!host) return;
+    const renderTrigger = () => {
+      const current = (state.brands || []).find((b) => b.slug === state.brand) || (state.brands || [])[0];
+      host.innerHTML = current
+        ? '<button class="cb-brand" type="button" aria-haspopup="listbox">' +
+            '<span class="cb-brand-name">' + escapeHtml((current.label || current.slug || '').toUpperCase()) + '</span>' +
+            '<span aria-hidden="true">▾</span>' +
+          '</button>'
+        : '';
+      const btn = host.querySelector('.cb-brand');
+      if (btn) btn.addEventListener('click', cycleBrand);
+    };
+    state.brand = state.brand || 'apollo';
+    renderTrigger();
+    state._renderBrandTrigger = renderTrigger;
+  }
+  // Lightweight cycle-through-brands instead of a full dropdown for v1.
+  // habi/themis are placeholder brands; only apollo, atlas, on-spot-solutions
+  // are user-selectable here.
+  function cycleBrand() {
+    const active = ['apollo', 'atlas', 'on-spot-solutions'];
+    const idx = active.indexOf(state.brand);
+    const next = active[(idx + 1) % active.length];
+    state.brand = next;
+    if (state._renderBrandTrigger) state._renderBrandTrigger();
+    // Brand affects "Last deployed" filtering and Quick Launch ordering
+    // via the user's submission history. Re-render derived views.
+    renderStations();
+    renderQuickLaunch();
+  }
+
+  // ---- Mission clock ----
+  function startMissionClock() {
+    const el = document.getElementById('missionClock');
+    if (!el) return;
+    const sessionStart = Date.now();
+    const tick = () => {
+      const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
+      const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
+      const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
+      const s = String(elapsed % 60).padStart(2, '0');
+      el.textContent = h + ':' + m + ':' + s;
+    };
+    tick();
+    setInterval(tick, 1000);
   }
   function closeIntakeFlow() {
     state.activeTemplateSlug = null;
