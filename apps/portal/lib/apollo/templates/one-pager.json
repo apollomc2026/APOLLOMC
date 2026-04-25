@@ -1,7 +1,7 @@
 {
   "slug": "one-pager",
   "label": "Executive One-Pager",
-  "description": "Single-page summary of a product, service, company, or opportunity.",
+  "description": "Single-page sales/marketing document with problem-led structure, outcome metrics, two-tier CTA hierarchy, and structured contact paths.",
   "category": "marketing",
   "supports_images": false,
   "has_signature_block": false,
@@ -12,52 +12,175 @@
       "id": "subject_title",
       "label": "Subject title",
       "type": "text",
-      "required": true
+      "required": true,
+      "help": "The thing being one-pagered (product, service, company, capability)."
     },
     {
       "id": "subject_type",
       "label": "Subject type",
       "type": "select",
       "required": true,
-      "options": ["Product", "Service", "Company", "Opportunity", "Capability"]
+      "options": [
+        {
+          "value": "product",
+          "label": "Product"
+        },
+        {
+          "value": "service",
+          "label": "Service"
+        },
+        {
+          "value": "company",
+          "label": "Company"
+        },
+        {
+          "value": "opportunity",
+          "label": "Opportunity"
+        },
+        {
+          "value": "capability",
+          "label": "Capability"
+        },
+        {
+          "value": "platform",
+          "label": "Platform"
+        }
+      ]
+    },
+    {
+      "id": "tagline",
+      "label": "Tagline (3–7 words)",
+      "type": "text",
+      "required": true,
+      "help": "Cover/header punch. Pipeline renders prominently."
     },
     {
       "id": "value_proposition",
-      "label": "Value proposition",
+      "label": "Value proposition (1–2 sentences)",
       "type": "textarea",
-      "required": true
+      "required": true,
+      "help": "Hero body. What the buyer accomplishes after adopting."
     },
     {
-      "id": "key_differentiators",
-      "label": "Key differentiators (one per line)",
+      "id": "problem_statement",
+      "label": "Problem statement (audience pain)",
       "type": "textarea",
-      "required": true
+      "required": true,
+      "help": "Leads the document. Specific scenarios beat generic categories."
     },
     {
       "id": "target_audience",
       "label": "Target audience",
       "type": "text",
-      "required": true
+      "required": true,
+      "help": "Specific buyer role and context."
     },
     {
-      "id": "call_to_action",
-      "label": "Call to action",
+      "id": "outcome_metrics",
+      "label": "Outcome metrics (one per line)",
+      "type": "textarea",
+      "required": true,
+      "help": "metric | proof point. Numbers over claims."
+    },
+    {
+      "id": "key_differentiators",
+      "label": "Key differentiators (3–5 bullets)",
+      "type": "textarea",
+      "required": true,
+      "help": "Structural advantages, not generic \"we care\"."
+    },
+    {
+      "id": "use_cases",
+      "label": "Use cases (optional)",
+      "type": "textarea",
+      "required": false,
+      "help": "2–3 specific buyer scenarios."
+    },
+    {
+      "id": "social_proof",
+      "label": "Social proof (optional)",
+      "type": "textarea",
+      "required": false,
+      "help": "Customer names, deployment scale, awards."
+    },
+    {
+      "id": "pricing_signal",
+      "label": "Pricing signal (optional)",
+      "type": "text",
+      "required": false,
+      "help": "e.g., \"Starting at $X/month\", \"Enterprise pricing\"."
+    },
+    {
+      "id": "cta_primary",
+      "label": "Primary CTA",
+      "type": "text",
+      "required": true,
+      "help": "e.g., \"Schedule a demo\", \"Start free trial\"."
+    },
+    {
+      "id": "cta_secondary",
+      "label": "Secondary CTA (optional)",
+      "type": "text",
+      "required": false
+    },
+    {
+      "id": "contact_email",
+      "label": "Contact email",
       "type": "text",
       "required": true
     },
     {
-      "id": "contact_info",
-      "label": "Contact info",
-      "type": "textarea",
-      "required": true
+      "id": "contact_web",
+      "label": "Contact web URL (optional)",
+      "type": "text",
+      "required": false
+    },
+    {
+      "id": "contact_calendar",
+      "label": "Calendar booking link (optional)",
+      "type": "text",
+      "required": false
+    },
+    {
+      "id": "contact_phone",
+      "label": "Contact phone (optional)",
+      "type": "text",
+      "required": false
     }
   ],
   "sections": [
-    { "id": "hero", "label": "Hero", "type": "prose" },
-    { "id": "value_proposition", "label": "Value proposition", "type": "prose" },
-    { "id": "differentiators", "label": "Differentiators", "type": "prose" },
-    { "id": "who_its_for", "label": "Who it's for", "type": "prose" },
-    { "id": "call_to_action", "label": "Call to action", "type": "prose" }
+    {
+      "id": "header_tagline",
+      "title": "Header / Tagline"
+    },
+    {
+      "id": "the_problem",
+      "title": "The Problem"
+    },
+    {
+      "id": "the_solution_value_prop",
+      "title": "The Solution"
+    },
+    {
+      "id": "outcomes_metrics",
+      "title": "Outcomes"
+    },
+    {
+      "id": "differentiators",
+      "title": "Why Us"
+    },
+    {
+      "id": "use_cases",
+      "title": "Use Cases"
+    },
+    {
+      "id": "social_proof",
+      "title": "Trusted By"
+    },
+    {
+      "id": "cta_contact",
+      "title": "Get Started"
+    }
   ],
-  "generation_notes": "Voice: Marketing one-pager — punchy, outcome-focused, visually oriented but in prose form (since we're generating DOCX, not graphics).\n\nStructure (fit on ~1 page):\n- Hero: Title + Value Proposition (2-sentence hook)\n- Differentiators (3-5 bullet points)\n- Who It's For (1 paragraph describing target audience)\n- Call to Action (specific: what should the reader do next)\n- Contact information\n\nTone examples:\n  CORRECT: \"Reduce time-to-deliverable by 80% without hiring additional staff.\"\n  WRONG: \"Our company has been providing excellent service since...\"\n\nLead with outcome, not process. Lead with verbs. Avoid corporate mission-statement language.\n\nLength target: 200-400 words. This is the ONE template where shorter is always better."
+  "generation_notes": "Voice: Punchy, outcome-focused, lean. Lead with verbs. Lead with the buyer's pain, not the seller's solution. No corporate mission-statement language (\"Our mission is to...\"). No superlatives without proof. No adjectives substituting for evidence. Specific over general always. Numbers over claims. The one-pager is a conversion document — every word earns space.\n\nPIPELINE OWNS THE HEADER. Do NOT emit the tagline, subject_title, or any cover treatment — the pipeline renders the masthead with the tagline and subject prominently. Start your output directly with The Problem section heading.\n\n=== CRITICAL OUTPUT RULES ===\n\nRULE 1: DO NOT emit the document title as <h1> or in any form. The pipeline adds the title on the cover or masthead. Any title in your body HTML creates a duplicate.\n\nRULE 2: DO NOT emit decorative banners, spaced-out letter wordmarks, document IDs, brand names above the first section, or any content before the first <h2> heading. Start directly with the first section heading.\n\nRULE 3: Every section MUST have an <h2> heading with the exact title from the 'sections' array. No section may appear without a heading. Do not let content drift into unlabeled prose.\n\nRULE 4: Emit sections in the exact order listed. Do not skip required sections. Conditional sections (those gated on user input flags) may be omitted only when the input does not include them.\n\n=== SECTION REQUIREMENTS ===\n\nTHE PROBLEM: 2–3 sentences. State the audience's pain in their own words. Drawn from problem_statement input. Be specific — generic problems (\"companies struggle with X\") are weak signals. Specific scenarios (\"Your team spends twelve hours per week reformatting client deliverables in Word, then a partner spends two more hours editing for brand consistency\") are strong signals because they demonstrate that the seller has observed the buyer.\nFormat: lead with a direct second-person address (\"Your team / your firm / you\") to the target_audience. Avoid third-person abstraction.\n\nTHE SOLUTION: 2–3 sentences. State the value proposition (drawn from value_proposition input). Lead with what the user accomplishes, NOT how the product works.\n  CORRECT: \"Apollo finishes your deliverables. Submit a brief, get a print-ready PDF in minutes.\"\n  WRONG: \"Apollo is an AI-powered document automation platform built on a modular architecture...\"\nThe Solution section answers: what does the buyer do differently after adopting? Not: what is this product made of?\n\nOUTCOMES: Bullet list drawn from outcome_metrics input. Each bullet leads with a number or quantified outcome:\n  CORRECT: \"80% reduction in deliverable cycle time at [Client].\"\n  CORRECT: \"$2M in additional billable hours captured at [Firm] in the first year.\"\n  CORRECT: \"200+ engagements deployed without a single rework cycle.\"\n  WRONG: \"better outcomes\" / \"improved efficiency\" / \"stronger results.\"\nEach bullet pairs a number with a proof point: who experienced it, in what context. Use real client names where authorized; use sanitized names (\"a top-30 law firm\") otherwise. Three to five bullets is ideal; more dilutes signal.\n\nWHY US: Differentiators drawn from key_differentiators input. Each one a tight bullet — what makes this offering structurally different from alternatives the buyer is evaluating. Avoid generic differentiators (\"we care about quality\", \"we have experience\", \"we listen to clients\"). Specific structural advantages or capabilities only:\n  CORRECT: \"Per-deliverable pricing — no seat licenses, no annual commits, no procurement cycle.\"\n  CORRECT: \"Brand-locked output — every document ships at the same visual standard, automatically.\"\n  CORRECT: \"Deterministic orchestration — quality gates at every section; no chatbot guesswork.\"\n  WRONG: \"We're committed to your success.\" (generic, evidence-free)\nThree to five tight bullets.\n\nUSE CASES: ONLY emit if use_cases input is non-empty. Two to three specific applications. Frame each as the buyer's situation, not the seller's catalog:\n  CORRECT: \"When your associate is buried in NDA reviews and the partner needs the redline by EOD.\"\n  CORRECT: \"When the audit committee deck is due Friday and the FP&A draft is not yet board-ready.\"\n  WRONG: \"Apollo can be used for many document types...\" (sellercentric, generic)\nEach use case is a vivid scenario describing the buyer's situation and the value of the solution in that context.\n\nTRUSTED BY: ONLY emit if social_proof input is non-empty. Concrete and verifiable. Customer names (sanitized as needed), deployment scale, awards, certifications. Format as a tight comma-delimited line or short list:\n  \"Trusted by On Spot Solutions, Reed Partners Capital, and three other firms in the Fortune 500.\"\n  OR a list of: \"Customer (sanitized) | scale | duration.\"\nAvoid \"Many happy customers!\" or \"Trusted by industry leaders.\" — substantively empty.\n\nGET STARTED: Two-tier CTA structure.\n  Primary CTA prominently — what should the reader do RIGHT NOW. Drawn from cta_primary input. Format the CTA as a clear imperative: \"Schedule a 30-minute walkthrough →\" or \"Start your free pilot →\" or \"Request invite-only access →\". The arrow or visual cue is optional but signals action.\n  Secondary CTA, if cta_secondary input provided. Less prominent. Different action: \"Read the case study\", \"Download the whitepaper\", \"Browse the docs.\"\nThen contact paths in priority order, only emitting those provided in input:\n  Web: [contact_web]\n  Calendar booking: [contact_calendar]\n  Email: [contact_email]\n  Phone: [contact_phone]\nPricing signal at the bottom IF pricing_signal input provided. Format as a single line: \"Starting at $X/month\" or \"Enterprise pricing — contact for quote\" or \"Free tier available; PRO at $39.99/mo.\"\nEnd with a single closing thought drawn from the value proposition or a final win-theme reinforcement, in no more than one sentence.\n\n=== LENGTH ===\n250–500 words. The ONE template where shorter is always better. If your output exceeds 500 words, you are padding; tighten. The one-pager fits on one printed page including margins, masthead, and CTA — every word competes for that space."
 }
