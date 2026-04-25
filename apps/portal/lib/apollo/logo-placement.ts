@@ -81,7 +81,7 @@ export interface PlacementFlags {
 
 export function placementFlags(
   placement: LogoPlacementOption,
-  layout: 'contract' | 'letter' | 'invoice' | 'one-pager' | 'minutes'
+  layout: 'contract' | 'letter' | 'invoice' | 'one-pager' | 'minutes' | 'financial-statement'
 ): PlacementFlags {
   const layoutHasCover = layout === 'contract' || layout === 'letter'
   const layoutHasSignatures = layout === 'contract' || layout === 'letter'

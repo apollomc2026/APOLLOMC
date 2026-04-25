@@ -51,6 +51,10 @@ export interface BuildPdfArgs {
   palette?: BrandPalette
   fontPreset?: FontPreset
   logoPlacement?: LogoPlacementOption
+  // Optional disclaimer text repeated in every page footer. Used by the
+  // financial-statement layout (e.g., Tax Estimate templates that require
+  // mandatory disclaimer language on every page).
+  disclaimer?: string
 }
 
 interface SectionRef {
@@ -449,6 +453,8 @@ function buildFullHtml(args: BuildPdfArgs): string {
       return buildOnePagerHtml(args)
     case 'minutes':
       return buildMinutesHtml(args)
+    case 'financial-statement':
+      return buildFinancialStatementHtml(args)
     case 'letter':
     case 'contract':
     default:
@@ -1201,7 +1207,237 @@ ${watermarkHtml}
 </html>`
 }
 
+// ============================================================================
+// FINANCIAL-STATEMENT LAYOUT
+// Report-style financial documents (Budget vs Actual, Expense Report,
+// Personal Monthly Summary, Cash Flow Forecast, Tax Estimate).
+// No cover page, no TOC. First page begins with a structured masthead
+// showing document title + period + entity + prepared metadata. Body is
+// table-heavy with monospace numerics, right-aligned amounts, totals row
+// styling. Optional disclaimer is repeated in the running footer (used by
+// Tax Estimate).
+// ============================================================================
+function buildFinancialStatementHtml(args: BuildPdfArgs): string {
+  const palette = resolvePaletteForBuild(args)
+  const preset = resolvePreset(args.fontPreset?.key)
+  const placement = args.logoPlacement ?? resolvePlacement(null)
+  const flags = placementFlags(placement, 'financial-statement')
+  const logoDataUri = resolveLogoDataUri(args.brand)
+  const watermarkHtml = flags.hasWatermark ? renderWatermarkHtml(logoDataUri) : ''
+  const wordmark = brandWordmark(args.brand.slug)
+  const docTitle = args.template.label
+
+  // Pull masthead metadata from common input keys. Each financial template
+  // surfaces its own period label / entity name, but we read a small set of
+  // conventional keys that all of the financial templates use.
+  const entityName =
+    readString(args.inputs, 'entity_name') ||
+    readString(args.inputs, 'taxpayer_name') ||
+    readString(args.inputs, 'submitter_name') ||
+    readString(args.inputs, 'person_name') ||
+    args.preparedFor ||
+    ''
+  const periodLabel =
+    readString(args.inputs, 'period_label') ||
+    readString(args.inputs, 'month_label') ||
+    readString(args.inputs, 'tax_year') ||
+    ''
+  const periodStart = readString(args.inputs, 'period_start') || readString(args.inputs, 'forecast_start_date')
+  const periodEnd = readString(args.inputs, 'period_end')
+  const preparedBy = readString(args.inputs, 'prepared_by') || ''
+  const scenarioLabel = readString(args.inputs, 'scenario_label')
+
+  const body = stripAllH1(stripLeadingTitle(args.contentHtml))
+
+  return `<!doctype html>
+<html lang="en">${sharedHead(palette, preset, docTitle)}
+<style>
+@page { size: 8.5in 11in; margin: 1.0in 0.9in 1.0in 0.9in; }
+.fin-masthead {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18pt;
+  padding-bottom: 14pt;
+  margin-bottom: 28pt;
+  border-bottom: 0.75pt solid var(--accent);
+}
+.fin-wordmark {
+  font-family: var(--font-body);
+  font-size: 9pt;
+  font-weight: 600;
+  letter-spacing: 0.38em;
+  color: var(--ink);
+  margin: 0 0 6pt 0;
+}
+.fin-title {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 26pt;
+  line-height: 1.1;
+  color: var(--ink);
+  margin: 0 0 6pt 0;
+}
+.fin-period {
+  font-family: var(--font-body);
+  font-size: 11pt;
+  font-weight: 500;
+  color: var(--ink);
+  margin: 0;
+}
+.fin-prepared {
+  text-align: right;
+  font-family: var(--font-body);
+  font-size: 8pt;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--metadata);
+}
+.fin-prepared div + div { margin-top: 4pt; }
+.fin-body { font-family: var(--font-body); font-size: 10pt; line-height: 1.6; color: var(--ink); }
+.fin-body h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 16pt;
+  color: var(--ink);
+  margin: 26pt 0 10pt 0;
+}
+.fin-body h2:first-child { margin-top: 0; }
+.fin-body h3 {
+  font-family: var(--font-body);
+  font-size: 9pt;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--metadata);
+  margin: 18pt 0 6pt 0;
+}
+.fin-body p { margin: 0 0 10pt 0; }
+.fin-body ul, .fin-body ol { margin: 6pt 0 12pt 0; padding-left: 20pt; }
+.fin-body li { margin-bottom: 4pt; }
+
+/* Tables — monospace numerics, right-aligned amounts, subtle striping. */
+.fin-body table,
+.fin-body table.fin-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12pt 0;
+  font-variant-numeric: tabular-nums;
+}
+.fin-body table thead {
+  display: table-header-group;
+}
+.fin-body table thead th {
+  font-family: var(--font-body);
+  font-size: 8pt;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--metadata);
+  text-align: left;
+  padding: 8pt 8pt 8pt 0;
+  border-bottom: 0.5pt solid var(--accent);
+  background: transparent;
+}
+.fin-body table tbody td {
+  font-family: var(--font-body);
+  font-size: 10pt;
+  color: var(--ink);
+  padding: 6pt 8pt 6pt 0;
+  border-bottom: 0.25pt solid var(--hairline);
+  vertical-align: top;
+}
+.fin-body table tbody tr:nth-child(even) td { background: rgba(0, 0, 0, 0.018); }
+/* Numeric columns — right-aligned, tabular figures, monospace fall-back. */
+.fin-body th.numeric,
+.fin-body td.numeric,
+.fin-body th:nth-last-child(-n+1),
+.fin-body td:nth-last-child(-n+1) {
+  text-align: right;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+.fin-body table tbody tr.subtotal-row td {
+  border-top: 0.5pt solid var(--hairline);
+  border-bottom: 0;
+  font-style: italic;
+  font-weight: 500;
+  background: transparent;
+}
+.fin-body table tbody tr.total-row td {
+  border-top: 1.5pt solid var(--ink);
+  border-bottom: 0;
+  font-weight: 700;
+  font-size: 11pt;
+  background: transparent;
+}
+
+/* Disclaimer — both the prominent first-section variant and the
+   small-italic running footer variant. */
+.fin-disclaimer-prominent {
+  border: 0.5pt solid var(--ink);
+  padding: 14pt 16pt;
+  margin: 0 0 20pt 0;
+  font-family: var(--font-body);
+  font-size: 10pt;
+  line-height: 1.5;
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.025);
+}
+.fin-disclaimer-prominent strong,
+.fin-disclaimer-prominent b { font-weight: 700; }
+${watermarkCss()}
+</style>
+<body>
+<div class="fin-masthead">
+  <div>
+    <p class="fin-wordmark">${escapeHtml(wordmark)}</p>
+    <h1 class="fin-title">${escapeHtml(docTitle)}</h1>
+    ${
+      periodLabel
+        ? `<p class="fin-period">${escapeHtml(periodLabel)}</p>`
+        : periodStart || periodEnd
+          ? `<p class="fin-period">${escapeHtml([periodStart, periodEnd].filter(Boolean).join(' – '))}</p>`
+          : ''
+    }
+    ${entityName ? `<p class="fin-period">${escapeHtml(entityName)}</p>` : ''}
+    ${scenarioLabel ? `<p class="fin-period">Scenario: ${escapeHtml(scenarioLabel)}</p>` : ''}
+  </div>
+  <div class="fin-prepared">
+    <div>Prepared ${escapeHtml(args.preparedDate)}</div>
+    ${preparedBy ? `<div>By ${escapeHtml(preparedBy)}</div>` : ''}
+    <div>${escapeHtml(args.documentId)}</div>
+  </div>
+</div>
+
+<div class="fin-body">${body}</div>
+
+${watermarkHtml}
+</body>
+</html>`
+}
+
+// Canonical disclaimer text per-template. Tax Estimate is liability-exposed
+// and must show its disclaimer on every page footer; other templates leave
+// the disclaimer blank. Callers can override via args.disclaimer.
+const TEMPLATE_DISCLAIMERS: Record<string, string> = {
+  'tax-estimate':
+    'This document is an estimate prepared for planning purposes only. It is not tax advice, is not a substitute for professional tax preparation or legal advice, and does not create a tax-preparer relationship. Consult a licensed CPA or tax attorney before making any tax-related decisions, filing any return, or relying on these estimates. Tax laws change frequently and vary by jurisdiction.',
+}
+
+function resolveDisclaimer(args: BuildPdfArgs): string | undefined {
+  if (args.disclaimer && args.disclaimer.trim().length > 0) return args.disclaimer
+  return TEMPLATE_DISCLAIMERS[args.template.slug]
+}
+
 export async function buildPdf(args: BuildPdfArgs): Promise<Buffer> {
+  // Resolve disclaimer once and thread it through both the rendered HTML
+  // and the Playwright footer template.
+  const resolvedArgs: BuildPdfArgs = {
+    ...args,
+    disclaimer: resolveDisclaimer(args),
+  }
+  args = resolvedArgs
   const html = buildFullHtml(args)
   const preset = resolvePreset(args.fontPreset?.key)
   const placement = args.logoPlacement ?? resolvePlacement(null)
@@ -1211,6 +1447,7 @@ export async function buildPdf(args: BuildPdfArgs): Promise<Buffer> {
     | 'invoice'
     | 'one-pager'
     | 'minutes'
+    | 'financial-statement'
   const flags = placementFlags(placement, layoutKey)
   const logoDataUri = resolveLogoDataUri(args.brand)
   const browser = await launchChromium()
@@ -1222,7 +1459,14 @@ export async function buildPdf(args: BuildPdfArgs): Promise<Buffer> {
     // doesn't see our main-document CSS vars, so we inject the preset's
     // body font stack as a literal string here.
     const footerFontStack = preset.bodyFont.replace(/"/g, "'")
+    // Disclaimer (e.g., Tax Estimate) — when set, it sits above the
+    // page-number line on every page in small italic. Trim length so
+    // long disclaimers don't overflow the footer band.
+    const disclaimerHtml = args.disclaimer
+      ? `<div style="font-style:italic;text-transform:none;letter-spacing:0;font-size:6.5pt;line-height:1.35;padding:0 1.25in 4pt 1.25in;color:${headerFooterColor};">${escapeHtml(args.disclaimer)}</div>`
+      : ''
     const footerTemplate = `
+      ${disclaimerHtml}
       <div style="width:100%;font-family:${footerFontStack};font-size:7pt;letter-spacing:0.18em;text-transform:uppercase;color:${headerFooterColor};padding:0 1.25in;display:flex;justify-content:space-between;">
         <span>${escapeHtml(brandWordmark(args.brand.slug))} · ${escapeHtml(args.template.label.toUpperCase())}</span>
         <span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>

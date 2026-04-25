@@ -41,7 +41,13 @@ export interface Template {
   // High-level document layout. Defaults to "contract" (cover + TOC +
   // numbered sections + signatures). Other layouts take very different
   // shapes and are handled by specialized renderers in pdf.ts.
-  layout?: 'contract' | 'letter' | 'invoice' | 'one-pager' | 'minutes'
+  layout?:
+    | 'contract'
+    | 'letter'
+    | 'invoice'
+    | 'one-pager'
+    | 'minutes'
+    | 'financial-statement'
   fields: TemplateField[]
   sections: TemplateSection[]
   generation_notes: string
