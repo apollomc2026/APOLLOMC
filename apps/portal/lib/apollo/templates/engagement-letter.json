@@ -1,7 +1,7 @@
 {
   "slug": "engagement-letter",
   "label": "Client Engagement Letter",
-  "description": "Formal engagement letter establishing scope, fees, and terms with a client.",
+  "description": "Professional services engagement letter with firm-type variants (legal, accounting, consulting, advisory) and full clause set including scope limitations, conflicts, privilege, retention, withdrawal, and dispute resolution.",
   "category": "contracts",
   "supports_images": false,
   "has_signature_block": true,
@@ -9,8 +9,89 @@
   "layout": "letter",
   "fields": [
     {
+      "id": "firm_type",
+      "label": "Firm type",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "legal",
+          "label": "Legal (law firm, attorney)"
+        },
+        {
+          "value": "accounting",
+          "label": "Accounting / CPA"
+        },
+        {
+          "value": "consulting",
+          "label": "Consulting"
+        },
+        {
+          "value": "advisory",
+          "label": "Advisory"
+        },
+        {
+          "value": "other",
+          "label": "Other professional services"
+        }
+      ],
+      "help": "Drives the scope-limitation, privilege, conflicts, and document-retention clause variants."
+    },
+    {
       "id": "client_name",
-      "label": "Client name",
+      "label": "Client — legal name",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "client_entity_type",
+      "label": "Client — entity type",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "individual",
+          "label": "Individual"
+        },
+        {
+          "value": "llc",
+          "label": "LLC"
+        },
+        {
+          "value": "corporation",
+          "label": "Corporation"
+        },
+        {
+          "value": "partnership",
+          "label": "Partnership"
+        },
+        {
+          "value": "non-profit",
+          "label": "Non-profit"
+        },
+        {
+          "value": "other",
+          "label": "Other"
+        }
+      ]
+    },
+    {
+      "id": "client_address",
+      "label": "Client — notice address",
+      "type": "textarea",
+      "required": true,
+      "help": "Full address for legal notices, including email if applicable."
+    },
+    {
+      "id": "client_signing_authority_name",
+      "label": "Client — signing authority name",
+      "type": "text",
+      "required": true,
+      "help": "The person with authority to bind the client."
+    },
+    {
+      "id": "client_signing_authority_title",
+      "label": "Client — signing authority title",
       "type": "text",
       "required": true
     },
@@ -19,7 +100,54 @@
       "label": "Engagement type",
       "type": "select",
       "required": true,
-      "options": ["Consulting", "Advisory", "Technical services", "Retainer"]
+      "options": [
+        {
+          "value": "consulting",
+          "label": "Consulting"
+        },
+        {
+          "value": "advisory",
+          "label": "Advisory"
+        },
+        {
+          "value": "technical-services",
+          "label": "Technical services"
+        },
+        {
+          "value": "retainer",
+          "label": "Retainer"
+        },
+        {
+          "value": "audit",
+          "label": "Audit"
+        },
+        {
+          "value": "tax-prep",
+          "label": "Tax preparation"
+        },
+        {
+          "value": "litigation",
+          "label": "Litigation"
+        },
+        {
+          "value": "transaction",
+          "label": "Transaction"
+        }
+      ]
+    },
+    {
+      "id": "engagement_scope",
+      "label": "Scope — services included",
+      "type": "textarea",
+      "required": true,
+      "help": "Specific services to be provided. Be precise — vague scope creates fee disputes."
+    },
+    {
+      "id": "engagement_exclusions",
+      "label": "Scope — services explicitly excluded",
+      "type": "textarea",
+      "required": true,
+      "help": "Critical for liability protection. List anything a reasonable client might assume is included but is not."
     },
     {
       "id": "start_date",
@@ -28,45 +156,169 @@
       "required": true
     },
     {
-      "id": "scope_summary",
-      "label": "Scope summary",
-      "type": "textarea",
-      "required": true
+      "id": "fee_structure",
+      "label": "Fee structure",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "fixed-fee",
+          "label": "Fixed fee"
+        },
+        {
+          "value": "hourly",
+          "label": "Hourly"
+        },
+        {
+          "value": "retainer",
+          "label": "Retainer"
+        },
+        {
+          "value": "hybrid",
+          "label": "Hybrid (fixed + hourly)"
+        },
+        {
+          "value": "contingency",
+          "label": "Contingency"
+        }
+      ]
     },
     {
-      "id": "fee_arrangement",
-      "label": "Fee arrangement",
+      "id": "fee_detail",
+      "label": "Fee detail",
       "type": "textarea",
       "required": true,
-      "placeholder": "Monthly retainer, hourly rate, project-based, etc."
+      "help": "Hourly rates by role, retainer amount and replenishment trigger, fixed amount with milestones, or contingency percentage and outcome trigger."
     },
     {
-      "id": "termination_terms",
-      "label": "Termination terms",
-      "type": "textarea",
-      "required": false
+      "id": "expense_policy",
+      "label": "Expense policy",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "client-pays-actual",
+          "label": "Client pays actual expenses at cost"
+        },
+        {
+          "value": "included-in-fee",
+          "label": "Expenses included in fee"
+        },
+        {
+          "value": "pre-approval-over-threshold",
+          "label": "Pre-approval required over threshold"
+        }
+      ]
     },
     {
-      "id": "point_of_contact_client",
-      "label": "Client point of contact",
+      "id": "expense_threshold_dollars",
+      "label": "Expense pre-approval threshold ($)",
+      "type": "number",
+      "required": false,
+      "help": "Only used if pre-approval policy selected."
+    },
+    {
+      "id": "payment_terms",
+      "label": "Payment terms",
+      "type": "text",
+      "required": true,
+      "default": "Net 30"
+    },
+    {
+      "id": "late_payment_interest_percent",
+      "label": "Late payment interest rate (% per month)",
+      "type": "number",
+      "required": false,
+      "default": 1.5
+    },
+    {
+      "id": "firm_point_of_contact_name",
+      "label": "Firm — point of contact name",
       "type": "text",
       "required": true
     },
     {
-      "id": "point_of_contact_provider",
-      "label": "Provider point of contact",
+      "id": "firm_point_of_contact_title",
+      "label": "Firm — point of contact title",
       "type": "text",
       "required": true
+    },
+    {
+      "id": "governing_state",
+      "label": "Governing state",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "dispute_resolution",
+      "label": "Dispute resolution",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "courts",
+          "label": "Courts in governing state"
+        },
+        {
+          "value": "binding-arbitration",
+          "label": "Binding arbitration"
+        },
+        {
+          "value": "mediation-then-arbitration",
+          "label": "Mediation, then arbitration"
+        }
+      ]
     }
   ],
   "sections": [
-    { "id": "cover_letter", "label": "Cover letter", "type": "prose" },
-    { "id": "engagement_scope", "label": "Engagement scope", "type": "prose" },
-    { "id": "fees_and_billing", "label": "Fees and billing", "type": "prose" },
-    { "id": "responsibilities", "label": "Responsibilities of each party", "type": "prose" },
-    { "id": "confidentiality", "label": "Confidentiality", "type": "prose" },
-    { "id": "termination", "label": "Termination", "type": "prose" },
-    { "id": "signatures", "label": "Signatures", "type": "fixed" }
+    {
+      "id": "cover_letter",
+      "title": "Cover Letter"
+    },
+    {
+      "id": "engagement_scope",
+      "title": "Scope of Engagement"
+    },
+    {
+      "id": "scope_exclusions",
+      "title": "Scope Limitations"
+    },
+    {
+      "id": "fees_and_billing",
+      "title": "Fees and Billing"
+    },
+    {
+      "id": "expenses",
+      "title": "Expenses and Disbursements"
+    },
+    {
+      "id": "responsibilities",
+      "title": "Responsibilities of the Parties"
+    },
+    {
+      "id": "conflicts_and_independence",
+      "title": "Conflicts of Interest and Independence"
+    },
+    {
+      "id": "confidentiality_privilege",
+      "title": "Confidentiality and Privilege"
+    },
+    {
+      "id": "document_retention",
+      "title": "Document Retention and File Handling"
+    },
+    {
+      "id": "term_termination_withdrawal",
+      "title": "Term, Termination, and Withdrawal"
+    },
+    {
+      "id": "dispute_resolution",
+      "title": "Dispute Resolution"
+    },
+    {
+      "id": "acceptance_signatures",
+      "title": "Acceptance and Counter-Signature"
+    }
   ],
-  "generation_notes": "Voice: Professional services formality — lawyer/CPA/consultant issuing an engagement letter. Courteous but firm about terms.\n\nStructure:\n- Salutation (Dear [Client Name])\n- Introduction paragraph referencing prior discussions and stating the purpose of the engagement\n- Scope (specific services to be provided)\n- Fee arrangement (restate user input precisely; clarify billing cadence)\n- Responsibilities (both parties' obligations — what client provides, what provider delivers)\n- Confidentiality (standard clause)\n- Termination (standard mutual termination language)\n- Closing paragraph inviting counter-signature\n\nTone examples:\n  CORRECT: \"We are pleased to confirm our engagement to provide the services described below, subject to the terms of this letter.\"\n  WRONG: \"Thanks for choosing us! We're excited to partner with you on this journey.\"\n\nSign off with \"Very truly yours\" or \"Sincerely\" — not \"Best\" or \"Cheers.\"\n\nLength target: 400-800 words."
+  "generation_notes": "Voice: Professional services formality. Lawyer/CPA/consultant issuing an engagement letter. Courteous but firm about terms. Use \"we\" (firm) and \"you\" (client) throughout. Sign off with \"Very truly yours\" or \"Sincerely.\" No marketing language. No softening qualifiers like \"we're excited to,\" \"thanks for choosing us,\" or \"we look forward to partnering.\" This is an instrument of professional engagement, not a sales document.\n\n=== CRITICAL OUTPUT RULES ===\n\nRULE 1: DO NOT emit the document title as <h1> or in any form. The pipeline adds the title on the cover or masthead. Any title in your body HTML creates a duplicate.\n\nRULE 2: DO NOT emit decorative banners, spaced-out letter wordmarks, document IDs, brand names above the first section, or any content before the first <h2> heading. Start directly with the first section heading.\n\nRULE 3: Every section MUST have an <h2> heading with the exact title from the 'sections' array. No section may appear without a heading. Do not let content drift into unlabeled prose.\n\nRULE 4: Emit sections in the exact order listed. Do not skip required sections. Conditional sections (those gated on user input flags) may be omitted only when the input does not include them.\n\n=== SECTION-BY-SECTION REQUIREMENTS ===\n\nCOVER LETTER: Salutation: \"Dear [client_signing_authority_name],\". Two paragraphs. Para 1: state firm is pleased to confirm the engagement, reference the engagement_type as the subject, and reference any prior discussions. Para 2: state purpose of letter — establish terms of engagement, request counter-signature. End the cover-letter section by transitioning into the body of terms. Do not include a salutation in any subsequent section.\n\nSCOPE OF ENGAGEMENT: Specific services to be provided per engagement_scope input. Render as a numbered list if multiple services, or 1–2 paragraphs if narrative. Each item describes what firm will deliver. Use action verbs (\"Prepare\", \"Review\", \"Advise on\", \"Draft\"). End with: \"The services described above constitute the entirety of the engagement under this letter unless modified in a written amendment signed by both parties.\"\n\nSCOPE LIMITATIONS: This is critical for liability — do not skip even if engagement_exclusions input is brief. Lead with: \"The following matters are expressly EXCLUDED from this engagement and are not provided unless agreed to in writing in a separate engagement letter or amendment:\" Then list exclusions from engagement_exclusions input as numbered items. Then add firm-type-specific carve-outs:\n  - If firm_type is 'legal': \"We are not providing tax, accounting, or business advice as part of this engagement.\"\n  - If 'accounting': \"We are not providing legal advice or representation. We do not opine on legal compliance matters except as expressly included in scope.\"\n  - If 'consulting' or 'advisory': \"We do not provide legal, tax, or accounting services. Recommendations regarding such matters should be reviewed with appropriately licensed advisors.\"\nEnd with: \"Services performed beyond the scope described above will require an amendment to this letter or a separate engagement.\"\n\nFEES AND BILLING: Restate fee_structure and fee_detail in plain professional prose. Branch on fee_structure value:\n  - If 'fixed-fee': \"Our fee for this engagement is $[fee from detail]. The fee is payable as follows: [milestones from detail or default 50% on execution, 50% on final delivery].\"\n  - If 'hourly': \"Services will be billed at the hourly rates set forth in fee_detail. Time is billed in [0.1 hour increments]. Invoices are issued monthly on the first business day.\"\n  - If 'retainer': \"A retainer of $[amount from detail] is required at engagement commencement. Time and expenses are drawn against the retainer; the retainer is replenished when balance falls below [threshold from detail].\"\n  - If 'hybrid': describe both fixed and hourly portions per fee_detail.\n  - If 'contingency': \"Our fee is contingent upon [outcome from detail], calculated as [percentage from detail].\"\nLate payment: \"Invoices unpaid after [payment_terms] from invoice date accrue interest at [late_payment_interest_percent]% per month or the maximum rate permitted by applicable law, whichever is lower.\"\n\nEXPENSES AND DISBURSEMENTS: Branch on expense_policy:\n  - 'client-pays-actual': \"All out-of-pocket expenses are billed at cost. Typical expenses include travel, filing fees, third-party services, document production, and courier charges.\"\n  - 'included-in-fee': \"Reasonable in-jurisdiction expenses are included in the fee. Out-of-jurisdiction travel and major third-party expenses (filing fees, expert witnesses, document production) are billed separately at cost.\"\n  - 'pre-approval-over-threshold': \"Expenses below $[expense_threshold_dollars] are billed at cost. Expenses at or above $[expense_threshold_dollars] require Client's prior written approval.\"\nEnd with receipts/documentation: \"Reasonable documentation will accompany expense charges. Disputes regarding specific expenses must be raised within thirty (30) days of the invoice on which they appear.\"\n\nRESPONSIBILITIES OF THE PARTIES: Two sub-paragraphs.\nFirm responsibilities: \"We will perform the services with the professional skill, care, and diligence ordinarily exercised by [firm_type] practitioners under similar circumstances. We will comply with all applicable professional standards, including [for legal: Rules of Professional Conduct of the governing_state state bar; for accounting: AICPA standards and applicable state board regulations; for consulting/advisory: applicable industry standards]. We will keep you reasonably informed of progress and material developments.\"\nClient responsibilities: \"You agree to: (a) provide complete and accurate information necessary for the engagement; (b) respond to requests for information and decisions in a timely manner; (c) make available [client_signing_authority_name] or another designated decision-maker for material decisions; (d) pay invoices when due; (e) inform us promptly of any matter that may affect the engagement.\"\n\nCONFLICTS OF INTEREST AND INDEPENDENCE: Branch on firm_type:\n  - 'legal': \"We have performed a conflicts check based on the information provided and do not believe any conflicts of interest exist that would prevent representation in this matter. You agree to advise us promptly of any potential conflicts of which you become aware. We may represent other clients with interests adverse to yours, provided we are not opposing you in matters substantially related to this engagement. You consent to such representation. If a conflict arises that we believe requires withdrawal, we will notify you in writing.\"\n  - 'accounting': \"We will maintain independence as required by AICPA standards and the [governing_state] state board of accountancy. We are not aware of any relationships that would impair our independence with respect to this engagement. You agree to inform us if you become aware of any matter that could affect our independence.\"\n  - 'consulting' or 'advisory': \"We are not aware of any relationships that would impair our objectivity with respect to this engagement. We may serve other clients in your industry. You agree to inform us if you become aware of any conflict that should be considered.\"\n\nCONFIDENTIALITY AND PRIVILEGE: Branch on firm_type for privilege language:\n  - 'legal': \"All information you provide in connection with this engagement will be held in confidence except as required by law, by court order, or with your consent. The attorney-client privilege attaches to confidential communications between us made for the purpose of obtaining legal advice. To preserve privilege: do not share confidential communications with third parties; do not copy non-clients on email correspondence with us; restrict internal distribution to those with a need to know. The work-product doctrine protects materials prepared in anticipation of litigation.\"\n  - 'accounting' or 'consulting' or 'advisory': \"All information you provide will be held in confidence except as required by law, by regulatory authority, or with your consent. Note that no privilege equivalent to attorney-client privilege attaches to communications between us. If you require privileged communication regarding legal matters arising during this engagement, you should consult with your legal counsel directly.\"\nEnd with: \"This obligation of confidentiality survives termination of this engagement.\"\n\nDOCUMENT RETENTION AND FILE HANDLING: \"Working papers, internal analyses, and draft materials remain our property and are part of our internal records. Final deliverables, executed agreements, and original documents you provided are your property. Upon request during or after the engagement, we will return original documents and provide copies of final deliverables. Our records relating to this engagement will be retained for [seven (7) years for legal/accounting; five (5) years for consulting/advisory], after which they may be destroyed without further notice. If you require longer retention, you must so advise us in writing.\"\n\nTERM, TERMINATION, AND WITHDRAWAL: \"This engagement begins on [start_date] and continues until the services described above are complete or until earlier termination. Either party may terminate this engagement upon written notice. We may withdraw from representation for: (a) non-payment of fees beyond [60] days past due; (b) ethical conflict that cannot be waived; (c) your failure to cooperate or provide required information; (d) your request that we take an action we believe to be improper, unethical, or unlawful; (e) material breach of this engagement letter. Upon termination, fees earned and expenses incurred to date are immediately due. If termination occurs mid-engagement, you agree to pay reasonable wind-down costs (file transfer, transition memos, regulatory notices).\"\n\nDISPUTE RESOLUTION: Branch on dispute_resolution:\n  - 'binding-arbitration': \"Any dispute arising out of or relating to this engagement shall be resolved exclusively by binding arbitration administered by the American Arbitration Association under its Commercial Arbitration Rules. The arbitration shall be conducted by a single arbitrator. The seat of arbitration shall be [governing_state]. The arbitrator's decision shall be final and binding and may be entered in any court of competent jurisdiction. The prevailing party shall be entitled to recover reasonable attorneys' fees and costs.\"\n  - 'mediation-then-arbitration': \"Any dispute shall first be submitted to mediation administered by a mutually-agreed mediator. If the dispute is not resolved by mediation within sixty (60) days, it shall then be resolved by binding arbitration as described above.\"\n  - 'courts': \"Any dispute arising out of or relating to this engagement shall be resolved exclusively in the state or federal courts located in [governing_state]. Both parties consent to personal jurisdiction in such courts.\"\nAdd (all options): \"Claims must be brought within one (1) year of the date the claim arose. Claims not brought within that period are waived.\"\n\nACCEPTANCE AND COUNTER-SIGNATURE: Closing paragraph: \"If the foregoing accurately reflects our engagement, please countersign below and return one signed copy to us. We will commence work upon receipt of the executed letter[, and the initial retainer where applicable]. This engagement is not effective until counter-signed and returned.\" Sign-off: \"Very truly yours,\" followed by [firm_point_of_contact_name], [firm_point_of_contact_title]. The pipeline renders the formal signature block; you do not need to render signature lines, only the closing.\n\n=== LENGTH ===\n1500–2500 words. Engagement letters are professional instruments — be complete but not padded. Each section earns its place; redundant prose is removed."
 }
