@@ -1,69 +1,195 @@
 {
   "slug": "change-order",
   "label": "Change Order",
-  "description": "Formal amendment to an existing SOW with schedule and fee impact.",
+  "description": "Formal contractual amendment with running totals on contract sum and contract time, cost-cause categorization, and reservation of rights.",
   "category": "contracts",
   "supports_images": false,
   "has_signature_block": true,
+  "has_toc": false,
+  "layout": "contract",
   "fields": [
     {
-      "id": "original_sow_reference",
-      "label": "Original SOW reference",
+      "id": "change_order_number",
+      "label": "Change Order number",
       "type": "text",
       "required": true,
-      "placeholder": "SOW number or title"
+      "placeholder": "CO-001",
+      "help": "Sequential identifier across this contract."
+    },
+    {
+      "id": "original_contract_title",
+      "label": "Original contract — title",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "original_contract_date",
+      "label": "Original contract — date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "id": "original_contract_sum_dollars",
+      "label": "Original contract sum ($)",
+      "type": "number",
+      "required": true
+    },
+    {
+      "id": "prior_change_orders_total_dollars",
+      "label": "Net change by prior Change Orders ($)",
+      "type": "number",
+      "required": true,
+      "default": 0,
+      "help": "Sum of all change orders executed before this one. 0 if this is the first."
+    },
+    {
+      "id": "original_completion_date",
+      "label": "Original substantial completion date",
+      "type": "date",
+      "required": true
+    },
+    {
+      "id": "prior_change_orders_days_total",
+      "label": "Net change in time by prior Change Orders (days)",
+      "type": "number",
+      "required": true,
+      "default": 0
     },
     {
       "id": "client_name",
-      "label": "Client name",
+      "label": "Client legal name",
       "type": "text",
       "required": true
     },
     {
       "id": "change_date",
-      "label": "Change order date",
+      "label": "Change Order date",
       "type": "date",
       "required": true
     },
     {
-      "id": "reason_for_change",
-      "label": "Reason for change",
+      "id": "cause_of_change",
+      "label": "Cause of change",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "owner-directed",
+          "label": "Owner-directed (no entitlement to additional damages)"
+        },
+        {
+          "value": "design-clarification",
+          "label": "Design clarification"
+        },
+        {
+          "value": "unforeseen-condition",
+          "label": "Unforeseen condition"
+        },
+        {
+          "value": "regulatory-change",
+          "label": "Regulatory change"
+        },
+        {
+          "value": "force-majeure",
+          "label": "Force majeure"
+        },
+        {
+          "value": "other",
+          "label": "Other"
+        }
+      ],
+      "help": "Drives entitlement analysis. Owner-directed = no claim for delay damages; unforeseen condition = claim possible."
+    },
+    {
+      "id": "cause_description",
+      "label": "Cause — factual description",
       "type": "textarea",
-      "required": true
+      "required": true,
+      "help": "What happened, in neutral past-tense language. Do not assign blame here; that belongs in claim documentation."
     },
     {
       "id": "scope_changes",
-      "label": "Scope changes (additions/removals)",
+      "label": "Scope changes (additions / removals / modifications)",
       "type": "textarea",
-      "required": true
+      "required": true,
+      "help": "Organize as three sections: ADDITIONS, REMOVALS, MODIFICATIONS. One line per item."
     },
     {
-      "id": "schedule_impact",
-      "label": "Schedule impact",
+      "id": "cost_breakdown",
+      "label": "Cost breakdown",
       "type": "textarea",
-      "required": true
+      "required": true,
+      "help": "Labor by role × hours × rate, materials, subs, equipment, overhead %, profit %. The pipeline renders this as a structured table."
     },
     {
-      "id": "fee_impact",
-      "label": "Fee impact",
-      "type": "textarea",
-      "required": true
+      "id": "cost_impact_dollars",
+      "label": "Net cost impact of this Change Order ($)",
+      "type": "number",
+      "required": true,
+      "help": "Signed: positive for additions, negative for credits. Must match the bottom-line of cost_breakdown."
+    },
+    {
+      "id": "schedule_impact_days",
+      "label": "Net schedule impact of this Change Order (days)",
+      "type": "number",
+      "required": true,
+      "help": "Signed: positive for added days, negative for compression. 0 if no time impact."
     },
     {
       "id": "effective_date",
       "label": "Effective date",
       "type": "date",
       "required": true
+    },
+    {
+      "id": "conditional_on",
+      "label": "Conditional on (optional)",
+      "type": "text",
+      "required": false,
+      "help": "If left blank, change order is unconditional. Otherwise, condition that must be satisfied within 30 days for the change order to take effect."
     }
   ],
   "sections": [
-    { "id": "header", "label": "Header", "type": "fixed" },
-    { "id": "reference_to_original", "label": "Reference to original SOW", "type": "prose" },
-    { "id": "change_description", "label": "Change description", "type": "prose" },
-    { "id": "schedule_impact", "label": "Schedule impact", "type": "prose" },
-    { "id": "fee_impact", "label": "Fee impact", "type": "prose" },
-    { "id": "acceptance", "label": "Acceptance", "type": "prose" },
-    { "id": "signatures", "label": "Signatures", "type": "fixed" }
+    {
+      "id": "header",
+      "title": "Header"
+    },
+    {
+      "id": "reference_to_original_contract",
+      "title": "Reference to Original Contract"
+    },
+    {
+      "id": "cause_and_description",
+      "title": "Cause and Description of Change"
+    },
+    {
+      "id": "scope_changes",
+      "title": "Scope Changes"
+    },
+    {
+      "id": "cost_breakdown",
+      "title": "Cost Breakdown"
+    },
+    {
+      "id": "effect_on_contract_sum",
+      "title": "Effect on Contract Sum"
+    },
+    {
+      "id": "effect_on_contract_time",
+      "title": "Effect on Contract Time"
+    },
+    {
+      "id": "reservation_of_rights",
+      "title": "Reservation of Rights"
+    },
+    {
+      "id": "continuing_obligations",
+      "title": "Continuing Obligations"
+    },
+    {
+      "id": "acceptance_signatures",
+      "title": "Acceptance and Signatures"
+    }
   ],
-  "generation_notes": "Voice: Contractual amendment — precise, dry, reference-heavy.\n\nStructure:\n- Header identifying original SOW/contract being amended (title and/or date)\n- Statement of reason for change (one paragraph, factual)\n- Scope changes (what's added, what's removed, what's modified — in that order, each as a bulleted item)\n- Schedule impact (revised dates or \"no schedule impact\")\n- Fee impact (dollar change, new total, payment schedule adjustment)\n- Effective date and acceptance\n\nTone: This is a contractual amendment, not a sales pitch. Do not re-sell the project or re-explain rationale beyond one sentence.\n\nTone examples:\n  CORRECT: \"Effective [date], the Scope section of the original SOW dated [date] is amended to add the following deliverables: ...\"\n  WRONG: \"Due to the amazing progress we've made together, we're excited to expand our work to include...\"\n\nConfirm that all other terms of the original SOW remain in force except as modified here.\n\nLength target: 250-500 words."
+  "generation_notes": "Voice: Contractual amendment formality. Precise, dry, reference-heavy. This is an instrument that modifies an existing contract — not a new agreement and not a sales document. Do not re-sell the project. Do not re-explain rationale beyond one factual sentence. Use legal-amendment voice throughout. The change order is a record of what changed and what now applies; nothing more.\n\n=== CRITICAL OUTPUT RULES ===\n\nRULE 1: DO NOT emit the document title as <h1> or in any form. The pipeline adds the title on the cover or masthead. Any title in your body HTML creates a duplicate.\n\nRULE 2: DO NOT emit decorative banners, spaced-out letter wordmarks, document IDs, brand names above the first section, or any content before the first <h2> heading. Start directly with the first section heading.\n\nRULE 3: Every section MUST have an <h2> heading with the exact title from the 'sections' array. No section may appear without a heading. Do not let content drift into unlabeled prose.\n\nRULE 4: Emit sections in the exact order listed. Do not skip required sections. Conditional sections (those gated on user input flags) may be omitted only when the input does not include them.\n\n=== SECTION REQUIREMENTS ===\n\nREFERENCE TO ORIGINAL CONTRACT: One paragraph. State that this is Change Order [change_order_number] dated [change_date], amending the original contract titled \"[original_contract_title]\" dated [original_contract_date] between [client_name] and [provider — pull from brand]. State: \"All terms and conditions of the Original Contract remain in full force and effect except as expressly modified by this Change Order. In the event of conflict between this Change Order and the Original Contract, this Change Order controls only with respect to the matters expressly addressed herein.\" If prior_change_orders_total_dollars > 0 or prior_change_orders_days_total > 0, also state: \"[N] prior change orders have been executed; this Change Order is in addition to all prior amendments.\"\n\nCAUSE AND DESCRIPTION OF CHANGE: Restate cause_of_change category as a bold lead-in:\n  - 'owner-directed': \"Owner-Directed Change.\"\n  - 'design-clarification': \"Design Clarification.\"\n  - 'unforeseen-condition': \"Unforeseen Condition.\"\n  - 'regulatory-change': \"Regulatory Change.\"\n  - 'force-majeure': \"Force Majeure Event.\"\n  - 'other': \"Other Change Cause.\"\nThen one paragraph factual narrative drawn from cause_description input. Use neutral, past-tense language. Do not assign blame. Do not editorialize. State the underlying facts and the resulting need for the change. Reserve any entitlement assertion to the Reservation of Rights section.\n\nSCOPE CHANGES: Three distinct sub-headings rendered as <h3>:\n  1. <h3>Additions</h3> — bulleted list of items added to the original scope. Drawn from the additions portion of scope_changes input. If none, state \"None.\"\n  2. <h3>Removals</h3> — bulleted list of items removed from the original scope. Drawn from the removals portion. If none, state \"None.\"\n  3. <h3>Modifications</h3> — bulleted list of items modified (existing in original scope but with changed terms). If none, state \"None.\"\nEach item is a single short bullet identifying what is added/removed/modified. Detail belongs in the cost breakdown.\n\nCOST BREAKDOWN: Render cost_breakdown input as a structured <table>. Categories shown as rows:\n  - Labor (with sub-rows by role × hours × rate where breakdown supports it)\n  - Materials (with sub-rows by item where breakdown supports it)\n  - Subcontractors\n  - Equipment\n  - Direct Costs Subtotal\n  - Overhead (typically 5–15% of direct costs)\n  - Profit / Markup (typically 5–15%)\n  - Total Change Order Amount\nThe Total row should equal cost_impact_dollars. If credit (negative cost_impact_dollars), the structure inverts — rows show what is being credited. Format all currency as $1,234.56 with thousand separators.\n\nEFFECT ON CONTRACT SUM: Render as a structured table or right-aligned summary block showing the running total:\n  Original Contract Sum: $[original_contract_sum_dollars]\n  Net Change by Prior Change Orders: $[prior_change_orders_total_dollars] (signed)\n  Contract Sum Prior to This Change Order: $[original_contract_sum_dollars + prior_change_orders_total_dollars]\n  Change by This Change Order: $[cost_impact_dollars] (signed; positive for additions, parentheses for credits)\n  ───────────\n  New Contract Sum: $[computed sum]\nThe line \"New Contract Sum\" should be styled with bold and a top border (use class total-row if styling supported). Format negatives as ($1,234.56) in accounting style or with a minus sign — be consistent. If cost_impact_dollars is 0, state \"There is no change to the Contract Sum as a result of this Change Order.\"\n\nEFFECT ON CONTRACT TIME: Mirror structure for time:\n  Original Substantial Completion Date: [original_completion_date]\n  Net Change in Contract Time by Prior Change Orders: [prior_change_orders_days_total] days (signed)\n  Substantial Completion Date Prior to This Change Order: [computed]\n  Change by This Change Order: [schedule_impact_days] days (signed)\n  ───────────\n  New Substantial Completion Date: [computed]\nIf schedule_impact_days is 0, state explicitly: \"There is no change to the Contract Time as a result of this Change Order. The Substantial Completion Date remains [original or current adjusted date].\" If the change has critical-path implications, note that without claiming the change is on the critical path unless documented.\n\nRESERVATION OF RIGHTS: Standard clause, exact language: \"By executing this Change Order, neither party waives any rights, claims, or defenses related to the Original Contract or to any other matter, including any disputed scope items, pending claims, or contemplated claims, except as expressly resolved by this Change Order. The pricing, schedule, and other terms set forth herein constitute full and complete compensation for the changes specifically described in this Change Order. Neither party admits or concedes liability or entitlement with respect to any matter not expressly addressed herein.\"\nThis section is non-negotiable and must always appear, even if cause_of_change is 'owner-directed'.\n\nCONTINUING OBLIGATIONS: One paragraph: \"All terms, conditions, and obligations of the Original Contract not expressly modified by this Change Order remain in full force and effect. The parties' rights and remedies under the Original Contract are preserved as to all matters not addressed herein. This Change Order does not constitute a novation of the Original Contract. Time remains of the essence.\"\nIf conditional_on field is provided: append a sub-paragraph: \"Conditional Effectiveness: This Change Order is conditional upon [conditional_on]. If the foregoing condition is not satisfied within thirty (30) days of [effective_date], this Change Order shall be null and void and the Original Contract shall continue unmodified. Upon satisfaction of the condition, the parties shall promptly confirm effectiveness in writing.\"\n\nACCEPTANCE AND SIGNATURES: Brief sign-off paragraph: \"The undersigned representatives of the parties, having authority to bind their respective principals, execute this Change Order [N] effective as of [effective_date].\" Then standard counter-party signature lines. The pipeline renders the formal signature block; you do not need to render signature lines. If cause_of_change is 'design-clarification' or 'unforeseen-condition' and the engagement appears to be construction-related, note: \"Architect/Engineer of Record acknowledgment line included where required by the Original Contract.\"\n\n=== LENGTH ===\n800–1500 words. Be complete and precise; do not pad. Change orders are about specifics — vague language defeats the purpose."
 }
