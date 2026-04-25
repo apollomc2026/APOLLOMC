@@ -16,7 +16,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
 <style>
   :root {
@@ -190,12 +190,753 @@
   }
   .signout-btn:hover { background: rgba(255,122,0,0.1); color: var(--orange); }
 
-  /* Main layout */
+  /* Main layout (legacy — kept for in-overlay step rendering) */
   main {
     padding: 92px 24px 48px;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+  }
+
+  /* ======================================================================
+     MISSION CONTROL — Dashboard chrome (new, sits over hero composition)
+     ====================================================================== */
+
+  body[data-standby="true"] .stations-grid,
+  body[data-standby="true"] .quick-launch,
+  body[data-standby="true"] .mission-log {
+    opacity: 0.32;
+    pointer-events: none;
+    filter: blur(2px);
+    transition: filter 0.6s ease-out, opacity 0.6s ease-out;
+  }
+
+  /* Command bar — pinned, slim, semi-transparent */
+  .command-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border-bottom: 1px solid rgba(107,227,255,0.18);
+  }
+  .cb-left, .cb-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .cb-logomark img {
+    height: 28px;
+    width: auto;
+    display: block;
+    filter: drop-shadow(0 0 6px rgba(107,227,255,0.25));
+  }
+  .cb-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 12px;
+    border-left: 1px solid rgba(107,227,255,0.15);
+  }
+  .cb-status-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: rgba(255,255,255,0.7);
+    text-transform: uppercase;
+  }
+  .cb-clock {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: rgba(107,227,255,0.7);
+    letter-spacing: 0.05em;
+    margin-left: 16px;
+  }
+  @media (max-width: 640px) {
+    .cb-clock { display: none; }
+    .cb-status-text { display: none; }
+  }
+
+  /* LED indicator — pulses for operational; amber for standby; red for blocked */
+  .cb-led, .station-led {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4dd964;
+    box-shadow: 0 0 8px rgba(77,217,100,0.7);
+    animation: ledPulse 2.2s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  .cb-led[data-state="degraded"], .station-led[data-state="degraded"] {
+    background: #ffb340;
+    box-shadow: 0 0 8px rgba(255,179,64,0.7);
+  }
+  .cb-led[data-state="blocked"], .station-led[data-state="blocked"] {
+    background: #ff5252;
+    box-shadow: 0 0 8px rgba(255,82,82,0.7);
+    animation-duration: 1s;
+  }
+  .cb-led[data-state="ready"], .station-led[data-state="ready"] {
+    background: #4dd964;
+    box-shadow: 0 0 8px rgba(77,217,100,0.7);
+  }
+  @keyframes ledPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.6; transform: scale(0.88); }
+  }
+
+  /* Brand selector + operator menu (replace old user-menu rules) */
+  .cb-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(107,227,255,0.2);
+    border-radius: 999px;
+    color: rgba(255,255,255,0.85);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .cb-brand:hover { border-color: var(--cyan); }
+  .cb-brand-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--cyan);
+  }
+  .cb-operator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Quick Launch */
+  .quick-launch {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+    flex-wrap: wrap;
+  }
+  .ql-recent {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .ql-recent-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    background: rgba(10,10,15,0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(107,227,255,0.18);
+    border-radius: 8px;
+    padding: 8px 14px;
+    color: var(--text);
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+  }
+  .ql-recent-btn:hover {
+    border-color: var(--cyan);
+    background: rgba(10,10,15,0.75);
+    transform: translateY(-1px);
+  }
+  .ql-recent-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .ql-recent-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.05em;
+  }
+  .ql-recent-empty {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-4);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 12px 4px;
+  }
+  .ql-search {
+    position: relative;
+    flex: 0 1 320px;
+    min-width: 240px;
+    display: flex;
+    align-items: center;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(107,227,255,0.2);
+    border-radius: 8px;
+    padding: 0 12px;
+  }
+  .ql-search:focus-within { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(107,227,255,0.15); }
+  .ql-search-prefix {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--cyan-dim);
+    font-size: 13px;
+    padding-right: 8px;
+    border-right: 1px solid rgba(107,227,255,0.18);
+  }
+  .ql-search input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    padding: 10px 8px;
+  }
+  .ql-search input::placeholder { color: var(--text-4); }
+
+  /* Search overlay — flyout below input with filtered results */
+  .search-overlay {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 200;
+    background: rgba(10,10,15,0.95);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(107,227,255,0.25);
+    border-radius: 8px;
+    padding: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+  }
+  .search-result {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .search-result:hover, .search-result[data-active="true"] {
+    background: rgba(107,227,255,0.1);
+  }
+  .search-result-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .search-result-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.05em;
+  }
+  .search-empty {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-4);
+    letter-spacing: 0.12em;
+    text-align: center;
+    padding: 14px;
+  }
+
+  /* Stations grid */
+  .stations-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    padding: 16px 24px 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  @media (max-width: 900px) {
+    .stations-grid { grid-template-columns: 1fr; padding: 16px 16px 24px; }
+  }
+  .station {
+    display: flex;
+    flex-direction: column;
+  }
+  .station-card {
+    background: rgba(10,10,15,0.55);
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    border: 1px solid rgba(107,227,255,0.15);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    padding: 22px 24px;
+    cursor: pointer;
+    transition: background 0.3s cubic-bezier(0.2,0.8,0.2,1),
+                border-color 0.3s ease,
+                transform 0.3s cubic-bezier(0.2,0.8,0.2,1);
+  }
+  .station-card:hover {
+    background: rgba(10,10,15,0.72);
+    border-color: rgba(107,227,255,0.35);
+    transform: translateY(-2px);
+  }
+  .station[data-armed="true"] .station-card {
+    background: rgba(10,10,15,0.78);
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 2px rgba(107,227,255,0.22), 0 12px 40px rgba(0,0,0,0.5);
+  }
+  .station-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .station-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    color: var(--text);
+    margin: 0;
+  }
+  .station-sub {
+    font-size: 12px;
+    color: var(--text-3);
+    margin: 2px 0 0 0;
+  }
+  .station-header-text { flex: 1; min-width: 0; }
+  .station-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.05em;
+  }
+  .station-count strong {
+    color: var(--cyan);
+    font-weight: 600;
+  }
+  .station-arm {
+    background: rgba(107,227,255,0.12);
+    border: 1px solid rgba(107,227,255,0.4);
+    color: var(--text);
+    padding: 8px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .station-arm:hover {
+    background: rgba(107,227,255,0.22);
+    border-color: var(--cyan);
+  }
+  .station[data-armed="true"] .station-arm {
+    background: rgba(107,227,255,0.3);
+    border-color: var(--cyan);
+    color: var(--cyan);
+  }
+  .station-deliverables {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    margin-top: 0;
+    transition: max-height 0.4s ease-out, opacity 0.3s ease-out, margin-top 0.4s ease-out;
+  }
+  .station[data-armed="true"] .station-deliverables {
+    max-height: 800px;
+    opacity: 1;
+    margin-top: 12px;
+  }
+  .deliverable-launch {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    background: rgba(10,10,15,0.65);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(107,227,255,0.15);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: inherit;
+    cursor: pointer;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+    text-align: left;
+  }
+  .deliverable-launch:last-child { margin-bottom: 0; }
+  .deliverable-launch:hover {
+    border-color: var(--cyan);
+    background: rgba(10,10,15,0.85);
+    transform: translateX(2px);
+  }
+  .dl-icon {
+    color: var(--cyan);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+  .dl-label {
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .dl-status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--green);
+    letter-spacing: 0.18em;
+    background: rgba(123,255,159,0.1);
+    padding: 3px 8px;
+    border-radius: 999px;
+  }
+  .dl-action {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--cyan);
+    letter-spacing: 0.18em;
+    font-weight: 600;
+  }
+
+  /* Mission Log */
+  .mission-log {
+    background: rgba(10,10,15,0.7);
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    border-top: 1px solid rgba(107,227,255,0.18);
+    margin-top: auto;
+    padding: 16px 24px;
+    max-width: 1400px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+  }
+  .ml-summary {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .ml-count, .ml-success {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .ml-count strong, .ml-success strong { color: var(--cyan); font-weight: 600; }
+  .ml-toggle {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid rgba(107,227,255,0.25);
+    color: var(--text-2);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .ml-toggle:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+  }
+  .ml-entries {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.4s ease-out, opacity 0.3s ease-out, margin-top 0.4s ease-out;
+  }
+  .mission-log[data-expanded="true"] .ml-entries {
+    max-height: 600px;
+    overflow-y: auto;
+    opacity: 1;
+    margin-top: 12px;
+  }
+  .ml-entry {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto auto;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(107,227,255,0.1);
+    font-size: 13px;
+  }
+  .ml-entry:last-child { border-bottom: none; }
+  .ml-entry-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .ml-entry-name { color: var(--text); font-weight: 500; }
+  .ml-entry-brand {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .ml-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    padding: 3px 8px;
+    border-radius: 999px;
+  }
+  .ml-badge.success { background: rgba(123,255,159,0.12); color: var(--green); }
+  .ml-badge.error   { background: rgba(255,82,82,0.15);  color: #ff8a8a; }
+  .ml-badge.pending { background: rgba(255,179,64,0.15); color: #ffb340; }
+  .ml-entry-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .ml-entry-actions a, .ml-entry-actions button {
+    background: transparent;
+    border: 1px solid rgba(107,227,255,0.25);
+    color: var(--text-2);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    padding: 4px 10px;
+    border-radius: 4px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .ml-entry-actions a:hover, .ml-entry-actions button:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+  }
+  .ml-empty {
+    text-align: center;
+    padding: 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--text-4);
+  }
+
+  /* Auth modal — glass over dimmed console */
+  .auth-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .auth-modal[hidden] { display: none; }
+  .auth-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .auth-modal-panel {
+    position: relative;
+    z-index: 1;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(30px) saturate(140%);
+    -webkit-backdrop-filter: blur(30px) saturate(140%);
+    border: 1px solid rgba(107,227,255,0.3);
+    border-radius: 16px;
+    padding: 40px 48px;
+    max-width: 460px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.7);
+    animation: modalEnter 0.5s cubic-bezier(0.2,0.8,0.2,1);
+  }
+  @keyframes modalEnter {
+    0%   { opacity: 0; transform: scale(0.92) translateY(20px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .auth-modal.dissolving .auth-modal-panel {
+    animation: modalExit 0.6s ease-out forwards;
+  }
+  @keyframes modalExit {
+    to { opacity: 0; transform: scale(0.95) translateY(-10px); }
+  }
+  .auth-modal h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    color: var(--cyan);
+    margin: 0 0 14pt 0;
+  }
+  .auth-modal p {
+    font-size: 14px;
+    color: var(--text-2);
+    margin: 0 0 20px 0;
+    line-height: 1.55;
+  }
+  .auth-google-btn {
+    background: rgba(107,227,255,0.12);
+    border: 1px solid rgba(107,227,255,0.4);
+    color: var(--text);
+    padding: 14px 28px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    border-radius: 8px;
+    cursor: pointer;
+    margin: 8px 0 14px 0;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .auth-google-btn:hover {
+    background: rgba(107,227,255,0.25);
+    border-color: var(--cyan);
+  }
+  .auth-modal-note {
+    font-size: 12px !important;
+    color: var(--text-4) !important;
+    margin: 8px 0 0 0 !important;
+  }
+  .auth-modal-error {
+    background: rgba(255,82,82,0.12);
+    border: 1px solid rgba(255,82,82,0.35);
+    color: #ff8a8a;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+
+  /* Intake overlay — glass panel that wraps the existing 6-step flow */
+  .intake-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    overflow-y: auto;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 64px 24px 40px;
+  }
+  .intake-overlay[hidden] { display: none; }
+  .intake-overlay-panel {
+    max-width: 960px;
+    margin: 0 auto;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(30px) saturate(140%);
+    -webkit-backdrop-filter: blur(30px) saturate(140%);
+    border: 1px solid rgba(107,227,255,0.25);
+    border-radius: 16px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.7);
+    padding: 28px 32px;
+    position: relative;
+  }
+  .intake-overlay-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: transparent;
+    border: 1px solid rgba(107,227,255,0.25);
+    color: var(--text-2);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    z-index: 2;
+  }
+  .intake-overlay-close:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+  }
+  .intake-overlay main {
+    /* Reset main padding — inside the overlay panel we want flush */
+    padding: 0;
+    min-height: 0;
+  }
+
+  /* Help overlay */
+  .help-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(10px);
+  }
+  .help-overlay[hidden] { display: none; }
+  .help-overlay-panel {
+    background: rgba(10,10,15,0.92);
+    backdrop-filter: blur(30px);
+    border: 1px solid rgba(107,227,255,0.3);
+    border-radius: 12px;
+    padding: 28px 36px;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.7);
+  }
+  .help-overlay h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    color: var(--cyan);
+    margin: 0 0 18px 0;
+    text-transform: uppercase;
+  }
+  .help-shortcuts {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px 18px;
+    font-size: 13px;
+  }
+  .help-shortcuts kbd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: rgba(107,227,255,0.12);
+    border: 1px solid rgba(107,227,255,0.3);
+    color: var(--cyan);
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-align: center;
+    min-width: 56px;
+  }
+  .help-shortcuts span { color: var(--text-2); align-self: center; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cb-led, .station-led { animation: none; }
+    .station-deliverables, .ml-entries { transition-duration: 0.05s; }
+    .auth-modal-panel { animation: none; }
+    .station-card, .ql-recent-btn, .deliverable-launch { transition-duration: 0.05s; }
   }
 
   /* Buttons */
@@ -966,182 +1707,229 @@
   .hidden { display: none !important; }
 
   /* ════════════════════════════════════════════════════════════
-     Cosmic depth layer — sunburst + wordmark + planet watermark
-     All purely decorative. z-index < 0, aria-hidden, pointer-events:none.
+     Apollo Hero — APOLLO wordmark with Mars replacing the first O.
+     Cinematic letter stagger entrance; placeholder O fills the third
+     slot during entrance, then cross-fades to the Mars image once all
+     letters land. Letters and Mars share a synchronized slow pulse.
+     z-index < 0, aria-hidden, pointer-events: none.
      ════════════════════════════════════════════════════════════ */
 
+  /* Ambient cosmic warmth */
   .cosmic-sunburst {
     position: fixed;
-    top: -20vh;
-    right: -15vw;
-    width: 90vw;
-    height: 90vw;
-    max-width: 1400px;
-    max-height: 1400px;
+    top: -25vh; right: -20vw;
+    width: 95vw; height: 95vw;
+    max-width: 1500px; max-height: 1500px;
     pointer-events: none;
     z-index: -2;
-    opacity: 0.8;
+    opacity: 0.55;
   }
   .sunburst-glow {
-    position: absolute;
-    inset: 0;
+    position: absolute; inset: 0;
     background: radial-gradient(
       circle at center,
-      rgba(255, 122, 0, 0.22) 0%,
-      rgba(255, 122, 0, 0.14) 15%,
-      rgba(255, 122, 0, 0.06) 35%,
-      rgba(255, 122, 0, 0.02) 55%,
-      transparent 75%
+      rgba(255,122,0,0.18) 0%,
+      rgba(255,122,0,0.10) 18%,
+      rgba(255,122,0,0.04) 40%,
+      transparent 70%
     );
-    filter: blur(40px);
-    animation: sunburstBreathe 14s ease-in-out infinite;
-  }
-  .sunburst-rays {
-    position: absolute;
-    inset: 0;
-    background: conic-gradient(
-      from 0deg at center,
-      transparent 0deg,
-      rgba(255, 122, 0, 0.04) 4deg,
-      transparent 8deg,
-      transparent 30deg,
-      rgba(255, 122, 0, 0.03) 34deg,
-      transparent 38deg,
-      transparent 60deg,
-      rgba(255, 122, 0, 0.04) 64deg,
-      transparent 68deg,
-      transparent 90deg,
-      rgba(255, 122, 0, 0.03) 94deg,
-      transparent 98deg,
-      transparent 120deg,
-      rgba(255, 122, 0, 0.04) 124deg,
-      transparent 128deg,
-      transparent 150deg,
-      rgba(255, 122, 0, 0.03) 154deg,
-      transparent 158deg,
-      transparent 180deg,
-      rgba(255, 122, 0, 0.04) 184deg,
-      transparent 188deg,
-      transparent 210deg,
-      rgba(255, 122, 0, 0.03) 214deg,
-      transparent 218deg,
-      transparent 240deg,
-      rgba(255, 122, 0, 0.04) 244deg,
-      transparent 248deg,
-      transparent 270deg,
-      rgba(255, 122, 0, 0.03) 274deg,
-      transparent 278deg,
-      transparent 300deg,
-      rgba(255, 122, 0, 0.04) 304deg,
-      transparent 308deg,
-      transparent 330deg,
-      rgba(255, 122, 0, 0.03) 334deg,
-      transparent 338deg,
-      transparent 360deg
-    );
-    filter: blur(8px);
-    animation: sunburstRotate 90s linear infinite;
+    filter: blur(60px);
+    animation: sunburstBreathe 16s ease-in-out infinite;
   }
   @keyframes sunburstBreathe {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50%      { opacity: 0.7; transform: scale(1.05); }
-  }
-  @keyframes sunburstRotate {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
+    0%,100% { opacity: 1; transform: scale(1); }
+    50%     { opacity: 0.7; transform: scale(1.04); }
   }
   @media (max-width: 640px) {
     .cosmic-sunburst {
-      top: -30vh;
-      right: -40vw;
-      width: 140vw;
-      height: 140vw;
-      opacity: 0.6;
+      top: -35vh; right: -45vw;
+      width: 150vw; height: 150vw;
+      opacity: 0.45;
     }
   }
 
-  .wordmark-watermark {
+  /* Subtle starfield drift behind the wordmark */
+  .starfield {
     position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    inset: 0;
+    pointer-events: none;
+    z-index: -2;
+    opacity: 0.45;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.7), transparent),
+      radial-gradient(1px 1px at 60% 70%, rgba(255,255,255,0.6), transparent),
+      radial-gradient(1px 1px at 80% 20%, rgba(255,255,255,0.8), transparent),
+      radial-gradient(1px 1px at 35% 85%, rgba(255,255,255,0.55), transparent),
+      radial-gradient(1px 1px at 90% 60%, rgba(255,255,255,0.7), transparent),
+      radial-gradient(1px 1px at 10% 60%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1px 1px at 50% 10%, rgba(255,255,255,0.65), transparent),
+      radial-gradient(1px 1px at 70% 45%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1px 1px at 25% 50%, rgba(255,255,255,0.6), transparent);
+    background-size: 100% 100%;
+    animation: starfieldDrift 90s linear infinite;
+  }
+  @keyframes starfieldDrift {
+    0%   { background-position: 0 0; }
+    100% { background-position: -50px -30px; }
+  }
+
+  /* Hero stage */
+  .apollo-hero {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* APOLLO wordmark */
+  .wordmark-watermark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-family: 'Inter', sans-serif;
     font-weight: 900;
-    font-size: clamp(12rem, 22vw, 28rem);
-    letter-spacing: 0.15em;
+    font-size: clamp(10rem, 22vw, 28rem);
+    letter-spacing: 0.05em;
     color: #ff7a00;
-    opacity: 0.06;
+    line-height: 1;
     white-space: nowrap;
-    pointer-events: none;
-    z-index: -1;
     user-select: none;
-    text-shadow: 0 0 60px rgba(255, 122, 0, 0.3);
+    position: relative;
   }
-  @media (max-width: 640px) {
-    .wordmark-watermark {
-      font-size: 9rem;
-      opacity: 0.05;
-      letter-spacing: 0.08em;
-    }
+  .wordmark-watermark .letter {
+    display: inline-block;
+    opacity: 0;
+    filter: blur(30px);
+    transform: translateY(80px) scale(1.6);
+    text-shadow: 0 0 0 rgba(255,122,0,0);
+    animation:
+      letterEnter 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards,
+      apolloPulse 7s ease-in-out 5s infinite;
+  }
+  .wordmark-watermark .letter:nth-child(1) { animation-delay: 0.40s, 5s; }
+  .wordmark-watermark .letter:nth-child(2) { animation-delay: 0.65s, 5s; }
+  .wordmark-watermark .letter:nth-child(4) { animation-delay: 1.40s, 5s; }
+  .wordmark-watermark .letter:nth-child(5) { animation-delay: 1.65s, 5s; }
+  .wordmark-watermark .letter:nth-child(6) { animation-delay: 1.90s, 5s; }
+  @keyframes letterEnter {
+    0%   { opacity: 0;    filter: blur(30px); transform: translateY(80px) scale(1.6); text-shadow: 0 0 0 rgba(255,122,0,0); }
+    40%  { opacity: 0.35; filter: blur(8px);  transform: translateY(-8px) scale(1.15); text-shadow: 0 0 60px rgba(255,140,40,0.5); }
+    70%  { opacity: 0.18; filter: blur(1px);  transform: translateY(2px)  scale(1.01); text-shadow: 0 0 80px rgba(255,140,40,0.4); }
+    100% { opacity: 0.12; filter: blur(0);    transform: translateY(0)    scale(1);    text-shadow: 0 0 80px rgba(255,122,0,0.35); }
   }
 
-  .logo-watermark {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) translateY(10vh);
-    pointer-events: none;
-    z-index: -1;
-    opacity: 0.05;
+  /* Synchronized slow pulse — letters and Mars breathe together */
+  @keyframes apolloPulse {
+    0%, 100% { opacity: 0.12; text-shadow: 0 0 80px rgba(255,122,0,0.35); }
+    50%      { opacity: 0.16; text-shadow: 0 0 120px rgba(255,150,50,0.55); }
   }
-  .apollo-planet-large {
+  @keyframes marsPulse {
+    0%, 100% { opacity: 0.42; filter: drop-shadow(0 0 18px rgba(255,140,40,0.25)); }
+    50%      { opacity: 0.49; filter: drop-shadow(0 0 32px rgba(255,160,60,0.40)); }
+  }
+
+  /* Mars slot — third letter position */
+  .mars-slot {
+    display: inline-block;
+    width: 0.85em;
+    height: 1em;
+    margin: 0 0.04em;
     position: relative;
-    width: 50vh;
-    height: 50vh;
-    max-width: 500px;
-    max-height: 500px;
-    background: radial-gradient(circle at 30% 30%, #87ceeb, #4a9eff, #2c5aa0);
-    border-radius: 50%;
-    box-shadow:
-      0 0 100px rgba(74, 158, 255, 0.5),
-      inset -24px -24px 60px rgba(0, 0, 0, 0.3);
+    overflow: visible;
+    vertical-align: baseline;
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+    text-shadow: none !important;
+    animation: none !important;
   }
-  .apollo-planet-large::before {
+
+  /* Placeholder O — visible during entrance, fades out at 3.80s */
+  .placeholder-o {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Inter', sans-serif;
+    font-weight: 900;
+    font-size: 1em;
+    color: #ff7a00;
+    line-height: 1;
+    pointer-events: none;
+    opacity: 0;
+    filter: blur(30px);
+    transform: translateY(80px) scale(1.6);
+    text-shadow: 0 0 0 rgba(255,122,0,0);
+    animation:
+      letterEnter 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) 0.95s forwards,
+      placeholderFade 0.7s ease-out 3.80s forwards;
+  }
+  @keyframes placeholderFade {
+    0%   { opacity: 0.12; }
+    100% { opacity: 0; }
+  }
+
+  /* Mars image — cross-fades in over the placeholder after APOLLO lands */
+  .mars-image {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 0.75em;
+    height: 0.75em;
+    transform: translate(-50%, -50%) scale(0.92);
+    object-fit: contain;
+    opacity: 0;
+    pointer-events: none;
+    filter: drop-shadow(0 0 18px rgba(255,140,40,0.25));
+    animation:
+      marsAppear 1.0s cubic-bezier(0.25, 0.7, 0.3, 1) 3.80s forwards,
+      marsPulse 7s ease-in-out 5s infinite;
+  }
+  @keyframes marsAppear {
+    0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.92); }
+    60%  { opacity: 0.52; transform: translate(-50%, -50%) scale(1.02); }
+    100% { opacity: 0.42; transform: translate(-50%, -50%) scale(1); }
+  }
+
+  /* Ambient periodic glow halo behind the wordmark */
+  .wordmark-watermark::after {
     content: '';
     position: absolute;
-    top: -12%;
-    left: -12%;
-    width: 124%;
-    height: 124%;
-    border: 4px dashed #ff7a00;
-    border-radius: 50%;
-    animation: orbitRotateLarge 120s linear infinite;
+    inset: -10%;
+    background: radial-gradient(
+      ellipse at center,
+      rgba(255,140,40,0.05) 0%,
+      transparent 60%
+    );
+    pointer-events: none;
+    animation: heroGlow 7s ease-in-out 5.5s infinite;
   }
-  @keyframes orbitRotateLarge {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
+  @keyframes heroGlow {
+    0%, 100% { opacity: 0; }
+    50%      { opacity: 1; }
   }
-  .apollo-rocket-large {
-    position: absolute;
-    top: -10%;
-    right: -2%;
-    width: 0;
-    height: 0;
-    border-left: 2vh solid transparent;
-    border-right: 2vh solid transparent;
-    border-bottom: 6vh solid #fff;
-    filter: drop-shadow(0 0 12px #6be3ff);
-    transform: rotate(-15deg);
-  }
+
   @media (max-width: 640px) {
-    .logo-watermark { opacity: 0.04; }
-    .apollo-planet-large { width: 60vw; height: 60vw; }
+    .wordmark-watermark { font-size: 8rem; letter-spacing: 0.02em; }
   }
 
   @media (prefers-reduced-motion: reduce) {
     .sunburst-glow,
-    .sunburst-rays,
-    .apollo-planet-large::before { animation: none; }
+    .wordmark-watermark .letter,
+    .placeholder-o,
+    .mars-image,
+    .starfield,
+    .wordmark-watermark::after { animation: none !important; }
+    .wordmark-watermark .letter {
+      opacity: 0.12; filter: none; transform: none;
+      text-shadow: 0 0 80px rgba(255,122,0,0.35);
+    }
+    .placeholder-o { opacity: 0; }
+    .mars-image { opacity: 0.42; transform: translate(-50%, -50%) scale(1); }
   }
 </style>
 </head>
@@ -1149,12 +1937,12 @@
 
 <div class="cosmic-sunburst" aria-hidden="true">
   <div class="sunburst-glow"></div>
-  <div class="sunburst-rays"></div>
 </div>
-<div class="wordmark-watermark" aria-hidden="true">APOLLO</div>
-<div class="logo-watermark" aria-hidden="true">
-  <div class="apollo-planet-large">
-    <div class="apollo-rocket-large"></div>
+<div class="starfield" aria-hidden="true"></div>
+
+<div class="apollo-hero" aria-hidden="true">
+  <div class="wordmark-watermark">
+    <span class="letter">A</span><span class="letter">P</span><span class="letter mars-slot"><span class="placeholder-o">O</span><img class="mars-image" src="/apollo/mars.png" alt=""></span><span class="letter">L</span><span class="letter">L</span><span class="letter">O</span>
   </div>
 </div>
 
@@ -1162,15 +1950,158 @@
   <div class="warp-lines" id="warpLines"></div>
 </div>
 
-<header>
-  <a href="/apollo/" class="logo">
-    <img src="/apollo/logo.png" alt="" onerror="this.style.display='none'">
-    <span>Apollo</span>
-  </a>
-  <div id="userMenu"></div>
+<!-- COMMAND BAR (pinned, ~56px) -->
+<header class="command-bar" role="banner">
+  <div class="cb-left">
+    <a href="/apollo/" class="cb-logomark" aria-label="Apollo Mission Control">
+      <img src="/apollo/logo.png" alt="" onerror="this.style.display='none'">
+    </a>
+    <div class="cb-status" role="status" aria-live="polite">
+      <span class="cb-led" id="cbLed" data-state="degraded"></span>
+      <span class="cb-status-text" id="cbStatusText">PENDING OPERATOR AUTH</span>
+    </div>
+    <div class="cb-clock" id="missionClock" aria-label="Session clock">00:00:00</div>
+  </div>
+  <div class="cb-right">
+    <div class="cb-brand-selector" id="brandSelector"></div>
+    <div class="cb-operator" id="operatorMenu"></div>
+  </div>
 </header>
 
-<main id="mainContent"></main>
+<!-- QUICK LAUNCH -->
+<section class="quick-launch" aria-label="Quick launch">
+  <div class="ql-recent" id="quickLaunchRecent">
+    <div class="ql-recent-empty">— no recent deployments</div>
+  </div>
+  <div class="ql-search">
+    <span class="ql-search-prefix">/</span>
+    <input type="text" id="quickSearch" placeholder="search deliverables..." aria-label="Quick search" autocomplete="off">
+    <div class="search-overlay" id="searchOverlay" hidden></div>
+  </div>
+</section>
+
+<!-- MISSION STATIONS (2×2 glass panels) -->
+<main class="stations-grid" id="stationsGrid" aria-label="Mission stations">
+  <div class="station" data-station="contracts" data-armed="false">
+    <div class="station-card" tabindex="0" role="button" aria-pressed="false">
+      <div class="station-header">
+        <span class="station-led" data-state="degraded"></span>
+        <div class="station-header-text">
+          <h2 class="station-name">CONTRACTS</h2>
+          <p class="station-sub">Legal-binding documents</p>
+        </div>
+      </div>
+      <div class="station-meta">
+        <div class="station-count"><strong>—</strong> deliverables loaded</div>
+        <div class="station-last">Last deployed: —</div>
+      </div>
+      <button class="station-arm" type="button" aria-expanded="false" aria-controls="station-contracts-deliverables">ARM</button>
+    </div>
+    <div class="station-deliverables" id="station-contracts-deliverables" role="region" aria-hidden="true"></div>
+  </div>
+
+  <div class="station" data-station="proposals" data-armed="false">
+    <div class="station-card" tabindex="0" role="button" aria-pressed="false">
+      <div class="station-header">
+        <span class="station-led" data-state="degraded"></span>
+        <div class="station-header-text">
+          <h2 class="station-name">PROPOSALS</h2>
+          <p class="station-sub">Sales and capability briefs</p>
+        </div>
+      </div>
+      <div class="station-meta">
+        <div class="station-count"><strong>—</strong> deliverables loaded</div>
+        <div class="station-last">Last deployed: —</div>
+      </div>
+      <button class="station-arm" type="button" aria-expanded="false" aria-controls="station-proposals-deliverables">ARM</button>
+    </div>
+    <div class="station-deliverables" id="station-proposals-deliverables" role="region" aria-hidden="true"></div>
+  </div>
+
+  <div class="station" data-station="operations" data-armed="false">
+    <div class="station-card" tabindex="0" role="button" aria-pressed="false">
+      <div class="station-header">
+        <span class="station-led" data-state="degraded"></span>
+        <div class="station-header-text">
+          <h2 class="station-name">OPERATIONS</h2>
+          <p class="station-sub">Field reports and governance</p>
+        </div>
+      </div>
+      <div class="station-meta">
+        <div class="station-count"><strong>—</strong> deliverables loaded</div>
+        <div class="station-last">Last deployed: —</div>
+      </div>
+      <button class="station-arm" type="button" aria-expanded="false" aria-controls="station-operations-deliverables">ARM</button>
+    </div>
+    <div class="station-deliverables" id="station-operations-deliverables" role="region" aria-hidden="true"></div>
+  </div>
+
+  <div class="station" data-station="finance" data-armed="false">
+    <div class="station-card" tabindex="0" role="button" aria-pressed="false">
+      <div class="station-header">
+        <span class="station-led" data-state="degraded"></span>
+        <div class="station-header-text">
+          <h2 class="station-name">FINANCE</h2>
+          <p class="station-sub">Statements and tax documents</p>
+        </div>
+      </div>
+      <div class="station-meta">
+        <div class="station-count"><strong>—</strong> deliverables loaded</div>
+        <div class="station-last">Last deployed: —</div>
+      </div>
+      <button class="station-arm" type="button" aria-expanded="false" aria-controls="station-finance-deliverables">ARM</button>
+    </div>
+    <div class="station-deliverables" id="station-finance-deliverables" role="region" aria-hidden="true"></div>
+  </div>
+</main>
+
+<!-- MISSION LOG (collapsed by default) -->
+<footer class="mission-log" data-expanded="false" aria-label="Mission log">
+  <div class="ml-summary">
+    <span class="ml-count"><strong id="missionCount">—</strong> missions deployed</span>
+    <span class="ml-success"><strong id="successRate">—</strong> success rate</span>
+    <button class="ml-toggle" id="missionLogToggle" type="button" aria-expanded="false" aria-controls="missionEntries">EXPAND ▼</button>
+  </div>
+  <div class="ml-entries" id="missionEntries" role="region" aria-hidden="true">
+    <div class="ml-empty">No missions deployed yet. Arm a station to begin.</div>
+  </div>
+</footer>
+
+<!-- AUTH MODAL — visible by default until auth check completes -->
+<div class="auth-modal" id="authModal" hidden aria-modal="true" role="dialog" aria-labelledby="authModalTitle">
+  <div class="auth-modal-backdrop" aria-hidden="true"></div>
+  <div class="auth-modal-panel">
+    <h2 id="authModalTitle">OPERATOR AUTHENTICATION REQUIRED</h2>
+    <p>Sign in with your authorized Google account to bring mission control online.</p>
+    <div class="auth-modal-error" id="authModalError" hidden></div>
+    <button class="auth-google-btn" id="authGoogleBtn" type="button">
+      <span aria-hidden="true">▶</span> CONTINUE WITH GOOGLE
+    </button>
+    <p class="auth-modal-note">Authorized operators only. Contact mission control to request access.</p>
+  </div>
+</div>
+
+<!-- INTAKE OVERLAY — wraps the existing 6-step flow when a deliverable is launched -->
+<div class="intake-overlay" id="intakeOverlay" hidden>
+  <div class="intake-overlay-panel">
+    <button class="intake-overlay-close" id="intakeOverlayClose" type="button" aria-label="Close intake">ESC ✕</button>
+    <main id="mainContent"></main>
+  </div>
+</div>
+
+<!-- HELP OVERLAY -->
+<div class="help-overlay" id="helpOverlay" hidden role="dialog" aria-labelledby="helpOverlayTitle">
+  <div class="help-overlay-panel">
+    <h2 id="helpOverlayTitle">Keyboard Shortcuts</h2>
+    <div class="help-shortcuts">
+      <kbd>?</kbd>     <span>Toggle this help</span>
+      <kbd>1–4</kbd>   <span>Arm Contracts / Proposals / Operations / Finance</span>
+      <kbd>/</kbd>     <span>Focus search</span>
+      <kbd>Esc</kbd>   <span>Disarm / close overlays</span>
+      <kbd>Enter</kbd> <span>Launch focused result</span>
+    </div>
+  </div>
+</div>
 
 <div id="toastHost"></div>
 
@@ -1276,7 +2207,10 @@
 
   // ---- Header user menu ----
   function renderUserMenu() {
-    const host = $('#userMenu');
+    // Mission Control rebuild: operator menu lives in the command bar, not
+    // the legacy header. Tolerate either container if present.
+    const host = document.getElementById('operatorMenu') || document.getElementById('userMenu');
+    if (!host) return;
     host.innerHTML = '';
     if (state.view !== 'intake' || !state.user) return;
 
@@ -1385,11 +2319,128 @@
   function render() {
     renderUserMenu();
     const main = $('#mainContent');
-    main.innerHTML = '';
-    if (state.view === 'loading') return renderLoading(main);
-    if (state.view === 'signed-out') return renderSignedOut(main);
-    if (state.view === 'not-authorized') return renderNotAuthorized(main);
-    if (state.view === 'intake') return renderIntake(main);
+    const authModal = document.getElementById('authModal');
+    const intakeOverlay = document.getElementById('intakeOverlay');
+
+    // Dashboard chrome is always present (static HTML). The render dispatcher
+    // controls auth-modal visibility, standby mode on the dashboard, and
+    // whether the intake-overlay is open with a 6-step flow inside.
+    if (state.view === 'loading') {
+      enterStandbyMode('CONNECTING…');
+      showAuthModal({ status: 'loading' });
+      hideIntakeOverlay();
+      return;
+    }
+    if (state.view === 'signed-out') {
+      enterStandbyMode('PENDING OPERATOR AUTH');
+      showAuthModal({ status: 'signed-out' });
+      hideIntakeOverlay();
+      return;
+    }
+    if (state.view === 'not-authorized') {
+      enterStandbyMode('OPERATOR NOT AUTHORIZED');
+      showAuthModal({ status: 'not-authorized', email: state.user?.email });
+      hideIntakeOverlay();
+      return;
+    }
+    if (state.view === 'intake') {
+      hideAuthModal();
+      bringConsoleOnline();
+      // The intake overlay is opened on demand (when a deliverable is
+      // launched from a station). Phase 3+ wires that flow; for Phase 2
+      // the overlay stays hidden and the dashboard is the visible UI.
+      if (state.activeTemplateSlug) {
+        showIntakeOverlay();
+        if (main) {
+          main.innerHTML = '';
+          renderIntake(main);
+        }
+      } else {
+        hideIntakeOverlay();
+      }
+      return;
+    }
+  }
+
+  // ----- Mission Control: standby / online state -----
+  function enterStandbyMode(statusText) {
+    document.body.dataset.standby = 'true';
+    const led = document.getElementById('cbLed');
+    const txt = document.getElementById('cbStatusText');
+    if (led) led.dataset.state = 'degraded';
+    if (txt && statusText) txt.textContent = statusText;
+    document.querySelectorAll('.station-led').forEach((l) => { l.dataset.state = 'degraded'; });
+  }
+  function bringConsoleOnline() {
+    if (document.body.dataset.standby !== 'true' && document.body.dataset.online === 'true') return;
+    document.body.dataset.standby = 'false';
+    document.body.dataset.online = 'true';
+    // Cinematic LED cycle: stagger station LEDs amber → green
+    const leds = document.querySelectorAll('.station-led');
+    leds.forEach((led, i) => {
+      setTimeout(() => { led.dataset.state = 'ready'; }, i * 220);
+    });
+    setTimeout(() => {
+      const cbLed = document.getElementById('cbLed');
+      const cbTxt = document.getElementById('cbStatusText');
+      if (cbLed) cbLed.dataset.state = 'operational';
+      if (cbTxt) cbTxt.textContent = 'ALL SYSTEMS OPERATIONAL';
+    }, leds.length * 220 + 100);
+  }
+
+  // ----- Auth modal control -----
+  function showAuthModal(opts) {
+    const modal = document.getElementById('authModal');
+    if (!modal) return;
+    const titleEl = document.getElementById('authModalTitle');
+    const errEl = document.getElementById('authModalError');
+    const btn = document.getElementById('authGoogleBtn');
+    const note = modal.querySelector('.auth-modal-note');
+    const desc = modal.querySelector('p:not(.auth-modal-error):not(.auth-modal-note)');
+    if (errEl) errEl.hidden = true;
+
+    if (opts && opts.status === 'not-authorized') {
+      if (titleEl) titleEl.textContent = 'OPERATOR NOT AUTHORIZED';
+      if (desc) desc.textContent =
+        'This Google account is not on the allowlist. Sign in with an authorized account or contact mission control.';
+      if (errEl && opts.email) {
+        errEl.textContent = 'Signed in as ' + opts.email + ' — not on the allowlist.';
+        errEl.hidden = false;
+      }
+      if (btn) btn.style.display = '';
+      if (note) note.textContent = 'Authorized operators only. Contact mission control to request access.';
+    } else if (opts && opts.status === 'loading') {
+      if (titleEl) titleEl.textContent = 'CONNECTING TO MISSION CONTROL';
+      if (desc) desc.textContent = 'Establishing operator session…';
+      if (btn) btn.style.display = 'none';
+      if (note) note.textContent = '';
+    } else {
+      if (titleEl) titleEl.textContent = 'OPERATOR AUTHENTICATION REQUIRED';
+      if (desc) desc.textContent =
+        'Sign in with your authorized Google account to bring mission control online.';
+      if (btn) btn.style.display = '';
+      if (note) note.textContent = 'Authorized operators only. Contact mission control to request access.';
+    }
+    modal.hidden = false;
+    modal.classList.remove('dissolving');
+    if (btn) setTimeout(() => { try { btn.focus(); } catch (e) {} }, 80);
+  }
+  function hideAuthModal() {
+    const modal = document.getElementById('authModal');
+    if (!modal || modal.hidden) return;
+    modal.classList.add('dissolving');
+    setTimeout(() => {
+      modal.hidden = true;
+      modal.classList.remove('dissolving');
+    }, 600);
+  }
+  function showIntakeOverlay() {
+    const ov = document.getElementById('intakeOverlay');
+    if (ov) ov.hidden = false;
+  }
+  function hideIntakeOverlay() {
+    const ov = document.getElementById('intakeOverlay');
+    if (ov) ov.hidden = true;
   }
 
   function renderLoading(main) {
@@ -2152,7 +3203,38 @@
     return row;
   }
 
+  // ---- Mission Control wiring ----
+  function wireMissionControlEvents() {
+    // Auth modal — Continue with Google → existing OAuth flow
+    const authBtn = document.getElementById('authGoogleBtn');
+    if (authBtn) {
+      authBtn.addEventListener('click', () => {
+        window.location.href = API + '/api/apollo/auth/signin';
+      });
+    }
+    // Intake overlay — close button
+    const closeBtn = document.getElementById('intakeOverlayClose');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        closeIntakeFlow();
+      });
+    }
+  }
+  function closeIntakeFlow() {
+    state.activeTemplateSlug = null;
+    state.step = 1;
+    state.selectedTemplate = null;
+    state.selectedBrand = null;
+    state.formValues = {};
+    state.images = [];
+    state.submitting = false;
+    state.submitResult = null;
+    state.submitError = null;
+    hideIntakeOverlay();
+  }
+
   // ---- Boot ----
+  wireMissionControlEvents();
   bootstrap();
 })();
 </script>
