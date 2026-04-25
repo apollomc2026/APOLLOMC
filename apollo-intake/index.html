@@ -2296,6 +2296,7 @@
     try {
       const d = await getJson('/api/apollo/templates');
       state.templates = d.templates || [];
+      renderStations();
     } catch {}
   }
   async function loadBrands() {
@@ -3203,6 +3204,193 @@
     return row;
   }
 
+  // ---- Mission Control: stations + quick launch + mission log ----
+  // Station → template-slug grouping. The 4 stations represent the user-
+  // visible categories of Apollo deliverables. Order in array = order in
+  // station's deliverable launch list.
+  const STATION_CATEGORIES = {
+    contracts:  ['nda', 'sow', 'engagement-letter', 'change-order'],
+    proposals:  ['proposal', 'one-pager'],
+    operations: ['fsr', 'incident-report', 'meeting-minutes'],
+    finance:    ['invoice', 'budget-vs-actual', 'expense-report', 'personal-monthly', 'cash-flow-forecast', 'tax-estimate'],
+  };
+
+  // Mission Control state — additive to the existing intake `state` object.
+  // Tracks armed station, recent submissions, dashboard data flow.
+  state.armedStation = null;
+  state.submissions = [];
+  state.totalSubmissions = 0;
+  state.activeTemplateSlug = null;
+
+  function formatRelativeTime(iso) {
+    if (!iso) return '—';
+    const ms = Date.now() - new Date(iso).getTime();
+    if (!Number.isFinite(ms) || ms < 0) return '—';
+    const m = Math.floor(ms / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return m + 'm ago';
+    const h = Math.floor(m / 60);
+    if (h < 24) return h + 'h ago';
+    const d = Math.floor(h / 24);
+    if (d < 14) return d + 'd ago';
+    const w = Math.floor(d / 7);
+    return w + 'w ago';
+  }
+
+  function formatTimestamp(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '—';
+    const pad = (n) => String(n).padStart(2, '0');
+    return pad(d.getMonth() + 1) + '/' + pad(d.getDate()) + ' ' +
+           pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  function renderStations() {
+    for (const [stationKey, slugs] of Object.entries(STATION_CATEGORIES)) {
+      const stationEl = document.querySelector('.station[data-station="' + stationKey + '"]');
+      if (!stationEl) continue;
+      const templates = state.templates.filter((t) => slugs.includes(t.slug));
+
+      const countEl = stationEl.querySelector('.station-count strong');
+      if (countEl) countEl.textContent = String(templates.length);
+
+      // Last deployed within this station's templates (current brand)
+      const stationSlugs = templates.map((t) => t.slug);
+      const lastSubmission = state.submissions
+        .filter((s) => stationSlugs.includes(s.template_slug))
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+      const lastEl = stationEl.querySelector('.station-last');
+      if (lastEl) {
+        if (lastSubmission) {
+          const tmpl = state.templates.find((t) => t.slug === lastSubmission.template_slug);
+          lastEl.textContent = 'Last: ' + (tmpl?.label || lastSubmission.template_slug) +
+            ' · ' + formatRelativeTime(lastSubmission.created_at);
+        } else {
+          lastEl.textContent = 'No deployments yet';
+        }
+      }
+
+      // LED — green if templates available, blocked if none
+      const led = stationEl.querySelector('.station-led');
+      if (led && state.view === 'intake') {
+        led.dataset.state = templates.length > 0 ? 'ready' : 'blocked';
+      }
+
+      // Populate deliverable launch buttons (hidden until armed)
+      const deliverablesEl = stationEl.querySelector('.station-deliverables');
+      if (deliverablesEl) {
+        deliverablesEl.innerHTML = templates.map((t) => {
+          return (
+            '<button class="deliverable-launch" data-slug="' + escapeAttr(t.slug) + '" type="button">' +
+              '<span class="dl-icon">▶</span>' +
+              '<span class="dl-label">' + escapeHtml(t.label) + '</span>' +
+              '<span class="dl-status">READY</span>' +
+              '<span class="dl-action">LAUNCH</span>' +
+            '</button>'
+          );
+        }).join('');
+      }
+    }
+  }
+
+  function escapeAttr(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+      .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function armStation(stationKey) {
+    // Disarm any currently-armed station
+    document.querySelectorAll('.station[data-armed="true"]').forEach((el) => {
+      el.dataset.armed = 'false';
+      const arm = el.querySelector('.station-arm');
+      if (arm) {
+        arm.setAttribute('aria-expanded', 'false');
+        arm.textContent = 'ARM';
+      }
+      const card = el.querySelector('.station-card');
+      if (card) card.setAttribute('aria-pressed', 'false');
+      const dv = el.querySelector('.station-deliverables');
+      if (dv) dv.setAttribute('aria-hidden', 'true');
+    });
+
+    state.armedStation = stationKey || null;
+    if (!stationKey) return;
+
+    const el = document.querySelector('.station[data-station="' + stationKey + '"]');
+    if (!el) return;
+    el.dataset.armed = 'true';
+    const arm = el.querySelector('.station-arm');
+    if (arm) {
+      arm.setAttribute('aria-expanded', 'true');
+      arm.textContent = 'ARMED';
+    }
+    const card = el.querySelector('.station-card');
+    if (card) card.setAttribute('aria-pressed', 'true');
+    const dv = el.querySelector('.station-deliverables');
+    if (dv) dv.setAttribute('aria-hidden', 'false');
+  }
+
+  function wireStationEvents() {
+    document.querySelectorAll('.station').forEach((stationEl) => {
+      const key = stationEl.dataset.station;
+      const armBtn = stationEl.querySelector('.station-arm');
+      const card = stationEl.querySelector('.station-card');
+      const toggle = () => {
+        if (state.view !== 'intake') return; // standby — no interaction
+        armStation(state.armedStation === key ? null : key);
+      };
+      if (armBtn) {
+        armBtn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
+      }
+      if (card) {
+        card.addEventListener('click', toggle);
+        card.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+        });
+      }
+    });
+    // Delegated launch buttons
+    const grid = document.getElementById('stationsGrid');
+    if (grid) {
+      grid.addEventListener('click', (e) => {
+        const btn = e.target.closest('.deliverable-launch');
+        if (!btn) return;
+        e.stopPropagation();
+        launchDeliverable(btn.dataset.slug);
+      });
+    }
+  }
+
+  // Open the intake overlay for the chosen deliverable. Reuses the existing
+  // 6-step flow (renderStepBrand → details → images → review → result).
+  // We skip step 1 (template-selection) because the deliverable is already
+  // chosen by the station, but we still need the full template payload
+  // (with fields + sections) for step 3 — defer to advanceFromTemplate.
+  function launchDeliverable(slug) {
+    const tmpl = state.templates.find((t) => t.slug === slug);
+    if (!tmpl) return;
+    state.activeTemplateSlug = slug;
+    state.selectedTemplate = tmpl;
+    state.selectedBrand = null;
+    state.formValues = {};
+    state.images = [];
+    state.submitting = false;
+    state.submitResult = null;
+    state.submitError = null;
+    // Reuse the existing template-detail loader. It caches by slug and
+    // advances state.step to 2 (Brand) on success.
+    if (typeof advanceFromTemplate === 'function') {
+      advanceFromTemplate();
+    } else {
+      state.step = 2;
+      render();
+    }
+  }
+
   // ---- Mission Control wiring ----
   function wireMissionControlEvents() {
     // Auth modal — Continue with Google → existing OAuth flow
@@ -3219,6 +3407,7 @@
         closeIntakeFlow();
       });
     }
+    wireStationEvents();
   }
   function closeIntakeFlow() {
     state.activeTemplateSlug = null;
