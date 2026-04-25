@@ -3272,9 +3272,12 @@
         }
       }
 
-      // LED — green if templates available, blocked if none
+      // LED state is owned by the bringConsoleOnline cinematic cycle on
+      // first auth-success render. After that, only flip to 'blocked' if a
+      // station has zero templates (rare — would only happen if a template
+      // is removed from the catalog mid-session).
       const led = stationEl.querySelector('.station-led');
-      if (led && state.view === 'intake') {
+      if (led && document.body.dataset.online === 'true') {
         led.dataset.state = templates.length > 0 ? 'ready' : 'blocked';
       }
 
