@@ -1,11 +1,20 @@
 {
   "slug": "fsr",
   "label": "Field Service Report",
-  "description": "Technician visit report with photos, equipment notes, and follow-up.",
+  "description": "Technician visit report with SLA timestamps, structured readings (pre/post), parts and materials, safety observations, regulatory compliance codes, and customer attestation.",
   "category": "field-service",
   "supports_images": true,
   "has_signature_block": true,
+  "has_toc": false,
+  "layout": "contract",
   "fields": [
+    {
+      "id": "work_order_number",
+      "label": "Work Order number",
+      "type": "text",
+      "required": true,
+      "help": "WO reference from CMMS or dispatch system."
+    },
     {
       "id": "site_name",
       "label": "Site name",
@@ -19,10 +28,31 @@
       "required": true
     },
     {
+      "id": "customer_contact_onsite",
+      "label": "Customer contact on site",
+      "type": "text",
+      "required": true,
+      "help": "Name and role of the person who met the technician."
+    },
+    {
       "id": "visit_date",
       "label": "Visit date",
       "type": "date",
       "required": true
+    },
+    {
+      "id": "arrival_time",
+      "label": "Arrival time (24hr)",
+      "type": "text",
+      "required": true,
+      "placeholder": "09:15"
+    },
+    {
+      "id": "departure_time",
+      "label": "Departure time (24hr)",
+      "type": "text",
+      "required": true,
+      "placeholder": "11:30"
     },
     {
       "id": "technician_name",
@@ -31,60 +61,203 @@
       "required": true
     },
     {
-      "id": "equipment_involved",
-      "label": "Equipment involved",
+      "id": "technician_license_number",
+      "label": "Technician license / certification number",
       "type": "text",
-      "required": true,
-      "help": "Make/model, lane/gate identifier, asset tag if applicable."
+      "required": false,
+      "help": "For regulated trades (EPA 608, low-voltage, etc)."
+    },
+    {
+      "id": "equipment_asset_id",
+      "label": "Equipment asset ID (CMMS tag)",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "equipment_make_model",
+      "label": "Equipment make and model",
+      "type": "text",
+      "required": true
+    },
+    {
+      "id": "equipment_serial_number",
+      "label": "Equipment serial number",
+      "type": "text",
+      "required": false
     },
     {
       "id": "issue_reported",
       "label": "Issue reported",
       "type": "textarea",
-      "required": true
+      "required": true,
+      "help": "What the customer reported. Verbatim or close paraphrase."
+    },
+    {
+      "id": "pre_work_readings",
+      "label": "Pre-work readings (optional)",
+      "type": "textarea",
+      "required": false,
+      "help": "Each line: parameter | reading | normal range."
     },
     {
       "id": "work_performed",
-      "label": "Work performed",
+      "label": "Work performed (chronological)",
       "type": "textarea",
-      "required": true
+      "required": true,
+      "help": "Time-stamped log of actions taken. Use 24-hour time."
     },
     {
       "id": "parts_used",
       "label": "Parts used",
       "type": "textarea",
       "required": false,
-      "placeholder": "Part name | part number | qty — one per line"
+      "help": "Each line: part name | part number | qty | unit cost."
+    },
+    {
+      "id": "post_work_readings",
+      "label": "Post-work readings (optional)",
+      "type": "textarea",
+      "required": false,
+      "help": "Same format as pre-work readings."
+    },
+    {
+      "id": "safety_observations",
+      "label": "Safety observations",
+      "type": "textarea",
+      "required": false,
+      "help": "LOTO usage, PPE, near-misses."
+    },
+    {
+      "id": "compliance_code",
+      "label": "Regulatory compliance code",
+      "type": "text",
+      "required": false,
+      "help": "EPA Section 608, NFPA 25, ASHRAE 15, etc."
+    },
+    {
+      "id": "customer_concerns_other",
+      "label": "Additional customer concerns (out of scope)",
+      "type": "textarea",
+      "required": false,
+      "help": "Items mentioned by customer outside this work order. Triggers separate ticketing."
+    },
+    {
+      "id": "pm_recommendations",
+      "label": "Preventive maintenance recommendations",
+      "type": "textarea",
+      "required": false
+    },
+    {
+      "id": "warranty_status",
+      "label": "Warranty status",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "in-warranty",
+          "label": "In warranty"
+        },
+        {
+          "value": "out-of-warranty",
+          "label": "Out of warranty"
+        },
+        {
+          "value": "warranty-claim-submitted",
+          "label": "Warranty claim submitted"
+        },
+        {
+          "value": "not-applicable",
+          "label": "Not applicable"
+        }
+      ]
     },
     {
       "id": "time_on_site_hours",
       "label": "Time on site (hours)",
       "type": "number",
-      "required": true
+      "required": true,
+      "help": "For billing and SLA verification. Should equal departure − arrival."
     },
     {
       "id": "follow_up_required",
       "label": "Follow-up required",
       "type": "select",
       "required": true,
-      "options": ["None", "Parts order", "Return visit", "Escalation"]
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "parts-order",
+          "label": "Parts order — return visit pending parts"
+        },
+        {
+          "value": "return-visit",
+          "label": "Return visit required"
+        },
+        {
+          "value": "escalation",
+          "label": "Escalation — engineering / vendor / supervisor"
+        }
+      ]
     },
     {
       "id": "customer_signature_name",
-      "label": "Customer sign-off (printed name)",
+      "label": "Customer sign-off — printed name",
       "type": "text",
       "required": false
     }
   ],
   "sections": [
-    { "id": "cover", "label": "Cover page", "type": "fixed" },
-    { "id": "visit_details", "label": "Visit details", "type": "prose" },
-    { "id": "issue_description", "label": "Issue description", "type": "prose" },
-    { "id": "work_performed", "label": "Work performed", "type": "prose" },
-    { "id": "parts_and_materials", "label": "Parts and materials", "type": "prose" },
-    { "id": "photos", "label": "Photos", "type": "fixed" },
-    { "id": "follow_up", "label": "Follow-up", "type": "prose" },
-    { "id": "technician_attestation", "label": "Technician attestation", "type": "fixed" }
+    {
+      "id": "cover",
+      "title": "Cover Page"
+    },
+    {
+      "id": "visit_summary",
+      "title": "Visit Summary"
+    },
+    {
+      "id": "equipment_identification",
+      "title": "Equipment Identification"
+    },
+    {
+      "id": "issue_description",
+      "title": "Issue Description and Pre-Work State"
+    },
+    {
+      "id": "work_performed",
+      "title": "Work Performed"
+    },
+    {
+      "id": "parts_materials",
+      "title": "Parts and Materials"
+    },
+    {
+      "id": "post_work_state",
+      "title": "Post-Work State and Verification"
+    },
+    {
+      "id": "safety_compliance",
+      "title": "Safety and Compliance"
+    },
+    {
+      "id": "photos",
+      "title": "Photos and Documentation"
+    },
+    {
+      "id": "customer_concerns",
+      "title": "Additional Customer Concerns"
+    },
+    {
+      "id": "recommendations_followup",
+      "title": "Recommendations and Follow-Up"
+    },
+    {
+      "id": "attestation_signoff",
+      "title": "Attestation and Customer Sign-Off"
+    }
   ],
-  "generation_notes": "Voice: Technical field-report. Factual, chronological, specific. Written as if the technician is documenting for their own records and a supervisor who wasn't there.\n\nStructure:\n- Visit Details (date, site, technician, equipment — direct data)\n- Issue Description (what was reported, observed state on arrival)\n- Work Performed (chronological actions taken, specific components touched, readings taken)\n- Parts Used (itemized if any)\n- Photos (reference embedded images by caption if images provided)\n- Follow-Up (any return visit needed, parts orders placed, escalations)\n- Technician Attestation (\"I certify the above is accurate. [Technician name], [Date]\")\n\nTone examples:\n  CORRECT: \"Arrived 09:15. Unit displayed fault code E14 on primary controller. Reset controller per manufacturer procedure; fault cleared. Verified operation through 3 cycle tests. Unit operating normally at departure 10:40.\"\n  WRONG: \"I went to the site and found some issues with the system. After troubleshooting, I was able to resolve the problem and the system is now working great!\"\n\nNever soften or embellish. If the unit is broken, say \"Unit inoperative.\" If the repair is temporary, say \"Temporary repair in place pending parts order.\"\n\nLength target: 300-700 words."
+  "generation_notes": "Voice: Technical field-report. Factual, chronological, specific. Written for two audiences: a supervisor who wasn't there and needs to understand what happened, and a property manager who needs to verify billing, SLA compliance, and regulatory documentation. Use 24-hour time throughout. Use the technician's name in third person (\"Technician arrived...\", \"[name] performed...\"). Past tense for actions taken; present tense only for observed final state.\n\nDO NOT soften observations. State objective conditions:\n  WRONG: \"The unit seems to be working better now.\"\n  CORRECT: \"Unit operating within manufacturer-specified parameters at departure.\"\n  WRONG: \"I went to the site and found some issues.\"\n  CORRECT: \"Arrived 09:15. Observed fault code E14 on primary controller.\"\n\n=== CRITICAL OUTPUT RULES ===\n\nRULE 1: DO NOT emit the document title as <h1> or in any form. The pipeline adds the title on the cover or masthead. Any title in your body HTML creates a duplicate.\n\nRULE 2: DO NOT emit decorative banners, spaced-out letter wordmarks, document IDs, brand names above the first section, or any content before the first <h2> heading. Start directly with the first section heading.\n\nRULE 3: Every section MUST have an <h2> heading with the exact title from the 'sections' array. No section may appear without a heading. Do not let content drift into unlabeled prose.\n\nRULE 4: Emit sections in the exact order listed. Do not skip required sections. Conditional sections (those gated on user input flags) may be omitted only when the input does not include them.\n\n=== SECTION REQUIREMENTS ===\n\nVISIT SUMMARY: One paragraph (3–5 sentences). Format: \"Work Order [work_order_number] — [site_name]. Technician [technician_name] performed service on [visit_date], arriving at [arrival_time] and departing at [departure_time] (total time on site: [computed]). Customer contact on site: [customer_contact_onsite]. Outcome: [one-sentence summary tied to follow_up_required selection — 'No follow-up required; equipment operating normally' / 'Parts ordered; return visit pending receipt' / 'Issue requires escalation; details below'].\"\n\nEQUIPMENT IDENTIFICATION: Render as a definition list or labeled lines:\n  Asset ID: [equipment_asset_id]\n  Make/Model: [equipment_make_model]\n  Serial Number: [equipment_serial_number] (if provided; omit line if not)\n  Service History: brief one-line note if relevant (e.g., \"Last serviced [date]\" if data available; otherwise \"Not available in this report\").\n  Warranty Status: [warranty_status human-readable form — In Warranty / Out of Warranty / Warranty Claim Submitted / Not Applicable]\n\nISSUE DESCRIPTION AND PRE-WORK STATE: Two distinct sub-paragraphs:\n  Sub-paragraph 1 — Issue Reported: Verbatim or close paraphrase of issue_reported input. Frame as: \"Customer report: [issue].\" If multiple issues reported, number them.\n  Sub-paragraph 2 — Pre-Work State (if pre_work_readings provided): \"On arrival, the following readings were observed:\" followed by a structured list (Parameter | Reading | Normal Range or Manufacturer Spec). Format: \"Suction pressure: 47 psig (normal: 40–55 psig). Discharge pressure: 235 psig (normal: 200–260 psig). Fault code: E14 (Primary controller / sensor mismatch).\" If no pre_work_readings, state \"Pre-work readings not taken; proceeded directly to issue verification.\"\n\nWORK PERFORMED: Chronological narrative with specific times throughout, drawn from work_performed input. Each step on its own line or in a tight numbered list. Include precise terminology, manufacturer terms, fault codes, manufacturer procedures referenced. Example tone:\n  \"09:15 — Arrived on site. Met customer contact [customer_contact_onsite]. Reviewed issue: barrier intermittently failing to raise.\n  09:20 — Verified fault code E14 on primary controller display.\n  09:25 — Performed Lockout/Tagout on lane 3 power per company procedure. PPE worn: cut-resistant gloves, safety glasses.\n  09:35 — Opened controller cabinet. Verified power present, all connections intact.\n  09:42 — Performed controller reset per manufacturer procedure (SKIDATA M-Series Service Manual section 4.2 'Cold Reset').\n  09:48 — Fault cleared; controller display reads READY.\n  09:50–10:20 — Verified operation through 3 consecutive cycle tests using test ticket. All cycles completed within manufacturer time spec (≤ 4.5 seconds raise, ≤ 4.5 seconds lower).\n  10:25 — Removed Lockout/Tagout. Verified amperage draw at 4.2A (normal: 4.0–4.5A under load).\n  10:35 — Verified operation with live ticket from customer-supplied test card. Confirmed fee acceptance and barrier raise within spec.\"\nEach action: what was done, what component was touched, what was observed, in what time. Use precise nouns (\"controller\", \"limit switch\", \"loop detector\"), not generic ones (\"the thing\").\n\nPARTS AND MATERIALS: If parts_used input is non-empty, render as a <table> with columns: Part Name | Part Number | Quantity | Unit Cost | Extended Cost. Compute Extended = Quantity × Unit Cost. Subtotal row at the bottom. If no parts, state explicitly: \"No parts used. No material costs incurred.\"\n\nPOST-WORK STATE AND VERIFICATION: If post_work_readings provided, render as a structured list (Parameter | Reading | Normal Range). Compare to pre-work where possible: \"Suction pressure pre-work: 47 psig; post-work: 49 psig (within spec). Fault code pre-work: E14; post-work: NONE.\" Then verification testing performed: number of cycles, manufacturer-spec compliance, customer demonstration if applicable. Final operational status as one of:\n  - \"Operating normally. All readings within manufacturer specifications. Unit returned to service.\"\n  - \"Operating with limitations: [specific limitations]. Customer notified.\"\n  - \"Not operating; awaiting parts. Unit out of service. ETA per parts order.\"\n  - \"Operational with temporary repair. Permanent repair scheduled per Follow-Up section.\"\n\nSAFETY AND COMPLIANCE: If safety_observations provided, render as a list of observed conditions and actions taken. Always include these standard items even if no specific input:\n  Lockout/Tagout: [used / not required for this work]\n  PPE worn: [appropriate to task — list]\n  Near-misses or unsafe conditions observed: [from input or \"None\"]\nIf compliance_code input is provided (e.g., \"EPA Section 608\", \"NFPA 25\", \"ASHRAE 15\"), state: \"Work performed in compliance with [compliance_code]. Technician certification: [technician_license_number if provided, otherwise 'on file with employer'].\" If no compliance code, state \"No specific regulatory code applicable to this work.\"\n\nPHOTOS AND DOCUMENTATION: This section is fixed by the pipeline (the renderer attaches uploaded images). In your generated text, reference embedded images by their figure number as appropriate (e.g., \"as shown in Figure 1\"). Each photo caption format must be: \"[Figure N]: [what photo shows] [Before/During/After].\" If no photos provided in this submission, state: \"No photos attached for this visit.\"\n\nADDITIONAL CUSTOMER CONCERNS: ONLY emit if customer_concerns_other input is non-empty. Lead with: \"During the visit, the customer mentioned the following items outside the scope of Work Order [work_order_number]:\" Then numbered list of items. End with: \"These items have been logged for separate ticket creation. No work was performed on these items under this work order.\"\n\nRECOMMENDATIONS AND FOLLOW-UP: If pm_recommendations is provided, list as numbered preventive maintenance recommendations with target intervals (e.g., \"Replace primary controller battery — recommended at next 6-month PM cycle\"). Then follow_up_required statement based on selection:\n  - 'none': \"No follow-up required. Equipment operating normally; next scheduled service per maintenance contract.\"\n  - 'parts-order': \"Follow-up required: parts on order. Parts: [list from parts_used or notes]. ETA: [if known]. Return visit will be scheduled upon parts receipt.\"\n  - 'return-visit': \"Follow-up required: return visit. Reason: [from notes]. Recommended timeframe: [based on issue urgency].\"\n  - 'escalation': \"Follow-up required: escalation. This issue exceeds the scope of this work order and requires [engineering review / vendor support / supervisor disposition]. Escalated to [contact] on [date].\"\nEnd with: \"Warranty status confirmed at time of service: [warranty_status].\"\n\nATTESTATION AND CUSTOMER SIGN-OFF: Two attestation paragraphs:\n  Technician attestation: \"I, [technician_name], certify that the foregoing is an accurate and complete account of the work performed on [visit_date] under Work Order [work_order_number]. License/Certification: [technician_license_number if provided, otherwise 'on file with employer']. — [Date].\"\n  Customer sign-off: \"Customer acknowledges that the work described above was performed and accepts the work as described, pending any items noted under Recommendations and Follow-Up. Acknowledged by [customer_signature_name if provided, otherwise blank line].\" The pipeline renders the formal signature block; do not render signature lines.\n\n=== LENGTH ===\n500–1200 words. Field reports favor specificity over verbosity. Length should follow the complexity of the visit. A simple reset call may be 400 words; a multi-fault diagnostic call with parts replacement may be 1000."
 }
