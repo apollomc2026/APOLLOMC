@@ -2285,6 +2285,7 @@
         await loadTemplates();
         await loadBrands();
         await loadStyleOptions();
+        await loadSubmissions();
       }
     } catch (err) {
       state.view = 'signed-out';
@@ -3334,6 +3335,203 @@
     if (dv) dv.setAttribute('aria-hidden', 'false');
   }
 
+  // ---- Quick Launch ----
+  function renderQuickLaunch() {
+    const container = document.getElementById('quickLaunchRecent');
+    if (!container) return;
+    const recent = (state.submissions || []).slice(0, 3);
+    if (recent.length === 0) {
+      container.innerHTML = '<div class="ql-recent-empty">— no recent deployments</div>';
+      return;
+    }
+    container.innerHTML = recent.map((s) => {
+      const tmpl = state.templates.find((t) => t.slug === s.template_slug);
+      const label = tmpl?.label || s.template_label || s.template_slug;
+      return (
+        '<button class="ql-recent-btn" data-slug="' + escapeAttr(s.template_slug) + '" type="button">' +
+          '<span class="ql-recent-label">' + escapeHtml(label) + '</span>' +
+          '<span class="ql-recent-time">' + escapeHtml(formatRelativeTime(s.created_at)) + '</span>' +
+        '</button>'
+      );
+    }).join('');
+    container.querySelectorAll('.ql-recent-btn').forEach((btn) => {
+      btn.addEventListener('click', () => launchDeliverable(btn.dataset.slug));
+    });
+  }
+
+  // ---- Slash-command search ----
+  let searchActiveIndex = -1;
+  function wireQuickSearch() {
+    const input = document.getElementById('quickSearch');
+    const overlay = document.getElementById('searchOverlay');
+    if (!input || !overlay) return;
+    input.addEventListener('focus', () => {
+      filterSearchResults(input.value);
+      overlay.hidden = false;
+    });
+    input.addEventListener('input', () => {
+      filterSearchResults(input.value);
+      overlay.hidden = false;
+    });
+    input.addEventListener('keydown', (e) => {
+      const items = overlay.querySelectorAll('.search-result');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        searchActiveIndex = Math.min(searchActiveIndex + 1, items.length - 1);
+        highlightSearchActive();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        searchActiveIndex = Math.max(searchActiveIndex - 1, 0);
+        highlightSearchActive();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const item = items[searchActiveIndex] || items[0];
+        if (item) {
+          const slug = item.dataset.slug;
+          input.value = '';
+          overlay.hidden = true;
+          input.blur();
+          launchDeliverable(slug);
+        }
+      } else if (e.key === 'Escape') {
+        overlay.hidden = true;
+        input.blur();
+      }
+    });
+    document.addEventListener('click', (e) => {
+      if (!overlay.contains(e.target) && e.target !== input) {
+        overlay.hidden = true;
+      }
+    });
+  }
+  function filterSearchResults(query) {
+    const overlay = document.getElementById('searchOverlay');
+    if (!overlay) return;
+    const q = (query || '').trim().toLowerCase();
+    const matches = state.templates.filter((t) => {
+      if (!q) return true;
+      return (t.label || '').toLowerCase().includes(q) ||
+             (t.description || '').toLowerCase().includes(q) ||
+             (t.slug || '').toLowerCase().includes(q) ||
+             (t.category || '').toLowerCase().includes(q);
+    }).slice(0, 12);
+    if (matches.length === 0) {
+      overlay.innerHTML = '<div class="search-empty">— no deliverables match —</div>';
+      searchActiveIndex = -1;
+      return;
+    }
+    overlay.innerHTML = matches.map((t, i) => {
+      const station = stationKeyForSlug(t.slug) || '';
+      return (
+        '<div class="search-result" data-slug="' + escapeAttr(t.slug) + '" data-active="' + (i === 0 ? 'true' : 'false') + '">' +
+          '<span class="search-result-label">' + escapeHtml(t.label) + '</span>' +
+          '<span class="search-result-meta">' + escapeHtml((station || t.category || 'deliverable').toUpperCase()) + ' · ' + escapeHtml(t.slug) + '</span>' +
+        '</div>'
+      );
+    }).join('');
+    searchActiveIndex = 0;
+    overlay.querySelectorAll('.search-result').forEach((el) => {
+      el.addEventListener('click', () => {
+        const input = document.getElementById('quickSearch');
+        if (input) { input.value = ''; input.blur(); }
+        overlay.hidden = true;
+        launchDeliverable(el.dataset.slug);
+      });
+    });
+  }
+  function highlightSearchActive() {
+    const overlay = document.getElementById('searchOverlay');
+    if (!overlay) return;
+    overlay.querySelectorAll('.search-result').forEach((el, i) => {
+      el.dataset.active = String(i === searchActiveIndex);
+    });
+  }
+  function stationKeyForSlug(slug) {
+    for (const [key, slugs] of Object.entries(STATION_CATEGORIES)) {
+      if (slugs.includes(slug)) return key;
+    }
+    return null;
+  }
+
+  // ---- Mission Log ----
+  async function loadSubmissions() {
+    try {
+      const r = await fetch(API + '/api/apollo/submissions?limit=50', { credentials: 'include' });
+      if (!r.ok) {
+        // Auth gate handled by main render loop; for everything else, log silently.
+        if (r.status === 401 || r.status === 403) return;
+        throw new Error('HTTP ' + r.status);
+      }
+      const data = await r.json();
+      state.submissions = data.submissions || [];
+      state.totalSubmissions = data.total_count || state.submissions.length;
+      renderMissionLog();
+      renderQuickLaunch();
+      renderStations(); // refresh "Last deployed" lines
+    } catch (err) {
+      // Mission Log is non-blocking — failure should not break the rest of
+      // the dashboard. Toast a small message but keep going.
+      try { toast('Mission log unavailable: ' + (err && err.message ? err.message : String(err))); } catch (e) {}
+    }
+  }
+  function renderMissionLog() {
+    const countEl = document.getElementById('missionCount');
+    const successEl = document.getElementById('successRate');
+    if (countEl) countEl.textContent = String(state.totalSubmissions || 0);
+    const failed = state.submissions.filter((s) => s.status === 'failed').length;
+    const successPct = state.totalSubmissions > 0
+      ? Math.round((1 - failed / state.totalSubmissions) * 100)
+      : 100;
+    if (successEl) successEl.textContent = successPct + '%';
+
+    const entriesEl = document.getElementById('missionEntries');
+    if (!entriesEl) return;
+    if (state.submissions.length === 0) {
+      entriesEl.innerHTML = '<div class="ml-empty">No missions deployed yet. Arm a station to begin.</div>';
+      return;
+    }
+    const visible = state.submissions.slice(0, 10);
+    entriesEl.innerHTML = visible.map((s) => {
+      const tmpl = state.templates.find((t) => t.slug === s.template_slug);
+      const label = tmpl?.label || s.template_label || s.template_slug;
+      const badge = s.status === 'delivered' || s.status === 'completed'
+        ? '<span class="ml-badge success">✓ COMPLETE</span>'
+        : s.status === 'failed'
+        ? '<span class="ml-badge error">✗ FAILED</span>'
+        : '<span class="ml-badge pending">⋯ ' + escapeHtml((s.status || 'pending').toUpperCase()) + '</span>';
+      const dl = s.pdf_url && (s.status === 'delivered' || s.status === 'completed')
+        ? '<a href="' + escapeAttr(s.pdf_url) + '" target="_blank" rel="noopener noreferrer">DOWNLOAD</a>'
+        : '';
+      const clone = '<button data-action="clone" data-slug="' + escapeAttr(s.template_slug) + '" type="button">CLONE</button>';
+      return (
+        '<div class="ml-entry" data-id="' + escapeAttr(s.id) + '">' +
+          '<span class="ml-entry-time">' + escapeHtml(formatTimestamp(s.created_at)) + '</span>' +
+          '<span class="ml-entry-name">' + escapeHtml(label) + '</span>' +
+          '<span class="ml-entry-brand">' + escapeHtml(s.brand_slug || '') + '</span>' +
+          badge +
+          '<span class="ml-entry-actions">' + dl + clone + '</span>' +
+        '</div>'
+      );
+    }).join('');
+    // Wire clone buttons
+    entriesEl.querySelectorAll('button[data-action="clone"]').forEach((btn) => {
+      btn.addEventListener('click', () => launchDeliverable(btn.dataset.slug));
+    });
+  }
+  function wireMissionLogToggle() {
+    const toggle = document.getElementById('missionLogToggle');
+    const log = document.querySelector('.mission-log');
+    const entries = document.getElementById('missionEntries');
+    if (!toggle || !log || !entries) return;
+    toggle.addEventListener('click', () => {
+      const expanded = log.dataset.expanded === 'true';
+      log.dataset.expanded = expanded ? 'false' : 'true';
+      toggle.setAttribute('aria-expanded', String(!expanded));
+      entries.setAttribute('aria-hidden', String(expanded));
+      toggle.textContent = expanded ? 'EXPAND ▼' : 'COLLAPSE ▲';
+    });
+  }
+
   function wireStationEvents() {
     document.querySelectorAll('.station').forEach((stationEl) => {
       const key = stationEl.dataset.station;
@@ -3408,6 +3606,8 @@
       });
     }
     wireStationEvents();
+    wireQuickSearch();
+    wireMissionLogToggle();
   }
   function closeIntakeFlow() {
     state.activeTemplateSlug = null;
