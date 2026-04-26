@@ -9,12 +9,23 @@ const nextConfig: NextConfig = {
   // node_modules/@sparticuz/chromium/bin.
   outputFileTracingRoot: path.join(__dirname, "../../"),
 
-  // Force-include every file under the chromium package in the serverless
-  // bundle for the submit route. The package ships a Brotli-compressed
-  // chrome.br plus helper shared libs — all must land in /var/task.
+  // Force-include files that Next's tracer can't see at compile time:
+  //   - @sparticuz/chromium binary + libs (loaded dynamically inside
+  //     the submit route's launchChromium())
+  //   - lib/apollo/packages/** — JSON modules/schemas + style-library .md
+  //     files read at runtime by packages-loader.ts via fs.readFileSync.
+  //     Without explicit inclusion the serverless bundle ships without
+  //     the catalog and every catalog-aware route 500s with ENOENT.
   outputFileTracingIncludes: {
     "/api/apollo/submit": [
       "../../node_modules/@sparticuz/chromium/**/*",
+      "lib/apollo/packages/**/*",
+    ],
+    "/api/apollo/templates": [
+      "lib/apollo/packages/**/*",
+    ],
+    "/api/apollo/templates/[slug]": [
+      "lib/apollo/packages/**/*",
     ],
   },
 
