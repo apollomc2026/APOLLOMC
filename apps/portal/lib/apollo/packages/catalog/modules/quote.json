@@ -1,0 +1,48 @@
+{
+  "deliverable_slug": "quote",
+  "required_fields": [
+    { "key": "customer_name", "label": "Customer name", "type": "text", "placeholder": "Acme Corp" },
+    { "key": "customer_address", "label": "Customer address", "type": "textarea", "placeholder": "Full billing address" },
+    { "key": "quote_date", "label": "Quote date", "type": "date" },
+    { "key": "valid_until", "label": "Valid until", "type": "date" },
+    { "key": "scope_summary", "label": "Scope summary", "type": "textarea", "placeholder": "One-paragraph description of the work being quoted..." },
+    { "key": "line_items", "label": "Line items", "type": "textarea", "placeholder": "List each item or service line: description, quantity, unit price. One per line." },
+    {
+      "key": "payment_terms",
+      "label": "Payment terms",
+      "type": "select",
+      "options": [
+        "Net 15",
+        "Net 30",
+        "Net 45",
+        "Net 60",
+        "Due on receipt",
+        "50% deposit / 50% on completion",
+        "Other"
+      ]
+    }
+  ],
+  "optional_fields": [
+    { "key": "quote_number", "label": "Quote number", "type": "text" },
+    { "key": "project_address", "label": "Project / job site address", "type": "textarea" },
+    { "key": "scheduled_start", "label": "Scheduled start date", "type": "date" },
+    { "key": "estimated_completion", "label": "Estimated completion", "type": "date" },
+    { "key": "warranty_terms", "label": "Warranty terms", "type": "textarea" },
+    { "key": "exclusions", "label": "Exclusions and assumptions", "type": "textarea", "placeholder": "What is NOT included, what we are assuming about site conditions, etc." },
+    { "key": "preparer_name", "label": "Preparer name and title", "type": "text" },
+    { "key": "preparer_contact", "label": "Preparer phone/email", "type": "text" }
+  ],
+  "file_upload_prompts": [
+    { "kind": "site_photo", "label": "Site photos relevant to the quote", "required": false, "multiple": true, "accepts": "image/*" },
+    { "kind": "reference_doc", "label": "Customer RFP or scope document", "required": false, "accepts": "application/pdf,.docx,.doc" },
+    { "kind": "reference_doc", "label": "Prior quotes for reference", "required": false, "accepts": "application/pdf,.docx,.doc" }
+  ],
+  "sections": [
+    { "key": "header", "label": "Quote Header", "required": true, "min_words": 15, "max_words": 60, "instructions": "Customer name and address, quote date, validity period, quote number if provided. Preparer contact info if provided. Clean and unambiguous — this is a binding offer." },
+    { "key": "scope", "label": "Scope of Work", "required": true, "min_words": 80, "max_words": 250, "instructions": "Convert the scope summary into a precise, plain-language description of what the customer is buying. Specific materials, methods, deliverables. Use the line_items field as the source of truth for what's included." },
+    { "key": "line_items_table", "label": "Line Items", "required": true, "min_words": 30, "max_words": 200, "instructions": "Parse the line_items input into a structured table: description, quantity, unit, unit price, line total. Compute subtotals. Be honest about any tax/labor breakdowns the user provided." },
+    { "key": "totals", "label": "Totals", "required": true, "min_words": 10, "max_words": 50, "instructions": "Subtotal, applicable tax (if mentioned by user), grand total. Show currency unambiguously." },
+    { "key": "terms", "label": "Terms and Conditions", "required": true, "min_words": 60, "max_words": 200, "instructions": "Payment terms (from user input), warranty terms (if provided), exclusions/assumptions (if provided), validity period restated. Clear, professional, not aggressive." },
+    { "key": "acceptance", "label": "Acceptance", "required": true, "min_words": 20, "max_words": 80, "instructions": "Signature block for customer acceptance: name, title, date, signature line. Brief acceptance language ('To accept this quote, please sign below and return.')." }
+  ]
+}

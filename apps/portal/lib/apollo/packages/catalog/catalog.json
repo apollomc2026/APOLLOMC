@@ -6,6 +6,7 @@
       "description": "Law firms, corporate legal, compliance",
       "icon_key": "scale",
       "sort_order": 1,
+      "status": "active",
       "deliverables": [
         {
           "slug": "legal-memo",
@@ -46,6 +47,26 @@
           "estimated_minutes": 12,
           "base_price_cents": 8500,
           "schema_file": "compliance-report.schema.json"
+        },
+        {
+          "slug": "nda",
+          "label": "Non-Disclosure Agreement",
+          "description": "Mutual or one-way NDA with configurable optional clauses (non-solicitation, non-circumvention, attorneys' fees, jury waiver).",
+          "estimated_pages_min": 3,
+          "estimated_pages_max": 5,
+          "estimated_minutes": 4,
+          "base_price_cents": 3500,
+          "schema_file": "nda.schema.json"
+        },
+        {
+          "slug": "engagement-letter",
+          "label": "Client Engagement Letter",
+          "description": "Professional services engagement letter with firm-type variants and full clause set including scope limitations, conflicts, privilege, retention, and dispute resolution.",
+          "estimated_pages_min": 4,
+          "estimated_pages_max": 6,
+          "estimated_minutes": 5,
+          "base_price_cents": 4000,
+          "schema_file": "engagement-letter.schema.json"
         }
       ]
     },
@@ -55,6 +76,7 @@
       "description": "Management consulting, professional services",
       "icon_key": "briefcase",
       "sort_order": 2,
+      "status": "active",
       "deliverables": [
         {
           "slug": "exec-presentation",
@@ -81,7 +103,7 @@
           "label": "Statement of Work",
           "description": "Detailed statement of work defining project scope, deliverables, timeline, milestones, acceptance criteria, and pricing.",
           "estimated_pages_min": 6,
-          "estimated_pages_max": 12,
+          "estimated_pages_max": 14,
           "estimated_minutes": 8,
           "base_price_cents": 6500,
           "schema_file": "sow.schema.json"
@@ -95,6 +117,26 @@
           "estimated_minutes": 14,
           "base_price_cents": 8500,
           "schema_file": "market-analysis.schema.json"
+        },
+        {
+          "slug": "proposal",
+          "label": "Consulting Proposal",
+          "description": "Full services proposal with executive summary, methodology phases, team, past performance, risk register, pricing, and optional compliance matrix.",
+          "estimated_pages_min": 10,
+          "estimated_pages_max": 20,
+          "estimated_minutes": 9,
+          "base_price_cents": 7500,
+          "schema_file": "proposal.schema.json"
+        },
+        {
+          "slug": "change-order",
+          "label": "Change Order",
+          "description": "Formal contractual amendment with running totals on contract sum and contract time, cost-cause categorization, and reservation of rights.",
+          "estimated_pages_min": 2,
+          "estimated_pages_max": 4,
+          "estimated_minutes": 4,
+          "base_price_cents": 3500,
+          "schema_file": "change-order.schema.json"
         }
       ]
     },
@@ -104,6 +146,7 @@
       "description": "Federal proposals, compliance, capability statements",
       "icon_key": "landmark",
       "sort_order": 3,
+      "status": "active",
       "deliverables": [
         {
           "slug": "federal-proposal",
@@ -143,6 +186,7 @@
       "description": "Financial services, accounting, audit",
       "icon_key": "bar-chart",
       "sort_order": 4,
+      "status": "active",
       "deliverables": [
         {
           "slug": "board-report",
@@ -173,6 +217,66 @@
           "estimated_minutes": 16,
           "base_price_cents": 9500,
           "schema_file": "audit-readiness.schema.json"
+        },
+        {
+          "slug": "invoice",
+          "label": "Invoice",
+          "description": "AP-ready invoice with full structured metadata: tax IDs, PO reference, currency selection, per-line taxability, discount handling, late-payment terms, and structured banking instructions.",
+          "estimated_pages_min": 1,
+          "estimated_pages_max": 2,
+          "estimated_minutes": 3,
+          "base_price_cents": 2500,
+          "schema_file": "invoice.schema.json"
+        },
+        {
+          "slug": "budget-vs-actual",
+          "label": "Budget vs. Actual Report",
+          "description": "Period budget-vs-actual report with revenue and expense variance analysis, threshold-based commentary, and optional forecast revision.",
+          "estimated_pages_min": 4,
+          "estimated_pages_max": 8,
+          "estimated_minutes": 6,
+          "base_price_cents": 4500,
+          "schema_file": "budget-vs-actual.schema.json"
+        },
+        {
+          "slug": "expense-report",
+          "label": "Expense Report",
+          "description": "AP/T&E expense report with itemized lines, mileage, per diem, foreign currency conversions, structured reimbursement calculation, and audit-ready attestation.",
+          "estimated_pages_min": 2,
+          "estimated_pages_max": 4,
+          "estimated_minutes": 3,
+          "base_price_cents": 2500,
+          "schema_file": "expense-report.schema.json"
+        },
+        {
+          "slug": "personal-monthly",
+          "label": "Personal Monthly Summary",
+          "description": "Personal financial monthly summary with income, expenses, savings, debt, optional net worth snapshot, goal tracking, and outlook.",
+          "estimated_pages_min": 2,
+          "estimated_pages_max": 5,
+          "estimated_minutes": 5,
+          "base_price_cents": 3500,
+          "schema_file": "personal-monthly.schema.json"
+        },
+        {
+          "slug": "cash-flow-forecast",
+          "label": "Cash Flow Forecast",
+          "description": "13-week (configurable) rolling cash flow forecast with weekly bridge, inflow/outflow detail, aging schedules, and threshold-based alerts.",
+          "estimated_pages_min": 4,
+          "estimated_pages_max": 8,
+          "estimated_minutes": 9,
+          "base_price_cents": 6500,
+          "schema_file": "cash-flow-forecast.schema.json"
+        },
+        {
+          "slug": "tax-estimate",
+          "label": "Tax Estimate",
+          "description": "Tax estimate for planning purposes only — with prominent IMPORTANT NOTICE, footer-recurring disclaimer, structured income/deduction summaries, and IRC §6654 safe harbor analysis.",
+          "estimated_pages_min": 3,
+          "estimated_pages_max": 6,
+          "estimated_minutes": 7,
+          "base_price_cents": 5500,
+          "schema_file": "tax-estimate.schema.json"
         }
       ]
     },
@@ -182,6 +286,7 @@
       "description": "Entrepreneurs, venture, early-stage companies",
       "icon_key": "rocket",
       "sort_order": 5,
+      "status": "active",
       "deliverables": [
         {
           "slug": "pitch-deck",
@@ -214,6 +319,76 @@
           "schema_file": "investor-update.schema.json"
         }
       ]
+    },
+    {
+      "slug": "field-service",
+      "label": "Field Service",
+      "description": "Service technicians, contractors, facilities, on-site reports",
+      "icon_key": "wrench",
+      "sort_order": 6,
+      "status": "active",
+      "deliverables": [
+        {
+          "slug": "fsr",
+          "label": "Field Service Report",
+          "description": "Technician visit report with SLA timestamps, structured pre/post readings, parts and materials, safety observations, regulatory compliance codes, and customer attestation.",
+          "estimated_pages_min": 2,
+          "estimated_pages_max": 4,
+          "estimated_minutes": 5,
+          "base_price_cents": 3500,
+          "schema_file": "fsr.schema.json"
+        },
+        {
+          "slug": "incident-report",
+          "label": "Incident Report",
+          "description": "Formal incident report with severity classification, regulatory reporting obligations (OSHA/EPA), structured persons-involved tracking, contributing factors analysis, and corrective actions chain.",
+          "estimated_pages_min": 3,
+          "estimated_pages_max": 6,
+          "estimated_minutes": 6,
+          "base_price_cents": 4500,
+          "schema_file": "incident-report.schema.json"
+        },
+        {
+          "slug": "meeting-minutes",
+          "label": "Meeting Minutes",
+          "description": "Formal meeting minutes with quorum tracking, structured voting records, executive session handling, formal resolutions, recusals, and corporate-secretary attestation.",
+          "estimated_pages_min": 2,
+          "estimated_pages_max": 4,
+          "estimated_minutes": 3,
+          "base_price_cents": 2500,
+          "schema_file": "meeting-minutes.schema.json"
+        },
+        {
+          "slug": "quote",
+          "label": "Quote",
+          "description": "Customer-binding quote with structured line items, totals, payment terms, warranty and exclusions, and acceptance signature block.",
+          "estimated_pages_min": 1,
+          "estimated_pages_max": 3,
+          "estimated_minutes": 4,
+          "base_price_cents": 4500,
+          "schema_file": "quote.schema.json"
+        }
+      ]
+    },
+    {
+      "slug": "hospitality",
+      "label": "Hospitality",
+      "description": "Restaurants, catering, hotels — coming soon",
+      "icon_key": "utensils",
+      "sort_order": 7,
+      "status": "placeholder",
+      "placeholder_cta": "Send a sample deliverable to spec this industry. Catering SOPs, event proposals, kitchen reports, and financial projections welcome.",
+      "deliverables": []
+    },
+    {
+      "slug": "content-media",
+      "label": "Content & Media",
+      "description": "Production, editorial, broadcast — coming soon",
+      "icon_key": "video",
+      "sort_order": 8,
+      "status": "placeholder",
+      "placeholder_cta": "Send a sample deliverable to spec this industry. Production reports, editorial briefs, content schedules, and review documents welcome.",
+      "deliverables": []
     }
   ]
 }

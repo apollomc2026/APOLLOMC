@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apollomc.ai/schemas/quote.schema.json",
+  "title": "Quote",
+  "description": "Field-service or contractor quote: customer-binding offer with line items, totals, and acceptance block.",
+  "type": "object",
+  "required": ["metadata", "sections", "line_items", "totals"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["deliverable_type", "title", "customer_name", "quote_date", "valid_until"],
+      "properties": {
+        "deliverable_type": { "const": "quote" },
+        "title": { "type": "string" },
+        "customer_name": { "type": "string" },
+        "customer_address": { "type": "string" },
+        "quote_number": { "type": "string" },
+        "quote_date": { "type": "string", "description": "ISO date" },
+        "valid_until": { "type": "string", "description": "ISO date" },
+        "preparer_name": { "type": "string" },
+        "preparer_contact": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "content"],
+        "properties": {
+          "key": { "type": "string" },
+          "label": { "type": "string" },
+          "content": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "line_items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["description", "line_total"],
+        "properties": {
+          "description": { "type": "string" },
+          "quantity": { "type": "number" },
+          "unit": { "type": "string" },
+          "unit_price": { "type": "number" },
+          "line_total": { "type": "number" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "totals": {
+      "type": "object",
+      "required": ["grand_total", "currency"],
+      "properties": {
+        "subtotal": { "type": "number" },
+        "tax": { "type": "number" },
+        "grand_total": { "type": "number" },
+        "currency": { "type": "string", "default": "USD" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
