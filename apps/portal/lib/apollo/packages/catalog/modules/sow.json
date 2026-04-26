@@ -1,40 +1,377 @@
 {
   "deliverable_slug": "sow",
   "required_fields": [
-    { "key": "project_name", "label": "Project name", "type": "text", "placeholder": "e.g., Website Redesign Phase 2, ERP Implementation" },
-    { "key": "client_name", "label": "Client organization", "type": "text", "placeholder": "Full legal entity name of the client" },
-    { "key": "provider_name", "label": "Service provider organization", "type": "text", "placeholder": "Full legal entity name of the provider" },
-    { "key": "project_description", "label": "Project description", "type": "textarea", "placeholder": "Describe the project in detail. What is being delivered and why?" },
-    { "key": "scope_of_work", "label": "Scope of work", "type": "textarea", "placeholder": "List the specific tasks, deliverables, and services included in this engagement..." },
-    { "key": "project_timeline", "label": "Project timeline", "type": "text", "placeholder": "e.g., 12 weeks starting April 1, 2026" },
-    { "key": "total_budget", "label": "Total budget / pricing", "type": "text", "placeholder": "e.g., $150,000 fixed-price, T&M not to exceed $200,000" }
+    {
+      "key": "project_name",
+      "label": "Project name",
+      "type": "text",
+      "placeholder": "e.g., Website Redesign Phase 2, ERP Implementation"
+    },
+    {
+      "key": "client_name",
+      "label": "Client organization",
+      "type": "text",
+      "placeholder": "Full legal entity name of the client"
+    },
+    {
+      "key": "provider_name",
+      "label": "Service provider organization",
+      "type": "text",
+      "placeholder": "Full legal entity name of the provider"
+    },
+    {
+      "key": "project_description",
+      "label": "Project description",
+      "type": "textarea",
+      "placeholder": "Describe the project in detail. What is being delivered and why?"
+    },
+    {
+      "key": "scope_of_work",
+      "label": "Scope of work",
+      "type": "textarea",
+      "placeholder": "List the specific tasks, deliverables, and services included in this engagement..."
+    },
+    {
+      "key": "project_timeline",
+      "label": "Project timeline",
+      "type": "text",
+      "placeholder": "e.g., 12 weeks starting April 1, 2026"
+    },
+    {
+      "key": "total_budget",
+      "label": "Total budget / pricing",
+      "type": "text",
+      "placeholder": "e.g., $150,000 fixed-price, T&M not to exceed $200,000"
+    }
   ],
   "optional_fields": [
-    { "key": "master_agreement_ref", "label": "Master agreement reference", "type": "text", "placeholder": "e.g., MSA dated January 1, 2025, Reference #12345" },
-    { "key": "key_milestones", "label": "Key milestones", "type": "textarea", "placeholder": "List major project milestones with target dates..." },
-    { "key": "acceptance_criteria", "label": "Acceptance criteria", "type": "textarea", "placeholder": "How will deliverables be evaluated and accepted?" },
-    { "key": "team_structure", "label": "Project team structure", "type": "textarea", "placeholder": "Key roles from both provider and client side..." },
-    { "key": "out_of_scope", "label": "Explicitly out of scope", "type": "textarea", "placeholder": "What is NOT included in this engagement?" },
-    { "key": "assumptions", "label": "Key assumptions", "type": "textarea", "placeholder": "What assumptions is this SOW based on?" },
-    { "key": "payment_schedule", "label": "Payment schedule", "type": "textarea", "placeholder": "e.g., 30% upfront, 40% at midpoint, 30% at completion" },
-    { "key": "change_order_process", "label": "Change order process", "type": "textarea", "placeholder": "How will scope changes be handled?" }
+    {
+      "key": "master_agreement_ref",
+      "label": "Master agreement reference",
+      "type": "text",
+      "placeholder": "e.g., MSA dated January 1, 2025, Reference #12345"
+    },
+    {
+      "key": "key_milestones",
+      "label": "Key milestones",
+      "type": "textarea",
+      "placeholder": "List major project milestones with target dates..."
+    },
+    {
+      "key": "acceptance_criteria",
+      "label": "Acceptance criteria",
+      "type": "textarea",
+      "placeholder": "How will deliverables be evaluated and accepted?"
+    },
+    {
+      "key": "team_structure",
+      "label": "Project team structure",
+      "type": "textarea",
+      "placeholder": "Key roles from both provider and client side..."
+    },
+    {
+      "key": "out_of_scope",
+      "label": "Explicitly out of scope",
+      "type": "textarea",
+      "placeholder": "What is NOT included in this engagement?"
+    },
+    {
+      "key": "assumptions",
+      "label": "Key assumptions",
+      "type": "textarea",
+      "placeholder": "What assumptions is this SOW based on?"
+    },
+    {
+      "key": "payment_schedule",
+      "label": "Payment schedule",
+      "type": "textarea",
+      "placeholder": "e.g., 30% upfront, 40% at midpoint, 30% at completion"
+    },
+    {
+      "key": "change_order_process",
+      "label": "Change order process",
+      "type": "textarea",
+      "placeholder": "How will scope changes be handled?"
+    },
+    {
+      "key": "client_entity_type",
+      "label": "Client — entity type",
+      "type": "select",
+      "options": [
+        {
+          "value": "individual",
+          "label": "Individual"
+        },
+        {
+          "value": "llc",
+          "label": "LLC"
+        },
+        {
+          "value": "corporation",
+          "label": "Corporation"
+        },
+        {
+          "value": "partnership",
+          "label": "Partnership"
+        },
+        {
+          "value": "non-profit",
+          "label": "Non-profit"
+        },
+        {
+          "value": "other",
+          "label": "Other"
+        }
+      ]
+    },
+    {
+      "key": "client_address",
+      "label": "Client — notice address",
+      "type": "textarea"
+    },
+    {
+      "key": "project_title",
+      "label": "Project title",
+      "type": "text"
+    },
+    {
+      "key": "engagement_model",
+      "label": "Engagement model",
+      "type": "select",
+      "options": [
+        {
+          "value": "fixed-fee",
+          "label": "Fixed fee"
+        },
+        {
+          "value": "time-and-materials",
+          "label": "Time and materials (with not-to-exceed cap)"
+        },
+        {
+          "value": "hybrid",
+          "label": "Hybrid (fixed + T&M)"
+        }
+      ]
+    },
+    {
+      "key": "start_date",
+      "label": "Start date",
+      "type": "date"
+    },
+    {
+      "key": "end_date",
+      "label": "Target end date",
+      "type": "date"
+    },
+    {
+      "key": "project_summary",
+      "label": "Project summary",
+      "type": "textarea",
+      "help": "1–3 paragraphs describing the project at a high level. Used in Executive Summary."
+    },
+    {
+      "key": "deliverables",
+      "label": "Deliverables (one per line)",
+      "type": "textarea",
+      "help": "Each line: deliverable name | description | acceptance criteria | format | target date."
+    },
+    {
+      "key": "exclusions",
+      "label": "Exclusions",
+      "type": "textarea",
+      "help": "What is explicitly NOT in scope."
+    },
+    {
+      "key": "fee_amount_dollars",
+      "label": "Total fee ($)",
+      "type": "number",
+      "help": "Fixed total or T&M not-to-exceed cap."
+    },
+    {
+      "key": "fee_detail",
+      "label": "Fee detail",
+      "type": "textarea",
+      "help": "Breakdown by role × rate if T&M; payment milestones if fixed."
+    },
+    {
+      "key": "payment_terms",
+      "label": "Payment terms",
+      "type": "text",
+      "default": "Net 30"
+    },
+    {
+      "key": "expense_policy",
+      "label": "Expense policy",
+      "type": "select",
+      "options": [
+        {
+          "value": "client-pays-actual",
+          "label": "Client pays actual at cost"
+        },
+        {
+          "value": "included-in-fee",
+          "label": "Included in fee"
+        },
+        {
+          "value": "pre-approval-over-threshold",
+          "label": "Pre-approval required over threshold"
+        }
+      ]
+    },
+    {
+      "key": "client_pm_name",
+      "label": "Client Project Owner — name",
+      "type": "text",
+      "help": "Designated decision-maker with acceptance authority."
+    },
+    {
+      "key": "provider_pm_name",
+      "label": "Provider Engagement Lead — name",
+      "type": "text"
+    },
+    {
+      "key": "liability_cap_multiplier",
+      "label": "Liability cap multiplier (× fees)",
+      "type": "number",
+      "help": "1× standard; 2× for higher-risk engagements.",
+      "default": 1
+    },
+    {
+      "key": "governing_state",
+      "label": "Governing state",
+      "type": "text"
+    },
+    {
+      "key": "expense_threshold_dollars",
+      "label": "Expense pre-approval threshold ($)",
+      "type": "number"
+    }
   ],
   "file_upload_prompts": [
-    { "kind": "reference_doc", "label": "Upload any existing proposals, RFPs, or prior SOWs for reference", "required": false },
-    { "kind": "reference_doc", "label": "Upload technical requirements or specifications documents", "required": false },
-    { "kind": "brand_guide", "label": "Upload company brand guidelines (optional)", "required": false }
+    {
+      "kind": "reference_doc",
+      "label": "Upload any existing proposals, RFPs, or prior SOWs for reference",
+      "required": false
+    },
+    {
+      "kind": "reference_doc",
+      "label": "Upload technical requirements or specifications documents",
+      "required": false
+    },
+    {
+      "kind": "brand_guide",
+      "label": "Upload company brand guidelines (optional)",
+      "required": false
+    },
+    {
+      "kind": "brand_guide",
+      "label": "Brand guidelines or style sheet (optional)",
+      "required": false,
+      "accepts": "application/pdf,.docx,.doc,image/*"
+    },
+    {
+      "kind": "reference_doc",
+      "label": "Prior SOWs or scope documents (optional)",
+      "required": false,
+      "multiple": true,
+      "accepts": "application/pdf,.docx,.doc"
+    },
+    {
+      "kind": "reference_image",
+      "label": "Org chart, scope diagram, or relevant visual (optional)",
+      "required": false,
+      "multiple": true,
+      "accepts": "image/*"
+    }
   ],
   "sections": [
-    { "key": "purpose_and_background", "label": "Purpose and Background", "required": true, "min_words": 80, "max_words": 250, "instructions": "State the business context, objectives, and rationale for this engagement. Reference the master agreement if applicable." },
-    { "key": "scope_of_work", "label": "Scope of Work", "required": true, "min_words": 200, "max_words": 600, "instructions": "Detailed description of all work to be performed. Break into numbered work streams or phases. Be explicit about boundaries." },
-    { "key": "deliverables", "label": "Deliverables", "required": true, "min_words": 100, "max_words": 400, "instructions": "Enumerate each deliverable with description, format, and delivery date. Use a numbered list or table format." },
-    { "key": "timeline_and_milestones", "label": "Timeline and Milestones", "required": true, "min_words": 100, "max_words": 300, "instructions": "Project schedule with phases, milestones, dependencies, and key dates. Include a visual timeline or Gantt-style representation." },
-    { "key": "acceptance_criteria", "label": "Acceptance Criteria", "required": true, "min_words": 80, "max_words": 250, "instructions": "Define how each deliverable will be evaluated, the review period, and the process for acceptance or rejection." },
-    { "key": "roles_and_responsibilities", "label": "Roles and Responsibilities", "required": true, "min_words": 100, "max_words": 300, "instructions": "RACI or similar matrix defining responsibilities for both the provider and client teams. Include escalation paths." },
-    { "key": "pricing_and_payment", "label": "Pricing and Payment Terms", "required": true, "min_words": 80, "max_words": 250, "instructions": "Detailed pricing breakdown by phase or deliverable. Payment milestones, invoicing procedures, and expense policies." },
-    { "key": "assumptions_and_constraints", "label": "Assumptions and Constraints", "required": true, "min_words": 80, "max_words": 250, "instructions": "List all assumptions the SOW is based on and any constraints (technical, resource, timeline) that may affect delivery." },
-    { "key": "change_management", "label": "Change Management", "required": true, "min_words": 50, "max_words": 200, "instructions": "Process for requesting, evaluating, approving, and implementing changes to scope, timeline, or budget." },
-    { "key": "governance", "label": "Governance and Communication", "required": false, "min_words": 50, "max_words": 200, "instructions": "Meeting cadence, status reporting requirements, escalation procedures, and project management tools." },
-    { "key": "signature_block", "label": "Signature Block", "required": true, "min_words": 20, "max_words": 80, "instructions": "Signature blocks for authorized representatives of both parties with name, title, date, and entity name." }
+    {
+      "key": "purpose_and_background",
+      "label": "Purpose and Background",
+      "required": true,
+      "min_words": 80,
+      "max_words": 250,
+      "instructions": "State the business context, objectives, and rationale for this engagement. Reference the master agreement if applicable."
+    },
+    {
+      "key": "scope_of_work",
+      "label": "Scope of Work",
+      "required": true,
+      "min_words": 200,
+      "max_words": 600,
+      "instructions": "Detailed description of all work to be performed. Break into numbered work streams or phases. Be explicit about boundaries."
+    },
+    {
+      "key": "deliverables",
+      "label": "Deliverables",
+      "required": true,
+      "min_words": 100,
+      "max_words": 400,
+      "instructions": "Enumerate each deliverable with description, format, and delivery date. Use a numbered list or table format."
+    },
+    {
+      "key": "timeline_and_milestones",
+      "label": "Timeline and Milestones",
+      "required": true,
+      "min_words": 100,
+      "max_words": 300,
+      "instructions": "Project schedule with phases, milestones, dependencies, and key dates. Include a visual timeline or Gantt-style representation."
+    },
+    {
+      "key": "acceptance_criteria",
+      "label": "Acceptance Criteria",
+      "required": true,
+      "min_words": 80,
+      "max_words": 250,
+      "instructions": "Define how each deliverable will be evaluated, the review period, and the process for acceptance or rejection."
+    },
+    {
+      "key": "roles_and_responsibilities",
+      "label": "Roles and Responsibilities",
+      "required": true,
+      "min_words": 100,
+      "max_words": 300,
+      "instructions": "RACI or similar matrix defining responsibilities for both the provider and client teams. Include escalation paths."
+    },
+    {
+      "key": "pricing_and_payment",
+      "label": "Pricing and Payment Terms",
+      "required": true,
+      "min_words": 80,
+      "max_words": 250,
+      "instructions": "Detailed pricing breakdown by phase or deliverable. Payment milestones, invoicing procedures, and expense policies."
+    },
+    {
+      "key": "assumptions_and_constraints",
+      "label": "Assumptions and Constraints",
+      "required": true,
+      "min_words": 80,
+      "max_words": 250,
+      "instructions": "List all assumptions the SOW is based on and any constraints (technical, resource, timeline) that may affect delivery."
+    },
+    {
+      "key": "change_management",
+      "label": "Change Management",
+      "required": true,
+      "min_words": 50,
+      "max_words": 200,
+      "instructions": "Process for requesting, evaluating, approving, and implementing changes to scope, timeline, or budget."
+    },
+    {
+      "key": "governance",
+      "label": "Governance and Communication",
+      "required": false,
+      "min_words": 50,
+      "max_words": 200,
+      "instructions": "Meeting cadence, status reporting requirements, escalation procedures, and project management tools."
+    },
+    {
+      "key": "signature_block",
+      "label": "Signature Block",
+      "required": true,
+      "min_words": 20,
+      "max_words": 80,
+      "instructions": "Signature blocks for authorized representatives of both parties with name, title, date, and entity name."
+    }
   ]
 }

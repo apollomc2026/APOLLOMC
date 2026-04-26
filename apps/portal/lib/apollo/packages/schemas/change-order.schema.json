@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apollomc.ai/schemas/change-order.schema.json",
+  "title": "Change Order",
+  "description": "Formal contractual amendment with running totals on contract sum and contract time, cost-cause categorization, and reservation of rights.",
+  "type": "object",
+  "required": [
+    "metadata",
+    "sections"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": [
+        "deliverable_type",
+        "title"
+      ],
+      "properties": {
+        "deliverable_type": {
+          "const": "change-order"
+        },
+        "title": {
+          "type": "string"
+        },
+        "subtitle": {
+          "type": "string"
+        },
+        "prepared_by": {
+          "type": "string"
+        },
+        "prepared_for": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "content"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string",
+            "description": "Markdown or HTML content for this section."
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,171 @@
+{
+  "deliverable_slug": "expense-report",
+  "required_fields": [
+    {
+      "key": "submitter_name",
+      "label": "Submitter name",
+      "type": "text"
+    },
+    {
+      "key": "period_start",
+      "label": "Period start",
+      "type": "date"
+    },
+    {
+      "key": "period_end",
+      "label": "Period end",
+      "type": "date"
+    },
+    {
+      "key": "business_purpose",
+      "label": "Business purpose / trip purpose",
+      "type": "textarea"
+    },
+    {
+      "key": "expense_lines",
+      "label": "Expense lines (one per line)",
+      "type": "textarea",
+      "help": "date | category | merchant | amount | currency | payment-method | accounting-code | business-purpose"
+    },
+    {
+      "key": "manager_approver_name",
+      "label": "Manager / approver name",
+      "type": "text"
+    }
+  ],
+  "optional_fields": [
+    {
+      "key": "submitter_employee_id",
+      "label": "Submitter employee ID",
+      "type": "text"
+    },
+    {
+      "key": "mileage_entries",
+      "label": "Mileage entries (optional, one per line)",
+      "type": "textarea",
+      "help": "date | from | to | miles | rate | purpose"
+    },
+    {
+      "key": "mileage_rate_per_mile",
+      "label": "Mileage rate per mile ($)",
+      "type": "number",
+      "help": "IRS standard mileage rate or company policy.",
+      "default": 0.67
+    },
+    {
+      "key": "per_diem_days",
+      "label": "Per diem days",
+      "type": "number"
+    },
+    {
+      "key": "per_diem_rate",
+      "label": "Per diem rate ($)",
+      "type": "number"
+    },
+    {
+      "key": "foreign_currency_conversions",
+      "label": "Foreign currency conversions (one per line)",
+      "type": "textarea",
+      "help": "original-currency | original-amount | conversion-date | rate-used | USD-amount"
+    },
+    {
+      "key": "total_advance_received",
+      "label": "Cash advance received ($)",
+      "type": "number",
+      "default": 0
+    },
+    {
+      "key": "accounting_summary",
+      "label": "Accounting code summary (optional)",
+      "type": "textarea",
+      "help": "Auto-derived from accounting codes if possible; otherwise manual."
+    },
+    {
+      "key": "notes",
+      "label": "Notes (optional)",
+      "type": "textarea"
+    }
+  ],
+  "file_upload_prompts": [
+    {
+      "kind": "receipt",
+      "label": "Receipts (at least one required — multiple allowed)",
+      "required": true,
+      "multiple": true,
+      "accepts": "image/*,application/pdf"
+    },
+    {
+      "kind": "financial_data",
+      "label": "Expense CSV or Excel export (optional)",
+      "required": false,
+      "multiple": true,
+      "accepts": ".xlsx,.xls,.csv,application/pdf"
+    }
+  ],
+  "sections": [
+    {
+      "key": "header_masthead",
+      "label": "Header",
+      "required": true,
+      "min_words": 30,
+      "max_words": 200,
+      "instructions": "Voice: Administrative, factual, audit-ready. No commentary. Tables and structured data carry the weight. Use precise terminology — \"reimbursement\", \"advance\", \"per diem\", \"mileage\" — and stick to it. Match the format that AP and Finance teams expect: itemized expense lines, currency conversions for foreign charges, and a clear reimbursement calculation at the end.\n\nPIPELINE OWNS THE HEADER (submitter, period, prepared date in masthead). Do NOT emit a title or any section that duplicates the masthead content. Start your output directly with the Business Purpose section heading.\n\n=== CRITICAL OUTPUT RULES ===\n\nRULE 1: DO NOT emit the document title as <h1> or in any form. The pipeline adds the title on the cover or masthead. Any title in your body HTML creates a duplicate.\n\nRULE 2: DO NOT emit decorative banners, spaced-out letter wordmarks, document IDs, brand names above the first section, or any content before the first <h2> heading. Start directly with the first section heading.\n\nRULE 3: Every section MUST have an <h2> heading with the exact title from the 'sections' array. No section may appear without a heading. Do not let content drift into unlabeled prose.\n\nRULE 4: Emit sections in the exact order listed. Do not skip required sections. Conditional sections (those gated on user input flags) may be omitted only when the input does not include them.\n\n=== LENGTH ===\n300–700 words of prose. The tables carry weight. A simple expense report (one trip, no foreign currency) may be at the low end (350 words); a complex international travel report with mileage, per diem, and FX may approach the high end.\n\nHEADER: write this section per the document type's standard structure."
+    },
+    {
+      "key": "business_purpose_summary",
+      "label": "Business Purpose and Period",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "BUSINESS PURPOSE AND PERIOD: One paragraph (3–5 sentences). State:\n  - The period covered: [period_start] through [period_end]\n  - The overall business purpose drawn from business_purpose input — what trip, project, or activity these expenses relate to\n  - If multiple trips or projects covered, note that and how the expenses are organized\n  - Submitter and (if relevant) cost center / accounting code at the summary level\nEnd with: \"Receipts for individual expense lines are attached as Figures 1–N (referenced by line number in the Expense Lines table below).\""
+    },
+    {
+      "key": "expense_lines",
+      "label": "Expense Lines",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "EXPENSE LINES: <h2>Expense Lines</h2> followed by a <table class=\"fin-table\">. Columns: # | Date | Category | Merchant | Amount | Currency | Payment Method | Accounting Code. Parse each line of expense_lines input as pipe-separated fields (date | category | merchant | amount | currency | payment-method | accounting-code | business-purpose-line).\nSort entries by date ascending.\nNumber each line sequentially in the # column (1, 2, 3, ...).\nReference receipts by line number: any line accompanied by an attached image is noted \"Receipt #N\" in a sub-line under the merchant or in a final notes column. The pipeline attaches images separately; in your text, reference embedded receipts as: \"Line N — see Receipt #N\" wherever ambiguity matters.\nSubtotal row using class \"subtotal-row\":\n  Total Expenses (in submission currency): $[sum of amounts converted to submission currency if multi-currency, or sum of all amounts if single-currency]"
+    },
+    {
+      "key": "mileage",
+      "label": "Mileage",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "MILEAGE: ONLY emit if mileage_entries input is non-empty. <table class=\"fin-table\"> with columns: Date | From | To | Miles | Rate | Amount. Parse mileage_entries as pipe-separated. Compute Amount = Miles × mileage_rate_per_mile. If a per-line rate is provided, use it; otherwise use the mileage_rate_per_mile field default (typically $0.67/mile per IRS standard, but use whatever value is provided).\nSubtotal row: \"Total Mileage Reimbursement: $[sum]\".\nNote below the table if relevant: \"Mileage rate of $[rate] per mile reflects [IRS standard for the year / company policy].\""
+    },
+    {
+      "key": "per_diem",
+      "label": "Per Diem",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "PER DIEM: ONLY emit if both per_diem_days and per_diem_rate are provided and non-zero. Single calculation block:\n  Per Diem Allowance: [per_diem_days] days × $[per_diem_rate]/day = $[total]\n  Per diem covers: meals and incidental expenses. Lodging billed separately as actual expense.\nNote that per diem typically follows the GSA rate for the destination; if the destination has special-rate areas, mention."
+    },
+    {
+      "key": "foreign_currency",
+      "label": "Foreign Currency Conversions",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "FOREIGN CURRENCY CONVERSIONS: ONLY emit if foreign_currency_conversions input is non-empty. <table class=\"fin-table\"> with columns: Original Currency | Original Amount | Conversion Date | Rate Used | USD Amount. Parse from input as pipe-separated.\nAfter the table, note the source of exchange rates: \"Exchange rates per [bank rate at time of charge / OANDA midpoint / company-designated rate provider].\" If different rates were used for different lines, note that."
+    },
+    {
+      "key": "summary_totals",
+      "label": "Summary and Reimbursement Calculation",
+      "required": true,
+      "min_words": 80,
+      "max_words": 250,
+      "instructions": "SUMMARY AND REIMBURSEMENT CALCULATION: Small <table class=\"fin-table\"> with all summable totals:\n  Total Expenses (USD or submission currency): $[X]\n  Total Mileage: $[Y] — only if mileage section present\n  Per Diem: $[Z] — only if per diem section present\n  Foreign currency adjustments: $[A] — only if foreign currency section present, showing net adjustment from any rate differentials\n  ─────\n  Total Submitted: $(X + Y + Z + A)\n  Less: Cash advance received: -$[total_advance_received]\n  ─────\n  Reimbursement Due to [submitter_name]: $[final amount, computed]\nThe \"Reimbursement Due\" line uses class \"total-row\" for emphasis.\nIf total_advance_received exceeds the total submitted (rare but possible), the final line reads: \"Amount Due BACK to Employer: $[difference].\" Handle this case explicitly."
+    },
+    {
+      "key": "attestation_approval",
+      "label": "Attestation and Approval",
+      "required": true,
+      "min_words": 30,
+      "max_words": 200,
+      "instructions": "ATTESTATION AND APPROVAL: Two attestation paragraphs:\n  Submitter attestation: \"I, [submitter_name], certify that the foregoing expenses were incurred on company business during the period stated, are supported by attached receipts where required by company policy (typically expenses ≥$25), have not been previously submitted for reimbursement, and are accurate to the best of my knowledge. — [submitter_name], [date].\"\n  Manager approval: \"Approved for reimbursement by [manager_approver_name], [date].\" The pipeline renders the formal signature block; do not render signature lines.\nAdd a final compliance note: \"Receipts retained per company record retention policy. Expenses subject to audit. Falsification of expense reports may result in disciplinary action up to and including termination of employment.\"\n\nIf notes input is non-empty, append a brief closing paragraph drawn from notes; one paragraph max, professional tone."
+    }
+  ]
+}

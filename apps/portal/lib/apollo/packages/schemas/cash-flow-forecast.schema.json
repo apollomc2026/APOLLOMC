@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apollomc.ai/schemas/cash-flow-forecast.schema.json",
+  "title": "Cash Flow Forecast",
+  "description": "13-week (configurable) rolling cash flow forecast with weekly bridge, inflow/outflow detail, aging schedules, and threshold-based alerts.",
+  "type": "object",
+  "required": [
+    "metadata",
+    "sections"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": [
+        "deliverable_type",
+        "title"
+      ],
+      "properties": {
+        "deliverable_type": {
+          "const": "cash-flow-forecast"
+        },
+        "title": {
+          "type": "string"
+        },
+        "subtitle": {
+          "type": "string"
+        },
+        "prepared_by": {
+          "type": "string"
+        },
+        "prepared_for": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "content"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string",
+            "description": "Markdown or HTML content for this section."
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "rows": {
+      "type": "array",
+      "description": "Per-row financial data. Each row interpretation depends on the deliverable.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

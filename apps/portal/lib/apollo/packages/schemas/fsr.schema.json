@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apollomc.ai/schemas/fsr.schema.json",
+  "title": "Field Service Report",
+  "description": "Technician visit report with SLA timestamps, structured readings (pre/post), parts and materials, safety observations, regulatory compliance codes, and customer attestation.",
+  "type": "object",
+  "required": [
+    "metadata",
+    "sections"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": [
+        "deliverable_type",
+        "title"
+      ],
+      "properties": {
+        "deliverable_type": {
+          "const": "fsr"
+        },
+        "title": {
+          "type": "string"
+        },
+        "subtitle": {
+          "type": "string"
+        },
+        "prepared_by": {
+          "type": "string"
+        },
+        "prepared_for": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "content"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string",
+            "description": "Markdown or HTML content for this section."
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

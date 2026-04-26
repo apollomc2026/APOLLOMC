@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apollomc.ai/schemas/personal-monthly.schema.json",
+  "title": "Personal Monthly Summary",
+  "description": "Personal financial monthly summary with income, expenses, savings, debt, optional net worth snapshot, goal tracking, and outlook.",
+  "type": "object",
+  "required": [
+    "metadata",
+    "sections"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": [
+        "deliverable_type",
+        "title"
+      ],
+      "properties": {
+        "deliverable_type": {
+          "const": "personal-monthly"
+        },
+        "title": {
+          "type": "string"
+        },
+        "subtitle": {
+          "type": "string"
+        },
+        "prepared_by": {
+          "type": "string"
+        },
+        "prepared_for": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "content"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string",
+            "description": "Markdown or HTML content for this section."
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

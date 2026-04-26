@@ -1,0 +1,331 @@
+{
+  "deliverable_slug": "incident-report",
+  "required_fields": [
+    {
+      "key": "incident_date",
+      "label": "Incident date",
+      "type": "date"
+    },
+    {
+      "key": "incident_time",
+      "label": "Incident time (24hr)",
+      "type": "text",
+      "placeholder": "14:27"
+    },
+    {
+      "key": "location",
+      "label": "Location",
+      "type": "text"
+    },
+    {
+      "key": "severity",
+      "label": "Severity classification",
+      "type": "select",
+      "help": "Drives reporting obligations and report scope.",
+      "options": [
+        {
+          "value": "near-miss",
+          "label": "Near-miss"
+        },
+        {
+          "value": "first-aid",
+          "label": "First-aid case"
+        },
+        {
+          "value": "recordable-injury",
+          "label": "Recordable injury (OSHA)"
+        },
+        {
+          "value": "lost-time-injury",
+          "label": "Lost-time injury"
+        },
+        {
+          "value": "fatality",
+          "label": "Fatality"
+        },
+        {
+          "value": "property-damage-only",
+          "label": "Property damage only"
+        },
+        {
+          "value": "environmental-release",
+          "label": "Environmental release"
+        },
+        {
+          "value": "security-incident",
+          "label": "Security incident"
+        }
+      ]
+    },
+    {
+      "key": "reporter_name",
+      "label": "Reporter name",
+      "type": "text"
+    },
+    {
+      "key": "reporter_role",
+      "label": "Reporter role",
+      "type": "text"
+    },
+    {
+      "key": "incident_description",
+      "label": "Incident description (chronological)",
+      "type": "textarea"
+    },
+    {
+      "key": "immediate_actions_taken",
+      "label": "Immediate actions taken (at the scene)",
+      "type": "textarea"
+    },
+    {
+      "key": "notifications_made",
+      "label": "Notifications made",
+      "type": "textarea",
+      "help": "who | when | by whom | method (911, supervisor, customer, regulator)"
+    },
+    {
+      "key": "contributing_factors",
+      "label": "Contributing factors (categorized)",
+      "type": "textarea",
+      "help": "human | environmental | equipment | procedural — be specific"
+    },
+    {
+      "key": "corrective_actions_immediate",
+      "label": "Corrective actions — immediate (already taken)",
+      "type": "textarea"
+    },
+    {
+      "key": "investigation_status",
+      "label": "Investigation status",
+      "type": "select",
+      "options": [
+        {
+          "value": "preliminary-report",
+          "label": "Preliminary report — investigation just begun"
+        },
+        {
+          "value": "investigation-ongoing",
+          "label": "Investigation ongoing"
+        },
+        {
+          "value": "final-report",
+          "label": "Final report — investigation complete"
+        }
+      ]
+    },
+    {
+      "key": "preparer_name",
+      "label": "Preparer name",
+      "type": "text"
+    }
+  ],
+  "optional_fields": [
+    {
+      "key": "injured_persons",
+      "label": "Injured persons (one per line)",
+      "type": "textarea",
+      "help": "name | employer/role | injury type | body part | treatment | RTW status"
+    },
+    {
+      "key": "witnesses",
+      "label": "Witnesses (one per line)",
+      "type": "textarea",
+      "help": "name | contact | when statement taken | statement summary"
+    },
+    {
+      "key": "other_persons_involved",
+      "label": "Other persons involved (one per line)",
+      "type": "textarea",
+      "help": "name | role/employer | involvement"
+    },
+    {
+      "key": "property_damage",
+      "label": "Property damage",
+      "type": "textarea",
+      "help": "assets affected | estimated repair | business interruption"
+    },
+    {
+      "key": "environmental_impact",
+      "label": "Environmental impact",
+      "type": "textarea",
+      "help": "substance | quantity | containment status | regulatory threshold"
+    },
+    {
+      "key": "equipment_involved",
+      "label": "Equipment involved",
+      "type": "textarea",
+      "help": "equipment | inspection status | last maintenance | fault codes"
+    },
+    {
+      "key": "root_cause_hypothesis",
+      "label": "Root cause hypothesis (preliminary)",
+      "type": "textarea",
+      "help": "Will be clearly labeled as preliminary in the report."
+    },
+    {
+      "key": "corrective_actions_interim",
+      "label": "Corrective actions — interim (in progress)",
+      "type": "textarea",
+      "help": "action | owner | due date — one per line"
+    },
+    {
+      "key": "corrective_actions_long_term",
+      "label": "Corrective actions — long-term (systemic)",
+      "type": "textarea"
+    },
+    {
+      "key": "regulatory_reports_required",
+      "label": "Regulatory reports required",
+      "type": "textarea",
+      "help": "e.g., \"OSHA 300 log entry\", \"EPA 24-hr release\", \"State DEP notification\""
+    },
+    {
+      "key": "reviewer_name",
+      "label": "Reviewer name (if applicable)",
+      "type": "text"
+    },
+    {
+      "key": "approver_name",
+      "label": "Approver name (if applicable)",
+      "type": "text"
+    }
+  ],
+  "file_upload_prompts": [
+    {
+      "kind": "site_photo",
+      "label": "Scene / damage / evidence photos (required if available — strongly recommended)",
+      "required": false,
+      "multiple": true,
+      "accepts": "image/*"
+    },
+    {
+      "kind": "reference_doc",
+      "label": "Witness statements, prior incident logs (optional)",
+      "required": false,
+      "multiple": true,
+      "accepts": "application/pdf,.docx,.doc,image/*"
+    }
+  ],
+  "sections": [
+    {
+      "key": "cover",
+      "label": "Cover Page",
+      "required": true,
+      "min_words": 30,
+      "max_words": 200,
+      "instructions": "Voice: Objective, chronological, factual. Written for legal, insurance, and regulatory review. Past tense exclusively. Do NOT assign fault. Do NOT speculate beyond evidence. State preliminary findings clearly as preliminary. Use 24-hour time. Avoid emotional, dramatic, or subjective language; this report becomes evidence.\n\nWRONG: \"It was a really scary situation when the sprinklers suddenly went off and everyone was in a panic.\"\nCORRECT: \"At 14:27, water began discharging from the overhead sprinkler in Conference Room B. Building occupants were evacuated by 14:35. Fire suppression was contacted at 14:29.\"\n\n=== CRITICAL OUTPUT RULES ===\n\nRULE 1: DO NOT emit the document title as <h1> or in any form. The pipeline adds the title on the cover or masthead. Any title in your body HTML creates a duplicate.\n\nRULE 2: DO NOT emit decorative banners, spaced-out letter wordmarks, document IDs, brand names above the first section, or any content before the first <h2> heading. Start directly with the first section heading.\n\nRULE 3: Every section MUST have an <h2> heading with the exact title from the 'sections' array. No section may appear without a heading. Do not let content drift into unlabeled prose.\n\nRULE 4: Emit sections in the exact order listed. Do not skip required sections. Conditional sections (those gated on user input flags) may be omitted only when the input does not include them.\n\n=== LENGTH ===\n1500–2500 words. Severity-driven. Near-miss reports may be at the low end (1000–1500 words); fatality reports require comprehensive documentation (2500+).\n\nCOVER PAGE: write this section per the document type's standard structure."
+    },
+    {
+      "key": "incident_summary",
+      "label": "Incident Summary",
+      "required": true,
+      "min_words": 80,
+      "max_words": 250,
+      "instructions": "INCIDENT SUMMARY: One paragraph (4–6 sentences). State: what occurred, when (incident_date and incident_time), where (location), who was involved (counts only — details in later sections), severity classification, and a single-sentence outcome (\"No injuries; property damage estimated at $X\" / \"Two persons sustained injuries; one transported for treatment\" / \"Fatality; OSHA notified within 8 hours\")."
+    },
+    {
+      "key": "severity_classification",
+      "label": "Severity Classification and Reporting Obligations",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "SEVERITY CLASSIFICATION AND REPORTING OBLIGATIONS: Lead with severity from selection in human-readable form:\n  - 'near-miss': \"Severity: Near-Miss. No injury, no property damage; conditions present that could have caused harm.\"\n  - 'first-aid': \"Severity: First-Aid Case. Minor injury treated at the scene; no medical professional involvement required.\"\n  - 'recordable-injury': \"Severity: Recordable Injury (per OSHA 29 CFR 1904).\"\n  - 'lost-time-injury': \"Severity: Lost-Time Injury. Time away from work resulting from incident.\"\n  - 'fatality': \"Severity: FATALITY.\"\n  - 'property-damage-only': \"Severity: Property Damage Only. No injury sustained.\"\n  - 'environmental-release': \"Severity: Environmental Release. Substance released to environment; regulatory notification may be required.\"\n  - 'security-incident': \"Severity: Security Incident.\"\nThen triggered reporting obligations from regulatory_reports_required input. Add these standard reminders based on severity:\n  - If 'fatality' or 'lost-time-injury' with inpatient hospitalization or amputation: \"OSHA 29 CFR 1904.39 requires notification within 8 hours for fatality, within 24 hours for inpatient hospitalization, amputation, or eye loss. Reporting to OSHA Area Office or 1-800-321-OSHA.\"\n  - If 'recordable-injury': \"Must be entered on OSHA 300 log within 7 calendar days.\"\n  - If 'environmental-release': \"State and federal environmental agencies may require notification depending on substance type, quantity, and jurisdiction. Verify reporting thresholds for the specific substance and jurisdiction.\"\nIf reports already submitted, note dates. If pending, note responsible party and due date drawn from regulatory_reports_required input."
+    },
+    {
+      "key": "detailed_description",
+      "label": "Detailed Description",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "DETAILED DESCRIPTION: Chronological narrative drawn from incident_description input. Specific times. Specific actions. Specific observations. Past tense. Use 24-hour time. Each event on its own line or in a tight paragraph. Example structure:\n  \"At [time], [observed event]. [Person or role] [observed/responded by]. At [time], [next event]. [Outcome at this point].\"\nAvoid: \"It was [emotional descriptor].\" Avoid: assumptions about cause. Stick to what was observed, by whom, and when."
+    },
+    {
+      "key": "persons_involved",
+      "label": "Persons Involved",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "PERSONS INVOLVED: Three sub-sections rendered as <h3>:\n  <h3>Injured Persons</h3> — list from injured_persons input parsed as \"name | employer/role | injury type | body part | treatment received | RTW status\". One person per entry. If empty, omit this sub-section entirely (or state \"No persons injured\").\n  <h3>Witnesses</h3> — list from witnesses input parsed as \"name | contact | when statement taken | statement summary\". If empty, omit.\n  <h3>Other Persons Involved</h3> — list from other_persons_involved input. Employees, contractors, visitors, members of the public. If empty, omit."
+    },
+    {
+      "key": "injury_details",
+      "label": "Injury Details",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "INJURY DETAILS: ONLY emit if injured_persons input is non-empty. For each injured person, structured detail block:\n  Identifier: [name or anonymized identifier per privacy requirements]\n  Role/Employer: [from input]\n  Injury type and severity: [from input — abrasion, laceration, fracture, burn, etc.]\n  Body part affected: [from input]\n  Treatment received: [from input — first aid only / outpatient medical / hospitalization / fatality]\n  Return-to-work status: [from input — full duty / restricted duty / off work / not yet determined / N/A]\nEnd with: \"Injury details documented based on information available at time of report. Subject to revision upon completion of medical treatment and reporting.\""
+    },
+    {
+      "key": "damage_environmental",
+      "label": "Damage and Environmental Impact",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "DAMAGE AND ENVIRONMENTAL IMPACT: Two sub-headings:\n  <h3>Property Damage</h3> — only emit if property_damage input provided. Assets affected, estimated repair cost, business interruption hours/days, current containment status. State estimates as estimates: \"Repair cost estimated at $[range]. Final cost subject to detailed assessment.\"\n  <h3>Environmental Impact</h3> — only emit if environmental_impact input provided. Substance type, quantity released, containment status, regulatory threshold reached or not. If threshold reached, name the regulation (e.g., \"CERCLA reportable quantity exceeded for [substance]: [amount] vs threshold [amount]\")."
+    },
+    {
+      "key": "equipment_involved",
+      "label": "Equipment Involved",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "EQUIPMENT INVOLVED: ONLY emit if equipment_involved input non-empty. For each piece of equipment: description, inspection/maintenance status at time of incident, fault codes or condition observations, manufacturer and date of last service if known. Note whether equipment is preserved for investigation: \"Equipment secured for investigation; available for inspection by [parties].\""
+    },
+    {
+      "key": "immediate_response",
+      "label": "Immediate Response and Notifications",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "IMMEDIATE RESPONSE AND NOTIFICATIONS: Two distinct sub-sections rendered as <h3>:\n  <h3>Immediate Actions Taken</h3> — chronological list drawn from immediate_actions_taken input. What was done at the scene, with times where available. Evacuation, first aid, isolation of the area, shutdown procedures, contacting emergency services.\n  <h3>Notifications Log</h3> — render as a <table> with columns: Notified Party | Date/Time | Notified By | Method (phone, email, in-person, automated alert). Parsed from notifications_made input. Examples: 911, supervisor, building management, customer, regulator, insurance carrier, legal counsel."
+    },
+    {
+      "key": "witnesses_statements",
+      "label": "Witnesses and Statements",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "WITNESSES AND STATEMENTS: ONLY emit if witnesses input non-empty. For each witness: name (or anonymized identifier if privacy required), contact information (or \"on file with [preparer_name]\" if disclosure not appropriate), when the statement was taken and by whom, and a statement summary in third-person (\"Witness reports observing X at approximately Y time\"). Direct quotes only if recorded verbatim. End with: \"Statements recorded based on best recollection of witness at time of interview. Original notes/recordings retained per [retention policy].\""
+    },
+    {
+      "key": "photos",
+      "label": "Photos and Documentation",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "PHOTOS AND DOCUMENTATION: This section is fixed by the pipeline (renderer attaches uploaded images). Reference embedded images by caption: \"[Figure N]: [what shown] [time taken if known] [taken by].\" For serious incidents (lost-time-injury, fatality, environmental-release), include chain-of-custody language: \"Photos taken by [name] using [device]; original files retained in [secure storage]; copies stored in incident file.\""
+    },
+    {
+      "key": "contributing_factors",
+      "label": "Contributing Factors",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "CONTRIBUTING FACTORS: Categorized list drawn from contributing_factors input. Render as <h3> sub-sections:\n  <h3>Human Factors</h3> — training adequacy, fatigue, distraction, communication breakdowns, complacency. Be specific: \"Operator was on hour 11 of a 12-hour shift\" not \"fatigue may have been a factor\".\n  <h3>Environmental Factors</h3> — lighting, weather, noise, layout, temperature, time of day.\n  <h3>Equipment Factors</h3> — failure mode, design, maintenance status, age, manufacturer recall status.\n  <h3>Procedural Factors</h3> — was a procedure in place; was it followed; was it adequate; was training current.\nBe specific. Generic factors (\"fatigue\", \"distraction\") do not aid prevention. Sub-sections may be omitted if no factors in that category."
+    },
+    {
+      "key": "root_cause",
+      "label": "Root Cause Hypothesis",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "ROOT CAUSE HYPOTHESIS: ONLY emit if root_cause_hypothesis input is provided. Lead with bold: \"PRELIMINARY ROOT CAUSE — SUBJECT TO ONGOING INVESTIGATION.\" State the hypothesis. State evidence supporting it. State evidence contradicting it (or \"None identified at this time\"). State limitations of preliminary analysis (incomplete information, pending witness interviews, equipment under inspection). End with: \"Final root cause determination will be made upon completion of investigation. This preliminary hypothesis may be revised or replaced based on subsequent findings. Investigation status: [investigation_status].\""
+    },
+    {
+      "key": "corrective_actions",
+      "label": "Corrective Actions",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "CORRECTIVE ACTIONS: Three sub-sections rendered as <h3>:\n  <h3>Immediate Actions (Already Taken)</h3> — list from corrective_actions_immediate. Specific, action-oriented. \"Sprinkler head replaced. Conference room dried and ceiling tiles replaced. Building manager briefed.\"\n  <h3>Interim Actions (In Progress)</h3> — only if corrective_actions_interim input provided. Render as table: Action | Owner | Due Date.\n  <h3>Long-Term Actions</h3> — only if corrective_actions_long_term input provided. Systemic improvements: training, policy changes, equipment upgrades. Each action specific and assignable."
+    },
+    {
+      "key": "attestation_signoff",
+      "label": "Attestation and Sign-Off Chain",
+      "required": true,
+      "min_words": 30,
+      "max_words": 200,
+      "instructions": "ATTESTATION AND SIGN-OFF CHAIN: Three attestation lines:\n  Preparer: \"I, [preparer_name], prepared this report based on information available as of [report date]. To the best of my knowledge, the foregoing is accurate.\"\n  Reviewer line if reviewer_name provided: \"Reviewed by [reviewer_name] on [date].\" (If pending: \"Pending review by [reviewer_name]\")\n  Approver line if approver_name provided: \"Approved by [approver_name] on [date].\" (If pending: \"Pending approval by [approver_name]\")\nEnd with: \"This report may contain preliminary information subject to revision as investigation continues. This document is prepared in the ordinary course of safety operations and is intended for internal use, regulatory submission as required, and protection of the parties' rights.\""
+    }
+  ]
+}

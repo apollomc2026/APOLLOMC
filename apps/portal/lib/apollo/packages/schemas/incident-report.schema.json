@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apollomc.ai/schemas/incident-report.schema.json",
+  "title": "Incident Report",
+  "description": "Formal incident report with severity classification, regulatory reporting obligations (OSHA/EPA), structured persons-involved tracking, contributing factors analysis, and corrective actions chain.",
+  "type": "object",
+  "required": [
+    "metadata",
+    "sections"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": [
+        "deliverable_type",
+        "title"
+      ],
+      "properties": {
+        "deliverable_type": {
+          "const": "incident-report"
+        },
+        "title": {
+          "type": "string"
+        },
+        "subtitle": {
+          "type": "string"
+        },
+        "prepared_by": {
+          "type": "string"
+        },
+        "prepared_for": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "content"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string",
+            "description": "Markdown or HTML content for this section."
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

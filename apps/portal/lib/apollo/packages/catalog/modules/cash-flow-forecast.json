@@ -1,0 +1,162 @@
+{
+  "deliverable_slug": "cash-flow-forecast",
+  "required_fields": [
+    {
+      "key": "entity_name",
+      "label": "Entity name",
+      "type": "text"
+    },
+    {
+      "key": "forecast_horizon_weeks",
+      "label": "Forecast horizon (weeks)",
+      "type": "number",
+      "help": "Standard treasury practice is 13 weeks.",
+      "default": 13
+    },
+    {
+      "key": "forecast_start_date",
+      "label": "Forecast start date",
+      "type": "date"
+    },
+    {
+      "key": "starting_cash_position",
+      "label": "Starting cash position ($)",
+      "type": "number"
+    },
+    {
+      "key": "recurring_inflows",
+      "label": "Recurring inflows (one per line)",
+      "type": "textarea",
+      "help": "source | amount per period | frequency-weeks | start-week | end-week"
+    },
+    {
+      "key": "recurring_outflows",
+      "label": "Recurring outflows (one per line)",
+      "type": "textarea",
+      "help": "category | amount per period | frequency-weeks | start-week | end-week"
+    },
+    {
+      "key": "scenario_label",
+      "label": "Scenario",
+      "type": "select",
+      "options": [
+        {
+          "value": "base",
+          "label": "Base — current run-rate continues"
+        },
+        {
+          "value": "optimistic",
+          "label": "Optimistic — upside drivers materialize"
+        },
+        {
+          "value": "pessimistic",
+          "label": "Pessimistic — downside risks crystallize"
+        }
+      ]
+    },
+    {
+      "key": "assumptions",
+      "label": "Assumptions",
+      "type": "textarea",
+      "help": "Key assumptions held constant. One per line."
+    },
+    {
+      "key": "prepared_by",
+      "label": "Prepared by",
+      "type": "text"
+    }
+  ],
+  "optional_fields": [
+    {
+      "key": "minimum_cash_threshold",
+      "label": "Minimum cash threshold ($)",
+      "type": "number",
+      "help": "Alert level — projected ending cash below this triggers risk alert."
+    },
+    {
+      "key": "receivables_aging",
+      "label": "Receivables aging (optional)",
+      "type": "textarea",
+      "help": "customer | amount | expected-collection-week"
+    },
+    {
+      "key": "payables_aging",
+      "label": "Payables aging (optional)",
+      "type": "textarea",
+      "help": "vendor | amount | expected-payment-week"
+    },
+    {
+      "key": "one_time_items",
+      "label": "One-time items (optional)",
+      "type": "textarea",
+      "help": "description | amount | week | inflow/outflow"
+    }
+  ],
+  "file_upload_prompts": [
+    {
+      "kind": "financial_data",
+      "label": "Prior financials, AR/AP detail, P&L (multiple allowed)",
+      "required": false,
+      "multiple": true,
+      "accepts": ".xlsx,.xls,.csv,application/pdf"
+    }
+  ],
+  "sections": [
+    {
+      "key": "header_masthead",
+      "label": "Header",
+      "required": true,
+      "min_words": 30,
+      "max_words": 200,
+      "instructions": "Voice: Treasury / CFO analytical. Forward-looking but bounded by stated assumptions. Highlight cash threshold breaches without alarmism. Use CFO-precise language: \"operating cash inflows\", \"working capital\", \"minimum cash threshold\", \"liquidity headroom\", \"draw on the line of credit\". Avoid hedge words (\"might\", \"could perhaps\") — state outcomes conditionally based on assumptions but with conviction in the math.\n\nPIPELINE OWNS THE HEADER (entity_name, scenario_label, forecast_start_date in masthead). Do NOT emit a title or section duplicating the masthead. Start your output directly with the Assumptions and Scenario section heading.\n\n=== CRITICAL OUTPUT RULES ===\n\nRULE 1: DO NOT emit the document title as <h1> or in any form. The pipeline adds the title on the cover or masthead. Any title in your body HTML creates a duplicate.\n\nRULE 2: DO NOT emit decorative banners, spaced-out letter wordmarks, document IDs, brand names above the first section, or any content before the first <h2> heading. Start directly with the first section heading.\n\nRULE 3: Every section MUST have an <h2> heading with the exact title from the 'sections' array. No section may appear without a heading. Do not let content drift into unlabeled prose.\n\nRULE 4: Emit sections in the exact order listed. Do not skip required sections. Conditional sections (those gated on user input flags) may be omitted only when the input does not include them.\n\n=== LENGTH ===\n600–1200 words. The weekly table is the substance; commentary is concise and analytical.\n\nHEADER: write this section per the document type's standard structure."
+    },
+    {
+      "key": "assumptions_scenario",
+      "label": "Assumptions and Scenario",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "ASSUMPTIONS AND SCENARIO: Two paragraphs.\nParagraph 1: State the scenario being modeled — Base / Optimistic / Pessimistic — drawn from scenario_label input. Briefly characterize what each scenario assumes (Base = current run-rate continues; Optimistic = upside drivers materialize; Pessimistic = downside risks crystallize). State that this forecast covers [forecast_horizon_weeks] weeks beginning [forecast_start_date].\nParagraph 2: List the key assumptions drawn from assumptions input as a numbered or bulleted list. Each assumption is a clear statement of what is being held constant or projected, e.g.:\n  - \"Customer collections continue at current 45-day average DSO.\"\n  - \"Vendor payments at standard Net 30 terms.\"\n  - \"No new financing activity (debt draws, equity raises) within the horizon.\"\n  - \"Headcount and payroll constant at current levels.\"\nEnd with: \"Material deviations from these assumptions will result in different cash trajectory; the forecast should be re-run when assumptions change.\""
+    },
+    {
+      "key": "weekly_forecast",
+      "label": "Weekly Forecast",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "WEEKLY FORECAST: Large <table class=\"fin-table\"> with columns: Week | Week Ending | Starting Cash | Inflows | Outflows | Net Change | Ending Cash. One row per week from week 1 through forecast_horizon_weeks (typically 13).\nCompute each week's values:\n  - Week 1 Starting Cash = starting_cash_position\n  - Week N Starting Cash = Week N-1 Ending Cash\n  - Inflows = sum of (recurring_inflows applicable that week) + (one_time_items inflows that week) + (receivables_aging collections that week)\n  - Outflows = sum of (recurring_outflows applicable that week) + (one_time_items outflows that week) + (payables_aging payments that week)\n  - Net Change = Inflows - Outflows\n  - Ending Cash = Starting + Net Change\nFormat week ending date based on forecast_start_date + (week × 7 days), assuming week-ending convention is Friday or Sunday — note in the assumptions paragraph which is used.\nBottom rows:\n  - Total row showing summed Inflows, summed Outflows, summed Net Change across all weeks (DO NOT sum starting/ending — those are point-in-time, not flow). Use class \"subtotal-row\".\n  - Final row showing \"Forecast End Position\" with the last week's ending cash. Use class \"total-row\".\nRight-align all numeric columns. Format currency consistently. Highlight any week where Ending Cash falls below minimum_cash_threshold (the pipeline supports row class \"alert-row\" — apply if useful)."
+    },
+    {
+      "key": "inflow_detail",
+      "label": "Inflow Detail",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "INFLOW DETAIL: Three sub-tables rendered as <h3>:\n  <h3>Recurring Inflows</h3> — <table class=\"fin-table\"> with columns Source | Amount per Period | Frequency (weeks) | Start Week | End Week | Total over Horizon. Parse recurring_inflows input.\n  <h3>Receivables Collections (Aging)</h3> — only if receivables_aging non-empty. Columns Customer | Amount | Expected Collection Week.\n  <h3>One-Time Inflows</h3> — only if one_time_items contains any inflow rows. Columns Description | Amount | Week.\nSubtotals at the bottom of each table. If a sub-table has no entries, omit that sub-section entirely (or state \"None projected for this horizon\" if fully missing)."
+    },
+    {
+      "key": "outflow_detail",
+      "label": "Outflow Detail",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "OUTFLOW DETAIL: Mirror structure for outflows — three sub-tables:\n  <h3>Recurring Outflows</h3> — <table class=\"fin-table\"> with columns Category | Amount per Period | Frequency (weeks) | Start Week | End Week | Total over Horizon. Parse recurring_outflows input.\n  <h3>Payables (Aging)</h3> — only if payables_aging non-empty. Columns Vendor | Amount | Expected Payment Week.\n  <h3>One-Time Outflows</h3> — only if one_time_items contains any outflow rows. Columns Description | Amount | Week.\nSubtotals at the bottom of each table."
+    },
+    {
+      "key": "aging_schedules",
+      "label": "Aging Schedules",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "AGING SCHEDULES: ONLY emit if receivables_aging or payables_aging input is non-empty. Two sub-headings:\n  <h3>Receivables Aging Detail</h3> — only if receivables_aging non-empty. Restructure receivables by aging bucket if useful (current, 30, 60, 90+) — or simply re-render the same data with risk commentary on collection probability.\n  <h3>Payables Aging Detail</h3> — only if payables_aging non-empty. Same structure.\nThis section may overlap with Inflow/Outflow Detail above; include only if it adds value (aging analysis vs. just listing)."
+    },
+    {
+      "key": "risk_alerts",
+      "label": "Risk Alerts and Threshold Analysis",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "RISK ALERTS AND THRESHOLD ANALYSIS: Identify any week where Ending Cash falls below minimum_cash_threshold (if the threshold is set). For each breach, state:\n  \"ALERT: Cash position falls below the minimum threshold of $[threshold] in week [N] (week ending [date]), reaching a low of $[amount]. The shortfall persists through week [M] before recovering to $[recovery amount]. Recommended actions to consider: accelerate collections through [specific receivables]; defer non-critical payables to [later week]; draw on the line of credit; communicate to lenders about expected covenant impact.\"\nIf multiple non-contiguous breaches: list each separately.\nIf no breaches: \"Cash position remains above the minimum threshold of $[threshold] throughout the [forecast_horizon_weeks]-week forecast horizon. Lowest projected ending cash position: $[X] in week [N] (week ending [date]); buffer at the low point: $[X - threshold].\"\nEnd with a one-paragraph treasury commentary on overall cash trajectory: building, drawing down, or steady. Note any inflection points where the trajectory shifts."
+    }
+  ]
+}

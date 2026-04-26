@@ -1,0 +1,292 @@
+{
+  "deliverable_slug": "proposal",
+  "required_fields": [
+    {
+      "key": "prospect_organization",
+      "label": "Prospect organization",
+      "type": "text"
+    },
+    {
+      "key": "prospect_contact_name",
+      "label": "Prospect contact — name",
+      "type": "text"
+    },
+    {
+      "key": "prospect_contact_title",
+      "label": "Prospect contact — title",
+      "type": "text"
+    },
+    {
+      "key": "proposal_date",
+      "label": "Proposal date",
+      "type": "date"
+    },
+    {
+      "key": "problem_statement",
+      "label": "Problem statement (in client's words)",
+      "type": "textarea"
+    },
+    {
+      "key": "our_understanding",
+      "label": "Our understanding of the problem",
+      "type": "textarea",
+      "help": "Restatement of the problem demonstrating comprehension. 2–3 paragraphs."
+    },
+    {
+      "key": "win_themes",
+      "label": "Win themes (3–4)",
+      "type": "textarea",
+      "help": "Short messages that thread through the proposal. One per line."
+    },
+    {
+      "key": "proposed_methodology",
+      "label": "Proposed methodology / phases",
+      "type": "textarea",
+      "help": "Each phase: name | activities | deliverables | duration. One per line or one per paragraph."
+    },
+    {
+      "key": "team_lead_name",
+      "label": "Team lead — name",
+      "type": "text"
+    },
+    {
+      "key": "team_lead_qualifications",
+      "label": "Team lead — qualifications",
+      "type": "textarea",
+      "help": "2–4 sentences of relevant experience."
+    },
+    {
+      "key": "team_members",
+      "label": "Team members (one per line)",
+      "type": "textarea",
+      "help": "Format: name | role | relevant experience."
+    },
+    {
+      "key": "risks_and_mitigations",
+      "label": "Risks and mitigations",
+      "type": "textarea",
+      "help": "3–5 lines: risk | mitigation. Specific to this engagement."
+    },
+    {
+      "key": "assumptions",
+      "label": "Assumptions",
+      "type": "textarea"
+    },
+    {
+      "key": "pricing_model",
+      "label": "Pricing model",
+      "type": "select",
+      "options": [
+        {
+          "value": "fixed-fee",
+          "label": "Fixed fee"
+        },
+        {
+          "value": "time-and-materials",
+          "label": "Time and materials"
+        },
+        {
+          "value": "hybrid",
+          "label": "Hybrid"
+        },
+        {
+          "value": "milestone-based",
+          "label": "Milestone-based"
+        }
+      ]
+    },
+    {
+      "key": "pricing_detail",
+      "label": "Pricing detail",
+      "type": "textarea",
+      "help": "Rates by role × hours, or fixed total with milestone schedule."
+    },
+    {
+      "key": "validity_period_days",
+      "label": "Proposal validity (days)",
+      "type": "number",
+      "default": 60
+    },
+    {
+      "key": "next_steps_call_to_action",
+      "label": "Next steps / call to action",
+      "type": "textarea",
+      "help": "Specific actions to proceed."
+    }
+  ],
+  "optional_fields": [
+    {
+      "key": "rfp_reference",
+      "label": "RFP reference / number (optional)",
+      "type": "text"
+    },
+    {
+      "key": "evaluation_criteria",
+      "label": "Evaluation criteria (optional)",
+      "type": "textarea",
+      "help": "If responding to an RFP with stated criteria, list them. Triggers a Compliance Matrix appendix."
+    },
+    {
+      "key": "past_performance",
+      "label": "Past performance / case studies (optional)",
+      "type": "textarea",
+      "help": "Each line: client | scope | outcome | duration."
+    },
+    {
+      "key": "references",
+      "label": "References (optional)",
+      "type": "textarea",
+      "help": "Each line: name | title | organization | contact."
+    },
+    {
+      "key": "pricing_optional_services",
+      "label": "Optional add-on services (optional)",
+      "type": "textarea",
+      "help": "Add-on services with separate pricing."
+    }
+  ],
+  "file_upload_prompts": [
+    {
+      "kind": "brand_guide",
+      "label": "Brand guidelines (optional)",
+      "required": false,
+      "accepts": "application/pdf,.docx,.doc,image/*"
+    },
+    {
+      "kind": "reference_doc",
+      "label": "Prior proposals, RFP, or solicitation document (optional)",
+      "required": false,
+      "multiple": true,
+      "accepts": "application/pdf,.docx,.doc"
+    },
+    {
+      "kind": "reference_image",
+      "label": "Graphics, charts, or team photos (optional)",
+      "required": false,
+      "multiple": true,
+      "accepts": "image/*"
+    }
+  ],
+  "sections": [
+    {
+      "key": "cover",
+      "label": "Cover Page",
+      "required": true,
+      "min_words": 30,
+      "max_words": 200,
+      "instructions": "Voice: Confident, specific, grounded in the prospect's stated problem. Demonstrates capability through evidence (specific outcomes, named clients, quantified results) rather than assertion (adjectives, superlatives). Avoid: \"world-class\", \"best-in-class\", \"innovative\", \"cutting-edge\", \"industry-leading\", \"passionate\", \"thrilled\", \"excited\" — these are weak signals because they substitute for evidence. Replace with specifics: numbers, durations, named outcomes, named clients (sanitized as needed), named methodologies. Win themes thread through every section subtly — not as marketing copy but as recurring substantive emphasis.\n\n=== CRITICAL OUTPUT RULES ===\n\nRULE 1: DO NOT emit the document title as <h1> or in any form. The pipeline adds the title on the cover or masthead. Any title in your body HTML creates a duplicate.\n\nRULE 2: DO NOT emit decorative banners, spaced-out letter wordmarks, document IDs, brand names above the first section, or any content before the first <h2> heading. Start directly with the first section heading.\n\nRULE 3: Every section MUST have an <h2> heading with the exact title from the 'sections' array. No section may appear without a heading. Do not let content drift into unlabeled prose.\n\nRULE 4: Emit sections in the exact order listed. Do not skip required sections. Conditional sections (those gated on user input flags) may be omitted only when the input does not include them.\n\n=== LENGTH ===\n2500–4500 words. Comprehensive but disciplined. Length should follow content — proposals for simple engagements should be shorter; complex government RFPs longer. Never pad to hit length.\n\nCOVER PAGE: write this section per the document type's standard structure."
+    },
+    {
+      "key": "executive_summary",
+      "label": "Executive Summary",
+      "required": true,
+      "min_words": 80,
+      "max_words": 250,
+      "instructions": "EXECUTIVE SUMMARY: Five paragraphs, ONE sentence each. Each sentence reinforces a win theme drawn from win_themes input.\n  Sentence 1: Restate the prospect's business challenge (drawn from problem_statement input). Frame in their language.\n  Sentence 2: State the proposed approach in one sentence — what will be done, with what methodology.\n  Sentence 3: State the expected outcome with a quantified target if possible (e.g., \"30% reduction in cycle time\", \"$2M savings\", \"60-day deployment\").\n  Sentence 4: State the proposer's unique qualification — what differentiates from alternatives. Specific, not generic.\n  Sentence 5: State why act now — timing, market window, regulatory deadline, opportunity cost of delay.\nThe sentences should each stand alone but together form a coherent argument. Do not pad. Five tight sentences are stronger than five paragraphs."
+    },
+    {
+      "key": "understanding_of_need",
+      "label": "Understanding of Your Needs",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "UNDERSTANDING OF YOUR NEEDS: Two paragraphs.\n  Paragraph 1: Restate the prospect's problem in proposer's own words drawing from our_understanding input. This is the \"I heard you\" paragraph — demonstrates comprehension of the situation, the constraints, the goals. Use the prospect's own terminology where it appears in the source materials.\n  Paragraph 2: State why this problem matters now. What is the business consequence of inaction? What is the timing pressure? Cite specifics: regulatory deadlines, market windows, internal commitments, competitive dynamics.\nEnd with one transition sentence into the proposed approach."
+    },
+    {
+      "key": "proposed_approach",
+      "label": "Proposed Approach",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "PROPOSED APPROACH: Two to four paragraphs. Methodology overview at a high level — NOT phase detail (that's the next section). Cover:\n  - Why this approach is right for this client's situation specifically\n  - What the prospect will experience during the engagement (cadence, touchpoints, decision points)\n  - What level of access/cooperation is required from the client\n  - What is unique about how proposer approaches this work — the \"why us doing it this way\" without adjectives\nAvoid generic methodology descriptions; tie every choice to the client's stated problem."
+    },
+    {
+      "key": "methodology_phases",
+      "label": "Methodology and Phases",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "METHODOLOGY AND PHASES: Numbered phases parsed from proposed_methodology input. For EACH phase, render as a sub-block with:\n  <h3>[Phase number]. [Phase name]</h3>\n  One paragraph describing the activities in that phase.\n  <strong>Deliverables:</strong> bulleted list of what comes out of this phase.\n  <strong>Duration:</strong> [estimate].\n  <strong>Dependencies:</strong> what must be in place from the prior phase or from Client to begin.\nThree to five phases is typical. End the section with a brief paragraph on how phases connect — handoff points, decision gates, governance."
+    },
+    {
+      "key": "deliverables",
+      "label": "Deliverables",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "DELIVERABLES: Consolidated list of ALL deliverables across all phases. Each as a numbered item with:\n  - Deliverable name (bolded)\n  - One-sentence definition\n  - Acceptance criteria (objective, measurable; reference the engagement letter / SOW that will follow)\n  - Format (e.g., written report PDF, presentation deck, source code repository)\nThis consolidated view helps evaluators map the proposal to their needs without reconstructing it from phases."
+    },
+    {
+      "key": "team_organization",
+      "label": "Team and Organization",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "TEAM AND ORGANIZATION: Lead with the team_lead callout: <h3>[team_lead_name]</h3> followed by team_lead_qualifications as a 2–4 sentence credential summary. Then a team table parsed from team_members input with columns Name | Role | Relevant Experience. After the table, one paragraph on reporting structure and engagement governance: who Client interfaces with, escalation paths, frequency of status updates. Avoid org chart graphics unless absolutely necessary."
+    },
+    {
+      "key": "past_performance",
+      "label": "Past Performance",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "PAST PERFORMANCE: ONLY emit if past_performance input is non-empty. For each entry parsed from input as \"client | scope | outcome | duration\":\n  <h3>[Client name, sanitized if needed]</h3>\n  <strong>Scope:</strong> [scope description, 2–3 sentences]\n  <strong>Outcome:</strong> [measurable result, with numbers]\n  <strong>Duration:</strong> [duration]\nThree to five entries is ideal — too many dilutes signal. Quality of detail matters more than quantity."
+    },
+    {
+      "key": "references",
+      "label": "References",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "REFERENCES: ONLY emit if references input is non-empty. Brief list of references with the format: Name | Title | Organization | Contact (email or phone). One reference per line. End with: \"References available for direct contact upon mutual agreement to proceed; please coordinate timing through [proposer contact].\""
+    },
+    {
+      "key": "risk_management",
+      "label": "Risk Identification and Mitigation",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "RISK IDENTIFICATION AND MITIGATION: <table> with columns: Risk | Likelihood (Low/Medium/High) | Impact (Low/Medium/High) | Mitigation Strategy. Three to five rows from risks_and_mitigations input, parsed as \"risk | mitigation\". Be specific — \"delays\" or \"scope creep\" without specifics signal a generic proposal. Risks should be specific to this engagement: regulatory uncertainty, technical integration unknowns, stakeholder alignment, data quality, market shifts."
+    },
+    {
+      "key": "assumptions",
+      "label": "Assumptions",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "ASSUMPTIONS: Numbered list. Each assumption is a clear declarative statement of what proposer is relying on for the proposed plan and pricing:\n  - Client decisions on material questions within five business days\n  - Access to subject-matter experts named in the team section's reporting structure\n  - Existing data sources documented in [Appendix or pre-engagement]\n  - No major regulatory or organizational change during the engagement\nEnd with: \"Material deviations from these assumptions will be addressed via written change order in the engagement letter or SOW that follows. Pricing and timeline reflect these assumptions.\""
+    },
+    {
+      "key": "timeline",
+      "label": "Timeline",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "TIMELINE: Visual milestone summary in prose form. Reference the phase end dates from the Methodology section. Note critical path indicators where applicable. Single calendar reference (e.g., \"Engagement Kickoff: Week 1; Phase 1 Complete: Week 4; Phase 2 Complete: Week 8; Final Deliverable: Week 12\"). State that target dates assume Engagement Letter / SOW execution by [proposal_date + validity_period_days days]."
+    },
+    {
+      "key": "pricing_investment",
+      "label": "Pricing and Investment",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "PRICING AND INVESTMENT: Restate pricing_model. Detailed breakdown from pricing_detail input.\n  - 'fixed-fee': total amount, payment milestones tied to phase completion or deliverable acceptance, percentages summing to 100%.\n  - 'time-and-materials': rates by role (table), estimated hours by role, not-to-exceed cap, monthly invoicing.\n  - 'milestone-based': specific dollar amounts at specific milestones with acceptance criteria triggers.\n  - 'hybrid': describe both portions.\nIf pricing_optional_services input is provided, render as a separate sub-section <h3>Optional Add-On Services</h3> with name, description, separate price.\nValidity statement (verbatim): \"This proposal is valid through [proposal_date + validity_period_days days]. Pricing assumes execution of the engagement letter or SOW by that date. Subsequent execution may require re-pricing reflecting then-current rates and scope.\""
+    },
+    {
+      "key": "next_steps",
+      "label": "Next Steps and Acceptance",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "NEXT STEPS AND ACCEPTANCE: Specific actions per next_steps_call_to_action input. Typical structure: \"To proceed, the parties will execute an Engagement Letter (or Statement of Work) substantially in the form attached or in negotiation. Please indicate intent to proceed by [date], and we will deliver the executable engagement document within five business days. Upon execution, we will commence with a kickoff meeting within five business days.\" If a counter-signature line is included on the proposal itself: \"If the foregoing approach and pricing are acceptable in principle, please countersign below to authorize preparation of the formal engagement document. This signature does not constitute the final engagement agreement.\""
+    },
+    {
+      "key": "appendix_compliance",
+      "label": "Appendix: Compliance Matrix",
+      "required": true,
+      "min_words": 100,
+      "max_words": 600,
+      "instructions": "APPENDIX: COMPLIANCE MATRIX: ONLY emit if evaluation_criteria input is non-empty. Render as a table with columns: Evaluation Criterion | Proposal Section | Page (if known). Map each criterion from evaluation_criteria input to the section(s) of this proposal that address it. This is critical for RFP responses; reviewers use it to verify completeness."
+    }
+  ]
+}
