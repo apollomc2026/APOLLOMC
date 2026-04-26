@@ -1,0 +1,1280 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Apollo — Launch Mission</title>
+  <link rel="manifest" href="/apollo/manifest.json">
+  <meta name="theme-color" content="#0a0a0f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Apollo">
+  <link rel="apple-touch-icon" sizes="192x192" href="/apollo/icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/apollo/icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/apollo/shared/theme.css">
+
+  <style>
+  /* Page-specific wizard layout. Reusable bits (glass, LED, buttons,
+     fields, command bar, auth modal, hero) live in theme.css. */
+
+  .wiz-wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 32px 24px 48px;
+  }
+  .wiz-loading {
+    text-align: center;
+    color: var(--text-3);
+    padding: 64px 24px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.18em;
+    font-size: 12px;
+  }
+
+  /* Step bar */
+  .wiz-steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    max-width: 760px;
+    margin: 0 auto 32px;
+  }
+  .wiz-step { display: flex; align-items: center; gap: 8px; }
+  .wiz-step-num {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-3);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: rgba(10,10,15,0.6);
+  }
+  .wiz-step.active .wiz-step-num {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    box-shadow: 0 0 14px rgba(107,227,255,0.35);
+  }
+  .wiz-step.done .wiz-step-num {
+    background: var(--cyan);
+    border-color: var(--cyan);
+    color: #000;
+  }
+  .wiz-step-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--text-3);
+    text-transform: uppercase;
+  }
+  .wiz-step.active .wiz-step-label { color: var(--cyan); }
+  .wiz-step.done .wiz-step-label { color: var(--text-2); }
+  .wiz-step-line { width: 28px; height: 1px; background: rgba(255,255,255,0.1); }
+  .wiz-step-line.done { background: rgba(107,227,255,0.5); }
+  @media (max-width: 720px) {
+    .wiz-step-label { display: none; }
+    .wiz-step-line { width: 16px; }
+  }
+
+  /* Stage */
+  .wiz-stage {
+    background: rgba(10,10,15,0.55);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid rgba(107,227,255,0.12);
+    border-radius: 14px;
+    padding: 28px 32px;
+  }
+  @media (max-width: 720px) { .wiz-stage { padding: 18px 14px; border-radius: 8px; } }
+
+  .wiz-head { text-align: center; margin-bottom: 22px; }
+  .wiz-head h2 {
+    margin: 0 0 6px;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #ffffff, var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .wiz-subtle { color: var(--text-3); margin: 0 0 10px; font-size: 14px; }
+  .wiz-section-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    color: var(--cyan);
+    text-transform: uppercase;
+    margin: 24px 0 12px;
+  }
+
+  /* Brand picker (compact row) */
+  .wiz-brand-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .wiz-brand-card {
+    background: rgba(10,10,15,0.55);
+    border: 1px solid rgba(107,227,255,0.15);
+    border-radius: 8px;
+    padding: 14px 12px;
+    text-align: center;
+    cursor: pointer;
+    color: var(--text);
+    font-family: inherit;
+    transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+  }
+  .wiz-brand-card:hover { border-color: rgba(107,227,255,0.4); transform: translateY(-1px); }
+  .wiz-brand-card.selected { border-color: var(--cyan); background: rgba(107,227,255,0.08); }
+  .wiz-brand-name {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    font-weight: 600;
+  }
+  .wiz-brand-note { font-size: 10px; color: var(--text-3); margin-top: 4px; }
+
+  /* Style picker */
+  .wiz-style-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .wiz-style-card {
+    background: rgba(10,10,15,0.55);
+    border: 1px solid rgba(107,227,255,0.15);
+    border-radius: 10px;
+    padding: 18px 16px;
+    text-align: left;
+    cursor: pointer;
+    color: var(--text);
+    font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 140px;
+  }
+  .wiz-style-card:hover { border-color: rgba(107,227,255,0.4); transform: translateY(-1px); }
+  .wiz-style-card.selected {
+    border-color: var(--cyan);
+    background: rgba(107,227,255,0.08);
+    box-shadow: 0 0 0 2px rgba(107,227,255,0.18);
+  }
+  .wiz-style-name {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.18em;
+    font-weight: 600;
+    color: var(--cyan);
+  }
+  .wiz-style-desc { font-size: 12.5px; line-height: 1.5; color: var(--text-2); flex: 1; }
+  .wiz-style-action {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--text-3);
+    align-self: flex-end;
+  }
+  .wiz-style-card.selected .wiz-style-action { color: var(--cyan); }
+
+  /* Form fields (wizard variant — module fields, more compact than .field) */
+  .wiz-form { display: flex; flex-direction: column; gap: 16px; }
+  .wiz-field { display: flex; flex-direction: column; gap: 6px; }
+  .wiz-field label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-2);
+  }
+  .wiz-req { color: var(--cyan); }
+  .wiz-field input,
+  .wiz-field textarea,
+  .wiz-field select {
+    background: rgba(10,10,15,0.7);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+  }
+  .wiz-field textarea { resize: vertical; min-height: 90px; }
+  .wiz-field input:focus,
+  .wiz-field textarea:focus,
+  .wiz-field select:focus {
+    border-color: var(--cyan);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(107,227,255,0.15);
+  }
+  .wiz-field.has-error input,
+  .wiz-field.has-error textarea,
+  .wiz-field.has-error select { border-left: 3px solid #ff7a4d; }
+  .wiz-help { font-size: 12px; color: var(--text-3); line-height: 1.5; }
+  .wiz-inline-err {
+    font-size: 12px;
+    color: #ff7a4d;
+    font-family: var(--font-mono);
+    letter-spacing: 0.12em;
+  }
+  .wiz-error-banner {
+    background: rgba(255,122,77,0.12);
+    border: 1px solid rgba(255,122,77,0.4);
+    color: #ff9d7a;
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin: 14px 0;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+  }
+
+  /* Multi-select chips */
+  .wiz-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .wiz-chip {
+    background: rgba(10,10,15,0.65);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--text-2);
+  }
+  .wiz-chip input { display: none; }
+  .wiz-chip.on { border-color: var(--cyan); background: rgba(107,227,255,0.12); color: var(--cyan); }
+
+  /* Optional details */
+  .wiz-optional {
+    background: rgba(10,10,15,0.5);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 14px 18px;
+  }
+  .wiz-optional summary {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--text-2);
+    cursor: pointer;
+    text-transform: uppercase;
+    padding: 4px 0 12px;
+  }
+  .wiz-optional[open] summary {
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 14px;
+  }
+
+  /* File upload slots */
+  .wiz-upload-slot {
+    background: rgba(10,10,15,0.5);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .wiz-upload-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .wiz-upload-title {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    color: var(--cyan);
+  }
+  .wiz-upload-meta {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--text-3);
+  }
+  .wiz-upload-help { font-size: 12.5px; color: var(--text-3); margin: 0 0 12px; }
+  .wiz-upload-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 24px;
+    border: 1.5px dashed rgba(107,227,255,0.3);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .wiz-upload-zone:hover, .wiz-upload-zone.hot {
+    border-color: var(--cyan);
+    background: rgba(107,227,255,0.06);
+  }
+  .wiz-upload-zone svg { width: 32px; height: 32px; color: var(--cyan); }
+  .wiz-upload-cta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    color: var(--text-2);
+  }
+  .wiz-upload-list {
+    margin-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding-top: 12px;
+  }
+  .wiz-upload-list-head {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    color: var(--text-3);
+    margin-bottom: 8px;
+  }
+  .wiz-upload-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 12px;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 13px;
+  }
+  .wiz-upload-row.pending { opacity: 0.6; }
+  .wiz-upload-icon { font-size: 16px; }
+  .wiz-upload-name {
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .wiz-upload-size {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.05em;
+  }
+  .wiz-upload-remove {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: var(--text-3);
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+  }
+  .wiz-upload-remove:hover { border-color: #ff7a4d; color: #ff7a4d; }
+
+  /* Review */
+  .wiz-review {
+    background: rgba(10,10,15,0.5);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 18px 22px;
+  }
+  .wiz-review h3 {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    color: var(--cyan);
+    margin: 18px 0 10px;
+    text-transform: uppercase;
+  }
+  .wiz-review h3:first-child { margin-top: 0; }
+  .wiz-review-row {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px dashed rgba(255,255,255,0.06);
+    font-size: 13.5px;
+  }
+  .wiz-review-row:last-of-type { border-bottom: none; }
+  .wiz-review-k {
+    color: var(--text-3);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .wiz-review-v { color: var(--text); word-break: break-word; }
+  .wiz-review-files { list-style: none; padding: 0; margin: 6px 0 0; }
+  .wiz-review-files li {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 13px;
+    border-bottom: 1px dashed rgba(255,255,255,0.06);
+  }
+  .wiz-review-files li:last-child { border-bottom: none; }
+  .wiz-review-files-meta {
+    color: var(--text-3);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+  @media (max-width: 600px) {
+    .wiz-review-row { grid-template-columns: 1fr; gap: 4px; }
+  }
+
+  /* Result */
+  .wiz-result-wrap { text-align: center; padding: 32px 16px; }
+  .wiz-success-card {
+    background: rgba(107,227,255,0.06);
+    border: 1px solid var(--cyan);
+    border-radius: 12px;
+    padding: 28px;
+    max-width: 560px;
+    margin: 24px auto;
+  }
+  .wiz-success-title {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    letter-spacing: 0.28em;
+    color: var(--cyan);
+    margin-bottom: 14px;
+  }
+  .wiz-success-card p { margin: 8px 0 18px; color: var(--text-2); }
+  .wiz-error-card {
+    background: rgba(255,122,77,0.08);
+    border: 1px solid rgba(255,122,77,0.5);
+    border-radius: 10px;
+    padding: 22px;
+    max-width: 560px;
+    margin: 24px auto;
+  }
+  .wiz-error-title {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    letter-spacing: 0.24em;
+    color: #ff7a4d;
+    margin-bottom: 10px;
+  }
+  .wiz-error-body { color: var(--text-2); font-size: 13.5px; line-height: 1.55; }
+
+  /* Price line */
+  .wiz-price-line {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .wiz-price-line .price-strike { font-size: 13px; }
+  .wiz-price-line .price-active { font-size: 12px; }
+
+  /* Nav row */
+  .wiz-nav {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+  }
+  .wiz-nav .btn-secondary { margin-right: auto; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wiz-step-num,
+    .wiz-brand-card,
+    .wiz-style-card,
+    .wiz-upload-zone { transition: none !important; }
+  }
+  </style>
+</head>
+<body data-standby="true">
+
+<!-- Hero, command bar, auth modal injected at boot -->
+
+<main class="wiz-wrap">
+  <div id="wizardRoot">
+    <div class="wiz-loading">Loading deliverable…</div>
+  </div>
+</main>
+
+<div id="toastHost"></div>
+
+<script type="module">
+import * as hero from '/apollo/shared/hero.js';
+import * as authModal from '/apollo/shared/auth-modal.js';
+import * as commandBar from '/apollo/shared/command-bar.js';
+import * as drafts from '/apollo/shared/drafts.js';
+import * as uploads from '/apollo/shared/uploads.js';
+import { requireAuth } from '/apollo/shared/auth.js';
+import { getDeliverable } from '/apollo/shared/catalog.js';
+import { apiJson } from '/apollo/shared/api.js';
+import {
+  el, toast, escapeHtml, escapeAttr,
+  formatPriceCents, bytesToHuman, priceLineEl,
+  uploadIcon, rocketIcon,
+} from '/apollo/shared/ui.js';
+
+const params = new URLSearchParams(location.search);
+const slug = params.get('slug');
+if (!slug) location.replace('/apollo/');
+
+drafts.purgeOld();
+hero.inject();
+authModal.mount({ status: 'loading' });
+
+// Wizard state — page-local. Maps to the spec's state.wizard model.
+const state = {
+  template: null,
+  brand_slug: null,
+  style_id: null,
+  step: 1,
+  fields: {},
+  uploads: [],
+  pendingUploads: [],
+  validation_errors: {},
+  validation_general: null,
+  uploadError: null,
+  submitting: false,
+  result: null,
+  error: null,
+};
+
+requireAuth({
+  onSignedOut: () => {
+    authModal.updateStatus({ status: 'signed-out' });
+  },
+  onNotAuthorized: (email) => {
+    authModal.updateStatus({ status: 'not-authorized', email });
+  },
+  onAuthed: async (user) => {
+    authModal.dismiss();
+    document.body.dataset.standby = 'false';
+
+    state.brand_slug = localStorage.getItem('apollo:brand') || 'apollo';
+
+    commandBar.mount({
+      user,
+      brand: state.brand_slug,
+      brands: ['apollo', 'atlas', 'on-spot-solutions'],
+      status: 'operational',
+      onBrandChange: (s) => {
+        state.brand_slug = s;
+        localStorage.setItem('apollo:brand', s);
+        renderWizard();
+      },
+    });
+    commandBar.startClock();
+
+    await bootWizard(slug);
+  },
+});
+
+async function bootWizard(slug) {
+  let detail = null;
+  try {
+    detail = await getDeliverable(slug);
+  } catch (err) {
+    toast('Could not load template: ' + (err && err.message || String(err)), { variant: 'error' });
+    location.replace('/apollo/');
+    return;
+  }
+  if (!detail) {
+    toast('Deliverable not available', { variant: 'error' });
+    location.replace('/apollo/');
+    return;
+  }
+  state.template = detail;
+
+  // Default style from server, or first available.
+  if (!state.style_id) {
+    state.style_id =
+      detail.default_style_id ||
+      (detail.available_styles && detail.available_styles[0]?.id) ||
+      null;
+  }
+
+  // Resume saved draft if present and fresh.
+  const draft = drafts.load(slug, state.brand_slug);
+  if (draft) {
+    if (draft.fields) state.fields = draft.fields;
+    if (draft.style_id) state.style_id = draft.style_id;
+    if (typeof draft.step === 'number') state.step = Math.max(1, Math.min(6, draft.step));
+    if (Array.isArray(draft.upload_ids) && draft.upload_ids.length) {
+      rehydrateDraftUploads(draft.upload_ids);
+    }
+  }
+
+  renderWizard();
+}
+
+async function rehydrateDraftUploads(ids) {
+  const results = [];
+  for (const id of ids) {
+    try {
+      const u = await uploads.getOne(id);
+      if (u) results.push(u);
+    } catch {}
+  }
+  state.uploads = results;
+  renderWizard();
+}
+
+function saveDraft() {
+  if (!state.template) return;
+  drafts.save(state.template.slug, state.brand_slug, {
+    step: state.step,
+    brand_slug: state.brand_slug,
+    style_id: state.style_id,
+    fields: state.fields,
+    upload_ids: (state.uploads || []).map((u) => u.id),
+  });
+}
+let draftSaveTimer = null;
+function saveDraftDebounced() {
+  if (draftSaveTimer) clearTimeout(draftSaveTimer);
+  draftSaveTimer = setTimeout(() => { draftSaveTimer = null; saveDraft(); }, 500);
+}
+function clearDraftForCurrent() {
+  if (!state.template) return;
+  drafts.clear(state.template.slug, state.brand_slug);
+}
+
+// ---- Step navigation ----
+function wizardStepList() {
+  const t = state.template;
+  const hasFiles = !!(t && Array.isArray(t.file_upload_prompts) && t.file_upload_prompts.length);
+  const all = [
+    { key: 'identity', label: 'Identity', n: 1 },
+    { key: 'required', label: 'Required', n: 2 },
+    { key: 'optional', label: 'Optional', n: 3 },
+    { key: 'files',    label: 'Files',    n: 4 },
+    { key: 'review',   label: 'Review',   n: 5 },
+    { key: 'generate', label: 'Generate', n: 6 },
+  ];
+  return hasFiles ? all : all.filter((s) => s.key !== 'files');
+}
+function wizardNext() {
+  const list = wizardStepList();
+  const idx = list.findIndex((s) => s.n === state.step);
+  if (idx === -1 || idx === list.length - 1) return;
+  state.step = list[idx + 1].n;
+  saveDraft();
+  renderWizard();
+}
+function wizardBack() {
+  const list = wizardStepList();
+  const idx = list.findIndex((s) => s.n === state.step);
+  if (idx <= 0) return;
+  state.step = list[idx - 1].n;
+  saveDraft();
+  renderWizard();
+}
+
+// ---- Top-level render ----
+function renderWizard() {
+  const root = document.getElementById('wizardRoot');
+  if (!root) return;
+  const t = state.template;
+  if (!t) {
+    root.innerHTML = '<div class="wiz-loading">Loading deliverable…</div>';
+    return;
+  }
+  root.innerHTML = '';
+  root.appendChild(renderStepBar());
+  const stage = el('div', { class: 'wiz-stage' });
+  root.appendChild(stage);
+  if (state.step === 1) renderStep1Identity(stage);
+  else if (state.step === 2) renderStep2Required(stage);
+  else if (state.step === 3) renderStep3Optional(stage);
+  else if (state.step === 4) renderStep4Files(stage);
+  else if (state.step === 5) renderStep5Review(stage);
+  else if (state.step === 6) renderStep6Generate(stage);
+}
+
+function renderStepBar() {
+  const list = wizardStepList();
+  const bar = el('div', { class: 'wiz-steps' });
+  list.forEach((s, i) => {
+    const cls = state.step === s.n ? 'active' : state.step > s.n ? 'done' : '';
+    bar.appendChild(el('div', { class: 'wiz-step ' + cls },
+      el('div', { class: 'wiz-step-num' }, cls === 'done' ? '✓' : String(i + 1)),
+      el('div', { class: 'wiz-step-label' }, s.label),
+    ));
+    if (i < list.length - 1) {
+      bar.appendChild(el('div', { class: 'wiz-step-line' + (cls === 'done' ? ' done' : '') }));
+    }
+  });
+  return bar;
+}
+
+// ---- Step 1: Identity ----
+const BRAND_LABELS = {
+  apollo: 'Apollo',
+  atlas: 'Atlas',
+  'on-spot-solutions': 'On Spot Solutions',
+  other: 'Unbranded',
+};
+
+function renderStep1Identity(host) {
+  const t = state.template;
+
+  const head = el('div', { class: 'wiz-head' });
+  head.appendChild(el('h2', null, t.label));
+  head.appendChild(el('p', { class: 'wiz-subtle' }, t.description || ''));
+  head.appendChild(priceLineEl(t));
+  host.appendChild(head);
+
+  // Brand picker
+  host.appendChild(el('h3', { class: 'wiz-section-title' }, 'Brand'));
+  const brandRow = el('div', { class: 'wiz-brand-row' });
+  for (const slug of ['apollo', 'atlas', 'on-spot-solutions', 'other']) {
+    const sel = state.brand_slug === slug;
+    const card = el('button', {
+      class: 'wiz-brand-card' + (sel ? ' selected' : ''),
+      type: 'button',
+      onclick: () => {
+        state.brand_slug = slug;
+        document.documentElement.dataset.brand = slug;
+        saveDraft();
+        renderWizard();
+      },
+    },
+      el('div', { class: 'wiz-brand-name' }, (BRAND_LABELS[slug] || slug).toUpperCase()),
+      slug === 'other' ? el('div', { class: 'wiz-brand-note' }, 'Unbranded') : null,
+    );
+    brandRow.appendChild(card);
+  }
+  host.appendChild(brandRow);
+
+  // Style picker
+  const styles = t.available_styles || [];
+  if (styles.length > 0) {
+    host.appendChild(el('h3', { class: 'wiz-section-title' }, 'Style'));
+    const styleRow = el('div', { class: 'wiz-style-row' });
+    for (const s of styles) {
+      const sel = state.style_id === s.id;
+      styleRow.appendChild(el('button', {
+        class: 'wiz-style-card' + (sel ? ' selected' : ''),
+        type: 'button',
+        onclick: () => { state.style_id = s.id; saveDraft(); renderWizard(); },
+      },
+        el('div', { class: 'wiz-style-name' }, (s.label || s.id).toUpperCase()),
+        el('div', { class: 'wiz-style-desc' }, s.description || ''),
+        el('div', { class: 'wiz-style-action' }, sel ? 'SELECTED' : 'SELECT'),
+      ));
+    }
+    host.appendChild(styleRow);
+  }
+
+  host.appendChild(navRow({
+    next: wizardNext,
+    nextDisabled: !state.brand_slug || !state.style_id,
+    hideBack: true,
+  }));
+}
+
+// ---- Step 2: Required ----
+function renderStep2Required(host) {
+  const t = state.template;
+  const required = t.required_fields || [];
+
+  host.appendChild(el('div', { class: 'wiz-head' },
+    el('h2', null, 'Required information'),
+    el('p', { class: 'wiz-subtle' }, 'Fill the fields below. They drive the body of your ' + t.label + '.'),
+  ));
+
+  const form = el('div', { class: 'wiz-form' });
+  for (const f of required) form.appendChild(renderModuleField(f, true));
+  host.appendChild(form);
+
+  if (state.validation_general) {
+    host.appendChild(el('div', { class: 'wiz-error-banner' }, state.validation_general));
+  }
+
+  host.appendChild(navRow({
+    back: wizardBack,
+    next: () => {
+      const errors = validateModuleFields(required, state.fields, true);
+      state.validation_errors = errors;
+      state.validation_general = Object.keys(errors).length
+        ? Object.keys(errors).length + ' required field(s) need attention.'
+        : null;
+      if (Object.keys(errors).length) { renderWizard(); return; }
+      wizardNext();
+    },
+  }));
+}
+
+// ---- Step 3: Optional ----
+function renderStep3Optional(host) {
+  const t = state.template;
+  const optional = t.optional_fields || [];
+
+  host.appendChild(el('div', { class: 'wiz-head' },
+    el('h2', null, 'Optional details'),
+    el('p', { class: 'wiz-subtle' }, optional.length
+      ? "These improve the output but aren't required."
+      : 'No optional fields for this deliverable.'),
+  ));
+
+  if (optional.length === 0) {
+    host.appendChild(navRow({ back: wizardBack, next: wizardNext, nextLabel: 'Skip →' }));
+    return;
+  }
+
+  const details = el('details', { class: 'wiz-optional', open: true });
+  details.appendChild(el('summary', null, 'Advanced options (' + optional.length + ')'));
+  const form = el('div', { class: 'wiz-form' });
+  for (const f of optional) form.appendChild(renderModuleField(f, false));
+  details.appendChild(form);
+  host.appendChild(details);
+
+  host.appendChild(navRow({
+    back: wizardBack,
+    next: () => {
+      const errors = validateModuleFields(optional, state.fields, false);
+      state.validation_errors = errors;
+      if (Object.keys(errors).length) { renderWizard(); return; }
+      wizardNext();
+    },
+  }));
+}
+
+// ---- Step 4: Files ----
+function renderStep4Files(host) {
+  const t = state.template;
+  const prompts = t.file_upload_prompts || [];
+
+  host.appendChild(el('div', { class: 'wiz-head' },
+    el('h2', null, 'Files & references'),
+    el('p', { class: 'wiz-subtle' },
+      'Upload reference materials. Brand guides, photos, prior documents — Apollo reads them when generating your deliverable.'),
+  ));
+
+  if (state.uploadError) {
+    host.appendChild(el('div', { class: 'wiz-error-banner' }, state.uploadError));
+  }
+
+  for (const p of prompts) host.appendChild(renderUploadSlot(p));
+
+  host.appendChild(navRow({
+    back: wizardBack,
+    next: () => {
+      const missing = [];
+      for (const p of prompts) {
+        if (!p.required) continue;
+        const has = (state.uploads || []).some((u) => u.upload_kind === p.kind);
+        if (!has) missing.push(p.label || p.kind);
+      }
+      if (missing.length) {
+        state.uploadError = 'Required uploads missing: ' + missing.join(', ');
+        renderWizard();
+        return;
+      }
+      state.uploadError = null;
+      wizardNext();
+    },
+  }));
+}
+
+function renderUploadSlot(prompt) {
+  const accepts = prompt.accepts || (prompt.kind && prompt.kind.includes('photo') ? 'image/*' : '*/*');
+  const multiple = !!prompt.multiple;
+  const myUploads = (state.uploads || []).filter((u) => u.upload_kind === prompt.kind);
+
+  const slot = el('div', { class: 'wiz-upload-slot' });
+  slot.appendChild(el('div', { class: 'wiz-upload-head' },
+    el('span', { class: 'wiz-upload-title' }, (prompt.label || prompt.kind).toUpperCase()),
+    el('span', { class: 'wiz-upload-meta' },
+      (prompt.required ? 'Required' : 'Optional') + (multiple ? ' · Multiple allowed' : ' · One file')
+    ),
+  ));
+  if (prompt.help) slot.appendChild(el('p', { class: 'wiz-upload-help' }, prompt.help));
+
+  const inputId = 'file-input-' + prompt.kind.replace(/[^a-z0-9]/gi, '-');
+  const dz = el('label', {
+    class: 'wiz-upload-zone',
+    for: inputId,
+    ondragover: (e) => { e.preventDefault(); dz.classList.add('hot'); },
+    ondragleave: () => dz.classList.remove('hot'),
+    ondrop: (e) => {
+      e.preventDefault();
+      dz.classList.remove('hot');
+      handleUploadFiles(e.dataTransfer.files, prompt);
+    },
+  },
+    uploadIcon(),
+    el('div', { class: 'wiz-upload-cta' }, '+ Drop files here or click to browse'),
+  );
+  const input = el('input', {
+    type: 'file',
+    id: inputId,
+    accept: accepts,
+    multiple,
+    style: 'display:none',
+    onchange: (e) => handleUploadFiles(e.target.files, prompt),
+  });
+  slot.appendChild(input);
+  slot.appendChild(dz);
+
+  if (myUploads.length > 0) {
+    const list = el('div', { class: 'wiz-upload-list' });
+    list.appendChild(el('div', { class: 'wiz-upload-list-head' }, 'UPLOADED'));
+    for (const u of myUploads) {
+      const row = el('div', { class: 'wiz-upload-row' });
+      row.appendChild(el('span', { class: 'wiz-upload-icon' },
+        u.content_type && u.content_type.startsWith('image/') ? '🖼' :
+        u.content_type === 'application/pdf' ? '📄' : '📎'));
+      row.appendChild(el('span', { class: 'wiz-upload-name' }, u.original_filename));
+      row.appendChild(el('span', { class: 'wiz-upload-size' }, bytesToHuman(u.size_bytes)));
+      row.appendChild(el('button', {
+        class: 'wiz-upload-remove',
+        type: 'button',
+        'aria-label': 'Remove ' + u.original_filename,
+        onclick: () => removeUpload(u.id),
+      }, '✕'));
+      list.appendChild(row);
+    }
+    slot.appendChild(list);
+  }
+
+  const pending = (state.pendingUploads || []).filter((p) => p.kind === prompt.kind);
+  for (const p of pending) {
+    slot.appendChild(el('div', { class: 'wiz-upload-row pending' },
+      el('span', { class: 'wiz-upload-icon' }, '⋯'),
+      el('span', { class: 'wiz-upload-name' }, p.filename),
+      el('span', { class: 'wiz-upload-size' }, 'Uploading…'),
+    ));
+  }
+
+  return slot;
+}
+
+async function handleUploadFiles(fileList, prompt) {
+  if (!fileList || fileList.length === 0) return;
+  const files = Array.from(fileList);
+  for (const file of files) {
+    const v = uploads.validateFile(file, { maxBytes: 50 * 1024 * 1024 });
+    if (!v.ok) { toast(v.error, { variant: 'error' }); continue; }
+    const pendingId = 'pending-' + Math.random().toString(36).slice(2, 8);
+    state.pendingUploads.push({ id: pendingId, kind: prompt.kind, filename: file.name });
+    renderWizard();
+    try {
+      const row = await uploads.upload(file, prompt.kind);
+      if (row) {
+        state.uploads.push(row);
+        saveDraft();
+      }
+    } catch (err) {
+      toast('Upload failed: ' + (err && err.message || String(err)), { variant: 'error' });
+    } finally {
+      state.pendingUploads = state.pendingUploads.filter((p) => p.id !== pendingId);
+      renderWizard();
+    }
+  }
+}
+
+async function removeUpload(id) {
+  try {
+    await uploads.remove(id);
+  } catch (err) {
+    toast('Could not remove file: ' + (err && err.message || String(err)), { variant: 'error' });
+    return;
+  }
+  state.uploads = state.uploads.filter((u) => u.id !== id);
+  saveDraft();
+  renderWizard();
+}
+
+// ---- Step 5: Review ----
+function renderStep5Review(host) {
+  const t = state.template;
+
+  host.appendChild(el('div', { class: 'wiz-head' },
+    el('h2', null, 'Mission brief'),
+    el('p', { class: 'wiz-subtle' }, 'Review everything below, then launch generation.'),
+  ));
+
+  const review = el('div', { class: 'wiz-review' });
+  review.appendChild(el('h3', null, 'Deliverable'));
+  review.appendChild(reviewKv('Type', t.label));
+  review.appendChild(reviewKv('Industry', t.industry_label || t.industry_slug));
+  const styleObj = (t.available_styles || []).find((s) => s.id === state.style_id);
+  review.appendChild(reviewKv('Style', styleObj ? styleObj.label : (state.style_id || '—')));
+  review.appendChild(reviewKv('Brand', BRAND_LABELS[state.brand_slug] || state.brand_slug || '—'));
+
+  if ((t.required_fields || []).length) {
+    review.appendChild(el('h3', null, 'Required fields'));
+    for (const f of t.required_fields) {
+      review.appendChild(reviewKv(f.label, formatFieldDisplay(state.fields[f.key])));
+    }
+  }
+  const optionalProvided = (t.optional_fields || []).filter((f) => {
+    const v = state.fields[f.key];
+    return v != null && (typeof v !== 'string' || v.trim() !== '') && (!Array.isArray(v) || v.length > 0);
+  });
+  if (optionalProvided.length) {
+    review.appendChild(el('h3', null, 'Optional fields'));
+    for (const f of optionalProvided) {
+      review.appendChild(reviewKv(f.label, formatFieldDisplay(state.fields[f.key])));
+    }
+  }
+  if ((state.uploads || []).length) {
+    review.appendChild(el('h3', null, 'Uploaded files (' + state.uploads.length + ')'));
+    const ul = el('ul', { class: 'wiz-review-files' });
+    for (const u of state.uploads) {
+      ul.appendChild(el('li', null,
+        el('span', null, u.original_filename),
+        el('span', { class: 'wiz-review-files-meta' },
+          (u.upload_kind || '').replace(/_/g, ' ') + ' · ' + bytesToHuman(u.size_bytes)),
+      ));
+    }
+    review.appendChild(ul);
+  }
+
+  host.appendChild(review);
+  host.appendChild(priceLineEl(t));
+
+  host.appendChild(navRow({
+    back: wizardBack,
+    next: () => { state.step = 6; renderWizard(); submitWizard(); },
+    nextLabel: 'Launch mission →',
+  }));
+}
+
+function formatFieldDisplay(v) {
+  if (v == null) return '—';
+  if (Array.isArray(v)) return v.length === 0 ? '—' : v.join(', ');
+  if (typeof v === 'string') return v.trim() === '' ? '—' : v;
+  return String(v);
+}
+
+// ---- Step 6: Generate ----
+function renderStep6Generate(host) {
+  const t = state.template;
+
+  if (state.submitting) {
+    host.appendChild(el('div', { class: 'wiz-result-wrap' },
+      rocketIcon(true),
+      el('h2', null, 'Launching mission…'),
+      el('p', { class: 'wiz-subtle' },
+        'Generating ' + t.label + ' for ' + (BRAND_LABELS[state.brand_slug] || state.brand_slug) + '.'),
+      priceLineEl(t),
+    ));
+    return;
+  }
+  if (state.error) {
+    host.appendChild(el('div', { class: 'wiz-result-wrap' },
+      el('div', { class: 'wiz-error-card' },
+        el('div', { class: 'wiz-error-title' }, 'Mission aborted'),
+        el('div', { class: 'wiz-error-body' }, state.error),
+      ),
+      navRow({
+        back: () => { state.error = null; state.step = 5; renderWizard(); },
+        next: () => { state.error = null; submitWizard(); },
+        nextLabel: 'Retry',
+      }),
+    ));
+    return;
+  }
+  if (state.result) {
+    const r = state.result;
+    const detailHref = r.submission_id
+      ? '/apollo/mission.html?id=' + encodeURIComponent(r.submission_id)
+      : null;
+    host.appendChild(el('div', { class: 'wiz-result-wrap' },
+      el('div', { class: 'wiz-success-card' },
+        el('div', { class: 'wiz-success-title' }, 'MISSION COMPLETE'),
+        el('p', null, t.label + ' generated and ready for download.'),
+        r.download_url
+          ? el('a', { class: 'btn btn-primary btn-lg', href: r.download_url, target: '_blank', rel: 'noopener noreferrer' }, 'Download PDF')
+          : null,
+        r.expires_at ? el('p', { class: 'wiz-subtle' }, 'Link expires ' + new Date(r.expires_at).toLocaleString() + '.') : null,
+      ),
+      el('div', { style: 'margin-top:18px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;' },
+        detailHref ? el('a', { class: 'btn btn-secondary', href: detailHref }, 'View mission') : null,
+        el('a', { class: 'btn btn-secondary', href: '/apollo/' }, 'Mission Control'),
+        el('a', { class: 'btn btn-secondary', href: '/apollo/launch.html?slug=' + encodeURIComponent(t.slug) }, 'New mission'),
+      ),
+    ));
+    return;
+  }
+  host.appendChild(el('div', { class: 'wiz-result-wrap' },
+    el('p', null, 'Ready to launch.'),
+    el('button', { class: 'btn btn-primary', onclick: submitWizard }, 'Generate now'),
+  ));
+}
+
+async function submitWizard() {
+  const t = state.template;
+  if (!t) return;
+  state.submitting = true;
+  state.error = null;
+  state.result = null;
+  document.body.classList.add('generating');
+  renderWizard();
+
+  try {
+    const body = {
+      slug: t.slug,
+      brand_slug: state.brand_slug,
+      style_id: state.style_id,
+      fields: state.fields,
+      upload_ids: (state.uploads || []).map((u) => u.id),
+    };
+    const json = await apiJson('/api/apollo/submit', { method: 'POST', body });
+    if (!json || !json.success) throw new Error((json && json.error) || 'Submit failed');
+    // Normalize the download URL field (older rows used drive_file_url).
+    json.download_url = json.download_url || json.drive_file_url || null;
+    state.result = json;
+    clearDraftForCurrent();
+  } catch (err) {
+    state.error = err && err.message ? err.message : String(err);
+  } finally {
+    state.submitting = false;
+    document.body.classList.remove('generating');
+    renderWizard();
+  }
+}
+
+// ---- Field renderer ----
+function renderModuleField(f, isRequired) {
+  const errMsg = state.validation_errors[f.key];
+  const wrap = el('div', { class: 'wiz-field' + (errMsg ? ' has-error' : '') });
+  const label = el('label', null,
+    f.label,
+    isRequired ? el('span', { class: 'wiz-req' }, ' *') : null,
+  );
+  wrap.appendChild(label);
+
+  const v = state.fields[f.key];
+  const setV = (val) => {
+    state.fields[f.key] = val;
+    if (state.validation_errors[f.key]) delete state.validation_errors[f.key];
+    saveDraftDebounced();
+  };
+
+  let input;
+  if (f.type === 'textarea' || f.type === 'rich_text') {
+    input = el('textarea', { rows: 4, placeholder: f.placeholder || '', oninput: (e) => setV(e.target.value) });
+    input.value = v != null ? v : '';
+  } else if (f.type === 'date') {
+    input = el('input', { type: 'date', oninput: (e) => setV(e.target.value) });
+    input.value = v != null ? v : '';
+  } else if (f.type === 'number') {
+    input = el('input', {
+      type: 'number',
+      placeholder: f.placeholder || '',
+      oninput: (e) => setV(e.target.value === '' ? '' : Number(e.target.value)),
+    });
+    input.value = (v == null || v === '') ? (f.default != null ? f.default : '') : v;
+    if (v == null && f.default != null) state.fields[f.key] = f.default;
+  } else if (f.type === 'select') {
+    input = el('select', { onchange: (e) => setV(e.target.value) });
+    input.appendChild(el('option', { value: '' }, '— Select —'));
+    for (const opt of (f.options || [])) {
+      const o = (typeof opt === 'string') ? { value: opt, label: opt } : opt;
+      input.appendChild(el('option', { value: o.value }, o.label));
+    }
+    input.value = v != null ? v : '';
+  } else if (f.type === 'multi_select') {
+    const row = el('div', { class: 'wiz-chips' });
+    const sel = Array.isArray(v) ? v.slice() : [];
+    for (const opt of (f.options || [])) {
+      const o = (typeof opt === 'string') ? { value: opt, label: opt } : opt;
+      const checked = sel.includes(o.value);
+      const chip = el('label', { class: 'wiz-chip' + (checked ? ' on' : '') },
+        el('input', {
+          type: 'checkbox',
+          checked,
+          onchange: (e) => {
+            if (e.target.checked) { if (!sel.includes(o.value)) sel.push(o.value); }
+            else { const i = sel.indexOf(o.value); if (i >= 0) sel.splice(i, 1); }
+            setV(sel.slice());
+            chip.classList.toggle('on', e.target.checked);
+          },
+        }),
+        o.label,
+      );
+      row.appendChild(chip);
+    }
+    wrap.appendChild(row);
+    if (errMsg) wrap.appendChild(el('div', { class: 'wiz-inline-err' }, errMsg));
+    else if (f.help) wrap.appendChild(el('div', { class: 'wiz-help' }, f.help));
+    return wrap;
+  } else {
+    input = el('input', { type: 'text', placeholder: f.placeholder || '', oninput: (e) => setV(e.target.value) });
+    input.value = v != null ? v : '';
+  }
+  wrap.appendChild(input);
+  if (errMsg) wrap.appendChild(el('div', { class: 'wiz-inline-err' }, errMsg));
+  else if (f.help) wrap.appendChild(el('div', { class: 'wiz-help' }, f.help));
+  return wrap;
+}
+
+function validateModuleFields(fields, values, requireAll) {
+  const errors = {};
+  for (const f of fields) {
+    const v = values[f.key];
+    if (requireAll) {
+      if (v == null || (typeof v === 'string' && v.trim() === '') || (Array.isArray(v) && v.length === 0)) {
+        errors[f.key] = 'Required.';
+        continue;
+      }
+    }
+    if (f.type === 'date' && v) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(v))) errors[f.key] = 'Use YYYY-MM-DD.';
+    }
+    if (f.type === 'number' && v !== '' && v != null) {
+      if (!Number.isFinite(Number(v))) errors[f.key] = 'Must be a number.';
+    }
+  }
+  return errors;
+}
+
+function reviewKv(k, v) {
+  return el('div', { class: 'wiz-review-row' },
+    el('div', { class: 'wiz-review-k' }, k),
+    el('div', { class: 'wiz-review-v' }, v),
+  );
+}
+
+function navRow(opts) {
+  const row = el('div', { class: 'wiz-nav' });
+  if (!opts.hideBack) {
+    row.appendChild(el('button', {
+      class: 'btn btn-secondary',
+      type: 'button',
+      onclick: opts.back || (() => {}),
+    }, 'Back'));
+  }
+  row.appendChild(el('button', {
+    class: 'btn btn-primary',
+    type: 'button',
+    onclick: opts.next || (() => {}),
+    disabled: !!opts.nextDisabled,
+  }, opts.nextLabel || 'Next →'));
+  return row;
+}
+
+// Suppress unused-import warnings on helpers reserved for future use.
+void formatPriceCents;
+void escapeAttr;
+void escapeHtml;
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/apollo/service-worker.js').catch(() => {});
+    });
+  }
+</script>
+
+</body>
+</html>
