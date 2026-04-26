@@ -164,7 +164,17 @@ export async function POST(request: Request) {
     }
   }
 
-  const template = await loadTemplate(templateSlug)
+  let template
+  try {
+    template = await loadTemplate(templateSlug)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    console.error('[apollo/submit] templates load failed', err)
+    return NextResponse.json(
+      { error: 'templates load failed: ' + message },
+      { status: 500, headers: cors }
+    )
+  }
   if (!template) {
     return NextResponse.json({ error: 'unknown template' }, { status: 400, headers: cors })
   }
