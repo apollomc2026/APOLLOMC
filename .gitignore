@@ -40,3 +40,8 @@ scripts/tmp-extract/
 
 # Apollo PDF design lab — local-only, never committed
 design-lab/
+
+# Sprint staging artifacts — packages live under apps/portal/lib/apollo/
+# packages/. Drop zips at the repo root never get committed.
+/packages.zip
+/packages/
