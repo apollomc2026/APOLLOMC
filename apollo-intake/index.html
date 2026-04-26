@@ -459,18 +459,128 @@
     padding: 14px;
   }
 
-  /* Stations grid */
+  /* Stations grid — 4×2 with 8 industry stations (6 active + 2 placeholder) */
   .stations-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
     padding: 16px 24px 32px;
-    max-width: 1400px;
+    max-width: 1500px;
     margin: 0 auto;
     width: 100%;
   }
+  @media (max-width: 1200px) {
+    .stations-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  }
   @media (max-width: 900px) {
-    .stations-grid { grid-template-columns: 1fr; padding: 16px 16px 24px; }
+    .stations-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; padding: 16px 16px 24px; }
+  }
+  @media (max-width: 600px) {
+    .stations-grid { grid-template-columns: 1fr; }
+  }
+  /* Placeholder stations: muted, dim LED, "COMING SOON" tag */
+  .station[data-placeholder="true"] .station-card {
+    background: rgba(10,10,15,0.45);
+    border-color: rgba(107,227,255,0.10);
+  }
+  .station[data-placeholder="true"] .station-card:hover {
+    background: rgba(10,10,15,0.55);
+    border-color: rgba(107,227,255,0.18);
+    transform: none;
+  }
+  .station[data-placeholder="true"] .station-led {
+    animation: none !important;
+    background: rgba(107,227,255,0.35) !important;
+    box-shadow: none !important;
+  }
+  .station-coming-soon {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    color: rgba(107,227,255,0.55);
+    border: 1px solid rgba(107,227,255,0.25);
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: auto;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .station-icon {
+    width: 18px;
+    height: 18px;
+    color: var(--cyan);
+    flex-shrink: 0;
+    opacity: 0.85;
+  }
+  .station[data-placeholder="true"] .station-icon { opacity: 0.45; }
+  .price-strike {
+    text-decoration: line-through;
+    opacity: 0.5;
+    margin-right: 6px;
+  }
+  .price-active {
+    color: var(--cyan);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  .deliverable-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.05em;
+  }
+  .placeholder-cta-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.72);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 80;
+    padding: 24px;
+  }
+  .placeholder-cta-panel {
+    background: rgba(10,10,15,0.92);
+    border: 1px solid rgba(107,227,255,0.4);
+    border-radius: 12px;
+    padding: 28px 32px;
+    max-width: 520px;
+    width: 100%;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .placeholder-cta-panel h2 {
+    margin: 0 0 12px;
+    font-size: 14px;
+    letter-spacing: 0.22em;
+    color: var(--cyan);
+  }
+  .placeholder-cta-panel p {
+    margin: 0 0 14px;
+    font-size: 13px;
+    line-height: 1.55;
+    font-family: 'Inter', sans-serif;
+    color: var(--text-2);
+  }
+  .placeholder-cta-panel .pcta-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 18px;
+  }
+  .placeholder-cta-panel button {
+    background: rgba(107,227,255,0.12);
+    border: 1px solid rgba(107,227,255,0.4);
+    color: var(--text);
+    padding: 10px 18px;
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .placeholder-cta-panel button.primary {
+    background: rgba(107,227,255,0.28);
   }
   .station {
     display: flex;
@@ -1980,80 +2090,8 @@
   </div>
 </section>
 
-<!-- MISSION STATIONS (2×2 glass panels) -->
-<main class="stations-grid" id="stationsGrid" aria-label="Mission stations">
-  <div class="station" data-station="contracts" data-armed="false">
-    <div class="station-card" tabindex="0" role="button" aria-pressed="false">
-      <div class="station-header">
-        <span class="station-led" data-state="degraded"></span>
-        <div class="station-header-text">
-          <h2 class="station-name">CONTRACTS</h2>
-          <p class="station-sub">Legal-binding documents</p>
-        </div>
-      </div>
-      <div class="station-meta">
-        <div class="station-count"><strong>—</strong> deliverables loaded</div>
-        <div class="station-last">Last deployed: —</div>
-      </div>
-      <button class="station-arm" type="button" aria-expanded="false" aria-controls="station-contracts-deliverables">ARM</button>
-    </div>
-    <div class="station-deliverables" id="station-contracts-deliverables" role="region" aria-hidden="true"></div>
-  </div>
-
-  <div class="station" data-station="proposals" data-armed="false">
-    <div class="station-card" tabindex="0" role="button" aria-pressed="false">
-      <div class="station-header">
-        <span class="station-led" data-state="degraded"></span>
-        <div class="station-header-text">
-          <h2 class="station-name">PROPOSALS</h2>
-          <p class="station-sub">Sales and capability briefs</p>
-        </div>
-      </div>
-      <div class="station-meta">
-        <div class="station-count"><strong>—</strong> deliverables loaded</div>
-        <div class="station-last">Last deployed: —</div>
-      </div>
-      <button class="station-arm" type="button" aria-expanded="false" aria-controls="station-proposals-deliverables">ARM</button>
-    </div>
-    <div class="station-deliverables" id="station-proposals-deliverables" role="region" aria-hidden="true"></div>
-  </div>
-
-  <div class="station" data-station="operations" data-armed="false">
-    <div class="station-card" tabindex="0" role="button" aria-pressed="false">
-      <div class="station-header">
-        <span class="station-led" data-state="degraded"></span>
-        <div class="station-header-text">
-          <h2 class="station-name">OPERATIONS</h2>
-          <p class="station-sub">Field reports and governance</p>
-        </div>
-      </div>
-      <div class="station-meta">
-        <div class="station-count"><strong>—</strong> deliverables loaded</div>
-        <div class="station-last">Last deployed: —</div>
-      </div>
-      <button class="station-arm" type="button" aria-expanded="false" aria-controls="station-operations-deliverables">ARM</button>
-    </div>
-    <div class="station-deliverables" id="station-operations-deliverables" role="region" aria-hidden="true"></div>
-  </div>
-
-  <div class="station" data-station="finance" data-armed="false">
-    <div class="station-card" tabindex="0" role="button" aria-pressed="false">
-      <div class="station-header">
-        <span class="station-led" data-state="degraded"></span>
-        <div class="station-header-text">
-          <h2 class="station-name">FINANCE</h2>
-          <p class="station-sub">Statements and tax documents</p>
-        </div>
-      </div>
-      <div class="station-meta">
-        <div class="station-count"><strong>—</strong> deliverables loaded</div>
-        <div class="station-last">Last deployed: —</div>
-      </div>
-      <button class="station-arm" type="button" aria-expanded="false" aria-controls="station-finance-deliverables">ARM</button>
-    </div>
-    <div class="station-deliverables" id="station-finance-deliverables" role="region" aria-hidden="true"></div>
-  </div>
-</main>
+<!-- MISSION STATIONS — built dynamically from state.catalog.industries -->
+<main class="stations-grid" id="stationsGrid" aria-label="Mission stations"></main>
 
 <!-- MISSION LOG (collapsed by default) -->
 <footer class="mission-log" data-expanded="false" aria-label="Mission log">
@@ -2297,6 +2335,10 @@
     try {
       const d = await getJson('/api/apollo/templates');
       state.templates = d.templates || [];
+      // The unified catalog response carries an industries[] structure
+      // alongside the flat templates list. The Mission Stations grid is
+      // driven from state.catalog; the flat list stays for legacy lookups.
+      state.catalog = d.catalog || { industries: [] };
       renderStations();
     } catch {}
   }
@@ -3206,15 +3248,27 @@
   }
 
   // ---- Mission Control: stations + quick launch + mission log ----
-  // Station → template-slug grouping. The 4 stations represent the user-
-  // visible categories of Apollo deliverables. Order in array = order in
-  // station's deliverable launch list.
-  const STATION_CATEGORIES = {
-    contracts:  ['nda', 'sow', 'engagement-letter', 'change-order'],
-    proposals:  ['proposal', 'one-pager'],
-    operations: ['fsr', 'incident-report', 'meeting-minutes'],
-    finance:    ['invoice', 'budget-vs-actual', 'expense-report', 'personal-monthly', 'cash-flow-forecast', 'tax-estimate'],
+  // Mission Stations are now industry-driven. The 8 cards (6 active +
+  // 2 placeholder) come straight from state.catalog.industries; we no
+  // longer carry a hand-curated station→slug map.
+
+  // Inline SVG icon map keyed by industry icon_key. Lucide-shape paths,
+  // shipped inline so the dashboard has no CDN dependency.
+  const INDUSTRY_ICONS = {
+    'scale':       '<path d="M16 16h-2"/><path d="M16 16l3-7 3 7"/><path d="M22 16h-6"/><path d="M2 16l3-7 3 7"/><path d="M2 16h6"/><path d="M12 3v18"/><path d="M5 9V6h14v3"/><path d="M5 21h14"/>',
+    'briefcase':   '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+    'landmark':    '<line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/>',
+    'bar-chart':   '<line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/><line x1="3" y1="20" x2="21" y2="20"/>',
+    'rocket':      '<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>',
+    'wrench':      '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+    'utensils':    '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><line x1="7" y1="2" x2="7" y2="22"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3z"/><line x1="18" y1="15" x2="18" y2="22"/>',
+    'video':       '<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>',
   };
+
+  function industryIconSvg(iconKey) {
+    const inner = INDUSTRY_ICONS[iconKey] || INDUSTRY_ICONS['briefcase'];
+    return '<svg class="station-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
+  }
 
   // Mission Control state — additive to the existing intake `state` object.
   // Tracks armed station, recent submissions, dashboard data flow.
@@ -3222,6 +3276,7 @@
   state.submissions = [];
   state.totalSubmissions = 0;
   state.activeTemplateSlug = null;
+  state.catalog = state.catalog || { industries: [] };
 
   function formatRelativeTime(iso) {
     if (!iso) return '—';
@@ -3247,55 +3302,119 @@
            pad(d.getHours()) + ':' + pad(d.getMinutes());
   }
 
-  function renderStations() {
-    for (const [stationKey, slugs] of Object.entries(STATION_CATEGORIES)) {
-      const stationEl = document.querySelector('.station[data-station="' + stationKey + '"]');
-      if (!stationEl) continue;
-      const templates = state.templates.filter((t) => slugs.includes(t.slug));
+  function formatPriceCents(cents) {
+    if (typeof cents !== 'number' || !Number.isFinite(cents) || cents <= 0) return null;
+    const dollars = Math.round(cents / 100);
+    return '$' + dollars;
+  }
 
-      const countEl = stationEl.querySelector('.station-count strong');
-      if (countEl) countEl.textContent = String(templates.length);
-
-      // Last deployed within this station's templates (current brand)
-      const stationSlugs = templates.map((t) => t.slug);
-      const lastSubmission = state.submissions
-        .filter((s) => stationSlugs.includes(s.template_slug))
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-      const lastEl = stationEl.querySelector('.station-last');
-      if (lastEl) {
-        if (lastSubmission) {
-          const tmpl = state.templates.find((t) => t.slug === lastSubmission.template_slug);
-          lastEl.textContent = 'Last: ' + (tmpl?.label || lastSubmission.template_slug) +
-            ' · ' + formatRelativeTime(lastSubmission.created_at);
-        } else {
-          lastEl.textContent = 'No deployments yet';
-        }
-      }
-
-      // LED state is owned by the bringConsoleOnline cinematic cycle on
-      // first auth-success render. After that, only flip to 'blocked' if a
-      // station has zero templates (rare — would only happen if a template
-      // is removed from the catalog mid-session).
-      const led = stationEl.querySelector('.station-led');
-      if (led && document.body.dataset.online === 'true') {
-        led.dataset.state = templates.length > 0 ? 'ready' : 'blocked';
-      }
-
-      // Populate deliverable launch buttons (hidden until armed)
-      const deliverablesEl = stationEl.querySelector('.station-deliverables');
-      if (deliverablesEl) {
-        deliverablesEl.innerHTML = templates.map((t) => {
-          return (
-            '<button class="deliverable-launch" data-slug="' + escapeAttr(t.slug) + '" type="button">' +
-              '<span class="dl-icon">▶</span>' +
-              '<span class="dl-label">' + escapeHtml(t.label) + '</span>' +
-              '<span class="dl-status">READY</span>' +
-              '<span class="dl-action">LAUNCH</span>' +
-            '</button>'
-          );
-        }).join('');
+  function deliverableMetaLine(d) {
+    const parts = [];
+    if (typeof d.estimated_minutes === 'number' && d.estimated_minutes > 0) {
+      parts.push(d.estimated_minutes + ' min');
+    }
+    if (typeof d.estimated_pages_min === 'number' && typeof d.estimated_pages_max === 'number') {
+      if (d.estimated_pages_min === d.estimated_pages_max) {
+        parts.push(d.estimated_pages_min + 'p');
+      } else {
+        parts.push(d.estimated_pages_min + '–' + d.estimated_pages_max + 'p');
       }
     }
+    return parts.join(' · ');
+  }
+
+  function renderStations() {
+    const grid = document.getElementById('stationsGrid');
+    if (!grid) return;
+    const industries = (state.catalog && state.catalog.industries) || [];
+    if (industries.length === 0) {
+      grid.innerHTML = '';
+      return;
+    }
+    const sorted = industries.slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+    grid.innerHTML = sorted.map((ind) => {
+      const isPlaceholder = ind.status === 'placeholder';
+      const deliverables = (ind.deliverables || []);
+      const ledState = isPlaceholder ? 'degraded' : 'ready';
+
+      // Last deployed across this industry's deliverable slugs
+      const slugSet = new Set(deliverables.map((d) => d.slug));
+      const lastSubmission = (state.submissions || [])
+        .filter((s) => slugSet.has(s.template_slug))
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+      let lastLine;
+      if (isPlaceholder) {
+        lastLine = 'Send a sample to spec this industry';
+      } else if (lastSubmission) {
+        const t = state.templates.find((x) => x.slug === lastSubmission.template_slug);
+        lastLine = 'Last: ' + (t?.label || lastSubmission.template_slug) +
+          ' · ' + formatRelativeTime(lastSubmission.created_at);
+      } else {
+        lastLine = 'No deployments yet';
+      }
+
+      const armLabel = isPlaceholder ? 'REQUEST ACCESS' : 'ARM';
+      const countLine = isPlaceholder
+        ? '<div class="station-count">—</div>'
+        : '<div class="station-count"><strong>' + deliverables.length + '</strong> deliverables loaded</div>';
+
+      const comingSoon = isPlaceholder
+        ? '<span class="station-coming-soon">Coming soon</span>'
+        : '';
+
+      return (
+        '<div class="station" data-station="' + escapeAttr(ind.slug) + '"' +
+          ' data-armed="false"' +
+          ' data-placeholder="' + (isPlaceholder ? 'true' : 'false') + '">' +
+          '<div class="station-card" tabindex="0" role="button" aria-pressed="false">' +
+            '<div class="station-header">' +
+              '<span class="station-led" data-state="' + ledState + '"></span>' +
+              industryIconSvg(ind.icon_key) +
+              '<div class="station-header-text">' +
+                '<h2 class="station-name">' + escapeHtml((ind.label || ind.slug).toUpperCase()) + '</h2>' +
+                '<p class="station-sub">' + escapeHtml(ind.description || '') + '</p>' +
+              '</div>' +
+              comingSoon +
+            '</div>' +
+            '<div class="station-meta">' +
+              countLine +
+              '<div class="station-last">' + escapeHtml(lastLine) + '</div>' +
+            '</div>' +
+            '<button class="station-arm" type="button" aria-expanded="false" aria-controls="station-' + escapeAttr(ind.slug) + '-deliverables">' +
+              armLabel + '</button>' +
+          '</div>' +
+          '<div class="station-deliverables" id="station-' + escapeAttr(ind.slug) + '-deliverables" role="region" aria-hidden="true">' +
+            (isPlaceholder ? '' : deliverables.map((d) => {
+              const price = formatPriceCents(d.base_price_cents);
+              const meta = deliverableMetaLine(d);
+              const priceBlock = price
+                ? '<span class="deliverable-meta"><span class="price-strike">' + escapeHtml(price) + '</span><span class="price-active">FREE PREVIEW</span>' + (meta ? ' · ' + escapeHtml(meta) : '') + '</span>'
+                : (meta ? '<span class="deliverable-meta">' + escapeHtml(meta) + '</span>' : '<span class="deliverable-meta">—</span>');
+              return (
+                '<button class="deliverable-launch" data-slug="' + escapeAttr(d.slug) + '" type="button">' +
+                  '<span class="dl-icon">▶</span>' +
+                  '<span class="dl-label">' + escapeHtml(d.label) + '</span>' +
+                  priceBlock +
+                  '<span class="dl-action">LAUNCH</span>' +
+                '</button>'
+              );
+            }).join('')) +
+          '</div>' +
+        '</div>'
+      );
+    }).join('');
+
+    // LED state during the cinematic boot is owned by bringConsoleOnline;
+    // once we're online, just keep it ready for active stations.
+    if (document.body.dataset.online === 'true') {
+      grid.querySelectorAll('.station[data-placeholder="false"] .station-led').forEach((el) => {
+        el.dataset.state = 'ready';
+      });
+    }
+
+    // Re-bind handlers because cards were re-rendered.
+    wireStationEvents();
   }
 
   function escapeAttr(s) {
@@ -3313,7 +3432,7 @@
       const arm = el.querySelector('.station-arm');
       if (arm) {
         arm.setAttribute('aria-expanded', 'false');
-        arm.textContent = 'ARM';
+        arm.textContent = el.dataset.placeholder === 'true' ? 'REQUEST ACCESS' : 'ARM';
       }
       const card = el.querySelector('.station-card');
       if (card) card.setAttribute('aria-pressed', 'false');
@@ -3326,6 +3445,14 @@
 
     const el = document.querySelector('.station[data-station="' + stationKey + '"]');
     if (!el) return;
+
+    // Placeholder industries don't arm — they open the request-access modal.
+    if (el.dataset.placeholder === 'true') {
+      state.armedStation = null;
+      openPlaceholderModal(stationKey);
+      return;
+    }
+
     el.dataset.armed = 'true';
     const arm = el.querySelector('.station-arm');
     if (arm) {
@@ -3336,6 +3463,44 @@
     if (card) card.setAttribute('aria-pressed', 'true');
     const dv = el.querySelector('.station-deliverables');
     if (dv) dv.setAttribute('aria-hidden', 'false');
+  }
+
+  // Modal shown when a placeholder industry is selected. Reads the
+  // placeholder_cta from the catalog entry; falls back to a generic ask.
+  function openPlaceholderModal(industrySlug) {
+    const ind = (state.catalog?.industries || []).find((i) => i.slug === industrySlug);
+    if (!ind) return;
+    closePlaceholderModal();
+    const cta = ind.placeholder_cta ||
+      'Send a sample deliverable to spec this industry. We will build a custom intake module from it.';
+    const modal = document.createElement('div');
+    modal.className = 'placeholder-cta-modal';
+    modal.id = 'placeholderCtaModal';
+    modal.innerHTML = (
+      '<div class="placeholder-cta-panel" role="dialog" aria-modal="true" aria-labelledby="placeholderCtaTitle">' +
+        '<h2 id="placeholderCtaTitle">' + escapeHtml((ind.label || ind.slug).toUpperCase()) + ' — REQUEST ACCESS</h2>' +
+        '<p>' + escapeHtml(cta) + '</p>' +
+        '<p>Email <strong>support@apollomc.ai</strong> with a sample deliverable from your industry. We will spin up a bespoke intake module within 48 hours.</p>' +
+        '<div class="pcta-actions">' +
+          '<button class="primary" type="button" data-action="email">EMAIL SUPPORT</button>' +
+          '<button type="button" data-action="close">CLOSE</button>' +
+        '</div>' +
+      '</div>'
+    );
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closePlaceholderModal();
+    });
+    modal.querySelector('[data-action="close"]').addEventListener('click', closePlaceholderModal);
+    modal.querySelector('[data-action="email"]').addEventListener('click', () => {
+      const subject = encodeURIComponent('Apollo MC — request access: ' + (ind.label || ind.slug));
+      window.location.href = 'mailto:support@apollomc.ai?subject=' + subject;
+      closePlaceholderModal();
+    });
+  }
+  function closePlaceholderModal() {
+    const m = document.getElementById('placeholderCtaModal');
+    if (m) m.remove();
   }
 
   // ---- Quick Launch ----
@@ -3450,8 +3615,9 @@
     });
   }
   function stationKeyForSlug(slug) {
-    for (const [key, slugs] of Object.entries(STATION_CATEGORIES)) {
-      if (slugs.includes(slug)) return key;
+    const industries = (state.catalog && state.catalog.industries) || [];
+    for (const ind of industries) {
+      if ((ind.deliverables || []).some((d) => d.slug === slug)) return ind.slug;
     }
     return null;
   }
@@ -3535,6 +3701,10 @@
     });
   }
 
+  // Idempotent wiring. Cards are re-rendered each time renderStations()
+  // runs (data-driven), so per-card listeners are bound directly. The
+  // delegated launch-button listener is bound once on the grid.
+  let stationGridListenerBound = false;
   function wireStationEvents() {
     document.querySelectorAll('.station').forEach((stationEl) => {
       const key = stationEl.dataset.station;
@@ -3542,6 +3712,10 @@
       const card = stationEl.querySelector('.station-card');
       const toggle = () => {
         if (state.view !== 'intake') return; // standby — no interaction
+        if (stationEl.dataset.placeholder === 'true') {
+          openPlaceholderModal(key);
+          return;
+        }
         armStation(state.armedStation === key ? null : key);
       };
       if (armBtn) {
@@ -3554,9 +3728,11 @@
         });
       }
     });
-    // Delegated launch buttons
+    // Delegated launch buttons — bound once even if renderStations() runs
+    // multiple times.
     const grid = document.getElementById('stationsGrid');
-    if (grid) {
+    if (grid && !stationGridListenerBound) {
+      stationGridListenerBound = true;
       grid.addEventListener('click', (e) => {
         const btn = e.target.closest('.deliverable-launch');
         if (!btn) return;
@@ -3654,11 +3830,19 @@
         if (state.armedStation) { armStation(null); return; }
         return;
       }
-      // 1–4 arm stations
-      const stationByNumber = { '1': 'contracts', '2': 'proposals', '3': 'operations', '4': 'finance' };
-      if (stationByNumber[e.key] && state.view === 'intake') {
-        e.preventDefault();
-        armStation(stationByNumber[e.key]);
+      // 1–6 arm the active industry stations in sort order. Placeholder
+      // industries (Hospitality, Content & Media) are not arm-able by key.
+      const numKey = e.key;
+      if (/^[1-6]$/.test(numKey) && state.view === 'intake') {
+        const sorted = ((state.catalog?.industries) || [])
+          .filter((i) => i.status !== 'placeholder')
+          .slice()
+          .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+        const target = sorted[parseInt(numKey, 10) - 1];
+        if (target) {
+          e.preventDefault();
+          armStation(target.slug);
+        }
         return;
       }
     });
