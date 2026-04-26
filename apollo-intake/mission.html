@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Apollo — Mission Detail</title>
+  <link rel="manifest" href="/apollo/manifest.json">
+  <meta name="theme-color" content="#0a0a0f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Apollo">
+  <link rel="apple-touch-icon" sizes="192x192" href="/apollo/icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/apollo/icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/apollo/shared/theme.css">
+
+  <style>
+  .mission-wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 32px 24px 48px;
+  }
+  .mission-loading {
+    text-align: center;
+    color: var(--text-3);
+    padding: 64px 24px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.18em;
+    font-size: 12px;
+  }
+  .mission-card {
+    background: rgba(10,10,15,0.55);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid rgba(107,227,255,0.15);
+    border-radius: 14px;
+    padding: 28px 32px;
+  }
+  @media (max-width: 720px) { .mission-card { padding: 18px 14px; border-radius: 8px; } }
+  .mission-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .mission-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: var(--text);
+  }
+  .mission-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin: 0 0 6px;
+  }
+  .mission-status-badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    padding: 5px 10px;
+    border-radius: 999px;
+    text-transform: uppercase;
+  }
+  .mission-status-badge.success { background: rgba(123,255,159,0.14); color: var(--green); }
+  .mission-status-badge.error   { background: rgba(255,82,82,0.18); color: #ff8a8a; }
+  .mission-status-badge.pending { background: rgba(255,179,64,0.18); color: var(--amber); }
+
+  .mission-meta {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 10px 16px;
+    margin: 18px 0;
+    font-size: 14px;
+  }
+  .mission-meta dt {
+    color: var(--text-3);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .mission-meta dd { margin: 0; color: var(--text); word-break: break-word; }
+  @media (max-width: 600px) {
+    .mission-meta { grid-template-columns: 1fr; gap: 4px; }
+    .mission-meta dt { margin-top: 8px; }
+  }
+
+  .mission-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 22px;
+  }
+
+  .mission-error-card {
+    background: rgba(255,122,77,0.08);
+    border: 1px solid rgba(255,122,77,0.5);
+    border-radius: 10px;
+    padding: 18px;
+    margin-top: 18px;
+  }
+  .mission-error-card .err-title {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.22em;
+    color: #ff7a4d;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  .mission-error-card .err-body {
+    color: var(--text-2);
+    font-size: 13.5px;
+    line-height: 1.55;
+    word-break: break-word;
+  }
+
+  details.mission-collapse {
+    background: rgba(10,10,15,0.5);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-top: 14px;
+  }
+  details.mission-collapse summary {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-2);
+    cursor: pointer;
+    padding: 4px 0 8px;
+  }
+  details.mission-collapse[open] summary {
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 12px;
+  }
+  .mission-fields {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 8px 14px;
+    font-size: 13.5px;
+  }
+  @media (max-width: 600px) {
+    .mission-fields { grid-template-columns: 1fr; gap: 2px; }
+  }
+  .mission-fields .k {
+    color: var(--text-3);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .mission-fields .v { color: var(--text); word-break: break-word; }
+  </style>
+</head>
+<body data-standby="true">
+
+<!-- Hero, command bar, auth modal injected at boot -->
+
+<main class="mission-wrap">
+  <div id="missionRoot">
+    <div class="mission-loading">Loading mission…</div>
+  </div>
+</main>
+
+<div id="toastHost"></div>
+
+<script type="module">
+import * as hero from '/apollo/shared/hero.js';
+import * as authModal from '/apollo/shared/auth-modal.js';
+import * as commandBar from '/apollo/shared/command-bar.js';
+import { requireAuth } from '/apollo/shared/auth.js';
+import { get as getSubmission } from '/apollo/shared/submissions.js';
+import { loadCatalog, findDeliverable } from '/apollo/shared/catalog.js';
+import {
+  el, toast, escapeHtml, escapeAttr,
+  formatRelativeTime, formatTimestamp,
+} from '/apollo/shared/ui.js';
+
+const id = new URLSearchParams(location.search).get('id');
+if (!id) location.replace('/apollo/');
+
+hero.inject();
+authModal.mount({ status: 'loading' });
+
+requireAuth({
+  onSignedOut: () => authModal.updateStatus({ status: 'signed-out' }),
+  onNotAuthorized: (email) => authModal.updateStatus({ status: 'not-authorized', email }),
+  onAuthed: async (user) => {
+    authModal.dismiss();
+    document.body.dataset.standby = 'false';
+
+    commandBar.mount({
+      user,
+      brand: localStorage.getItem('apollo:brand') || 'apollo',
+      brands: ['apollo', 'atlas', 'on-spot-solutions'],
+      status: 'operational',
+      onBrandChange: (s) => localStorage.setItem('apollo:brand', s),
+    });
+    commandBar.startClock();
+
+    // Load catalog so findDeliverable can decorate the submission with
+    // industry context. Don't fail the page if it can't.
+    try { await loadCatalog(); } catch {}
+
+    await renderMission(id);
+  },
+});
+
+function statusBadge(status) {
+  const s = status || '';
+  if (s === 'delivered' || s === 'completed') {
+    return el('span', { class: 'mission-status-badge success' }, '✓ COMPLETE');
+  }
+  if (s === 'failed') {
+    return el('span', { class: 'mission-status-badge error' }, '✗ FAILED');
+  }
+  return el('span', { class: 'mission-status-badge pending' },
+    '⋯ ' + (s || 'pending').toUpperCase());
+}
+
+function metaRow(k, v) {
+  if (v == null || v === '') return null;
+  return [el('dt', null, k), el('dd', null, v)];
+}
+
+function fieldRow(k, v) {
+  return el('div', { class: 'mission-row' },
+    el('span', { class: 'k' }, k),
+    el('span', { class: 'v' }, v),
+  );
+}
+
+function formatFieldDisplay(v) {
+  if (v == null) return '—';
+  if (Array.isArray(v)) return v.length === 0 ? '—' : v.join(', ');
+  if (typeof v === 'string') return v.trim() === '' ? '—' : v;
+  if (typeof v === 'object') {
+    try { return JSON.stringify(v); } catch { return String(v); }
+  }
+  return String(v);
+}
+
+async function renderMission(id) {
+  const root = document.getElementById('missionRoot');
+  if (!root) return;
+
+  let sub = null;
+  try {
+    sub = await getSubmission(id);
+  } catch (err) {
+    root.innerHTML = '';
+    root.appendChild(el('div', { class: 'mission-card' },
+      el('p', { class: 'mission-eyebrow' }, 'Mission detail'),
+      el('div', { class: 'mission-error-card' },
+        el('div', { class: 'err-title' }, 'Mission load failed'),
+        el('div', { class: 'err-body' }, err && err.message || String(err)),
+      ),
+      el('div', { class: 'mission-actions' },
+        el('a', { class: 'btn btn-secondary', href: '/apollo/' }, 'Back to Mission Control'),
+      ),
+    ));
+    return;
+  }
+
+  if (!sub) {
+    root.innerHTML = '';
+    root.appendChild(el('div', { class: 'mission-card' },
+      el('p', { class: 'mission-eyebrow' }, 'Mission detail'),
+      el('h1', { class: 'mission-title' }, 'Mission not found'),
+      el('p', { style: 'color:var(--text-3);margin:8px 0 18px;' },
+        'No mission with id ' + id + '.'),
+      el('div', { class: 'mission-actions' },
+        el('a', { class: 'btn btn-secondary', href: '/apollo/' }, 'Back to Mission Control'),
+      ),
+    ));
+    return;
+  }
+
+  const summary = findDeliverable(sub.template_slug);
+  const deliverableLabel =
+    sub.template_label ||
+    (summary && summary.label) ||
+    sub.template_slug;
+  const industryLabel = summary && summary.industry_label;
+
+  root.innerHTML = '';
+  const card = el('div', { class: 'mission-card' });
+
+  // Header
+  card.appendChild(el('div', { class: 'mission-head' },
+    el('div', null,
+      el('p', { class: 'mission-eyebrow' }, 'Mission detail'),
+      el('h1', { class: 'mission-title' }, deliverableLabel),
+    ),
+    statusBadge(sub.status),
+  ));
+
+  // Metadata
+  const dl = el('dl', { class: 'mission-meta' });
+  const rows = [];
+  rows.push(metaRow('Mission ID', el('code', null, sub.id)));
+  if (industryLabel) rows.push(metaRow('Industry', industryLabel));
+  if (sub.brand_slug)  rows.push(metaRow('Brand', sub.brand_slug.toUpperCase()));
+  if (sub.created_at) {
+    rows.push(metaRow('Created',
+      formatTimestamp(sub.created_at) + ' (' + formatRelativeTime(sub.created_at) + ')'
+    ));
+  }
+  if (sub.completed_at) {
+    rows.push(metaRow('Completed',
+      formatTimestamp(sub.completed_at) + ' (' + formatRelativeTime(sub.completed_at) + ')'
+    ));
+  }
+  for (const r of rows) {
+    if (!r) continue;
+    dl.appendChild(r[0]);
+    dl.appendChild(r[1]);
+  }
+  card.appendChild(dl);
+
+  // Error message (when failed)
+  if (sub.error_message) {
+    card.appendChild(el('div', { class: 'mission-error-card' },
+      el('div', { class: 'err-title' }, 'Failure reason'),
+      el('div', { class: 'err-body' }, sub.error_message),
+    ));
+  }
+
+  // Actions
+  const actions = el('div', { class: 'mission-actions' });
+  if (sub.download_url && (sub.status === 'delivered' || sub.status === 'completed')) {
+    actions.appendChild(el('a', {
+      class: 'btn btn-primary',
+      href: sub.download_url,
+      target: '_blank',
+      rel: 'noopener noreferrer',
+    }, 'Download PDF'));
+  }
+  actions.appendChild(el('a', {
+    class: 'btn btn-secondary',
+    href: '/apollo/launch.html?slug=' + encodeURIComponent(sub.template_slug),
+  }, 'Generate similar'));
+  actions.appendChild(el('a', {
+    class: 'btn btn-secondary',
+    href: '/apollo/',
+  }, 'Mission Control'));
+  card.appendChild(actions);
+
+  // Inputs summary (collapsible)
+  const inputs = sub.inputs && typeof sub.inputs === 'object' ? sub.inputs : null;
+  if (inputs) {
+    // The unified-catalog submit shape stores { fields, style_id, upload_ids }
+    // — render fields first, then anything else. Legacy submits stored
+    // form values directly under inputs; we render those flat.
+    const det = el('details', { class: 'mission-collapse' });
+    det.appendChild(el('summary', null, 'Inputs'));
+    const grid = el('div', { class: 'mission-fields' });
+    const fieldEntries = inputs.fields && typeof inputs.fields === 'object'
+      ? Object.entries(inputs.fields)
+      : Object.entries(inputs).filter(([k]) => k !== 'style_id' && k !== 'upload_ids');
+    if (fieldEntries.length === 0) {
+      grid.appendChild(el('span', { class: 'k' }, '—'));
+      grid.appendChild(el('span', { class: 'v' }, '(no inputs recorded)'));
+    } else {
+      for (const [k, v] of fieldEntries) {
+        grid.appendChild(el('span', { class: 'k' }, k));
+        grid.appendChild(el('span', { class: 'v' }, formatFieldDisplay(v)));
+      }
+    }
+    det.appendChild(grid);
+    if (inputs.style_id) {
+      det.appendChild(el('p', { style: 'margin:12px 0 0;font-family:var(--font-mono);font-size:11px;color:var(--text-3);letter-spacing:0.1em;text-transform:uppercase;' },
+        'Style: ' + inputs.style_id
+      ));
+    }
+    card.appendChild(det);
+  }
+
+  // Attached uploads (the submit row stores upload_ids; we don't refetch
+  // each row here — that would be N+1. Just show the count.)
+  if (inputs && Array.isArray(inputs.upload_ids) && inputs.upload_ids.length) {
+    card.appendChild(el('p', {
+      style: 'margin-top:14px;color:var(--text-3);font-size:13px;',
+    }, inputs.upload_ids.length + ' file(s) attached at submission time'));
+  }
+
+  root.appendChild(card);
+
+  // Suppress unused warning on imports kept for future expansion.
+  void escapeHtml; void escapeAttr;
+}
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/apollo/service-worker.js').catch(() => {});
+    });
+  }
+</script>
+
+</body>
+</html>
