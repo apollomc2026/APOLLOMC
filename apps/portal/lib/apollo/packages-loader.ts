@@ -1,19 +1,32 @@
 // Canonical Apollo catalog loader. Reads catalog + modules + schemas +
-// style-library from packages/ at process start, caches in memory.
-// Single source of truth for the unified catalog.
+// style-library from a generated TS module so the data is bundled into
+// the JS chunk — no runtime file dependency.
 //
-// File layout under apps/portal/lib/apollo/packages/:
+// Source files live under apps/portal/lib/apollo/packages/:
 //   catalog/catalog.json
 //   catalog/modules/<slug>.json
 //   schemas/<slug>.schema.json
 //   style-library/<industry>/<style>.md
 //
-// All reads happen synchronously inside Node's fs API at first call and
-// the result is cached. The directory is shipped with the deployment, so
-// there is no runtime fetch and no risk of partial loads.
+// scripts/generate-packages-data.mjs walks that tree at build time and
+// emits packages-data.generated.ts with every file inlined as an export.
+// `npm run prebuild` runs the generator. The generated file is committed
+// so dev mode and type-checking work without a manual codegen step.
+//
+// Why this indirection: previously the loader used fs.readFileSync and
+// resolved paths via __dirname. That works locally and in webpack-built
+// deployments, but the production build runs `next build --turbopack` and
+// Vercel's deployment of Turbopack builds does not honor
+// outputFileTracingIncludes — the chunk hard-codes
+// /ROOT/apps/portal/lib/apollo and ENOENTs at runtime on every catalog
+// read. Bundling via the generated module sidesteps file tracing entirely.
 
-import fs from 'node:fs'
-import path from 'node:path'
+import {
+  CATALOG_RAW,
+  MODULES_RAW,
+  SCHEMAS_RAW,
+  STYLES_RAW,
+} from './packages-data.generated'
 
 export type ModuleFieldType =
   | 'text'
@@ -105,15 +118,6 @@ export interface StyleOption {
   content: string
 }
 
-// Resolve packages root. apps/portal runs with cwd=apps/portal in dev/build,
-// so the relative path is lib/apollo/packages. We resolve from this file's
-// own directory to be CWD-independent.
-const PACKAGES_ROOT = path.resolve(__dirname, 'packages')
-const CATALOG_PATH = path.join(PACKAGES_ROOT, 'catalog', 'catalog.json')
-const MODULES_DIR = path.join(PACKAGES_ROOT, 'catalog', 'modules')
-const SCHEMAS_DIR = path.join(PACKAGES_ROOT, 'schemas')
-const STYLE_LIBRARY_DIR = path.join(PACKAGES_ROOT, 'style-library')
-
 interface RawDeliverable {
   slug: string
   label: string
@@ -147,11 +151,6 @@ let cache: {
   stylesById: Map<string, StyleOption>
   stylesByIndustry: Map<string, StyleOption[]>
 } | null = null
-
-function readJson<T>(file: string): T {
-  const raw = fs.readFileSync(file, 'utf8')
-  return JSON.parse(raw) as T
-}
 
 function validateField(f: unknown, ctx: string): asserts f is ModuleField {
   if (!f || typeof f !== 'object') throw new Error(`${ctx}: field is not an object`)
@@ -202,8 +201,7 @@ function validateModule(m: unknown, slug: string): DeliverableModule {
 //     like **Version:** 1 and **Industry:** Foo) → description, truncated
 //     to 280 chars.
 //   - Full file body → content (handed to the AI as the visual style guide).
-function parseStyleMarkdown(filePath: string, industrySlug: string, id: string): StyleOption {
-  const raw = fs.readFileSync(filePath, 'utf8')
+function parseStyleMarkdown(raw: string, industrySlug: string, id: string): StyleOption {
   const lines = raw.split(/\r?\n/)
   let label = id
   for (const line of lines) {
@@ -251,9 +249,9 @@ function parseStyleMarkdown(filePath: string, industrySlug: string, id: string):
 
 function buildCache(): NonNullable<typeof cache> {
   // 1. Catalog
-  const raw = readJson<RawCatalogFile>(CATALOG_PATH)
+  const raw = CATALOG_RAW as unknown as RawCatalogFile
   if (!raw || !Array.isArray(raw.industries)) {
-    throw new Error('catalog.json missing industries array')
+    throw new Error('packages-data: catalog missing industries array')
   }
   const industries: Industry[] = raw.industries.map((ri) => ({
     slug: ri.slug,
@@ -272,53 +270,25 @@ function buildCache(): NonNullable<typeof cache> {
   industries.sort((a, b) => a.sort_order - b.sort_order)
   const catalog: Catalog = { industries }
 
-  // 2. Modules — iterate the modules dir and validate each
+  // 2. Modules — validate each entry from the generated map
   const modulesBySlug = new Map<string, DeliverableModule>()
-  let moduleFiles: string[] = []
-  try {
-    moduleFiles = fs.readdirSync(MODULES_DIR).filter((f) => f.endsWith('.json'))
-  } catch {
-    moduleFiles = []
-  }
-  for (const file of moduleFiles) {
-    const slug = file.replace(/\.json$/, '')
-    const m = readJson<unknown>(path.join(MODULES_DIR, file))
-    modulesBySlug.set(slug, validateModule(m, slug))
+  for (const [slug, mod] of Object.entries(MODULES_RAW)) {
+    modulesBySlug.set(slug, validateModule(mod, slug))
   }
 
   // 3. Schemas
   const schemasBySlug = new Map<string, unknown>()
-  let schemaFiles: string[] = []
-  try {
-    schemaFiles = fs.readdirSync(SCHEMAS_DIR).filter((f) => f.endsWith('.schema.json'))
-  } catch {
-    schemaFiles = []
-  }
-  for (const file of schemaFiles) {
-    const slug = file.replace(/\.schema\.json$/, '')
-    const s = readJson<unknown>(path.join(SCHEMAS_DIR, file))
-    schemasBySlug.set(slug, s)
+  for (const [slug, schema] of Object.entries(SCHEMAS_RAW)) {
+    schemasBySlug.set(slug, schema)
   }
 
-  // 4. Style library — scan industry subdirs; each .md becomes a StyleOption
+  // 4. Style library — STYLES_RAW[industrySlug][styleId] = markdown body
   const stylesById = new Map<string, StyleOption>()
   const stylesByIndustry = new Map<string, StyleOption[]>()
-  let industryDirs: string[] = []
-  try {
-    industryDirs = fs
-      .readdirSync(STYLE_LIBRARY_DIR, { withFileTypes: true })
-      .filter((d) => d.isDirectory())
-      .map((d) => d.name)
-  } catch {
-    industryDirs = []
-  }
-  for (const ind of industryDirs) {
-    const dir = path.join(STYLE_LIBRARY_DIR, ind)
-    const files = fs.readdirSync(dir).filter((f) => f.endsWith('.md'))
+  for (const [ind, byId] of Object.entries(STYLES_RAW)) {
     const list: StyleOption[] = []
-    for (const file of files) {
-      const id = file.replace(/\.md$/, '')
-      const opt = parseStyleMarkdown(path.join(dir, file), ind, id)
+    for (const [id, raw] of Object.entries(byId)) {
+      const opt = parseStyleMarkdown(raw, ind, id)
       stylesById.set(id, opt)
       list.push(opt)
     }
@@ -329,8 +299,32 @@ function buildCache(): NonNullable<typeof cache> {
   return { catalog, modulesBySlug, schemasBySlug, stylesById, stylesByIndustry }
 }
 
+// Diagnostic wrapper. If buildCache throws (malformed module shape, missing
+// schema, etc.) we attach extra context so the route surfacing the failure
+// can return a useful 500 body instead of an opaque "Internal Server Error".
+export class PackagesLoadError extends Error {
+  constructor(
+    message: string,
+    public readonly cause?: unknown
+  ) {
+    super(message)
+    this.name = 'PackagesLoadError'
+  }
+}
+
 function ensureCache(): NonNullable<typeof cache> {
-  if (!cache) cache = buildCache()
+  if (!cache) {
+    try {
+      cache = buildCache()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      throw new PackagesLoadError(
+        'Failed to build packages cache: ' + message +
+          ` (modules=${Object.keys(MODULES_RAW).length}, schemas=${Object.keys(SCHEMAS_RAW).length}, styles=${Object.values(STYLES_RAW).reduce((a, m) => a + Object.keys(m).length, 0)})`,
+        err
+      )
+    }
+  }
   return cache
 }
 

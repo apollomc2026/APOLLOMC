@@ -9,23 +9,19 @@ const nextConfig: NextConfig = {
   // node_modules/@sparticuz/chromium/bin.
   outputFileTracingRoot: path.join(__dirname, "../../"),
 
-  // Force-include files that Next's tracer can't see at compile time:
-  //   - @sparticuz/chromium binary + libs (loaded dynamically inside
-  //     the submit route's launchChromium())
-  //   - lib/apollo/packages/** — JSON modules/schemas + style-library .md
-  //     files read at runtime by packages-loader.ts via fs.readFileSync.
-  //     Without explicit inclusion the serverless bundle ships without
-  //     the catalog and every catalog-aware route 500s with ENOENT.
+  // Force-include the @sparticuz/chromium binary + libs in the submit
+  // route's serverless bundle. Loaded dynamically inside launchChromium()
+  // so Next's tracer can't see it at compile time.
+  //
+  // The packages catalog (lib/apollo/packages/**) is intentionally NOT
+  // listed here — it's bundled into the JS chunk via the generated
+  // packages-data.generated.ts module instead. Earlier attempts to include
+  // it via this config did not survive the --turbopack production build:
+  // the per-route .nft.json listed the files but Vercel's deployed function
+  // still ENOENTed at runtime.
   outputFileTracingIncludes: {
     "/api/apollo/submit": [
       "../../node_modules/@sparticuz/chromium/**/*",
-      "lib/apollo/packages/**/*",
-    ],
-    "/api/apollo/templates": [
-      "lib/apollo/packages/**/*",
-    ],
-    "/api/apollo/templates/[slug]": [
-      "lib/apollo/packages/**/*",
     ],
   },
 
