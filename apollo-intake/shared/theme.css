@@ -479,7 +479,7 @@ a:hover { opacity: 0.85; }
   cursor: pointer;
   transition: all 0.2s ease;
 }
-.cb-brand:hover { border-color: var(--cyan); }
+.cb-brand:hover { border-color: var(--ivory); color: var(--ivory); }
 .cb-brand-name {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -518,7 +518,7 @@ a:hover { opacity: 0.85; }
   border-radius: 6px;
   cursor: pointer;
 }
-.cb-signout:hover { border-color: var(--cyan); color: var(--cyan); }
+.cb-signout:hover { border-color: var(--ivory); color: var(--ivory); }
 
 /* --- 8. Auth modal --- */
 .auth-modal {

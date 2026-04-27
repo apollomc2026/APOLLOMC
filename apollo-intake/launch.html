@@ -658,6 +658,12 @@
   }
   .wiz-price-line .price-meta { color: var(--ivory-3); }
 
+  /* --- Hero dim on this page --- */
+  /* Dashboard keeps full intensity (it's the brand statement). Wizard
+     and mission pages dim the hero so the foreground panel reads clean. */
+  .apollo-hero { opacity: 0.55; }
+  .cosmic-sunburst { opacity: 0.35; }
+
   /* --- Reduced motion --- */
   @media (prefers-reduced-motion: reduce) {
     .wiz-step-mark, .wiz-slab, .wiz-btn, .wiz-chip,

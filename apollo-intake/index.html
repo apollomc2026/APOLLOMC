@@ -215,27 +215,34 @@
 
   .station { display: flex; flex-direction: column; }
   .station-card {
-    background: rgba(10,10,15,0.55);
-    backdrop-filter: blur(24px) saturate(140%);
-    -webkit-backdrop-filter: blur(24px) saturate(140%);
-    border: 1px solid rgba(107,227,255,0.15);
-    border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    background: var(--graphite);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: var(--rule);
+    border-radius: 0;
+    box-shadow: none;
     padding: 22px 24px;
     cursor: pointer;
-    transition: background 0.3s var(--ease-out-expo),
-                border-color 0.3s ease,
-                transform 0.3s var(--ease-out-expo);
+    transition: background 0.3s var(--ease-cinematic),
+                border-color 0.3s ease;
+    position: relative;
   }
   .station-card:hover {
-    background: rgba(10,10,15,0.72);
-    border-color: rgba(107,227,255,0.35);
-    transform: translateY(-2px);
+    background: var(--graphite-rise);
+    border-color: var(--ivory-3);
   }
   .station[data-armed="true"] .station-card {
-    background: rgba(10,10,15,0.78);
-    border-color: var(--cyan);
-    box-shadow: 0 0 0 2px rgba(107,227,255,0.22), 0 12px 40px rgba(0,0,0,0.5);
+    background: var(--graphite-high);
+    border-color: var(--ignition);
+  }
+  .station[data-armed="true"] .station-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--ignition);
   }
   .station-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
   .station-name {
