@@ -76,12 +76,20 @@ export async function GET(
 
     // Strip the full markdown content from styles before sending to the
     // client. The full content is server-side only — used at submit time
-    // as a system prompt for the AI. Clients only need id/label/description.
+    // as a system prompt for the AI. Clients only need id/label/description
+    // plus the thumbnail URL the wizard's slab picker shows on the left.
+    // Thumbnails are pre-rendered PNGs committed to /public/style-thumbnails/
+    // by scripts/generate-style-thumbnails.mjs and served from the portal
+    // origin (cross-origin from the static intake page on apollomc.ai/apollo/,
+    // but no CORS preflight is needed for <img src>).
+    const reqUrl = new URL(request.url)
+    const thumbBase = reqUrl.origin + '/style-thumbnails/'
     const available_styles = styles.map((s) => ({
       id: s.id,
       industry_slug: s.industry_slug,
       label: s.label,
       description: s.description,
+      thumbnail_url: thumbBase + s.id + '.png',
     }))
     const default_style_id = available_styles[0]?.id ?? null
 

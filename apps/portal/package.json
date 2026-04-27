@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "gen:thumbnails": "node scripts/generate-style-thumbnails.mjs",
     "test": "echo 'No tests configured yet'"
   },
   "dependencies": {
