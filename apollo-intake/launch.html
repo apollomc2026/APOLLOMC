@@ -717,6 +717,7 @@ const state = {
   submitting: false,
   result: null,
   error: null,
+  missionCode: null,
 };
 
 requireAuth({
@@ -873,18 +874,36 @@ function renderWizard() {
 
 function renderStepBar() {
   const list = wizardStepList();
-  const bar = el('div', { class: 'wiz-steps' });
+  const idx = list.findIndex((s) => s.n === state.step);
+  const currentLabel = list[idx]?.label || '';
+  const totalSteps = list.length;
+  const stepNum = String(idx + 1).padStart(2, '0');
+  const totalNum = String(totalSteps).padStart(2, '0');
+
+  const meta = el('div', { class: 'wiz-steps-meta' },
+    el('span', { class: 'left' },
+      'STEP ' + stepNum + ' / ' + totalNum + ' — ' + currentLabel.toUpperCase()),
+    el('span', { class: 'right' }, missionCodeFor(state.template) || ''),
+  );
+  const marks = el('div', { class: 'wiz-step-marks' });
   list.forEach((s, i) => {
-    const cls = state.step === s.n ? 'active' : state.step > s.n ? 'done' : '';
-    bar.appendChild(el('div', { class: 'wiz-step ' + cls },
-      el('div', { class: 'wiz-step-num' }, cls === 'done' ? '✓' : String(i + 1)),
-      el('div', { class: 'wiz-step-label' }, s.label),
-    ));
-    if (i < list.length - 1) {
-      bar.appendChild(el('div', { class: 'wiz-step-line' + (cls === 'done' ? ' done' : '') }));
-    }
+    const cls = i < idx ? 'done' : i === idx ? 'active' : '';
+    marks.appendChild(el('div', { class: 'wiz-step-mark ' + cls }));
   });
-  return bar;
+  return el('div', { class: 'wiz-steps-wrap' }, meta, marks);
+}
+
+// Mission code generator: brand prefix + slug prefix + date + 6-char nonce.
+// Stored on state so it stays stable across re-renders.
+function missionCodeFor(template) {
+  if (!template) return '';
+  if (state.missionCode) return state.missionCode;
+  const brand = (state.brand_slug || 'apollo').slice(0, 3).toUpperCase();
+  const slug = (template.slug || 'doc').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 6);
+  const date = new Date().toISOString().slice(0, 10);
+  const nonce = Math.random().toString(36).slice(2, 8).toUpperCase();
+  state.missionCode = brand + '-' + slug + '-' + date + '-' + nonce;
+  return state.missionCode;
 }
 
 // ---- Step 1: Identity ----
@@ -895,22 +914,49 @@ const BRAND_LABELS = {
   other: 'Unbranded',
 };
 
+const BRAND_DESC = {
+  apollo: 'Mission control parent brand.',
+  atlas: 'Mapping and observability platform.',
+  'on-spot-solutions': 'Field operations and service.',
+  other: 'Unbranded — neutral document, no logo or palette.',
+};
+
 function renderStep1Identity(host) {
   const t = state.template;
 
+  // Header: deliverable label + description + telemetry strip
   const head = el('div', { class: 'wiz-head' });
   head.appendChild(el('h2', null, t.label));
-  head.appendChild(el('p', { class: 'wiz-subtle' }, t.description || ''));
-  head.appendChild(priceLineEl(t));
+  if (t.description) {
+    head.appendChild(el('p', { class: 'wiz-subtle' }, t.description));
+  }
+  // Telemetry: mission code · pages · est minutes · price
+  const telemetry = el('div', { class: 'wiz-telemetry' });
+  telemetry.appendChild(el('span', { class: 'code' }, missionCodeFor(t)));
+  if (typeof t.estimated_pages_min === 'number' && typeof t.estimated_pages_max === 'number') {
+    telemetry.appendChild(el('span', { class: 'sep' }, '·'));
+    const pages = t.estimated_pages_min === t.estimated_pages_max
+      ? t.estimated_pages_min + ' PAGES'
+      : t.estimated_pages_min + '–' + t.estimated_pages_max + ' PAGES';
+    telemetry.appendChild(el('span', null, pages));
+  }
+  if (t.estimated_minutes) {
+    telemetry.appendChild(el('span', { class: 'sep' }, '·'));
+    telemetry.appendChild(el('span', null, '~' + t.estimated_minutes + ' MIN'));
+  }
+  telemetry.appendChild(el('span', { class: 'sep' }, '·'));
+  telemetry.appendChild(el('span', { class: 'price-active' }, 'FREE PREVIEW'));
+  head.appendChild(telemetry);
   host.appendChild(head);
 
-  // Brand picker
-  host.appendChild(el('h3', { class: 'wiz-section-title' }, 'Brand'));
-  const brandRow = el('div', { class: 'wiz-brand-row' });
+  // Brand picker — slab list, defaults to current brand_slug
+  host.appendChild(el('h3', { class: 'wiz-section-title' }, 'Brand Identity'));
+  const brandList = el('div', { class: 'wiz-slab-list' });
   for (const slug of ['apollo', 'atlas', 'on-spot-solutions', 'other']) {
     const sel = state.brand_slug === slug;
-    const card = el('button', {
-      class: 'wiz-brand-card' + (sel ? ' selected' : ''),
+    const label = BRAND_LABELS[slug] || slug;
+    const slab = el('button', {
+      class: 'wiz-slab' + (sel ? ' selected' : ''),
       type: 'button',
       onclick: () => {
         state.brand_slug = slug;
@@ -919,36 +965,50 @@ function renderStep1Identity(host) {
         renderWizard();
       },
     },
-      el('div', { class: 'wiz-brand-name' }, (BRAND_LABELS[slug] || slug).toUpperCase()),
-      slug === 'other' ? el('div', { class: 'wiz-brand-note' }, 'Unbranded') : null,
+      el('div', { class: 'wiz-slab-thumb-empty' }, label.charAt(0).toUpperCase()),
+      el('div', { class: 'wiz-slab-body' },
+        el('div', { class: 'wiz-slab-title' }, label),
+        el('div', { class: 'wiz-slab-desc' }, BRAND_DESC[slug] || ''),
+      ),
+      el('div', { class: 'wiz-slab-state' }, sel ? 'SELECTED' : 'SELECT'),
     );
-    brandRow.appendChild(card);
+    brandList.appendChild(slab);
   }
-  host.appendChild(brandRow);
+  host.appendChild(brandList);
 
-  // Style picker
+  // Style picker — slab list with thumbnails (Phase 4 backend serves them)
   const styles = t.available_styles || [];
   if (styles.length > 0) {
-    host.appendChild(el('h3', { class: 'wiz-section-title' }, 'Style'));
-    const styleRow = el('div', { class: 'wiz-style-row' });
+    host.appendChild(el('h3', { class: 'wiz-section-title' }, 'Output Style'));
+    const styleList = el('div', { class: 'wiz-slab-list' });
     for (const s of styles) {
       const sel = state.style_id === s.id;
-      styleRow.appendChild(el('button', {
-        class: 'wiz-style-card' + (sel ? ' selected' : ''),
+      const thumb = s.thumbnail_url
+        ? el('img', { class: 'wiz-slab-thumb', src: s.thumbnail_url, alt: '' })
+        : el('div', { class: 'wiz-slab-thumb-empty' }, (s.label || s.id).slice(0, 2).toUpperCase());
+      const slab = el('button', {
+        class: 'wiz-slab' + (sel ? ' selected' : ''),
         type: 'button',
         onclick: () => { state.style_id = s.id; saveDraft(); renderWizard(); },
       },
-        el('div', { class: 'wiz-style-name' }, (s.label || s.id).toUpperCase()),
-        el('div', { class: 'wiz-style-desc' }, s.description || ''),
-        el('div', { class: 'wiz-style-action' }, sel ? 'SELECTED' : 'SELECT'),
-      ));
+        thumb,
+        el('div', { class: 'wiz-slab-body' },
+          el('div', { class: 'wiz-slab-title' }, s.label || s.id),
+          el('div', { class: 'wiz-slab-desc' }, s.description || ''),
+        ),
+        el('div', { class: 'wiz-slab-state' }, sel ? 'SELECTED' : 'SELECT'),
+      );
+      styleList.appendChild(slab);
     }
-    host.appendChild(styleRow);
+    host.appendChild(styleList);
   }
 
+  // Both selections have defaults preselected (brand_slug from cmd bar,
+  // style_id from default_style_id), so Next is enabled on arrival.
   host.appendChild(navRow({
     next: wizardNext,
     nextDisabled: !state.brand_slug || !state.style_id,
+    nextLabel: 'INITIATE →',
     hideBack: true,
   }));
 }
@@ -998,7 +1058,7 @@ function renderStep3Optional(host) {
   ));
 
   if (optional.length === 0) {
-    host.appendChild(navRow({ back: wizardBack, next: wizardNext, nextLabel: 'Skip →' }));
+    host.appendChild(navRow({ back: wizardBack, next: wizardNext, nextLabel: 'SKIP →' }));
     return;
   }
 
@@ -1218,7 +1278,7 @@ function renderStep5Review(host) {
   host.appendChild(navRow({
     back: wizardBack,
     next: () => { state.step = 6; renderWizard(); submitWizard(); },
-    nextLabel: 'Launch mission →',
+    nextLabel: 'LAUNCH MISSION →',
   }));
 }
 
@@ -1235,25 +1295,32 @@ function renderStep6Generate(host) {
 
   if (state.submitting) {
     host.appendChild(el('div', { class: 'wiz-result-wrap' },
-      rocketIcon(true),
-      el('h2', null, 'Launching mission…'),
-      el('p', { class: 'wiz-subtle' },
-        'Generating ' + t.label + ' for ' + (BRAND_LABELS[state.brand_slug] || state.brand_slug) + '.'),
-      priceLineEl(t),
+      el('div', { class: 'wiz-result-status' }, '◆ MISSION LAUNCHING'),
+      el('h2', { class: 'wiz-result-headline' }, t.label),
+      el('div', { class: 'wiz-result-meta' },
+        missionCodeFor(t) + ' · GENERATING FOR ' +
+        (BRAND_LABELS[state.brand_slug] || state.brand_slug || '').toUpperCase()),
     ));
     return;
   }
   if (state.error) {
     host.appendChild(el('div', { class: 'wiz-result-wrap' },
-      el('div', { class: 'wiz-error-card' },
-        el('div', { class: 'wiz-error-title' }, 'Mission aborted'),
-        el('div', { class: 'wiz-error-body' }, state.error),
+      el('div', { class: 'wiz-result-status failed' }, '◆ MISSION ABORTED'),
+      el('h2', { class: 'wiz-result-headline' }, t.label),
+      el('div', { class: 'wiz-result-meta' }, missionCodeFor(t)),
+      el('div', { class: 'wiz-error-banner' }, state.error),
+      el('div', { class: 'wiz-result-actions' },
+        el('button', {
+          class: 'wiz-btn wiz-btn-primary',
+          type: 'button',
+          onclick: () => { state.error = null; submitWizard(); },
+        }, 'RETRY'),
+        el('button', {
+          class: 'wiz-btn',
+          type: 'button',
+          onclick: () => { state.error = null; state.step = 5; renderWizard(); },
+        }, '← BACK TO REVIEW'),
       ),
-      navRow({
-        back: () => { state.error = null; state.step = 5; renderWizard(); },
-        next: () => { state.error = null; submitWizard(); },
-        nextLabel: 'Retry',
-      }),
     ));
     return;
   }
@@ -1262,26 +1329,53 @@ function renderStep6Generate(host) {
     const detailHref = r.submission_id
       ? '/apollo/mission.html?id=' + encodeURIComponent(r.submission_id)
       : null;
+    const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const expiresLabel = r.expires_at
+      ? new Date(r.expires_at).toLocaleDateString()
+      : 'IN 7 DAYS';
     host.appendChild(el('div', { class: 'wiz-result-wrap' },
-      el('div', { class: 'wiz-success-card' },
-        el('div', { class: 'wiz-success-title' }, 'MISSION COMPLETE'),
-        el('p', null, t.label + ' generated and ready for download.'),
+      el('div', { class: 'wiz-result-status complete' }, '◆ MISSION COMPLETE'),
+      el('h2', { class: 'wiz-result-headline' }, t.label),
+      el('div', { class: 'wiz-result-meta' },
+        missionCodeFor(t) + ' · GENERATED ' + time + ' · LINK EXPIRES ' + expiresLabel),
+      el('div', { class: 'wiz-result-actions' },
         r.download_url
-          ? el('a', { class: 'btn btn-primary btn-lg', href: r.download_url, target: '_blank', rel: 'noopener noreferrer' }, 'Download PDF')
+          ? el('a', {
+              class: 'wiz-btn wiz-btn-go',
+              href: r.download_url,
+              target: '_blank',
+              rel: 'noopener noreferrer',
+            }, 'DOWNLOAD PDF ↓')
           : null,
-        r.expires_at ? el('p', { class: 'wiz-subtle' }, 'Link expires ' + new Date(r.expires_at).toLocaleString() + '.') : null,
-      ),
-      el('div', { style: 'margin-top:18px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;' },
-        detailHref ? el('a', { class: 'btn btn-secondary', href: detailHref }, 'View mission') : null,
-        el('a', { class: 'btn btn-secondary', href: '/apollo/' }, 'Mission Control'),
-        el('a', { class: 'btn btn-secondary', href: '/apollo/launch.html?slug=' + encodeURIComponent(t.slug) }, 'New mission'),
+        detailHref
+          ? el('a', { class: 'wiz-btn', href: detailHref }, 'VIEW MISSION')
+          : null,
+        el('a', { class: 'wiz-btn', href: '/apollo/' }, 'RETURN TO MISSION CONTROL'),
+        el('button', {
+          class: 'wiz-btn',
+          type: 'button',
+          onclick: () => {
+            state.result = null;
+            state.step = 1;
+            state.missionCode = null;
+            renderWizard();
+          },
+        }, 'NEW MISSION'),
       ),
     ));
     return;
   }
+  // Idle state — review step always kicks off submit, so this is a fallback.
   host.appendChild(el('div', { class: 'wiz-result-wrap' },
-    el('p', null, 'Ready to launch.'),
-    el('button', { class: 'btn btn-primary', onclick: submitWizard }, 'Generate now'),
+    el('div', { class: 'wiz-result-status' }, 'READY TO LAUNCH'),
+    el('h2', { class: 'wiz-result-headline' }, t.label),
+    el('div', { class: 'wiz-result-actions' },
+      el('button', {
+        class: 'wiz-btn wiz-btn-primary',
+        type: 'button',
+        onclick: submitWizard,
+      }, 'INITIATE LAUNCH'),
+    ),
   ));
 }
 
@@ -1420,20 +1514,24 @@ function reviewKv(k, v) {
 }
 
 function navRow(opts) {
+  const o = opts || {};
   const row = el('div', { class: 'wiz-nav' });
-  if (!opts.hideBack) {
+  if (o.hideBack) {
+    // Spacer to push the next button to the right via space-between
+    row.appendChild(el('div'));
+  } else {
     row.appendChild(el('button', {
-      class: 'btn btn-secondary',
+      class: 'wiz-btn',
       type: 'button',
-      onclick: opts.back || (() => {}),
-    }, 'Back'));
+      onclick: o.back || (() => {}),
+    }, '← ABORT'));
   }
   row.appendChild(el('button', {
-    class: 'btn btn-primary',
+    class: 'wiz-btn wiz-btn-primary',
     type: 'button',
-    onclick: opts.next || (() => {}),
-    disabled: !!opts.nextDisabled,
-  }, opts.nextLabel || 'Next →'));
+    onclick: o.next || (() => {}),
+    disabled: !!o.nextDisabled,
+  }, o.nextLabel || 'PROCEED →'));
   return row;
 }
 
@@ -1441,6 +1539,7 @@ function navRow(opts) {
 void formatPriceCents;
 void escapeAttr;
 void escapeHtml;
+void rocketIcon;
 </script>
 
 <script>
