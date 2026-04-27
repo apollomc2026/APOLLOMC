@@ -3,52 +3,70 @@
    Imported by every page. Do not duplicate these rules elsewhere.
    ============================================================ */
 
-/* --- 1. Tokens --- */
+/* --- 1. Tokens (aerospace mission control) --- */
 :root {
-  /* Colors */
-  --bg: #0a0a0f;
-  --bg-rad: radial-gradient(ellipse at center, rgba(20,30,60,0.2) 0%, rgba(10,10,15,1) 100%);
-  --text: #ffffff;
-  --text-2: rgba(255,255,255,0.8);
-  --text-3: rgba(255,255,255,0.6);
-  --text-4: rgba(255,255,255,0.4);
-  --cyan: #6be3ff;
-  --cyan-dim: rgba(107,227,255,0.6);
-  --blue: #4a9eff;
-  --orange: #ff7a00;
-  --green: #7bff9f;
-  --amber: #ffb340;
-  --red: #ff5252;
+  /* --- Surface palette: deep black → graphite, four steps --- */
+  --vacuum: #0A0A0F;          /* page background, deepest */
+  --graphite: #14141A;        /* primary panel bg */
+  --graphite-rise: #1C1C24;   /* hover/elevation */
+  --graphite-high: #232330;   /* selected panels, deeper inset */
+  --titanium: #2A2A33;        /* hairline rules, dividers, borders */
+  --titanium-low: #1F1F26;    /* muted hairlines for grouped content */
 
-  /* Surfaces */
-  --border: rgba(107,227,255,0.2);
-  --border-strong: #6be3ff;
-  --card-bg: rgba(10,10,15,0.75);
-  --header-bg: rgba(10,10,15,0.95);
-  --alert-bg: linear-gradient(135deg, rgba(107,227,255,0.15), rgba(255,122,0,0.15));
-  --input-bg: rgba(0,0,0,0.3);
-  --input-border: rgba(107,227,255,0.3);
-  --glass-bg: rgba(10,10,15,0.65);
-  --glass-blur: blur(24px) saturate(140%);
-  --glass-border: 1px solid rgba(107,227,255,0.15);
-  --glass-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  /* --- Type palette: warm whites, never pure --- */
+  --ivory: #F5F5F0;
+  --ivory-2: #C4C4BC;
+  --ivory-3: #6E6E68;
+  --ivory-4: #3A3A36;
 
-  /* Typography */
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  /* --- Semantic accents: used surgically, never decoratively --- */
+  --ignition: #FF6B1A;        /* active mission, primary CTA, selected edge */
+  --ignition-dim: #B84B11;
+  --cyan-go: #5BCEFA;          /* go/proceed, focus ring, in-flight indicator */
+  --cyan-go-dim: #4093B5;
+  --alert: #FF3B30;            /* failure / abort / validation error */
+  --confirm: #4DD964;           /* mission complete */
 
-  /* Radii */
-  --radius: 16px;
-  --radius-sm: 8px;
-  --radius-pill: 999px;
+  /* --- Background composition --- */
+  --bg: var(--vacuum);
+  --bg-rad: radial-gradient(ellipse at top, rgba(20,12,8,0.4) 0%, rgba(10,10,15,1) 60%);
 
-  /* Animation */
-  --ease-out-expo: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --ease-soft: cubic-bezier(0.25, 0.7, 0.3, 1);
-  --pulse-slow: 7s;
-  --pulse-led: 2.2s;
+  /* --- Type stack --- */
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
 
-  /* Z-index scale */
+  /* --- Tracking scales --- */
+  --track-tight: -0.02em;
+  --track-normal: 0;
+  --track-wide: 0.04em;
+  --track-mono: 0.16em;
+  --track-mono-tight: 0.08em;
+
+  /* --- Spacing rhythm (8px base) --- */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px;
+  --s-5: 24px; --s-6: 32px; --s-7: 48px; --s-8: 64px; --s-9: 96px;
+
+  /* --- Motion: SpaceX-style ease, long tail, no bounce --- */
+  --ease-cinematic: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-direct: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 160ms;
+  --dur-base: 240ms;
+  --dur-slow: 400ms;
+
+  /* --- Layout caps --- */
+  --content-max: 760px;
+  --content-pad-x: 64px;
+  --content-pad-x-mobile: 24px;
+
+  /* --- Borders / radii (luxury aerospace = no rounded corners on slabs) --- */
+  --rule: 1px solid var(--titanium);
+  --rule-low: 1px solid var(--titanium-low);
+  --rule-strong: 2px solid var(--ivory);
+  --radius-control: 2px;
+  --radius-card: 0;
+
+  /* --- Z-index scale (unchanged) --- */
   --z-hero: -1;
   --z-bg: -2;
   --z-base: 1;
@@ -56,14 +74,51 @@
   --z-overlay: 900;
   --z-modal: 1000;
   --z-help: 1100;
+
+  /* --- Back-compat aliases — existing rules across pages keep working --- */
+  --text: var(--ivory);
+  --text-2: var(--ivory-2);
+  --text-3: var(--ivory-3);
+  --text-4: var(--ivory-4);
+  --cyan: var(--cyan-go);
+  --cyan-dim: var(--cyan-go-dim);
+  --orange: var(--ignition);
+  --green: var(--confirm);
+  --amber: var(--ignition);          /* "amber" used for warning LEDs; ignition reads as warm warning */
+  --red: var(--alert);
+  --blue: var(--cyan-go);
+  --border: var(--titanium);
+  --border-strong: var(--ivory);
+  --card-bg: var(--graphite);
+  --header-bg: rgba(10,10,15,0.95);
+  --alert-bg: linear-gradient(135deg, rgba(91,206,250,0.10), rgba(255,107,26,0.10));
+  --input-bg: transparent;
+  --input-border: var(--titanium);
+  --glass-bg: var(--graphite);
+  --glass-blur: none;
+  --glass-border: 1px solid var(--titanium);
+  --glass-shadow: none;
+
+  /* Legacy radii — kept so .btn / .field / etc. that reference them
+     still work; aerospace surfaces should reach for --radius-control. */
+  --radius: 0;
+  --radius-sm: 2px;
+  --radius-pill: 999px;
+
+  /* Legacy ease aliases */
+  --ease-out-expo: var(--ease-cinematic);
+  --ease-soft: var(--ease-cinematic);
+  --pulse-slow: 7s;
+  --pulse-led: 2.2s;
 }
 
-/* Brand-aware overrides — change accent palette by setting data-brand on <html>.
-   v1 only swaps --cyan; full per-brand themes are deferred. */
-[data-brand="atlas"]              { --cyan: #58c4dd; }
-[data-brand="habi"]               { --cyan: #b48cff; }
-[data-brand="themis"]             { --cyan: #ffd66b; }
-[data-brand="on-spot-solutions"]  { --cyan: #6be3ff; }
+/* Brand-aware overrides — only the cyan-go shifts in v1.
+   The ignition orange stays constant across brands because it represents
+   the platform's mission-active state, not a brand expression. */
+[data-brand="atlas"]              { --cyan-go: #58C4DD; }
+[data-brand="habi"]               { --cyan-go: #B48CFF; }
+[data-brand="themis"]             { --cyan-go: #FFD66B; }
+[data-brand="on-spot-solutions"]  { --cyan-go: #5BCEFA; }
 
 /* --- 2. Reset + base --- */
 * { box-sizing: border-box; }
