@@ -4,8 +4,46 @@ import { s3, BUCKET, uploadToS3 } from '@/lib/s3/client'
 
 const PDF_MIME = 'application/pdf'
 
-// AWS SigV4 maximum presign expiry is 7 days.
+// AWS SigV4 maximum presign expiry is 7 days. Used for the URL captured
+// at submit time and returned in the inline response payload.
 const DEFAULT_EXPIRY_SECONDS = 7 * 24 * 60 * 60
+
+// Per-request signed URLs on the dashboard's mission log + mission
+// detail page. Short (1 hour) because they're regenerated on every
+// fetch — the file lifecycle is independent.
+const REFRESH_EXPIRY_SECONDS = 60 * 60
+
+// File-side lifecycle: 7 days from when the row was completed.
+const FILE_LIFECYCLE_MS = 7 * 24 * 60 * 60 * 1000
+
+// regeneratePdfDownloadUrl(s3Key, filename) — returns a fresh 1-hour
+// signed URL with the PDF attachment headers, generated at request time
+// from the stored s3_key. Used by /submissions and /submissions/[id]
+// to avoid serving expired URLs from the DB column.
+export async function regeneratePdfDownloadUrl(
+  s3Key: string,
+  filename: string,
+  expiresIn: number = REFRESH_EXPIRY_SECONDS
+): Promise<string> {
+  const safe = sanitizeFilename(filename)
+  const command = new GetObjectCommand({
+    Bucket: BUCKET,
+    Key: s3Key,
+    ResponseContentDisposition: `attachment; filename="${safe}"`,
+    ResponseContentType: PDF_MIME,
+  })
+  return getSignedUrl(s3, command, { expiresIn })
+}
+
+// computeFileExpiresAt(completedAt) — when the underlying S3 object is
+// considered stale for end-user download purposes. Independent of the
+// signed URL's expiry. Returns ISO string or null.
+export function computeFileExpiresAt(completedAt: string | null): string | null {
+  if (!completedAt) return null
+  const t = new Date(completedAt).getTime()
+  if (!Number.isFinite(t)) return null
+  return new Date(t + FILE_LIFECYCLE_MS).toISOString()
+}
 
 export interface UploadSubmissionOutputArgs {
   submissionId: string
