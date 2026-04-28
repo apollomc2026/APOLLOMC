@@ -19,223 +19,164 @@
   <link rel="stylesheet" href="/apollo/shared/theme.css">
 
   <style>
-  /* Page-specific layout only. Anything reused belongs in theme.css. */
+  /* ============================================================
+     Apollo dashboard — left-rail command pattern
+     Page-specific layout only. Reusable bits live in theme.css.
+     ============================================================ */
 
-  body[data-standby="true"] .stations-grid,
-  body[data-standby="true"] .quick-launch,
-  body[data-standby="true"] .mission-log {
-    opacity: 0.32;
-    pointer-events: none;
-    filter: blur(2px);
-    transition: filter 0.6s ease-out, opacity 0.6s ease-out;
+  body { padding-top: 0; }
+
+  /* --- Top bar — replaces sticky-footer command bar on this page --- */
+  .top-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: 64px;
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: var(--s-5);
+    padding: 0 var(--s-6);
+    background: rgba(10, 10, 15, 0.92);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border-bottom: 1px solid var(--titanium);
   }
-
-  /* Quick Launch */
-  .quick-launch {
+  .tb-brand {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 18px 24px;
-    max-width: 1400px;
-    margin: 0 auto;
-    flex-wrap: wrap;
+    gap: var(--s-3);
+    text-decoration: none;
+    color: var(--ivory);
   }
-  .ql-recent {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    flex: 1 1 auto;
-    min-width: 0;
+  .tb-logo {
+    height: 36px;
+    width: auto;
+    display: block;
+    filter: drop-shadow(0 0 8px rgba(255, 107, 26, 0.3));
   }
-  .ql-recent-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-    background: rgba(10,10,15,0.55);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(107,227,255,0.18);
-    border-radius: 8px;
-    padding: 8px 14px;
-    color: var(--text);
-    font-family: inherit;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-align: left;
-  }
-  .ql-recent-btn:hover {
-    border-color: var(--cyan);
-    background: rgba(10,10,15,0.75);
-    transform: translateY(-1px);
-  }
-  .ql-recent-label { font-size: 13px; font-weight: 500; color: var(--text); }
-  .ql-recent-time {
+  .tb-wordmark {
     font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--text-3);
-    letter-spacing: 0.05em;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: var(--track-mono);
+    color: var(--ivory);
+    text-transform: uppercase;
   }
-  .ql-recent-empty {
+  .tb-status {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    padding-left: var(--s-4);
+    border-left: 1px solid var(--titanium);
     font-family: var(--font-mono);
     font-size: 11px;
-    color: var(--text-4);
-    letter-spacing: 0.18em;
+    letter-spacing: var(--track-mono);
+    color: var(--ivory-2);
     text-transform: uppercase;
-    padding: 12px 4px;
   }
-  .ql-search {
-    position: relative;
-    flex: 0 1 320px;
-    min-width: 240px;
+  .tb-clock {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: var(--track-mono-tight);
+    color: var(--cyan-go);
+  }
+  .tb-operator {
     display: flex;
     align-items: center;
-    background: rgba(0,0,0,0.4);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(107,227,255,0.2);
-    border-radius: 8px;
-    padding: 0 12px;
+    gap: var(--s-3);
   }
-  .ql-search:focus-within { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(107,227,255,0.15); }
-  .ql-search-prefix {
+  .tb-operator-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--graphite-rise);
+    border: 1px solid var(--titanium);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-family: var(--font-mono);
-    color: var(--cyan-dim);
-    font-size: 13px;
-    padding-right: 8px;
-    border-right: 1px solid rgba(107,227,255,0.18);
+    font-size: 12px;
+    color: var(--ivory);
+    overflow: hidden;
   }
-  .ql-search input {
-    flex: 1;
+  .tb-operator-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .tb-signout {
+    background: transparent;
+    border: 1px solid var(--ivory-3);
+    color: var(--ivory-2);
+    padding: 6px 14px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: var(--track-mono);
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: var(--radius-control);
+    transition: all var(--dur-base) var(--ease-cinematic);
+  }
+  .tb-signout:hover { border-color: var(--ivory); color: var(--ivory); }
+
+  @media (max-width: 720px) {
+    .top-bar { grid-template-columns: auto 1fr auto; gap: var(--s-3); padding: 0 var(--s-4); }
+    .tb-status, .tb-clock { display: none; }
+    .tb-wordmark { display: none; }
+  }
+
+  /* --- Three-column work area --- */
+  .work-area {
+    display: grid;
+    grid-template-columns: 240px 1fr 360px;
+    gap: 0;
+    min-height: calc(100vh - 64px);
+    border-bottom: 1px solid var(--titanium);
+  }
+  @media (max-width: 1024px) {
+    .work-area {
+      grid-template-columns: 1fr;
+      grid-auto-rows: auto;
+    }
+  }
+
+  /* Left rail — industries */
+  .rail-left {
+    border-right: 1px solid var(--titanium);
+    padding: var(--s-6) 0;
+    overflow-y: auto;
+  }
+  .rail-heading {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: var(--track-mono);
+    color: var(--ivory-3);
+    text-transform: uppercase;
+    margin: 0 0 var(--s-4) 0;
+    padding: 0 var(--s-5);
+  }
+  .industry-list { display: flex; flex-direction: column; }
+  .industry-item {
+    position: relative;
+    display: grid;
+    grid-template-columns: 24px 1fr auto;
+    align-items: center;
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-5);
     background: transparent;
     border: none;
-    outline: none;
-    color: var(--text);
+    border-top: 1px solid var(--titanium-low);
+    cursor: pointer;
+    text-align: left;
     font-family: inherit;
-    font-size: 13px;
-    padding: 10px 8px;
+    color: var(--ivory-2);
+    transition: all var(--dur-base) var(--ease-cinematic);
   }
-  .ql-search input::placeholder { color: var(--text-4); }
-
-  .search-overlay {
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    right: 0;
-    z-index: 200;
-    background: rgba(10,10,15,0.95);
-    backdrop-filter: blur(24px);
-    border: 1px solid rgba(107,227,255,0.25);
-    border-radius: 8px;
-    padding: 6px;
-    max-height: 320px;
-    overflow-y: auto;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
-  }
-  .search-result {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 10px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background 0.15s ease;
-  }
-  .search-result:hover, .search-result[data-active="true"] { background: rgba(107,227,255,0.1); }
-  .search-result-label { font-size: 13px; font-weight: 500; color: var(--text); }
-  .search-result-meta {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--text-3);
-    letter-spacing: 0.05em;
-  }
-  .search-empty {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--text-4);
-    letter-spacing: 0.12em;
-    text-align: center;
-    padding: 14px;
-  }
-
-  /* Stations grid — 4×2 with 8 industry stations (6 active + 2 placeholder) */
-  .stations-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 18px;
-    padding: 16px 24px 32px;
-    max-width: 1500px;
-    margin: 0 auto;
-    width: 100%;
-  }
-  @media (max-width: 1200px) { .stations-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; } }
-  @media (max-width: 900px)  { .stations-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; padding: 16px 16px 24px; } }
-  @media (max-width: 600px)  { .stations-grid { grid-template-columns: 1fr; } }
-
-  .station[data-placeholder="true"] .station-card {
-    background: rgba(10,10,15,0.45);
-    border-color: rgba(107,227,255,0.10);
-  }
-  .station[data-placeholder="true"] .station-card:hover {
-    background: rgba(10,10,15,0.55);
-    border-color: rgba(107,227,255,0.18);
-    transform: none;
-  }
-  .station[data-placeholder="true"] .station-led {
-    animation: none !important;
-    background: rgba(107,227,255,0.35) !important;
-    box-shadow: none !important;
-  }
-  .station-coming-soon {
-    font-family: var(--font-mono);
-    font-size: 9px;
-    letter-spacing: 0.22em;
-    color: rgba(107,227,255,0.55);
-    border: 1px solid rgba(107,227,255,0.25);
-    padding: 2px 6px;
-    border-radius: 3px;
-    margin-left: auto;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-  .station-icon {
-    width: 18px;
-    height: 18px;
-    color: var(--cyan);
-    flex-shrink: 0;
-    opacity: 0.85;
-  }
-  .station[data-placeholder="true"] .station-icon { opacity: 0.45; }
-
-  .deliverable-meta {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--text-3);
-    letter-spacing: 0.05em;
-  }
-
-  .station { display: flex; flex-direction: column; }
-  .station-card {
-    background: var(--graphite);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    border: var(--rule);
-    border-radius: 0;
-    box-shadow: none;
-    padding: 22px 24px;
-    cursor: pointer;
-    transition: background 0.3s var(--ease-cinematic),
-                border-color 0.3s ease;
-    position: relative;
-  }
-  .station-card:hover {
-    background: var(--graphite-rise);
-    border-color: var(--ivory-3);
-  }
-  .station[data-armed="true"] .station-card {
+  .industry-item:last-child { border-bottom: 1px solid var(--titanium-low); }
+  .industry-item:hover { background: var(--graphite-rise); color: var(--ivory); }
+  .industry-item.active {
     background: var(--graphite-high);
-    border-color: var(--ignition);
+    color: var(--ivory);
   }
-  .station[data-armed="true"] .station-card::before {
+  .industry-item.active::before {
     content: '';
     position: absolute;
     left: 0;
@@ -244,383 +185,551 @@
     width: 3px;
     background: var(--ignition);
   }
-  .station-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-  .station-name {
+  .industry-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--ivory-3);
+    flex-shrink: 0;
+  }
+  .industry-item.active .industry-icon { color: var(--ignition); }
+  .industry-name {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: var(--track-tight);
+  }
+  .industry-count {
     font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ivory-3);
+    letter-spacing: var(--track-mono-tight);
+    margin-left: auto;
+  }
+  .industry-item.placeholder { opacity: 0.55; }
+  .industry-item.placeholder .industry-name { font-style: italic; }
+  .industry-divider {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: var(--track-mono);
+    color: var(--ivory-4);
+    text-transform: uppercase;
+    padding: var(--s-4) var(--s-5) var(--s-2);
+    border-top: 1px solid var(--titanium);
+  }
+
+  @media (max-width: 1024px) {
+    .rail-left {
+      border-right: none;
+      border-bottom: 1px solid var(--titanium);
+      padding: var(--s-4) 0;
+    }
+    .industry-list {
+      flex-direction: row;
+      overflow-x: auto;
+      padding: 0 var(--s-4);
+      gap: var(--s-2);
+    }
+    .industry-item {
+      flex-shrink: 0;
+      border: 1px solid var(--titanium);
+      border-radius: var(--radius-control);
+      padding: var(--s-2) var(--s-3);
+    }
+    .industry-item.active::before { display: none; }
+    .industry-item.active { border-color: var(--ignition); }
+    .industry-divider { display: none; }
+  }
+
+  /* Middle column — deliverables for active industry */
+  .col-mid {
+    padding: var(--s-7) var(--s-6);
+    overflow-y: auto;
+  }
+  .mid-head {
+    margin-bottom: var(--s-6);
+    padding-bottom: var(--s-4);
+    border-bottom: 1px solid var(--titanium);
+  }
+  .mid-title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: var(--track-tight);
+    color: var(--ivory);
+    margin: 0 0 var(--s-2) 0;
+    text-transform: none;
+  }
+  .mid-sub {
     font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 0.18em;
-    color: var(--text);
+    color: var(--ivory-2);
     margin: 0;
   }
-  .station-sub { font-size: 12px; color: var(--text-3); margin: 2px 0 0 0; }
-  .station-header-text { flex: 1; min-width: 0; }
-  .station-meta {
+  .deliverable-list {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    margin-bottom: 16px;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--text-3);
-    letter-spacing: 0.05em;
+    gap: 0;
   }
-  .station-count strong { color: var(--cyan); font-weight: 600; }
-  .station-arm {
-    background: rgba(107,227,255,0.12);
-    border: 1px solid rgba(107,227,255,0.4);
-    color: var(--text);
-    padding: 8px 18px;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.22em;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  .station-arm:hover { background: rgba(107,227,255,0.22); border-color: var(--cyan); }
-  .station[data-armed="true"] .station-arm {
-    background: rgba(107,227,255,0.3);
-    border-color: var(--cyan);
-    color: var(--cyan);
-  }
-  .station-deliverables {
-    max-height: 0;
-    overflow: hidden;
-    opacity: 0;
-    margin-top: 0;
-    transition: max-height 0.4s ease-out, opacity 0.3s ease-out, margin-top 0.4s ease-out;
-  }
-  .station[data-armed="true"] .station-deliverables { max-height: 800px; opacity: 1; margin-top: 12px; }
-  .deliverable-launch {
+  .deliverable-item {
+    position: relative;
     display: grid;
-    grid-template-columns: auto 1fr auto auto;
+    grid-template-columns: 24px 1fr auto;
     align-items: center;
-    gap: 14px;
-    width: 100%;
-    background: rgba(10,10,15,0.65);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(107,227,255,0.15);
-    border-radius: 8px;
-    padding: 12px 16px;
-    color: var(--text);
-    font-family: inherit;
+    gap: var(--s-4);
+    padding: var(--s-4) var(--s-5);
+    background: transparent;
+    border: none;
+    border-top: 1px solid var(--titanium-low);
     cursor: pointer;
-    margin-bottom: 8px;
-    transition: all 0.2s ease;
     text-align: left;
+    font-family: inherit;
+    color: var(--ivory);
+    transition: all var(--dur-base) var(--ease-cinematic);
+    margin: 0 calc(-1 * var(--s-5));
   }
-  .deliverable-launch:last-child { margin-bottom: 0; }
-  .deliverable-launch:hover {
-    border-color: var(--cyan);
-    background: rgba(10,10,15,0.85);
-    transform: translateX(2px);
+  .deliverable-item:first-child { border-top-color: var(--titanium); }
+  .deliverable-item:last-child { border-bottom: 1px solid var(--titanium); }
+  .deliverable-item:hover { background: var(--graphite-rise); }
+  .deliverable-item.active { background: var(--graphite-high); }
+  .deliverable-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--ignition);
   }
-  .dl-icon { color: var(--cyan); font-family: var(--font-mono); font-size: 12px; }
-  .dl-label { font-size: 14px; font-weight: 500; }
-  .dl-action {
+  .deliverable-glyph {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--ignition);
+  }
+  .deliverable-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .deliverable-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ivory);
+    letter-spacing: var(--track-tight);
+  }
+  .deliverable-tag {
     font-family: var(--font-mono);
     font-size: 11px;
-    color: var(--cyan);
-    letter-spacing: 0.18em;
-    font-weight: 600;
+    letter-spacing: var(--track-mono-tight);
+    color: var(--ivory-3);
+    text-transform: uppercase;
+  }
+  .deliverable-tag .last { color: var(--cyan-go); }
+  .deliverable-empty {
+    padding: var(--s-7) 0;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: var(--track-mono);
+    color: var(--ivory-4);
+    text-transform: uppercase;
   }
 
-  /* Mission Log */
-  .mission-log {
-    background: rgba(10,10,15,0.7);
-    backdrop-filter: blur(24px) saturate(140%);
-    -webkit-backdrop-filter: blur(24px) saturate(140%);
-    border-top: 1px solid rgba(107,227,255,0.18);
-    margin-top: auto;
-    padding: 16px 24px;
-    max-width: 1400px;
-    margin-left: auto;
-    margin-right: auto;
-    width: 100%;
-  }
-  .ml-summary { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
-  .ml-count, .ml-success {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--text-3);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-  .ml-count strong, .ml-success strong { color: var(--cyan); font-weight: 600; }
-  .ml-toggle {
-    margin-left: auto;
-    background: transparent;
-    border: 1px solid rgba(107,227,255,0.25);
-    color: var(--text-2);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.18em;
-    padding: 6px 14px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  .ml-toggle:hover { border-color: var(--cyan); color: var(--cyan); }
-  .ml-entries {
-    max-height: 0;
-    overflow: hidden;
-    opacity: 0;
-    transition: max-height 0.4s ease-out, opacity 0.3s ease-out, margin-top 0.4s ease-out;
-  }
-  .mission-log[data-expanded="true"] .ml-entries {
-    max-height: 600px;
+  /* Right rail — deliverable detail */
+  .rail-right {
+    border-left: 1px solid var(--titanium);
+    padding: var(--s-6);
     overflow-y: auto;
-    opacity: 1;
-    margin-top: 12px;
+    background: var(--graphite);
   }
-  .ml-entry {
-    display: grid;
-    grid-template-columns: auto 1fr auto auto auto;
-    align-items: center;
-    gap: 16px;
-    padding: 12px 14px;
-    border-bottom: 1px solid rgba(107,227,255,0.1);
-    font-size: 13px;
-  }
-  .ml-entry:last-child { border-bottom: none; }
-  .ml-entry-time {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--text-3);
-    letter-spacing: 0.05em;
-    white-space: nowrap;
-  }
-  .ml-entry-name { color: var(--text); font-weight: 500; }
-  .ml-entry-brand {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: var(--track-mono);
-    text-transform: uppercase;
-    color: var(--ivory-3);
-    border: 1px solid var(--titanium);
-    padding: 2px 6px;
-    border-radius: var(--radius-control);
-  }
-  .ml-expiry {
-    color: var(--ivory-3);
-    font-size: 10px;
-    margin-left: 4px;
-  }
-  .ml-expired {
+  .detail-empty {
+    padding: var(--s-7) var(--s-3);
+    text-align: center;
     color: var(--ivory-4);
     font-family: var(--font-mono);
-    font-size: 10px;
+    font-size: 11px;
     letter-spacing: var(--track-mono);
     text-transform: uppercase;
   }
-  .ml-badge {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.15em;
-    padding: 3px 8px;
-    border-radius: 999px;
+  .detail-name {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: var(--track-tight);
+    color: var(--ivory);
+    margin: 0 0 var(--s-3) 0;
+    line-height: 1.2;
   }
-  .ml-badge.success { background: rgba(123,255,159,0.12); color: var(--green); }
-  .ml-badge.error   { background: rgba(255,82,82,0.15);  color: #ff8a8a; }
-  .ml-badge.pending { background: rgba(255,179,64,0.15); color: #ffb340; }
-  .ml-entry-actions { display: flex; gap: 8px; }
-  .ml-entry-actions a, .ml-entry-actions button {
-    background: transparent;
-    border: 1px solid rgba(107,227,255,0.25);
-    color: var(--text-2);
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.15em;
-    padding: 4px 10px;
-    border-radius: 4px;
-    text-decoration: none;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-  .ml-entry-actions a:hover, .ml-entry-actions button:hover { border-color: var(--cyan); color: var(--cyan); }
-  .ml-empty {
-    text-align: center;
-    padding: 24px;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.18em;
-    color: var(--text-4);
-  }
-
-  /* Placeholder industry CTA modal */
-  .placeholder-cta-modal {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.72);
-    backdrop-filter: blur(8px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 80;
-    padding: 24px;
-  }
-  .placeholder-cta-panel {
-    background: rgba(10,10,15,0.92);
-    border: 1px solid rgba(107,227,255,0.4);
-    border-radius: 12px;
-    padding: 28px 32px;
-    max-width: 520px;
-    width: 100%;
-    color: var(--text);
-    font-family: var(--font-mono);
-  }
-  .placeholder-cta-panel h2 {
-    margin: 0 0 12px;
-    font-size: 14px;
-    letter-spacing: 0.22em;
-    color: var(--cyan);
-  }
-  .placeholder-cta-panel p {
-    margin: 0 0 14px;
+  .detail-desc {
     font-size: 13px;
     line-height: 1.55;
-    font-family: var(--font-body);
-    color: var(--text-2);
+    color: var(--ivory-2);
+    margin: 0 0 var(--s-5) 0;
   }
-  .placeholder-cta-panel .pcta-actions { display: flex; gap: 12px; margin-top: 18px; }
-  .placeholder-cta-panel button {
-    background: rgba(107,227,255,0.12);
-    border: 1px solid rgba(107,227,255,0.4);
-    color: var(--text);
-    padding: 10px 18px;
-    font-family: inherit;
-    font-size: 11px;
-    letter-spacing: 0.22em;
-    border-radius: 6px;
-    cursor: pointer;
-  }
-  .placeholder-cta-panel button.primary { background: rgba(107,227,255,0.28); }
-
-  /* Help overlay */
-  .help-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: var(--z-help);
+  .detail-meta {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(10px);
+    flex-wrap: wrap;
+    gap: var(--s-3);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: var(--track-mono-tight);
+    color: var(--ivory-3);
+    text-transform: uppercase;
+    margin-bottom: var(--s-5);
+    padding-bottom: var(--s-4);
+    border-bottom: 1px solid var(--titanium-low);
   }
-  .help-overlay[hidden] { display: none; }
-  .help-overlay-panel {
-    background: rgba(10,10,15,0.92);
-    backdrop-filter: blur(30px);
-    border: 1px solid rgba(107,227,255,0.3);
-    border-radius: 12px;
-    padding: 28px 36px;
-    max-width: 480px;
+  .detail-meta .price-active { color: var(--ignition); }
+  .detail-meta .sep { color: var(--titanium); }
+
+  .btn-launch {
+    display: block;
     width: 100%;
-    box-shadow: 0 24px 80px rgba(0,0,0,0.7);
-  }
-  .help-overlay h2 {
+    height: 56px;
+    background: var(--ignition);
+    border: 1px solid var(--ignition);
+    border-radius: var(--radius-control);
+    color: var(--vacuum);
     font-family: var(--font-mono);
     font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.18em;
-    color: var(--cyan);
-    margin: 0 0 18px 0;
+    letter-spacing: var(--track-mono);
     text-transform: uppercase;
+    cursor: pointer;
+    transition: all var(--dur-base) var(--ease-cinematic);
+    margin-bottom: var(--s-6);
   }
-  .help-shortcuts {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 10px 18px;
-    font-size: 13px;
+  .btn-launch:hover {
+    background: var(--ignition-dim);
+    border-color: var(--ignition-dim);
+    color: var(--ivory);
   }
-  .help-shortcuts kbd {
+  .btn-launch[disabled] {
+    background: var(--graphite-high);
+    border-color: var(--graphite-high);
+    color: var(--ivory-4);
+    cursor: not-allowed;
+  }
+
+  .detail-recent-head {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: var(--track-mono);
+    color: var(--ivory-3);
+    text-transform: uppercase;
+    margin: 0 0 var(--s-3) 0;
+  }
+  .detail-recent-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .detail-recent-list li {
     font-family: var(--font-mono);
     font-size: 11px;
-    background: rgba(107,227,255,0.12);
-    border: 1px solid rgba(107,227,255,0.3);
-    color: var(--cyan);
-    padding: 3px 8px;
-    border-radius: 4px;
-    text-align: center;
-    min-width: 56px;
+    letter-spacing: var(--track-mono-tight);
+    color: var(--ivory-2);
+    padding: var(--s-2) 0;
+    border-bottom: 1px solid var(--titanium-low);
+    display: flex;
+    justify-content: space-between;
+    gap: var(--s-3);
   }
-  .help-shortcuts span { color: var(--text-2); align-self: center; }
+  .detail-recent-list li:last-child { border-bottom: none; }
+  .detail-recent-list .when { color: var(--ivory-3); }
+  .detail-recent-list .status.complete { color: var(--confirm); }
+  .detail-recent-list .status.failed { color: var(--alert); }
+  .detail-recent-empty {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: var(--track-mono-tight);
+    color: var(--ivory-4);
+    text-transform: uppercase;
+    padding: var(--s-3) 0;
+  }
 
+  @media (max-width: 1024px) {
+    .rail-right {
+      border-left: none;
+      border-top: 1px solid var(--titanium);
+    }
+  }
+
+  /* --- Mission history (full-width below work area) --- */
+  .history {
+    padding: var(--s-7) var(--s-6) var(--s-9);
+  }
+  .history-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: var(--s-5);
+    padding-bottom: var(--s-3);
+    border-bottom: 1px solid var(--titanium);
+  }
+  .history-title {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: var(--track-tight);
+    color: var(--ivory);
+    margin: 0;
+  }
+  .history-meta {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: var(--track-mono);
+    color: var(--ivory-3);
+    text-transform: uppercase;
+  }
+  .history-list { display: flex; flex-direction: column; }
+  .history-row {
+    display: grid;
+    grid-template-columns: 110px 1fr auto auto auto auto;
+    align-items: center;
+    gap: var(--s-4);
+    padding: var(--s-4) var(--s-3);
+    border-bottom: 1px solid var(--titanium-low);
+    font-size: 13px;
+  }
+  .history-row:last-child { border-bottom: none; }
+  .history-row .when {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: var(--track-mono-tight);
+    color: var(--ivory-3);
+  }
+  .history-row .name {
+    color: var(--ivory);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .history-row .brand-badge {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: var(--track-mono);
+    color: var(--ivory-2);
+    text-transform: uppercase;
+    border: 1px solid var(--titanium);
+    border-radius: var(--radius-control);
+    padding: 2px 8px;
+  }
+  .history-row .status-badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: var(--track-mono);
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: var(--radius-control);
+  }
+  .history-row .status-badge.complete { color: var(--confirm); border: 1px solid var(--confirm); }
+  .history-row .status-badge.failed { color: var(--alert); border: 1px solid var(--alert); }
+  .history-row .status-badge.pending { color: var(--amber); border: 1px solid var(--amber); }
+  .history-row .download-link,
+  .history-row .view-link {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: var(--track-mono);
+    text-transform: uppercase;
+    color: var(--cyan-go);
+    text-decoration: none;
+    border: 1px solid var(--titanium);
+    border-radius: var(--radius-control);
+    padding: 4px 10px;
+    transition: all var(--dur-base) var(--ease-cinematic);
+  }
+  .history-row .download-link:hover,
+  .history-row .view-link:hover {
+    border-color: var(--cyan-go);
+    background: rgba(91, 206, 250, 0.08);
+  }
+  .history-row .download-link.expired {
+    color: var(--ivory-4);
+    border-color: var(--titanium);
+    pointer-events: none;
+  }
+  .history-row .download-expiry {
+    color: var(--ivory-3);
+    font-size: 9px;
+    margin-left: 4px;
+  }
+  .history-empty {
+    padding: var(--s-7) 0;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: var(--track-mono);
+    color: var(--ivory-4);
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 720px) {
+    .history-row {
+      grid-template-columns: 1fr;
+      gap: var(--s-1);
+      padding: var(--s-3);
+    }
+    .history-row .when { font-size: 10px; }
+  }
+
+  /* --- Quick search overlay (kept; '/' keyboard shortcut opens it) --- */
+  .search-overlay {
+    position: fixed;
+    top: 64px;
+    right: var(--s-6);
+    width: 360px;
+    max-height: 60vh;
+    z-index: 95;
+    background: rgba(10, 10, 15, 0.95);
+    backdrop-filter: blur(24px);
+    border: 1px solid var(--titanium);
+    padding: var(--s-3);
+    overflow-y: auto;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  }
+  .search-result {
+    padding: var(--s-3);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border-radius: var(--radius-control);
+  }
+  .search-result:hover, .search-result[data-active="true"] { background: var(--graphite-rise); }
+  .search-result-label { color: var(--ivory); font-size: 13px; font-weight: 500; }
+  .search-result-meta {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ivory-3);
+    letter-spacing: var(--track-mono-tight);
+  }
+  .search-empty {
+    padding: var(--s-5);
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ivory-4);
+    letter-spacing: var(--track-mono);
+    text-transform: uppercase;
+  }
+
+  /* --- Hero composition is dimmed on dashboard now —
+         no longer the brand statement, becomes ambient backdrop --- */
+  .apollo-hero { opacity: 0.18; }
+  .cosmic-sunburst { opacity: 0.30; }
+  .starfield { opacity: 0.30; }
+
+  /* --- Reduced motion --- */
   @media (prefers-reduced-motion: reduce) {
-    .station-deliverables, .ml-entries { transition-duration: 0.05s; }
-    .station-card, .ql-recent-btn, .deliverable-launch { transition-duration: 0.05s; }
+    .industry-item, .deliverable-item, .btn-launch,
+    .history-row, .search-result { transition: none !important; }
   }
   </style>
 </head>
-<body data-standby="true">
+<body>
 
-<!-- Hero, command bar, auth modal injected by JS at boot -->
+<!-- Hero composition + auth modal injected by JS at boot -->
 
-<section class="quick-launch" aria-label="Quick launch">
-  <div class="ql-recent" id="quickLaunchRecent">
-    <div class="ql-recent-empty">— no recent deployments</div>
+<!-- Top logo bar — built directly in HTML, not via shared/command-bar.js.
+     This is intentional: command-bar.js is the shared component that
+     supports an opt-in brand picker. The dashboard must NEVER expose a
+     brand selector (brand belongs to a document, not a session), so the
+     dashboard owns its own bar. -->
+<header class="top-bar" id="topBar">
+  <a class="tb-brand" href="/apollo/" aria-label="Apollo Mission Control">
+    <img class="tb-logo" src="/apollo/logo.png" alt="Apollo" onerror="this.style.display='none'">
+    <span class="tb-wordmark">APOLLO MISSION CONTROL</span>
+  </a>
+  <div class="tb-status" role="status" aria-live="polite">
+    <span class="led" id="topLed" data-state="degraded"></span>
+    <span class="tb-status-text" id="topStatusText">PENDING OPERATOR AUTH</span>
   </div>
-  <div class="ql-search">
-    <span class="ql-search-prefix">/</span>
-    <input type="text" id="quickSearch" placeholder="search deliverables..." aria-label="Quick search" autocomplete="off">
-    <div class="search-overlay" id="searchOverlay" hidden></div>
+  <div class="tb-clock" id="topClock" aria-label="Mission clock">T+00:00:00</div>
+  <div class="tb-operator" id="topOperator"></div>
+</header>
+
+<!-- Three-column work area -->
+<main class="work-area">
+  <aside class="rail-left" aria-label="Industries">
+    <h2 class="rail-heading">INDUSTRIES</h2>
+    <nav class="industry-list" id="industryList" role="tablist"></nav>
+  </aside>
+
+  <section class="col-mid" aria-label="Deliverables">
+    <header class="mid-head">
+      <h2 class="mid-title" id="midTitle">SELECT AN INDUSTRY</h2>
+      <p class="mid-sub" id="midSub">Choose from the rail to see available deliverables.</p>
+    </header>
+    <div class="deliverable-list" id="deliverableList"></div>
+  </section>
+
+  <aside class="rail-right" aria-label="Deliverable detail">
+    <div class="detail-empty" id="detailEmpty">
+      <p>Select a deliverable to see details and launch.</p>
+    </div>
+    <div class="detail" id="detailPanel" hidden>
+      <h3 class="detail-name" id="detailName"></h3>
+      <p class="detail-desc" id="detailDesc"></p>
+      <div class="detail-meta" id="detailMeta"></div>
+      <button class="btn-launch" id="launchBtn" type="button">LAUNCH MISSION →</button>
+      <div class="detail-recent">
+        <h4 class="detail-recent-head">RECENT RUNS</h4>
+        <ul class="detail-recent-list" id="detailRecent"></ul>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<!-- Mission history — always visible, never collapsed -->
+<section class="history" aria-label="Mission history">
+  <header class="history-head">
+    <h2 class="history-title">MISSION HISTORY</h2>
+    <span class="history-meta" id="historyMeta">— missions · — success rate</span>
+  </header>
+  <div class="history-list" id="historyList">
+    <div class="history-empty">No missions deployed yet. Select a deliverable and launch.</div>
   </div>
 </section>
 
-<main class="stations-grid" id="stationsGrid" aria-label="Mission stations"></main>
-
-<footer class="mission-log" data-expanded="false" aria-label="Mission log">
-  <div class="ml-summary">
-    <span class="ml-count"><strong id="missionCount">—</strong> missions deployed</span>
-    <span class="ml-success"><strong id="successRate">—</strong> success rate</span>
-    <button class="ml-toggle" id="missionLogToggle" type="button" aria-expanded="false" aria-controls="missionEntries">EXPAND ▼</button>
-  </div>
-  <div class="ml-entries" id="missionEntries" role="region" aria-hidden="true">
-    <div class="ml-empty">No missions deployed yet. Arm a station to begin.</div>
-  </div>
-</footer>
-
-<div class="help-overlay" id="helpOverlay" hidden role="dialog" aria-labelledby="helpOverlayTitle">
-  <div class="help-overlay-panel">
-    <h2 id="helpOverlayTitle">Keyboard Shortcuts</h2>
-    <div class="help-shortcuts">
-      <kbd>?</kbd>     <span>Toggle this help</span>
-      <kbd>1–6</kbd>   <span>Arm Legal · Consulting · Government · Finance · Startup · Field Service</span>
-      <kbd>/</kbd>     <span>Focus search</span>
-      <kbd>Esc</kbd>   <span>Disarm / close overlays</span>
-      <kbd>Enter</kbd> <span>Launch focused result</span>
-    </div>
-  </div>
-</div>
+<!-- Quick search overlay (opened via '/' keyboard shortcut) -->
+<div class="search-overlay" id="searchOverlay" hidden></div>
 
 <div id="toastHost"></div>
 
 <script type="module">
 import * as hero from '/apollo/shared/hero.js';
 import * as authModal from '/apollo/shared/auth-modal.js';
-import * as commandBar from '/apollo/shared/command-bar.js';
-import { requireAuth } from '/apollo/shared/auth.js';
+import { requireAuth, signOut } from '/apollo/shared/auth.js';
 import { loadCatalog, invalidate as invalidateCatalog } from '/apollo/shared/catalog.js';
 import { list as listSubmissions } from '/apollo/shared/submissions.js';
 import { purgeOld as purgeDrafts } from '/apollo/shared/drafts.js';
 import {
-  toast, escapeHtml, escapeAttr, industryIconSvg,
+  el, toast, escapeHtml, escapeAttr, industryIconSvg,
   formatRelativeTime, formatTimestamp, formatPriceCents,
 } from '/apollo/shared/ui.js';
 
-// ---- Page state ----
+// --- Page state ---
 const state = {
+  user: null,
   catalog: { industries: [] },
   templates: [],
   submissions: [],
   totalSubmissions: 0,
-  armedStation: null,
+  failedCount: 0,
+  activeIndustry: null,
+  activeDeliverable: null,
 };
 
-// ---- Boot ----
+const BRAND_LABELS = {
+  apollo: 'APOLLO', atlas: 'ATLAS', habi: 'HABI', themis: 'THEMIS',
+  'on-spot-solutions': 'ON SPOT', other: 'UNBRANDED',
+};
+
+// --- Boot ---
 purgeDrafts();
 hero.inject();
 authModal.mount({ status: 'loading' });
@@ -630,18 +739,8 @@ requireAuth({
   onNotAuthorized: (email) => authModal.updateStatus({ status: 'not-authorized', email }),
   onAuthed: async (user) => {
     authModal.dismiss();
-    document.body.dataset.standby = 'false';
-
-    // Brand belongs to a document, not a session. The dashboard no longer
-    // exposes a brand selector — Step 1 of the wizard is the only place
-    // to choose. localStorage's apollo:brand value is still seeded by the
-    // wizard so subsequent submissions default to the operator's last
-    // pick, but it's not a control surface here.
-    commandBar.mount({
-      user,
-      status: 'operational',
-    });
-    commandBar.startClock();
+    state.user = user;
+    mountTopBar(user);
 
     try {
       const [catRes, subsRes] = await Promise.all([
@@ -652,477 +751,354 @@ requireAuth({
       state.templates = catRes.templates || [];
       state.submissions = subsRes.submissions || [];
       state.totalSubmissions = subsRes.total_count || state.submissions.length;
+      state.failedCount = state.submissions.filter((s) => s.status === 'failed').length;
     } catch (err) {
-      toast('Catalog unavailable: ' + (err && err.message || String(err)), { variant: 'error' });
+      toast('Catalog unavailable: ' + (err && err.message ? err.message : err));
     }
 
-    if (state.catalog.industries.length === 0) {
-      const grid = document.getElementById('stationsGrid');
-      if (grid) {
-        grid.innerHTML = '<div class="ml-empty">Catalog unavailable — please refresh.</div>';
-      }
+    if (!state.activeIndustry && state.catalog.industries.length > 0) {
+      const firstActive = state.catalog.industries
+        .filter((i) => i.status !== 'placeholder')
+        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))[0];
+      if (firstActive) state.activeIndustry = firstActive.slug;
     }
 
-    renderStations();
-    renderQuickLaunch();
-    renderMissionLog();
-    wireQuickSearch();
-    wireMissionLogToggle();
+    renderRail();
+    renderMid();
+    renderDetail();
+    renderHistory();
+    setSystemsOperational();
+    startClock();
     wireKeyboardShortcuts();
   },
 });
 
-// expiryLabel(iso) — returns a short countdown like "5d 3h" / "2h" /
-// "soon" / "EXPIRED" / null. Used by the mission log to show how long
-// each row's PDF is still downloadable. The signed URL itself
-// regenerates on each fetch; this label tracks the file lifecycle
-// (completed_at + 7 days), so it's stable between requests.
-function expiryLabel(iso) {
-  if (!iso) return null;
-  const ms = new Date(iso).getTime() - Date.now();
-  if (!Number.isFinite(ms)) return null;
-  if (ms <= 0) return 'EXPIRED';
-  const d = Math.floor(ms / 86400000);
-  const h = Math.floor((ms % 86400000) / 3600000);
-  if (d > 0) return d + 'd ' + h + 'h';
-  if (h > 0) return h + 'h';
-  return 'soon';
-}
-
-// ---- Stations grid ----
-function deliverableMetaLine(d) {
-  const parts = [];
-  if (typeof d.estimated_minutes === 'number' && d.estimated_minutes > 0) {
-    parts.push(d.estimated_minutes + ' min');
-  }
-  if (typeof d.estimated_pages_min === 'number' && typeof d.estimated_pages_max === 'number') {
-    if (d.estimated_pages_min === d.estimated_pages_max) parts.push(d.estimated_pages_min + 'p');
-    else parts.push(d.estimated_pages_min + '–' + d.estimated_pages_max + 'p');
-  }
-  return parts.join(' · ');
-}
-
-function renderStations() {
-  const grid = document.getElementById('stationsGrid');
-  if (!grid) return;
-  const industries = (state.catalog && state.catalog.industries) || [];
-  if (industries.length === 0) return;
-  const sorted = industries.slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-
-  grid.innerHTML = sorted.map((ind) => {
-    const isPlaceholder = ind.status === 'placeholder';
-    const deliverables = ind.deliverables || [];
-    const ledState = isPlaceholder ? 'degraded' : 'ready';
-
-    const slugSet = new Set(deliverables.map((d) => d.slug));
-    const lastSubmission = (state.submissions || [])
-      .filter((s) => slugSet.has(s.template_slug))
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-
-    let lastLine;
-    if (isPlaceholder) {
-      lastLine = 'Send a sample to spec this industry';
-    } else if (lastSubmission) {
-      const t = state.templates.find((x) => x.slug === lastSubmission.template_slug);
-      lastLine = 'Last: ' + (t?.label || lastSubmission.template_slug) +
-        ' · ' + formatRelativeTime(lastSubmission.created_at);
-    } else {
-      lastLine = 'No deployments yet';
-    }
-
-    const armLabel = isPlaceholder ? 'REQUEST ACCESS' : 'ARM';
-    const countLine = isPlaceholder
-      ? '<div class="station-count">—</div>'
-      : '<div class="station-count"><strong>' + deliverables.length + '</strong> deliverables loaded</div>';
-    const comingSoon = isPlaceholder ? '<span class="station-coming-soon">Coming soon</span>' : '';
-
-    return (
-      '<div class="station" data-station="' + escapeAttr(ind.slug) + '"' +
-        ' data-armed="false" data-placeholder="' + (isPlaceholder ? 'true' : 'false') + '">' +
-        '<div class="station-card" tabindex="0" role="button" aria-pressed="false">' +
-          '<div class="station-header">' +
-            '<span class="station-led" data-state="' + ledState + '"></span>' +
-            industryIconSvg(ind.icon_key) +
-            '<div class="station-header-text">' +
-              '<h2 class="station-name">' + escapeHtml((ind.label || ind.slug).toUpperCase()) + '</h2>' +
-              '<p class="station-sub">' + escapeHtml(ind.description || '') + '</p>' +
-            '</div>' +
-            comingSoon +
-          '</div>' +
-          '<div class="station-meta">' +
-            countLine +
-            '<div class="station-last">' + escapeHtml(lastLine) + '</div>' +
-          '</div>' +
-          '<button class="station-arm" type="button" aria-expanded="false" aria-controls="station-' + escapeAttr(ind.slug) + '-deliverables">' + armLabel + '</button>' +
-        '</div>' +
-        '<div class="station-deliverables" id="station-' + escapeAttr(ind.slug) + '-deliverables" role="region" aria-hidden="true">' +
-          (isPlaceholder ? '' : deliverables.map((d) => {
-            const price = formatPriceCents(d.base_price_cents);
-            const meta = deliverableMetaLine(d);
-            const priceBlock = price
-              ? '<span class="deliverable-meta"><span class="price-strike">' + escapeHtml(price) + '</span><span class="price-active">FREE PREVIEW</span>' + (meta ? ' · ' + escapeHtml(meta) : '') + '</span>'
-              : (meta ? '<span class="deliverable-meta">' + escapeHtml(meta) + '</span>' : '<span class="deliverable-meta">—</span>');
-            return (
-              '<button class="deliverable-launch" data-slug="' + escapeAttr(d.slug) + '" type="button">' +
-                '<span class="dl-icon">▶</span>' +
-                '<span class="dl-label">' + escapeHtml(d.label) + '</span>' +
-                priceBlock +
-                '<span class="dl-action">LAUNCH</span>' +
-              '</button>'
-            );
-          }).join('')) +
-        '</div>' +
-      '</div>'
-    );
-  }).join('');
-
-  wireStationEvents();
-}
-
-function armStation(stationKey) {
-  document.querySelectorAll('.station[data-armed="true"]').forEach((s) => {
-    s.dataset.armed = 'false';
-    const arm = s.querySelector('.station-arm');
-    if (arm) {
-      arm.setAttribute('aria-expanded', 'false');
-      arm.textContent = s.dataset.placeholder === 'true' ? 'REQUEST ACCESS' : 'ARM';
-    }
-    const card = s.querySelector('.station-card');
-    if (card) card.setAttribute('aria-pressed', 'false');
-    const dv = s.querySelector('.station-deliverables');
-    if (dv) dv.setAttribute('aria-hidden', 'true');
-  });
-
-  state.armedStation = stationKey || null;
-  if (!stationKey) return;
-
-  const stationEl = document.querySelector('.station[data-station="' + stationKey + '"]');
-  if (!stationEl) return;
-
-  if (stationEl.dataset.placeholder === 'true') {
-    state.armedStation = null;
-    openPlaceholderModal(stationKey);
-    return;
-  }
-
-  stationEl.dataset.armed = 'true';
-  const arm = stationEl.querySelector('.station-arm');
-  if (arm) {
-    arm.setAttribute('aria-expanded', 'true');
-    arm.textContent = 'ARMED';
-  }
-  const card = stationEl.querySelector('.station-card');
-  if (card) card.setAttribute('aria-pressed', 'true');
-  const dv = stationEl.querySelector('.station-deliverables');
-  if (dv) dv.setAttribute('aria-hidden', 'false');
-}
-
-function openPlaceholderModal(industrySlug) {
-  const ind = (state.catalog?.industries || []).find((i) => i.slug === industrySlug);
-  if (!ind) return;
-  closePlaceholderModal();
-  const cta = ind.placeholder_cta ||
-    'Send a sample deliverable to spec this industry. We will build a custom intake module from it.';
-  const modal = document.createElement('div');
-  modal.className = 'placeholder-cta-modal';
-  modal.id = 'placeholderCtaModal';
-  modal.innerHTML = (
-    '<div class="placeholder-cta-panel" role="dialog" aria-modal="true" aria-labelledby="placeholderCtaTitle">' +
-      '<h2 id="placeholderCtaTitle">' + escapeHtml((ind.label || ind.slug).toUpperCase()) + ' — REQUEST ACCESS</h2>' +
-      '<p>' + escapeHtml(cta) + '</p>' +
-      '<p>Email <strong>support@apollomc.ai</strong> with a sample deliverable from your industry. We will spin up a bespoke intake module within 48 hours.</p>' +
-      '<div class="pcta-actions">' +
-        '<button class="primary" type="button" data-action="email">EMAIL SUPPORT</button>' +
-        '<button type="button" data-action="close">CLOSE</button>' +
-      '</div>' +
-    '</div>'
+// --- Top bar (built directly above; we only mount the operator menu) ---
+function mountTopBar(user) {
+  const operatorHost = document.getElementById('topOperator');
+  if (!operatorHost) return;
+  const initial = (user.name || user.email || '?').charAt(0).toUpperCase();
+  const avatar = user.avatar
+    ? el('span', { class: 'tb-operator-avatar' },
+        el('img', { src: user.avatar, alt: '', onerror: "this.parentNode.textContent=" + JSON.stringify(initial) }))
+    : el('span', { class: 'tb-operator-avatar' }, initial);
+  operatorHost.appendChild(avatar);
+  operatorHost.appendChild(
+    el('button', { class: 'tb-signout', type: 'button', onclick: signOut, title: user.email || '' }, 'SIGN OUT')
   );
-  document.body.appendChild(modal);
-  modal.addEventListener('click', (e) => { if (e.target === modal) closePlaceholderModal(); });
-  modal.querySelector('[data-action="close"]').addEventListener('click', closePlaceholderModal);
-  modal.querySelector('[data-action="email"]').addEventListener('click', () => {
-    const subject = encodeURIComponent('Apollo MC — request access: ' + (ind.label || ind.slug));
-    window.location.href = 'mailto:support@apollomc.ai?subject=' + subject;
-    closePlaceholderModal();
-  });
-}
-function closePlaceholderModal() {
-  const m = document.getElementById('placeholderCtaModal');
-  if (m) m.remove();
 }
 
-let stationGridListenerBound = false;
-function wireStationEvents() {
-  document.querySelectorAll('.station').forEach((s) => {
-    const key = s.dataset.station;
-    const armBtn = s.querySelector('.station-arm');
-    const card = s.querySelector('.station-card');
-    const toggle = () => {
-      if (s.dataset.placeholder === 'true') {
-        openPlaceholderModal(key);
-        return;
-      }
-      armStation(state.armedStation === key ? null : key);
-    };
-    if (armBtn) armBtn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
-    if (card) {
-      card.addEventListener('click', toggle);
-      card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
-      });
-    }
-  });
-  const grid = document.getElementById('stationsGrid');
-  if (grid && !stationGridListenerBound) {
-    stationGridListenerBound = true;
-    grid.addEventListener('click', (e) => {
-      const btn = e.target.closest('.deliverable-launch');
-      if (!btn) return;
-      e.stopPropagation();
-      launchDeliverable(btn.dataset.slug);
-    });
+function setSystemsOperational() {
+  const led = document.getElementById('topLed');
+  const txt = document.getElementById('topStatusText');
+  if (led) led.dataset.state = 'ready';
+  if (txt) txt.textContent = 'ALL SYSTEMS OPERATIONAL';
+}
+
+function startClock() {
+  const cl = document.getElementById('topClock');
+  if (!cl) return;
+  const start = Date.now();
+  const tick = () => {
+    const elapsed = Math.floor((Date.now() - start) / 1000);
+    const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
+    const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
+    const s = String(elapsed % 60).padStart(2, '0');
+    cl.textContent = 'T+' + h + ':' + m + ':' + s;
+  };
+  tick();
+  setInterval(tick, 1000);
+}
+
+// --- Left rail: industries ---
+function renderRail() {
+  const host = document.getElementById('industryList');
+  if (!host) return;
+  host.innerHTML = '';
+  const industries = (state.catalog.industries || []).slice()
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+  const active = industries.filter((i) => i.status !== 'placeholder');
+  const placeholder = industries.filter((i) => i.status === 'placeholder');
+
+  for (const ind of active) host.appendChild(industryRow(ind, false));
+  if (placeholder.length > 0) {
+    host.appendChild(el('div', { class: 'industry-divider' }, '— Coming soon —'));
+    for (const ind of placeholder) host.appendChild(industryRow(ind, true));
   }
 }
 
-// ---- Quick Launch ----
-function renderQuickLaunch() {
-  const container = document.getElementById('quickLaunchRecent');
-  if (!container) return;
-  const recent = (state.submissions || []).slice(0, 3);
-  if (recent.length === 0) {
-    container.innerHTML = '<div class="ql-recent-empty">— no recent deployments</div>';
+function industryRow(ind, isPlaceholder) {
+  const isActive = state.activeIndustry === ind.slug;
+  const btn = el('button', {
+    class: 'industry-item' + (isActive ? ' active' : '') + (isPlaceholder ? ' placeholder' : ''),
+    type: 'button',
+    role: 'tab',
+    'aria-selected': isActive ? 'true' : 'false',
+  });
+  // industryIconSvg returns an HTML string — wrap to extract the <svg>.
+  const iconWrap = document.createElement('span');
+  iconWrap.innerHTML = industryIconSvg(ind.icon_key || 'briefcase');
+  const svg = iconWrap.querySelector('svg');
+  if (svg) {
+    svg.classList.remove('station-icon');
+    svg.classList.add('industry-icon');
+    btn.appendChild(svg);
+  } else {
+    btn.appendChild(el('span', { class: 'industry-icon' }));
+  }
+  btn.appendChild(el('span', { class: 'industry-name' }, ind.label || ind.slug));
+  if (!isPlaceholder) {
+    btn.appendChild(el('span', { class: 'industry-count' }, String((ind.deliverables || []).length)));
+  } else {
+    btn.appendChild(el('span', { class: 'industry-count' }, ''));
+  }
+  btn.addEventListener('click', () => {
+    if (isPlaceholder) {
+      toast('Industry coming soon. Send a sample to support@apollomc.ai to spec it out.');
+      return;
+    }
+    state.activeIndustry = ind.slug;
+    state.activeDeliverable = null;
+    renderRail();
+    renderMid();
+    renderDetail();
+  });
+  return btn;
+}
+
+// --- Middle column: deliverables for active industry ---
+function renderMid() {
+  const titleEl = document.getElementById('midTitle');
+  const subEl = document.getElementById('midSub');
+  const listEl = document.getElementById('deliverableList');
+  if (!titleEl || !subEl || !listEl) return;
+
+  const industries = state.catalog.industries || [];
+  const ind = industries.find((i) => i.slug === state.activeIndustry);
+
+  if (!ind) {
+    titleEl.textContent = 'SELECT AN INDUSTRY';
+    subEl.textContent = 'Choose from the rail to see available deliverables.';
+    listEl.innerHTML = '';
     return;
   }
-  container.innerHTML = recent.map((s) => {
-    const tmpl = state.templates.find((t) => t.slug === s.template_slug);
-    const label = tmpl?.label || s.template_label || s.template_slug;
-    return (
-      '<button class="ql-recent-btn" data-slug="' + escapeAttr(s.template_slug) + '" type="button">' +
-        '<span class="ql-recent-label">' + escapeHtml(label) + '</span>' +
-        '<span class="ql-recent-time">' + escapeHtml(formatRelativeTime(s.created_at)) + '</span>' +
-      '</button>'
-    );
-  }).join('');
-  container.querySelectorAll('.ql-recent-btn').forEach((btn) => {
-    btn.addEventListener('click', () => launchDeliverable(btn.dataset.slug));
-  });
-}
 
-// ---- Slash-command search ----
-let searchActiveIndex = -1;
-function wireQuickSearch() {
-  const input = document.getElementById('quickSearch');
-  const overlay = document.getElementById('searchOverlay');
-  if (!input || !overlay) return;
-  input.addEventListener('focus', () => { filterSearchResults(input.value); overlay.hidden = false; });
-  input.addEventListener('input', () => { filterSearchResults(input.value); overlay.hidden = false; });
-  input.addEventListener('keydown', (e) => {
-    const items = overlay.querySelectorAll('.search-result');
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      searchActiveIndex = Math.min(searchActiveIndex + 1, items.length - 1);
-      highlightSearchActive();
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      searchActiveIndex = Math.max(searchActiveIndex - 1, 0);
-      highlightSearchActive();
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      const item = items[searchActiveIndex] || items[0];
-      if (item) {
-        const slug = item.dataset.slug;
-        input.value = '';
-        overlay.hidden = true;
-        input.blur();
-        launchDeliverable(slug);
-      }
-    } else if (e.key === 'Escape') {
-      overlay.hidden = true;
-      input.blur();
-    }
-  });
-  document.addEventListener('click', (e) => {
-    if (!overlay.contains(e.target) && e.target !== input) overlay.hidden = true;
-  });
-}
-function filterSearchResults(query) {
-  const overlay = document.getElementById('searchOverlay');
-  if (!overlay) return;
-  const q = (query || '').trim().toLowerCase();
-  const matches = state.templates.filter((t) => {
-    if (!q) return true;
-    return (t.label || '').toLowerCase().includes(q) ||
-           (t.description || '').toLowerCase().includes(q) ||
-           (t.slug || '').toLowerCase().includes(q) ||
-           (t.category || '').toLowerCase().includes(q);
-  }).slice(0, 12);
-  if (matches.length === 0) {
-    overlay.innerHTML = '<div class="search-empty">— no deliverables match —</div>';
-    searchActiveIndex = -1;
+  titleEl.textContent = (ind.label || ind.slug).toUpperCase();
+  subEl.textContent = ind.description || '';
+
+  listEl.innerHTML = '';
+  const dels = ind.deliverables || [];
+  if (dels.length === 0) {
+    listEl.appendChild(el('div', { class: 'deliverable-empty' }, '— no deliverables in this industry —'));
     return;
   }
-  overlay.innerHTML = matches.map((t, i) => {
-    const station = stationKeyForSlug(t.slug) || '';
-    return (
-      '<div class="search-result" data-slug="' + escapeAttr(t.slug) + '" data-active="' + (i === 0 ? 'true' : 'false') + '">' +
-        '<span class="search-result-label">' + escapeHtml(t.label) + '</span>' +
-        '<span class="search-result-meta">' + escapeHtml((station || t.category || 'deliverable').toUpperCase()) + ' · ' + escapeHtml(t.slug) + '</span>' +
-      '</div>'
+
+  for (const d of dels) {
+    const last = (state.submissions || [])
+      .filter((s) => s.template_slug === d.slug)
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+    const lastTag = last
+      ? 'LAST: ' + formatRelativeTime(last.created_at).toUpperCase()
+      : 'NO RUNS YET';
+    const priceStr = formatPriceCents(d.base_price_cents);
+    const priceTag = priceStr ? '~' + priceStr : 'FREE PREVIEW';
+
+    const isActive = state.activeDeliverable === d.slug;
+    const btn = el('button', {
+      class: 'deliverable-item' + (isActive ? ' active' : ''),
+      type: 'button',
+      'aria-pressed': isActive ? 'true' : 'false',
+    },
+      el('span', { class: 'deliverable-glyph' }, '▸'),
+      el('div', { class: 'deliverable-meta' },
+        el('span', { class: 'deliverable-name' }, d.label),
+        el('span', { class: 'deliverable-tag' }, lastTag),
+      ),
+      el('span', { class: 'deliverable-tag' }, priceTag),
     );
-  }).join('');
-  searchActiveIndex = 0;
-  overlay.querySelectorAll('.search-result').forEach((rEl) => {
-    rEl.addEventListener('click', () => {
-      const input = document.getElementById('quickSearch');
-      if (input) { input.value = ''; input.blur(); }
-      overlay.hidden = true;
-      launchDeliverable(rEl.dataset.slug);
+    btn.addEventListener('click', () => {
+      state.activeDeliverable = d.slug;
+      renderMid();
+      renderDetail();
     });
-  });
+    listEl.appendChild(btn);
+  }
 }
-function highlightSearchActive() {
-  const overlay = document.getElementById('searchOverlay');
-  if (!overlay) return;
-  overlay.querySelectorAll('.search-result').forEach((rEl, i) => {
-    rEl.dataset.active = String(i === searchActiveIndex);
-  });
-}
-function stationKeyForSlug(slug) {
-  const industries = (state.catalog && state.catalog.industries) || [];
+
+// --- Right rail: deliverable detail + LAUNCH ---
+function renderDetail() {
+  const empty = document.getElementById('detailEmpty');
+  const panel = document.getElementById('detailPanel');
+  if (!empty || !panel) return;
+
+  if (!state.activeDeliverable) {
+    empty.hidden = false;
+    panel.hidden = true;
+    return;
+  }
+
+  // Resolve from the active industry's deliverable list (full summary
+  // shape with estimated_minutes / pages / price). Falls back to the
+  // flat templates list if not found.
+  const industries = state.catalog.industries || [];
+  let d = null;
   for (const ind of industries) {
-    if ((ind.deliverables || []).some((d) => d.slug === slug)) return ind.slug;
+    const match = (ind.deliverables || []).find((x) => x.slug === state.activeDeliverable);
+    if (match) { d = match; break; }
   }
-  return null;
-}
-
-// ---- Mission Log ----
-function renderMissionLog() {
-  const countEl = document.getElementById('missionCount');
-  const successEl = document.getElementById('successRate');
-  if (countEl) countEl.textContent = String(state.totalSubmissions || 0);
-  const failed = state.submissions.filter((s) => s.status === 'failed').length;
-  const successPct = state.totalSubmissions > 0
-    ? Math.round((1 - failed / state.totalSubmissions) * 100)
-    : 100;
-  if (successEl) successEl.textContent = successPct + '%';
-
-  const entriesEl = document.getElementById('missionEntries');
-  if (!entriesEl) return;
-  if (state.submissions.length === 0) {
-    entriesEl.innerHTML = '<div class="ml-empty">No missions deployed yet. Arm a station to begin.</div>';
+  if (!d) d = (state.templates || []).find((t) => t.slug === state.activeDeliverable);
+  if (!d) {
+    empty.hidden = false;
+    panel.hidden = true;
     return;
   }
-  const visible = state.submissions.slice(0, 10);
-  entriesEl.innerHTML = visible.map((s) => {
-    const tmpl = state.templates.find((t) => t.slug === s.template_slug);
-    const label = tmpl?.label || s.template_label || s.template_slug;
-    const badge = s.status === 'delivered' || s.status === 'completed'
-      ? '<span class="ml-badge success">✓ COMPLETE</span>'
-      : s.status === 'failed'
-      ? '<span class="ml-badge error">✗ FAILED</span>'
-      : '<span class="ml-badge pending">⋯ ' + escapeHtml((s.status || 'pending').toUpperCase()) + '</span>';
-    const expiry = expiryLabel(s.expires_at);
-    const isCompleted = s.status === 'delivered' || s.status === 'completed';
-    let dl = '';
-    if (isCompleted) {
-      if (s.download_url && expiry !== 'EXPIRED') {
-        const expirySuffix = expiry
-          ? '<span class="ml-expiry">· ' + escapeHtml(expiry) + ' LEFT</span>'
-          : '';
-        dl = '<a href="' + escapeAttr(s.download_url) + '" target="_blank" rel="noopener noreferrer">DOWNLOAD ' + expirySuffix + '</a>';
-      } else {
-        dl = '<span class="ml-expired">EXPIRED</span>';
-      }
-    }
-    const view = '<a href="/apollo/mission.html?id=' + escapeAttr(s.id) + '">VIEW</a>';
-    const clone = '<button data-action="clone" data-slug="' + escapeAttr(s.template_slug) + '" type="button">CLONE</button>';
-    return (
-      '<div class="ml-entry" data-id="' + escapeAttr(s.id) + '">' +
-        '<span class="ml-entry-time">' + escapeHtml(formatTimestamp(s.created_at)) + '</span>' +
-        '<span class="ml-entry-name">' + escapeHtml(label) + '</span>' +
-        '<span class="ml-entry-brand">' + escapeHtml((s.brand_slug || '').toUpperCase()) + '</span>' +
-        badge +
-        '<span class="ml-entry-actions">' + view + dl + clone + '</span>' +
-      '</div>'
-    );
-  }).join('');
-  entriesEl.querySelectorAll('button[data-action="clone"]').forEach((btn) => {
-    btn.addEventListener('click', () => launchDeliverable(btn.dataset.slug));
-  });
-}
-function wireMissionLogToggle() {
-  const toggle = document.getElementById('missionLogToggle');
-  const log = document.querySelector('.mission-log');
-  const entries = document.getElementById('missionEntries');
-  if (!toggle || !log || !entries) return;
-  toggle.addEventListener('click', () => {
-    const expanded = log.dataset.expanded === 'true';
-    log.dataset.expanded = expanded ? 'false' : 'true';
-    toggle.setAttribute('aria-expanded', String(!expanded));
-    entries.setAttribute('aria-hidden', String(expanded));
-    toggle.textContent = expanded ? 'EXPAND ▼' : 'COLLAPSE ▲';
-  });
+
+  empty.hidden = true;
+  panel.hidden = false;
+
+  document.getElementById('detailName').textContent = d.label;
+  document.getElementById('detailDesc').textContent = d.description || '';
+
+  const meta = document.getElementById('detailMeta');
+  meta.innerHTML = '';
+  if (d.estimated_minutes) {
+    meta.appendChild(el('span', null, '~' + d.estimated_minutes + ' MIN'));
+    meta.appendChild(el('span', { class: 'sep' }, '·'));
+  }
+  if (d.estimated_pages_min || d.estimated_pages_max) {
+    const p = d.estimated_pages_min === d.estimated_pages_max
+      ? d.estimated_pages_min + ' PAGES'
+      : (d.estimated_pages_min || '?') + '–' + (d.estimated_pages_max || '?') + ' PAGES';
+    meta.appendChild(el('span', null, p));
+    meta.appendChild(el('span', { class: 'sep' }, '·'));
+  }
+  meta.appendChild(el('span', { class: 'price-active' }, 'FREE PREVIEW'));
+
+  const launchBtn = document.getElementById('launchBtn');
+  launchBtn.onclick = () => {
+    window.location.href = '/apollo/launch.html?slug=' + encodeURIComponent(d.slug);
+  };
+
+  const recentList = document.getElementById('detailRecent');
+  recentList.innerHTML = '';
+  const recent = (state.submissions || [])
+    .filter((s) => s.template_slug === d.slug)
+    .slice(0, 5);
+  if (recent.length === 0) {
+    recentList.appendChild(el('li', { class: 'detail-recent-empty' }, '— no runs yet —'));
+    return;
+  }
+  for (const s of recent) {
+    const completed = s.status === 'completed' || s.status === 'delivered';
+    const statusCls = completed ? 'complete' : s.status === 'failed' ? 'failed' : 'pending';
+    const statusText = completed ? '◆ COMPLETE'
+      : s.status === 'failed' ? '✕ FAILED'
+      : '⋯ ' + (s.status || 'PENDING').toUpperCase();
+    recentList.appendChild(el('li', null,
+      el('span', { class: 'when' }, formatRelativeTime(s.created_at)),
+      el('span', { class: 'status ' + statusCls }, statusText),
+    ));
+  }
 }
 
-// ---- Keyboard shortcuts ----
+// --- Mission history (full-width below) ---
+function renderHistory() {
+  const meta = document.getElementById('historyMeta');
+  const list = document.getElementById('historyList');
+  if (!meta || !list) return;
+
+  const total = state.totalSubmissions || 0;
+  const completed = state.submissions.filter((s) => s.status === 'completed' || s.status === 'delivered').length;
+  const successPct = total > 0 ? Math.round((completed / total) * 100) : 100;
+  meta.textContent = total + ' MISSION' + (total === 1 ? '' : 'S') + ' · ' + successPct + '% SUCCESS';
+
+  list.innerHTML = '';
+  if (state.submissions.length === 0) {
+    list.appendChild(el('div', { class: 'history-empty' },
+      'No missions deployed yet. Select a deliverable and launch.'));
+    return;
+  }
+
+  for (const s of state.submissions.slice(0, 20)) {
+    list.appendChild(historyRow(s));
+  }
+}
+
+function historyRow(s) {
+  const tmpl = state.templates.find((t) => t.slug === s.template_slug);
+  const label = tmpl?.label || s.template_label || s.template_slug;
+  const brand = (BRAND_LABELS[s.brand_slug] || (s.brand_slug || 'OTHER').toUpperCase());
+
+  const completed = s.status === 'completed' || s.status === 'delivered';
+  const statusCls = completed ? 'complete' : s.status === 'failed' ? 'failed' : 'pending';
+  const statusText = completed ? '◆ COMPLETE'
+    : s.status === 'failed' ? '✕ FAILED'
+    : '⋯ ' + (s.status || 'PENDING').toUpperCase();
+
+  const dl = downloadElForSubmission(s);
+  const view = el('a', {
+    class: 'view-link',
+    href: '/apollo/mission.html?id=' + encodeURIComponent(s.id),
+  }, 'VIEW');
+
+  return el('div', { class: 'history-row' },
+    el('span', { class: 'when' }, formatTimestamp(s.created_at)),
+    el('span', { class: 'name' }, label),
+    el('span', { class: 'brand-badge' }, brand),
+    el('span', { class: 'status-badge ' + statusCls }, statusText),
+    dl,
+    view,
+  );
+}
+
+function downloadElForSubmission(s) {
+  const completed = s.status === 'completed' || s.status === 'delivered';
+  if (!completed || !s.download_url) {
+    return el('span', { class: 'download-link expired' }, '—');
+  }
+  const expiresAt = s.expires_at ? new Date(s.expires_at) : null;
+  const now = Date.now();
+  const expired = expiresAt && expiresAt.getTime() <= now;
+  if (expired) return el('span', { class: 'download-link expired' }, 'EXPIRED');
+
+  let suffix = '';
+  if (expiresAt) {
+    const ms = expiresAt.getTime() - now;
+    const d = Math.floor(ms / 86400000);
+    const h = Math.floor((ms % 86400000) / 3600000);
+    suffix = ' · ' + (d > 0 ? d + 'd' : h + 'h');
+  }
+
+  return el('a', {
+    class: 'download-link',
+    href: s.download_url,
+    target: '_blank',
+    rel: 'noopener noreferrer',
+  }, 'DOWNLOAD',
+    suffix ? el('span', { class: 'download-expiry' }, suffix) : null,
+  );
+}
+
+// --- Keyboard shortcuts ---
 function wireKeyboardShortcuts() {
   document.addEventListener('keydown', (e) => {
-    const inInput = e.target.matches('input, textarea, [contenteditable="true"]');
-    if (e.key === '?' && !inInput) {
-      e.preventDefault();
-      toggleHelpOverlay();
-      return;
-    }
-    if (inInput) {
-      if (e.key === 'Escape' && e.target.id === 'quickSearch') {
-        const overlay = document.getElementById('searchOverlay');
-        if (overlay) overlay.hidden = true;
-        e.target.blur();
-      }
-      return;
-    }
+    const inInput = e.target && e.target.matches && e.target.matches('input, textarea, [contenteditable="true"]');
+    if (inInput) return;
     if (e.key === '/') {
       e.preventDefault();
-      const input = document.getElementById('quickSearch');
-      if (input) input.focus();
-      return;
-    }
-    if (e.key === 'Escape') {
-      const help = document.getElementById('helpOverlay');
-      if (help && !help.hidden) { help.hidden = true; return; }
-      const search = document.getElementById('searchOverlay');
-      if (search && !search.hidden) { search.hidden = true; return; }
-      if (state.armedStation) { armStation(null); return; }
-      return;
-    }
-    if (/^[1-6]$/.test(e.key)) {
-      const sorted = ((state.catalog?.industries) || [])
-        .filter((i) => i.status !== 'placeholder')
-        .slice()
-        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-      const target = sorted[parseInt(e.key, 10) - 1];
-      if (target) {
-        e.preventDefault();
-        armStation(target.slug);
-      }
+      // Search overlay reserved for future revival; keyboard shortcut
+      // is here so the muscle memory keeps working.
+      const overlay = document.getElementById('searchOverlay');
+      if (overlay) overlay.hidden = !overlay.hidden;
     }
   });
 }
-function toggleHelpOverlay() {
-  const help = document.getElementById('helpOverlay');
-  if (!help) return;
-  help.hidden = !help.hidden;
-}
 
-// ---- Navigation ----
-function launchDeliverable(slug) {
-  if (!slug) return;
-  window.location.href = '/apollo/launch.html?slug=' + encodeURIComponent(slug);
-}
-
-// Suppress unused-import warning on invalidateCatalog — exposed for future
-// "force-refresh after submit" flows from this page.
+// Suppress unused-import warnings on helpers reserved for future use.
 void invalidateCatalog;
+void escapeHtml;
+void escapeAttr;
 </script>
 
 <script>
