@@ -5,7 +5,7 @@ import {
   getCatalog,
   getModule,
   getSchema,
-  getStylesForIndustry,
+  listAllStyles,
 } from '@/lib/apollo/packages-loader'
 import { corsHeaders, preflight } from '@/lib/apollo/cors'
 import { requireAllowedUser } from '@/lib/apollo/auth'
@@ -72,26 +72,45 @@ export async function GET(
     }
 
     const schema = getSchema(slug)
-    const styles = getStylesForIndustry(summary.industry_slug)
 
-    // Strip the full markdown content from styles before sending to the
-    // client. The full content is server-side only — used at submit time
-    // as a system prompt for the AI. Clients only need id/label/description
-    // plus the thumbnail URL the wizard's slab picker shows on the left.
+    // All 15 styles are available on every deliverable. Earlier the route
+    // filtered by industry (getStylesForIndustry), but the catalog only
+    // ships per-industry style dirs for legal/consulting/government/finance/
+    // startup — field-service deliverables (quote, fsr, change-order,
+    // expense-report) returned available_styles: [] and the wizard couldn't
+    // submit. Universal exposure makes every deliverable selectable; the
+    // default still nudges the user toward an industry-matched style.
+    //
+    // Strip the full markdown content before sending to the client — that
+    // content is server-side only (system prompt for the AI at submit time).
+    // Clients only need id/label/description + thumbnail URL.
+    //
     // Thumbnails are pre-rendered PNGs committed to /public/style-thumbnails/
     // by scripts/generate-style-thumbnails.mjs and served from the portal
     // origin (cross-origin from the static intake page on apollomc.ai/apollo/,
     // but no CORS preflight is needed for <img src>).
+    const allStyles = listAllStyles()
     const reqUrl = new URL(request.url)
     const thumbBase = reqUrl.origin + '/style-thumbnails/'
-    const available_styles = styles.map((s) => ({
+    const available_styles = allStyles.map((s) => ({
       id: s.id,
       industry_slug: s.industry_slug,
       label: s.label,
       description: s.description,
       thumbnail_url: thumbBase + s.id + '.png',
     }))
-    const default_style_id = available_styles[0]?.id ?? null
+    // Default selection priority:
+    //   1. A style whose industry matches the deliverable's industry
+    //   2. consulting-executive (broadly-applicable boardroom style)
+    //   3. First style alphabetically
+    // Falls through to null only if the catalog ships zero styles.
+    const industryMatch = allStyles.find((s) => s.industry_slug === summary.industry_slug)
+    const universalFallback = allStyles.find((s) => s.id === 'consulting-executive')
+    const default_style_id =
+      industryMatch?.id ??
+      universalFallback?.id ??
+      allStyles[0]?.id ??
+      null
 
     return NextResponse.json(
       {

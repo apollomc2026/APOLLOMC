@@ -21,7 +21,6 @@ import {
   getModule,
   getSchema,
   getStyleById,
-  getStylesForIndustry,
 } from '@/lib/apollo/packages-loader'
 import {
   orchestrate,
@@ -444,12 +443,13 @@ async function handleJsonSubmit(
     return NextResponse.json({ error: 'schema not found' }, { status: 500, headers: cors })
   }
 
-  // Style must belong to this deliverable's industry.
+  // Any known style is acceptable — all 15 are exposed on every deliverable
+  // by /api/apollo/templates/<slug>, so we just verify the styleId resolves
+  // to a real style record.
   const style = getStyleById(styleId)
-  const allowedStyles = getStylesForIndustry(summary.industry_slug)
-  if (!style || !allowedStyles.some((s) => s.id === styleId)) {
+  if (!style) {
     return NextResponse.json(
-      { error: 'invalid style_id for this deliverable' },
+      { error: 'unknown style_id' },
       { status: 400, headers: cors }
     )
   }
