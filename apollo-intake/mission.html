@@ -207,12 +207,11 @@ requireAuth({
     authModal.dismiss();
     document.body.dataset.standby = 'false';
 
+    // Brand is per-document — no selector here either.
     commandBar.mount({
       user,
       brand: localStorage.getItem('apollo:brand') || 'apollo',
-      brands: ['apollo', 'atlas', 'on-spot-solutions'],
       status: 'operational',
-      onBrandChange: (s) => localStorage.setItem('apollo:brand', s),
     });
     commandBar.startClock();
 

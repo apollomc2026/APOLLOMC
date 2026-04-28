@@ -34,8 +34,16 @@ const BRAND_LABELS = {
 export function mount(opts) {
   if (document.getElementById(BAR_ID)) return;
   const o = opts || {};
-  const initialBrand = o.brand || 'apollo';
+  // Brand still drives [data-brand] for theme accent shifts. The
+  // dashboard no longer surfaces a brand picker — brand belongs to a
+  // document. We seed the data attr from the last wizard pick so the
+  // accent stays consistent for the operator's session, but the bar
+  // itself doesn't expose a control.
+  const initialBrand = o.brand || localStorage.getItem('apollo:brand') || 'apollo';
   document.documentElement.dataset.brand = initialBrand;
+  // showBrandSelector is opt-in. Pages that genuinely need a brand
+  // dropdown can pass `brands: [...]`; the dashboard does not.
+  const showBrandSelector = Array.isArray(o.brands) && o.brands.length > 0;
 
   const bar = el('header',
     { class: 'command-bar', id: BAR_ID, role: 'banner' },
@@ -52,31 +60,32 @@ export function mount(opts) {
       el('div', { class: 'cb-clock', id: BAR_ID + 'Clock', 'aria-label': 'Session clock' }, '00:00:00')
     ),
     el('div', { class: 'cb-right' },
-      el('div', { class: 'cb-brand-selector', id: BAR_ID + 'BrandSelector' }),
+      showBrandSelector
+        ? el('div', { class: 'cb-brand-selector', id: BAR_ID + 'BrandSelector' })
+        : null,
       el('div', { class: 'cb-operator', id: BAR_ID + 'Operator' })
     )
   );
   document.body.appendChild(bar);
 
-  // Brand picker — real dropdown
-  const brands = Array.isArray(o.brands) && o.brands.length > 0
-    ? o.brands
-    : ['apollo', 'atlas', 'on-spot-solutions'];
-  const brandOptions = brands.map((slug) => ({
-    key: slug,
-    label: (BRAND_LABELS[slug] || slug).toUpperCase(),
-  }));
-  const brandHost = document.getElementById(BAR_ID + 'BrandSelector');
-  brandHost.classList.add('cb-brand', 'custom-select');
-  createCustomSelect(
-    brandHost,
-    brandOptions,
-    (slug) => {
-      document.documentElement.dataset.brand = slug;
-      if (typeof o.onBrandChange === 'function') o.onBrandChange(slug);
-    },
-    initialBrand
-  );
+  // Brand picker — only mounted when the page opted in.
+  if (showBrandSelector) {
+    const brandOptions = o.brands.map((slug) => ({
+      key: slug,
+      label: (BRAND_LABELS[slug] || slug).toUpperCase(),
+    }));
+    const brandHost = document.getElementById(BAR_ID + 'BrandSelector');
+    brandHost.classList.add('cb-brand', 'custom-select');
+    createCustomSelect(
+      brandHost,
+      brandOptions,
+      (slug) => {
+        document.documentElement.dataset.brand = slug;
+        if (typeof o.onBrandChange === 'function') o.onBrandChange(slug);
+      },
+      initialBrand
+    );
+  }
 
   // Operator menu — avatar (fallback to initial) + Sign out
   const operatorHost = document.getElementById(BAR_ID + 'Operator');

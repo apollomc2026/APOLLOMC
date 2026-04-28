@@ -396,8 +396,23 @@
   .ml-entry-brand {
     font-family: var(--font-mono);
     font-size: 10px;
-    color: var(--text-3);
-    letter-spacing: 0.18em;
+    letter-spacing: var(--track-mono);
+    text-transform: uppercase;
+    color: var(--ivory-3);
+    border: 1px solid var(--titanium);
+    padding: 2px 6px;
+    border-radius: var(--radius-control);
+  }
+  .ml-expiry {
+    color: var(--ivory-3);
+    font-size: 10px;
+    margin-left: 4px;
+  }
+  .ml-expired {
+    color: var(--ivory-4);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: var(--track-mono);
     text-transform: uppercase;
   }
   .ml-badge {
@@ -617,16 +632,14 @@ requireAuth({
     authModal.dismiss();
     document.body.dataset.standby = 'false';
 
+    // Brand belongs to a document, not a session. The dashboard no longer
+    // exposes a brand selector — Step 1 of the wizard is the only place
+    // to choose. localStorage's apollo:brand value is still seeded by the
+    // wizard so subsequent submissions default to the operator's last
+    // pick, but it's not a control surface here.
     commandBar.mount({
       user,
-      brand: localStorage.getItem('apollo:brand') || 'apollo',
-      brands: ['apollo', 'atlas', 'on-spot-solutions'],
       status: 'operational',
-      onBrandChange: (slug) => {
-        localStorage.setItem('apollo:brand', slug);
-        renderStations();
-        renderQuickLaunch();
-      },
     });
     commandBar.startClock();
 
@@ -658,6 +671,23 @@ requireAuth({
     wireKeyboardShortcuts();
   },
 });
+
+// expiryLabel(iso) — returns a short countdown like "5d 3h" / "2h" /
+// "soon" / "EXPIRED" / null. Used by the mission log to show how long
+// each row's PDF is still downloadable. The signed URL itself
+// regenerates on each fetch; this label tracks the file lifecycle
+// (completed_at + 7 days), so it's stable between requests.
+function expiryLabel(iso) {
+  if (!iso) return null;
+  const ms = new Date(iso).getTime() - Date.now();
+  if (!Number.isFinite(ms)) return null;
+  if (ms <= 0) return 'EXPIRED';
+  const d = Math.floor(ms / 86400000);
+  const h = Math.floor((ms % 86400000) / 3600000);
+  if (d > 0) return d + 'd ' + h + 'h';
+  if (h > 0) return h + 'h';
+  return 'soon';
+}
 
 // ---- Stations grid ----
 function deliverableMetaLine(d) {
@@ -991,16 +1021,26 @@ function renderMissionLog() {
       : s.status === 'failed'
       ? '<span class="ml-badge error">✗ FAILED</span>'
       : '<span class="ml-badge pending">⋯ ' + escapeHtml((s.status || 'pending').toUpperCase()) + '</span>';
-    const dl = s.download_url && (s.status === 'delivered' || s.status === 'completed')
-      ? '<a href="' + escapeAttr(s.download_url) + '" target="_blank" rel="noopener noreferrer">DOWNLOAD</a>'
-      : '';
+    const expiry = expiryLabel(s.expires_at);
+    const isCompleted = s.status === 'delivered' || s.status === 'completed';
+    let dl = '';
+    if (isCompleted) {
+      if (s.download_url && expiry !== 'EXPIRED') {
+        const expirySuffix = expiry
+          ? '<span class="ml-expiry">· ' + escapeHtml(expiry) + ' LEFT</span>'
+          : '';
+        dl = '<a href="' + escapeAttr(s.download_url) + '" target="_blank" rel="noopener noreferrer">DOWNLOAD ' + expirySuffix + '</a>';
+      } else {
+        dl = '<span class="ml-expired">EXPIRED</span>';
+      }
+    }
     const view = '<a href="/apollo/mission.html?id=' + escapeAttr(s.id) + '">VIEW</a>';
     const clone = '<button data-action="clone" data-slug="' + escapeAttr(s.template_slug) + '" type="button">CLONE</button>';
     return (
       '<div class="ml-entry" data-id="' + escapeAttr(s.id) + '">' +
         '<span class="ml-entry-time">' + escapeHtml(formatTimestamp(s.created_at)) + '</span>' +
         '<span class="ml-entry-name">' + escapeHtml(label) + '</span>' +
-        '<span class="ml-entry-brand">' + escapeHtml(s.brand_slug || '') + '</span>' +
+        '<span class="ml-entry-brand">' + escapeHtml((s.brand_slug || '').toUpperCase()) + '</span>' +
         badge +
         '<span class="ml-entry-actions">' + view + dl + clone + '</span>' +
       '</div>'

@@ -10,7 +10,7 @@
      not reuse a previous CACHE_NAME without remembering this property.
 */
 
-const CACHE_NAME = 'apollo-v4-aerospace'
+const CACHE_NAME = 'apollo-v5-mission-log'
 const PRECACHE_URLS = [
   '/apollo/',
   '/apollo/index.html',

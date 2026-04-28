@@ -739,16 +739,14 @@ requireAuth({
 
     state.brand_slug = localStorage.getItem('apollo:brand') || 'apollo';
 
+    // Brand is per-document — chosen at Step 1 of the wizard. The
+    // command bar no longer exposes a brand selector; we still pass
+    // `brand` so [data-brand] reflects the seeded value for theme
+    // accent purposes.
     commandBar.mount({
       user,
       brand: state.brand_slug,
-      brands: ['apollo', 'atlas', 'on-spot-solutions'],
       status: 'operational',
-      onBrandChange: (s) => {
-        state.brand_slug = s;
-        localStorage.setItem('apollo:brand', s);
-        renderWizard();
-      },
     });
     commandBar.startClock();
 
