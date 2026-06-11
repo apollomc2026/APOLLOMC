@@ -6,17 +6,26 @@ import type { FontPreset } from './font-presets'
 import { resolvePreset } from './font-presets'
 import type { LogoPlacementOption } from './logo-placement'
 import { resolvePlacement, placementFlags } from './logo-placement'
-import DOMPurify from 'isomorphic-dompurify'
+import sanitizeHtml from 'sanitize-html'
 
 // HS3.2: model- and document-derived HTML is sanitized before it reaches the
-// headless browser — strips <script>/<iframe>/<img>/event handlers/javascript:
-// URLs and other active/resource-loading content; keeps document formatting
-// (tables, lists, headings, text). Defense-in-depth with JS-disabled rendering
-// and the network egress block in buildPdf().
+// headless browser — strips <script>/<style>/<iframe>/<img>/event handlers/
+// javascript: URLs and other active/resource-loading content, while keeping
+// document formatting (tables, lists, headings, text). Pure-JS (no jsdom) so
+// it loads in the Vercel serverless runtime — isomorphic-dompurify's jsdom
+// chain (html-encoding-sniffer -> @exodus/bytes ESM) broke require() there and
+// 500'd the submit route. Defense-in-depth with the JS-disabled rendering +
+// network egress block in buildPdf().
 function sanitizeContentHtml(html: string): string {
-  return DOMPurify.sanitize(html, {
-    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'link', 'meta', 'form', 'input', 'img', 'svg', 'video', 'audio', 'base', 'noscript'],
-    FORBID_ATTR: ['srcset'],
+  return sanitizeHtml(html, {
+    allowedTags: [
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'ul', 'ol', 'li',
+      'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'caption', 'col', 'colgroup',
+      'strong', 'em', 'b', 'i', 'u', 's', 'br', 'hr', 'blockquote', 'code', 'pre', 'span', 'div', 'a',
+    ],
+    allowedAttributes: { '*': ['class', 'colspan', 'rowspan', 'align'], a: ['href', 'title'] },
+    allowedSchemes: ['http', 'https', 'mailto', 'tel'],
+    disallowedTagsMode: 'discard',
   })
 }
 
