@@ -133,6 +133,17 @@ export async function GET(request: Request) {
       })
     )
 
+    // HS5.2: data-access audit — record who listed submissions, when, and how
+    // many (closes the gap where only downloads were logged). The same events
+    // insert pattern extends to single-submission view and upload listing.
+    try {
+      await supabase.from('events').insert({
+        user_id: auth.user.userId,
+        event_type: 'submissions_listed',
+        event_data: { count: submissions.length, brand: brand ?? null },
+      })
+    } catch {}
+
     return NextResponse.json(
       { submissions, total_count: totalCount ?? submissions.length },
       { headers: cors }
