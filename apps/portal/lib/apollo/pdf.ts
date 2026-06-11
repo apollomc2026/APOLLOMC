@@ -6,6 +6,19 @@ import type { FontPreset } from './font-presets'
 import { resolvePreset } from './font-presets'
 import type { LogoPlacementOption } from './logo-placement'
 import { resolvePlacement, placementFlags } from './logo-placement'
+import DOMPurify from 'isomorphic-dompurify'
+
+// HS3.2: model- and document-derived HTML is sanitized before it reaches the
+// headless browser — strips <script>/<iframe>/<img>/event handlers/javascript:
+// URLs and other active/resource-loading content; keeps document formatting
+// (tables, lists, headings, text). Defense-in-depth with JS-disabled rendering
+// and the network egress block in buildPdf().
+function sanitizeContentHtml(html: string): string {
+  return DOMPurify.sanitize(html, {
+    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'link', 'meta', 'form', 'input', 'img', 'svg', 'video', 'audio', 'base', 'noscript'],
+    FORBID_ATTR: ['srcset'],
+  })
+}
 
 // Environment-aware Chromium launcher.
 //
@@ -467,6 +480,7 @@ export function genreForSlug(slug: string): Genre {
 // editorial genre, the legacy per-deliverable `layout` field still selects the
 // specialized editorial layouts (invoice / one-pager / minutes / financial).
 function buildFullHtml(args: BuildPdfArgs): string {
+  args = { ...args, contentHtml: sanitizeContentHtml(args.contentHtml) }
   const genre = genreForSlug(args.template.slug)
   if (genre === 'contractor_form') return buildContractorFormHtml(args)
   // 'ledger' primitive lands in WS5; until then ledger deliverables (none yet)
@@ -1539,7 +1553,22 @@ export async function buildPdf(args: BuildPdfArgs): Promise<Buffer> {
   const logoDataUri = resolveLogoDataUri(args.brand)
   const browser = await launchChromium()
   try {
-    const page = await browser.newPage()
+    // HS3.2: render with JavaScript disabled and external network egress
+    // blocked (allow only inline/data: resources and the Google Fonts hosts).
+    // Templated documents need no JS; this neutralizes script execution and
+    // SSRF/exfil via attacker-influenced content reaching the headless browser.
+    const page = await browser.newPage({ javaScriptEnabled: false })
+    await page.route('**/*', (route) => {
+      const url = route.request().url()
+      if (
+        url.startsWith('data:') ||
+        url.startsWith('about:') ||
+        /^https:\/\/fonts\.(googleapis|gstatic)\.com\//.test(url)
+      ) {
+        return route.continue()
+      }
+      return route.abort()
+    })
     await page.setContent(html, { waitUntil: 'networkidle' })
     const headerFooterColor = resolvePaletteForBuild(args).metadata
     // Playwright's header/footer templates run in an isolated context that

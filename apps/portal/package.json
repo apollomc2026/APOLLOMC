@@ -25,6 +25,7 @@
     "@tanstack/react-query": "^5.91.3",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
+    "isomorphic-dompurify": "^3.16.0",
     "lucide-react": "^0.577.0",
     "mammoth": "^1.12.0",
     "marked": "^18.0.2",
@@ -35,7 +36,7 @@
     "react-dom": "19.1.0",
     "sharp": "^0.34.5",
     "stripe": "^20.4.1",
-    "xlsx": "^0.18.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zustand": "^5.0.12"
   },
   "devDependencies": {
