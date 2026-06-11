@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { requireAllowedUser } from '@/lib/apollo/auth'
 import { uploadToS3, getFromS3 } from '@/lib/s3/client'
 import { modelFor } from '@/lib/ai/models'
 import { readFile } from 'fs/promises'
@@ -10,6 +11,15 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: missionId } = await params
+
+  // HS1 (C3): this route previously ran unauthenticated over the service-role
+  // (RLS-bypass) client — an IDOR over any mission. Require an allowlisted
+  // session, then verify the caller owns this mission before any read/seed.
+  const auth = await requireAllowedUser()
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status })
+  }
+
   const supabase = await createServiceClient()
 
   // Load mission with joins
@@ -20,6 +30,9 @@ export async function POST(
     .single()
 
   if (!mission) {
+    return NextResponse.json({ error: 'Mission not found' }, { status: 404 })
+  }
+  if ((mission as { user_id?: string }).user_id !== auth.user.userId) {
     return NextResponse.json({ error: 'Mission not found' }, { status: 404 })
   }
 

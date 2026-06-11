@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireAllowedUser } from '@/lib/apollo/auth'
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: missionId } = await params
+
+  // HS1: add the server-side allowlist gate (session + ownership were already
+  // checked below; this enforces APOLLO_ALLOWED_EMAILS like the live routes).
+  const allowed = await requireAllowedUser()
+  if (!allowed.ok) {
+    return NextResponse.json({ error: allowed.error }, { status: allowed.status })
+  }
+
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireAllowedUser } from '@/lib/apollo/auth'
 import { uploadToS3 } from '@/lib/s3/client'
 
 export async function POST(
@@ -7,6 +8,13 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: missionId } = await params
+
+  // HS1: enforce the server-side allowlist gate (ownership checked below).
+  const allowed = await requireAllowedUser()
+  if (!allowed.ok) {
+    return NextResponse.json({ error: allowed.error }, { status: allowed.status })
+  }
+
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()

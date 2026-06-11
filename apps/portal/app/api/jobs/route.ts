@@ -111,7 +111,8 @@ export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   const expectedKey = process.env.WORKER_SECRET_KEY
 
-  if (expectedKey && authHeader !== `Bearer ${expectedKey}`) {
+  // HS1: fail closed — if the worker secret is unset, REJECT (never skip).
+  if (!expectedKey || authHeader !== `Bearer ${expectedKey}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

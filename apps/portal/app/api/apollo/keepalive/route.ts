@@ -11,8 +11,10 @@ import { createServiceClient } from '@/lib/supabase/server'
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
+  // HS1: fail closed — if CRON_SECRET is unset, REJECT (never skip the check).
   const auth = req.headers.get('authorization')
-  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret || auth !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
   }
 
