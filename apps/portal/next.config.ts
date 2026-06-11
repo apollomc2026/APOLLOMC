@@ -28,6 +28,29 @@ const nextConfig: NextConfig = {
   // Keep the package external so Next doesn't rewrite the import path
   // and confuse executablePath() resolution.
   serverExternalPackages: ["@sparticuz/chromium"],
+
+  // HS4.2: don't advertise the framework.
+  poweredByHeader: false,
+
+  // HS4.2: baseline security headers on every response. CSP is intentionally
+  // limited to frame-ancestors (clickjacking) so it can't break the portal's
+  // own HTML pages / bundled JS — a full resource CSP should be tuned and
+  // added after page-by-page testing.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'; base-uri 'self'" },
+          { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

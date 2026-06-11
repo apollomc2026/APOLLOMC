@@ -15,6 +15,7 @@ import { resolvePlacement, isValidPlacementKey } from '@/lib/apollo/logo-placeme
 import { uploadSubmissionOutput } from '@/lib/apollo/storage'
 import { corsHeaders, preflight } from '@/lib/apollo/cors'
 import { requireAllowedUser, type AuthedUser } from '@/lib/apollo/auth'
+import { rateLimit, clientIp } from '@/lib/apollo/ratelimit'
 import {
   findDeliverable,
   findIndustry,
@@ -80,6 +81,22 @@ export async function POST(request: Request) {
   const auth = await requireAllowedUser()
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status, headers: cors })
+  }
+
+  // HS4.1: rate-limit the expensive generation endpoint — per-user hourly,
+  // a per-user daily ceiling (Anthropic-spend proxy), and per-IP hourly.
+  // Covers both the FormData and JSON submit paths.
+  const ip = clientIp(request)
+  const limits = await Promise.all([
+    rateLimit(`submit:user:${auth.user.userId}`, 30, 3600),
+    rateLimit(`submit:user:${auth.user.userId}:day`, 100, 86400),
+    rateLimit(`submit:ip:${ip}`, 60, 3600),
+  ])
+  if (limits.some((r) => !r.ok)) {
+    return NextResponse.json(
+      { error: 'rate limit exceeded — please try again later' },
+      { status: 429, headers: cors }
+    )
   }
 
   // Branch by content type. The unified-catalog flow posts JSON
