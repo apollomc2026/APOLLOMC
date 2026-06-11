@@ -45,3 +45,6 @@ design-lab/
 # packages/. Drop zips at the repo root never get committed.
 /packages.zip
 /packages/
+_live_snapshot/
+_smoke/
+_deploy/

@@ -370,6 +370,31 @@ async function callClaudeWithTool(
   return tool.input
 }
 
+// Each section's canonical heading is the single <h2> emitted by
+// renderContentHtml below. The model frequently repeats the section title as a
+// leading markdown heading inside `content`, and may use `##` sub-headings in
+// the body; marked renders those as <h2>, and the PDF renderer's
+// numberSections() assigns a Roman-numeral section opener to EVERY <h2> — so a
+// section whose content carried a heading was emitted (and TOC-listed) twice
+// with consecutive numbers. Strip a leading title heading and demote any
+// remaining in-content headings below <h2>, so each section yields exactly one
+// section-level <h2>: the canonical one.
+function stripLeadingHeading(md: string): string {
+  return md.replace(/^\s*#{1,6}[ \t]+.*(?:\r?\n|$)/, '').replace(/^\s+/, '')
+}
+
+function demoteContentHeadings(html: string): string {
+  const map: Record<string, string> = { h1: 'h3', h2: 'h3', h3: 'h4', h4: 'h5', h5: 'h6', h6: 'h6' }
+  return html.replace(/<(\/?)(h[1-6])\b([^>]*)>/gi, (_m, slash: string, tag: string, attrs: string) => {
+    const to = map[tag.toLowerCase()] ?? tag
+    return `<${slash}${to}${attrs}>`
+  })
+}
+
+function renderSectionContent(content: string): string {
+  return demoteContentHeadings(markdownToHtml(stripLeadingHeading(content)))
+}
+
 function renderContentHtml(
   output: Record<string, unknown>,
   module: DeliverableModule,
@@ -403,12 +428,12 @@ function renderContentHtml(
     if (!found) continue
     seen.add(s.key)
     parts.push(`<h2>${escapeHtml(found.label || s.label)}</h2>`)
-    parts.push(markdownToHtml(found.content))
+    parts.push(renderSectionContent(found.content))
   }
   for (const [key, val] of byKey) {
     if (seen.has(key)) continue
     parts.push(`<h2>${escapeHtml(val.label)}</h2>`)
-    parts.push(markdownToHtml(val.content))
+    parts.push(renderSectionContent(val.content))
   }
 
   return parts.join('\n')
