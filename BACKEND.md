@@ -111,7 +111,7 @@ lib/apollo/brands.ts
 lib/apollo/generate.ts
   Purpose: Build the Claude prompt from template + brand.md + inputs + images, call Anthropic, return HTML.
   Exports: generateDocumentHtml(args), ImageInput, GenerateArgs.
-  Model: claude-sonnet-4-20250514, max_tokens 8192, streaming off.
+  Model: resolved via lib/ai/models.ts — modelFor('draft_compile') (single source of truth for model IDs). max_tokens 8192, streaming off.
   Called by: api/apollo/submit/route.ts.
 
 lib/apollo/docx.ts

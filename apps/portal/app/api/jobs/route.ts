@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { uploadToS3, getFromS3 } from '@/lib/s3/client'
+import { modelFor } from '@/lib/ai/models'
 import Anthropic from '@anthropic-ai/sdk'
 
 const anthropic = new Anthropic()
@@ -41,10 +42,14 @@ Return your output as valid JSON with this structure:
 
 Write the full content. Do not use placeholders. Match the tone and style specified.`
 
+  const usedModel = task.provider || modelFor('section_draft')
   const response = await anthropic.messages.create({
-    model: task.provider || 'claude-sonnet-4-20250514',
+    model: usedModel,
     max_tokens: 4096,
-    system: systemPrompt,
+    // Cache breakpoint: the system block (static preamble + claudeMd) is
+    // identical across every section of a mission, so each subsequent section
+    // reads this prefix instead of re-billing the full style guide.
+    system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
     messages: [{ role: 'user', content: userPrompt }],
   })
 
@@ -64,6 +69,7 @@ Write the full content. Do not use placeholders. Match the tone and style specif
     output_raw: text,
     output_json: outputJson,
     schema_valid: !outputJson.parse_error,
+    model: usedModel,
     usage: {
       prompt_tokens: response.usage.input_tokens,
       completion_tokens: response.usage.output_tokens,
@@ -74,7 +80,7 @@ Write the full content. Do not use placeholders. Match the tone and style specif
 
 async function attemptRepair(task: any, error: string, originalOutput: string) {
   const response = await anthropic.messages.create({
-    model: task.provider || 'claude-sonnet-4-20250514',
+    model: task.provider || modelFor('repair'),
     max_tokens: 4096,
     messages: [
       {
@@ -163,7 +169,7 @@ export async function POST(request: NextRequest) {
     await supabase.from('prompt_runs').insert({
       task_id: task.id,
       provider: 'anthropic',
-      model: task.provider || 'claude-sonnet-4-20250514',
+      model: result.model,
       prompt_tokens: result.usage.prompt_tokens,
       completion_tokens: result.usage.completion_tokens,
       total_tokens: result.usage.total_tokens,

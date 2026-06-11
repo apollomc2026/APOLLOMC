@@ -372,7 +372,7 @@ CREATE TABLE tasks (
   status          VARCHAR(50) NOT NULL DEFAULT 'queued',
     -- queued | running | complete | failed | skipped
   depends_on      UUID[],         -- task IDs that must complete first
-  provider        VARCHAR(50),    -- claude-sonnet-4 | gpt-4o
+  provider        VARCHAR(50),    -- model ID, resolved via lib/ai/models.ts | gpt-4o
   prompt_s3_key   VARCHAR(500),
   output_raw      TEXT,
   output_json     JSONB,
@@ -792,7 +792,7 @@ def extract_brand_rules(extracted_content: dict) -> dict:
     """
     
     response = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model=APOLLO_EXTRACTION_MODEL,  # resolved via env; source of truth: lib/ai/models.ts
         max_tokens=1000,
         messages=[{"role": "user", "content": prompt}]
     )
@@ -1217,7 +1217,7 @@ async function processNextTask() {
 - System prompt: style template CLAUDE.md content
 - User prompt: section-specific instructions + all prior section outputs as context
 - Structured output schema for the section type
-- Provider: `claude-sonnet-4-20250514` primary, `gpt-4o` failover
+- Provider: resolved via `lib/ai/models.ts` (`modelFor('section_draft')`) — single source of truth for model IDs; `gpt-4o` failover (planned)
 
 On schema validation failure:
 1. Attempt repair prompt (one time): "Your output did not match the required schema. Here is the error: [error]. Please rewrite to match."

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { uploadToS3, getFromS3 } from '@/lib/s3/client'
+import { modelFor } from '@/lib/ai/models'
 import { readFile } from 'fs/promises'
 import path from 'path'
 
@@ -166,7 +167,7 @@ After all sections are complete:
       section_index: i,
       status: 'queued',
       depends_on: dependsOn,
-      provider: 'claude-sonnet-4-20250514',
+      provider: modelFor('section_draft'),
       max_attempts: 3,
     })
   }

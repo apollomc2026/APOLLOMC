@@ -1,8 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { modelFor } from '@/lib/ai/models'
 import type { Template } from './templates'
 import type { LoadedBrand } from './brands'
 
-const MODEL = 'claude-sonnet-4-20250514'
 const MAX_TOKENS = 8192
 
 export interface ImageInput {
@@ -62,13 +62,11 @@ function formatInputs(template: Template, inputs: Record<string, unknown>): stri
   return lines.join('\n')
 }
 
-function buildUserPrompt(args: GenerateArgs): string {
-  const { template, brand, inputs, images } = args
-  const imageNotes =
-    images.length === 0
-      ? 'none'
-      : `${images.length} image(s) attached as image content blocks. Reference them as Figure 1 through Figure ${images.length} in prose sections where relevant.`
-
+// Stable per (template, brand): hoisted into the cached system prefix so
+// repeat submissions of the same template+brand reuse it. Must stay
+// byte-identical across requests that should share cache — no inputs, no
+// timestamps, nothing per-submission above the breakpoint.
+function buildStableContext(template: Template, brand: LoadedBrand): string {
   return [
     '# Template',
     '```json',
@@ -77,7 +75,18 @@ function buildUserPrompt(args: GenerateArgs): string {
     '',
     '# Brand',
     brand.slug === 'other' ? 'UNBRANDED' : brand.brand_md,
-    '',
+  ].join('\n')
+}
+
+// Varies per submission: stays in the user turn, below the cache breakpoint.
+function buildVaryingPrompt(args: GenerateArgs): string {
+  const { template, inputs, images } = args
+  const imageNotes =
+    images.length === 0
+      ? 'none'
+      : `${images.length} image(s) attached as image content blocks. Reference them as Figure 1 through Figure ${images.length} in prose sections where relevant.`
+
+  return [
     '# User inputs',
     formatInputs(template, inputs),
     '',
@@ -104,9 +113,23 @@ export async function generateDocumentHtml(args: GenerateArgs): Promise<string> 
   }
   const client = new Anthropic({ apiKey })
 
-  const userPrompt = buildUserPrompt(args)
+  // System prefix = static rules + stable per-(template,brand) context, with a
+  // cache breakpoint on the stable block. SYSTEM_PROMPT alone measures ~674
+  // tokens — below Sonnet 4.6's documented 1024-token cache minimum — so the
+  // template/brand content is hoisted here to push the cached prefix over the
+  // floor. Repeat submissions of the same template+brand read this prefix.
+  const systemBlocks: Anthropic.TextBlockParam[] = [
+    { type: 'text', text: SYSTEM_PROMPT },
+    {
+      type: 'text',
+      text: buildStableContext(args.template, args.brand),
+      cache_control: { type: 'ephemeral' },
+    },
+  ]
 
-  const contentBlocks: Anthropic.ContentBlockParam[] = [{ type: 'text', text: userPrompt }]
+  const contentBlocks: Anthropic.ContentBlockParam[] = [
+    { type: 'text', text: buildVaryingPrompt(args) },
+  ]
   if (args.template.supports_images) {
     for (const img of args.images) {
       contentBlocks.push({
@@ -121,11 +144,18 @@ export async function generateDocumentHtml(args: GenerateArgs): Promise<string> 
   }
 
   const response = await client.messages.create({
-    model: MODEL,
+    model: modelFor('draft_compile'),
     max_tokens: MAX_TOKENS,
-    system: SYSTEM_PROMPT,
+    system: systemBlocks,
     messages: [{ role: 'user', content: contentBlocks }],
   })
+
+  // Risk fix: never silently store a truncated document. If the model hit the
+  // output cap, surface it so the route marks the submission failed instead.
+  if (response.stop_reason === 'max_tokens') {
+    console.error('[apollo/generate] output truncated: stop_reason=max_tokens')
+    throw new Error('generation truncated: model hit max_tokens before completing the document')
+  }
 
   const textBlock = response.content.find((b) => b.type === 'text')
   if (!textBlock || textBlock.type !== 'text') {

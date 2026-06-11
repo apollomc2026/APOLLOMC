@@ -1,9 +1,15 @@
 """Brand guide extraction — uses Claude API to parse brand rules from documents."""
 
 import json
+import os
 from typing import Any
 
 import anthropic
+
+# Mirrors the 'extraction' role in apps/portal/lib/ai/models.ts. No shared map
+# across the TS/Python boundary, so keep this in sync. Claude Sonnet 4 (the
+# dated 2025-05-14 snapshot) retires 2026-06-15; Sonnet 4.6 is its replacement.
+APOLLO_EXTRACTION_MODEL = os.environ.get("APOLLO_MODEL_EXTRACTION", "claude-sonnet-4-6")
 
 
 def extract_brand_rules(extracted_content: dict[str, Any]) -> dict[str, Any]:
@@ -41,7 +47,7 @@ Content:
 {text_content}"""
 
     response = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model=APOLLO_EXTRACTION_MODEL,
         max_tokens=1000,
         messages=[{"role": "user", "content": prompt}],
     )

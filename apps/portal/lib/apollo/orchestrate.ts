@@ -27,6 +27,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import Ajv2020 from 'ajv/dist/2020.js'
 import addFormats from 'ajv-formats'
 import { marked } from 'marked'
+import { modelFor } from '@/lib/ai/models'
 import type {
   DeliverableModule,
   ModuleField,
@@ -35,7 +36,6 @@ import type {
 } from './packages-loader'
 import type { LoadedBrand } from './brands'
 
-const MODEL = 'claude-sonnet-4-20250514'
 const MAX_TOKENS_PRIMARY = 8192
 const MAX_TOKENS_RETRY = 6144
 const INLINE_BYTE_LIMIT = 5 * 1024 * 1024 // 5 MB per inline document/image
@@ -334,12 +334,19 @@ async function callClaudeWithTool(
   args: OrchestrateArgs,
   systemPrompt: string,
   promptBlocks: AnthropicContentBlock[],
-  maxTokens: number
+  maxTokens: number,
+  model: string
 ): Promise<Record<string, unknown>> {
   const response = await client.messages.create({
-    model: MODEL,
+    model,
     max_tokens: maxTokens,
-    system: systemPrompt,
+    // Cache breakpoint on the system block. Render order is tools → system →
+    // messages, so this single breakpoint caches tools + system together. The
+    // system prompt and tool schema are byte-identical between the primary and
+    // repair calls (only the user message differs), so the repair pass — and
+    // any repeat submission of the same deliverable+brand+style — reads this
+    // prefix at ~0.1x instead of re-billing it in full.
+    system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
     tools: [
       {
         name: 'emit_deliverable',
@@ -437,7 +444,7 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
 
   let output: Record<string, unknown>
   try {
-    output = await callClaudeWithTool(client, args, systemPrompt, promptBlocks, MAX_TOKENS_PRIMARY)
+    output = await callClaudeWithTool(client, args, systemPrompt, promptBlocks, MAX_TOKENS_PRIMARY, modelFor('structured_fill'))
   } catch (err) {
     if (err instanceof OrchestrateError) throw err
     throw new OrchestrateError(
@@ -475,7 +482,8 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
         args,
         systemPrompt,
         repairBlocks,
-        MAX_TOKENS_RETRY
+        MAX_TOKENS_RETRY,
+        modelFor('repair')
       )
     } catch (err) {
       throw new OrchestrateError(
