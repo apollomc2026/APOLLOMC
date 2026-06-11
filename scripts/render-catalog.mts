@@ -48,8 +48,42 @@ function seed(field: any): unknown {
   const label = field.label || field.key
   return `Sample ${label} for the WS1 dedup gate render (Nashua Elm demonstration value).`
 }
+// Realistic reference-derived seeds for field-service modules so the gate
+// render is faithful and comparable to the OnSpot reference PDFs.
+const SEEDS: Record<string, Record<string, unknown>> = {
+  'daily-construction-report': {
+    project_name: 'Nashua Elm/High Street Parking Garages — Inductive Loop Installation',
+    job_number: 'WT Job #3154 / 3155',
+    site_location: '19 Elm Street + 15 High Street, Nashua, NH',
+    report_date: '2026-05-13',
+    prepared_by: 'Jonathan Sargent — Principal, On Spot Solutions LLC; OSHA-30; MA Low-Voltage Licensed (Class C)',
+    day_summary: 'Day 3 of 3 — Project Completion / all 19 loops installed & QC verified PASS',
+    weather_conditions:
+      'Conditions: Fair AM, drizzle from ~10:30 AM | High Temp: within seasonal range | Precipitation: light drizzle late AM | Wind: calm. Impact on work: favorable through morning; light drizzle commenced ~10:30 AM; rain response protocol executed — expedited final sealant on the High Street Exit Safety Loop, then deployed a drop cloth on cones to protect the cure.',
+    crew_roster:
+      'Jonathan Sargent | Principal / Competent Person / Saw Operator / QC Inspector | 6.5 | OSHA-30, MA LV\nTomas Galeano | Technician | 6.5 | OJT',
+    work_performed:
+      '6:00–7:00 AM | Pre-shift Tool Box Talk conducted; staged equipment verified; weather and rain-response protocol reviewed.\n7:00–10:30 AM | Plaza 4 markout per Thornton Tomasetti S27/S28, wet-saw cut, lay-in, and BD Loop Sealant on all 4 loops; concurrent QC testing on Plaza 2 and Plaza 3 (8 cured loops) — all PASS.\n10:30 AM | Light drizzle commenced; rain response protocol executed; drop cloth deployed on cones over the High Street Exit Safety Loop.\n11:00 AM–12:00 PM | Plaza 4 QC on 4 newly sealed loops — all PASS; final demobilization; broom-clean final site walk both garages.\n12:00 PM | Project completion — 19/19 loops installed, sealed, QC PASS; crew departed.',
+    work_status:
+      'Plaza 1 — Elm Garage, Garden St S | 7 | QC PASS — Complete | Verified Day 2; open to traffic\nPlaza 2 — High St Garage, Factory St | 4 | QC PASS — Complete | Verified Day 3 AM\nPlaza 3 — Elm Garage, Garden St N | 4 | QC PASS — Complete | Verified Day 3 AM\nPlaza 4 — High St Garage, High St | 4 | QC PASS — Complete | Verified Day 3 late AM; Exit Safety Loop drop-cloth covered',
+    equipment_on_site:
+      'Hilti DSH 900-X 16" gas saw\nHilti DSH-FSC floor saw cart\nHilti DSH-P water pump\nHilti SPX diamond blade\nChampion 4500W generator\nShop vacuum, digital ohmmeter, megohmmeter\nDrop cloth and traffic cones\nFull crew PPE',
+    materials_consumed:
+      'BD Loop Sealant: 5 bottles (Plaza 4)\n14 AWG THHN: ~350 ft (Plaza 4, 3 turns/loop)\nCaution tape, marking paint\nFuel: gasoline (saw 50:1; generator straight gas)',
+    subcontractor_activity:
+      'Michael Pollizi (Flowbird Project Manager) on site\nCameron McGrady (Whiting-Turner Site Superintendent) on site\nCade Snow (Whiting-Turner) on site\nJeff (T&T Electric) on site',
+    issues_delays:
+      'Weather: light drizzle ~10:30 AM; rain response protocol executed; sealant integrity preserved; no schedule impact — completed 12:00 PM on schedule.\nNo incidents, near-misses, or recordables across the 3-day project.',
+    safety_observations:
+      'Day 3 Tool Box Talk completed pre-shift at 6:00 AM\nRain response protocol executed cleanly\nOSHA-compliant team-lift technique for demobilization\nWet-cut water pump verified continuously (Table 1)\nAll PPE worn and verified throughout',
+    follow_up:
+      'Courtesy follow-up inspection scheduled Thursday morning, May 14, 2026 — visual verification of the High Street Exit Safety Loop sealant integrity following the drizzle event.',
+  },
+}
 const fields: Record<string, unknown> = {}
 for (const f of moduleData.required_fields) fields[f.key] = seed(f)
+for (const f of moduleData.optional_fields || []) if (SEEDS[slug]?.[f.key] !== undefined) fields[f.key] = SEEDS[slug][f.key]
+if (SEEDS[slug]) Object.assign(fields, SEEDS[slug])
 
 console.log(`Rendering catalog deliverable: ${slug} (${moduleData.sections.length} module sections), style=${style.id}`)
 const t0 = Date.now()

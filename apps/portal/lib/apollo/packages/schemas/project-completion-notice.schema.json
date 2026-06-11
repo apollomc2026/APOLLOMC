@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Project Completion Notice",
+  "description": "Structured output schema for a substantial-completion / scope-handoff notice (contractor_form genre).",
+  "type": "object",
+  "required": ["metadata", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["deliverable_type", "title"],
+      "properties": {
+        "deliverable_type": { "type": "string", "const": "project-completion-notice" },
+        "title": { "type": "string", "minLength": 3 },
+        "project_name": { "type": "string" },
+        "job_number": { "type": "string" },
+        "issued_to": { "type": "string" },
+        "issued_by": { "type": "string" }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "content"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "identification",
+              "declaration",
+              "scope_completed",
+              "scope_boundary",
+              "site_conditions",
+              "acknowledgments",
+              "signatures"
+            ]
+          },
+          "label": { "type": "string" },
+          "content": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

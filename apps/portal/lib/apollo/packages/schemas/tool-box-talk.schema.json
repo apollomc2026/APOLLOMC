@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Tool Box Talk",
+  "description": "Structured output schema for a pre-shift safety briefing / tool box talk (contractor_form genre).",
+  "type": "object",
+  "required": ["metadata", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["deliverable_type", "title"],
+      "properties": {
+        "deliverable_type": { "type": "string", "const": "tool-box-talk" },
+        "title": { "type": "string", "minLength": 3 },
+        "project_name": { "type": "string" },
+        "job_number": { "type": "string" },
+        "briefing_time": { "type": "string" },
+        "conducted_by": { "type": "string" }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "content"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "identification",
+              "attendees",
+              "work_scope",
+              "hazards_controls",
+              "ppe_required",
+              "topics_discussed",
+              "notes",
+              "signatures"
+            ]
+          },
+          "label": { "type": "string" },
+          "content": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

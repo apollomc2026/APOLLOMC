@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Final Quality Control Report",
+  "description": "Structured output schema for a final QC / inspection report (contractor_form genre).",
+  "type": "object",
+  "required": ["metadata", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["deliverable_type", "title"],
+      "properties": {
+        "deliverable_type": { "type": "string", "const": "final-qc-report" },
+        "title": { "type": "string", "minLength": 3 },
+        "project_name": { "type": "string" },
+        "job_number": { "type": "string" },
+        "report_date": { "type": "string" },
+        "inspector": { "type": "string" }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "content"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "identification",
+              "completion_statement",
+              "acceptance_criteria",
+              "test_instruments",
+              "test_results",
+              "quality_summary",
+              "qc_notes",
+              "certification"
+            ]
+          },
+          "label": { "type": "string" },
+          "content": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

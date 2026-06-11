@@ -367,6 +367,46 @@
           "estimated_minutes": 4,
           "base_price_cents": 4500,
           "schema_file": "quote.schema.json"
+        },
+        {
+          "slug": "daily-construction-report",
+          "label": "Daily Construction Report",
+          "description": "Daily field/construction report — weather, crew, time-ordered work log, installation status, equipment, materials, and safety, in a dense tabular form.",
+          "estimated_pages_min": 3,
+          "estimated_pages_max": 4,
+          "estimated_minutes": 5,
+          "base_price_cents": 0,
+          "schema_file": "daily-construction-report.schema.json"
+        },
+        {
+          "slug": "final-qc-report",
+          "label": "Final Quality Control Report",
+          "description": "Final quality-control / inspection report — acceptance criteria, test instruments, a per-item results table, and certification.",
+          "estimated_pages_min": 3,
+          "estimated_pages_max": 4,
+          "estimated_minutes": 5,
+          "base_price_cents": 0,
+          "schema_file": "final-qc-report.schema.json"
+        },
+        {
+          "slug": "project-completion-notice",
+          "label": "Project Completion Notice",
+          "description": "Substantial-completion and scope-handoff notice with a completed-scope table, scope boundary, site-condition checklist, and multi-party signatures.",
+          "estimated_pages_min": 2,
+          "estimated_pages_max": 3,
+          "estimated_minutes": 5,
+          "base_price_cents": 0,
+          "schema_file": "project-completion-notice.schema.json"
+        },
+        {
+          "slug": "tool-box-talk",
+          "label": "Tool Box Talk",
+          "description": "Pre-shift safety briefing — attendees, work scope, hazards & controls table, PPE and topics checklists, and crew acknowledgment.",
+          "estimated_pages_min": 3,
+          "estimated_pages_max": 3,
+          "estimated_minutes": 5,
+          "base_price_cents": 0,
+          "schema_file": "tool-box-talk.schema.json"
         }
       ]
     },

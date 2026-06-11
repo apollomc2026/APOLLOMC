@@ -1,0 +1,32 @@
+{
+  "deliverable_slug": "final-qc-report",
+  "required_fields": [
+    { "key": "project_name", "label": "Project name", "type": "text", "placeholder": "e.g., Nashua Elm/High Street Parking Garages — Inductive Loop Installation" },
+    { "key": "job_number", "label": "Job / contract number", "type": "text", "placeholder": "e.g., WT Job #3154 / 3155" },
+    { "key": "project_period", "label": "Project period", "type": "text", "placeholder": "e.g., May 11–13, 2026 (3-day Site Window)" },
+    { "key": "report_date", "label": "Report date", "type": "date", "placeholder": "Date of QC report" },
+    { "key": "inspector", "label": "Inspector (name, title, credentials)", "type": "text", "placeholder": "e.g., Jonathan Sargent — Principal / QC Inspector; MA LV (Class C); OSHA-30" },
+    { "key": "reference_documents", "label": "Reference documents / standards", "type": "textarea", "placeholder": "SOW §, drawings, FHWA handbook, prior QC reports ..." },
+    { "key": "completion_statement", "label": "Completion / pass statement", "type": "text", "placeholder": "e.g., All 19 inductive loops verified PASS per acceptance criteria" },
+    { "key": "acceptance_criteria", "label": "Acceptance criteria (one per line: Test | Pass | Marginal | Fail)", "type": "textarea", "placeholder": "Continuity | Closed circuit | — | Open circuit\nDC Resistance | < 5 Ω | 5–8 Ω | > 8 Ω" },
+    { "key": "test_results", "label": "Test results (one per line: ID | Location | + your measured columns | Result)", "type": "textarea", "placeholder": "P1-L1 | Plaza 1 — Garden St S | Closed | ~3 Ω | ~124 MΩ | PASS" }
+  ],
+  "optional_fields": [
+    { "key": "test_instruments", "label": "Test instruments (one per line: Instrument | Purpose)", "type": "textarea", "placeholder": "Digital Ohmmeter | Continuity + DC resistance\nMegohmmeter | Insulation resistance to ground" },
+    { "key": "quality_summary", "label": "Quality summary (one per line: Group | Quantity | Status)", "type": "textarea", "placeholder": "Elm Street Garage | 11 | ALL PASS" },
+    { "key": "qc_notes", "label": "Final QC notes (one per line)", "type": "textarea", "placeholder": "Readings clustered; no deviations from SOW; scope handoff notes ..." }
+  ],
+  "file_upload_prompts": [
+    { "kind": "reference_doc", "label": "Upload SOW, acceptance standards, or raw test logs", "required": false }
+  ],
+  "sections": [
+    { "key": "identification", "label": "Report Details", "required": true, "min_words": 20, "max_words": 110, "instructions": "ONLY a two-column markdown table: Project, Job #, Project Period, Report Date, Inspector, Reference. No prose." },
+    { "key": "completion_statement", "label": "Project Completion", "required": true, "min_words": 15, "max_words": 90, "instructions": "One short emphasized paragraph stating the overall pass/completion result from completion_statement. No table, no fabricated counts beyond what is provided." },
+    { "key": "acceptance_criteria", "label": "Acceptance Criteria", "required": true, "min_words": 30, "max_words": 220, "instructions": "A markdown table with columns: Test | Pass | Marginal / Review | Fail, one row per criterion from the acceptance_criteria field (pipe-delimited). Use '—' for empty cells. Reproduce thresholds exactly as provided." },
+    { "key": "test_instruments", "label": "Test Instruments", "required": false, "min_words": 10, "max_words": 150, "instructions": "A markdown table: Instrument | Purpose, from the field. Omit the section if not provided." },
+    { "key": "test_results", "label": "Final Test Results", "required": true, "min_words": 40, "max_words": 600, "instructions": "A markdown table whose columns match the header of the test_results field (e.g., ID | Location | Continuity | DC Resistance | Insulation R | Result), one row per item. Right-align numeric/measurement columns. Reproduce every value exactly; never invent a reading. Below the table, one line stating overall pass." },
+    { "key": "quality_summary", "label": "Project Quality Summary", "required": false, "min_words": 10, "max_words": 150, "instructions": "A markdown table: Group | Quantity | Status from quality_summary, plus a TOTAL row. Omit if not provided." },
+    { "key": "qc_notes", "label": "Final QC Notes", "required": false, "min_words": 10, "max_words": 250, "instructions": "A tight bullet list of QC notes. Omit if none provided." },
+    { "key": "certification", "label": "Final QC Report Prepared and Certified By", "required": true, "min_words": 5, "max_words": 60, "instructions": "The certifying inspector block from inspector: name, title, credentials each on its own line, then 'Signature & Date'." }
+  ]
+}

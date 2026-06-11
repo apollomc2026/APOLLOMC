@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Daily Construction Report",
+  "description": "Structured output schema for a daily construction / field report (contractor_form genre).",
+  "type": "object",
+  "required": ["metadata", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["deliverable_type", "title"],
+      "properties": {
+        "deliverable_type": { "type": "string", "const": "daily-construction-report" },
+        "title": { "type": "string", "minLength": 3 },
+        "project_name": { "type": "string" },
+        "job_number": { "type": "string" },
+        "report_date": { "type": "string" },
+        "prepared_by": { "type": "string" }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "content"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "identification",
+              "weather_conditions",
+              "crew",
+              "work_performed",
+              "work_status",
+              "equipment_on_site",
+              "materials_consumed",
+              "third_party_activity",
+              "issues_delays",
+              "safety_observations",
+              "signature"
+            ]
+          },
+          "label": { "type": "string" },
+          "content": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

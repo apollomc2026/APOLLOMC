@@ -1,0 +1,40 @@
+{
+  "deliverable_slug": "daily-construction-report",
+  "required_fields": [
+    { "key": "project_name", "label": "Project name", "type": "text", "placeholder": "e.g., Nashua Elm/High Street Parking Garages — Inductive Loop Installation" },
+    { "key": "job_number", "label": "Job / contract number", "type": "text", "placeholder": "e.g., WT Job #3154 / 3155" },
+    { "key": "site_location", "label": "Site location", "type": "text", "placeholder": "e.g., 19 Elm Street + 15 High Street, Nashua, NH" },
+    { "key": "report_date", "label": "Report date", "type": "date", "placeholder": "Day of the report" },
+    { "key": "prepared_by", "label": "Prepared by (name, title, credentials)", "type": "text", "placeholder": "e.g., Jonathan Sargent — Principal, OSHA-30, MA LV" },
+    { "key": "day_summary", "label": "Day headline / status", "type": "text", "placeholder": "e.g., Day 3 of 3 — Project Completion / all 19 loops installed & QC verified" },
+    { "key": "weather_conditions", "label": "Weather (conditions, temp, precipitation, wind, impact on work)", "type": "textarea", "placeholder": "Conditions | High temp | Precipitation | Wind, then the impact-on-work narrative" },
+    { "key": "crew_roster", "label": "Crew (one per line: Name | Role | Hours | Cert)", "type": "textarea", "placeholder": "Jonathan Sargent | Principal / QC | 6.5 | OSHA-30, MA LV\nTomas Galeano | Technician | 6.5 | OJT" },
+    { "key": "work_performed", "label": "Work performed (time-ordered activity log)", "type": "textarea", "placeholder": "One entry per time block: time range — what was done, where, by whom" },
+    { "key": "work_status", "label": "Work / installation status (one area per line: Area | Quantity | Status | Notes)", "type": "textarea", "placeholder": "Plaza 1 | 7 loops | QC PASS — Complete | Open to traffic" }
+  ],
+  "optional_fields": [
+    { "key": "equipment_on_site", "label": "Equipment on site (one per line)", "type": "textarea", "placeholder": "Hilti DSH 900-X 16\" gas saw\nChampion 4500W generator ..." },
+    { "key": "materials_consumed", "label": "Materials consumed (one per line)", "type": "textarea", "placeholder": "BD Loop Sealant: 5 bottles\n14 AWG THHN: ~350 ft ..." },
+    { "key": "subcontractor_activity", "label": "Third-party / subcontractor activity (one per line)", "type": "textarea", "placeholder": "Name (Company / role) on site" },
+    { "key": "issues_delays", "label": "Issues, delays, and schedule variance (one per line)", "type": "textarea", "placeholder": "Weather event: light drizzle ~10:30 AM; rain response protocol executed; no schedule impact" },
+    { "key": "safety_observations", "label": "Safety observations (one per line)", "type": "textarea", "placeholder": "No incidents, near-misses, or recordables; PPE worn and verified ..." },
+    { "key": "follow_up", "label": "Follow-up / next-day plan", "type": "textarea", "placeholder": "Courtesy follow-up inspection scheduled ..." }
+  ],
+  "file_upload_prompts": [
+    { "kind": "reference_doc", "label": "Upload SOW, drawings, or prior daily reports", "required": false },
+    { "kind": "reference_image", "label": "Upload site / progress photos", "required": false }
+  ],
+  "sections": [
+    { "key": "identification", "label": "Report Details", "required": true, "min_words": 20, "max_words": 90, "instructions": "Render ONLY a two-column markdown table of the report metadata: rows for Project, Job #, Location, Report Date, Day/Status, Prepared By — values from the user fields. No prose. This is the boxed identification block." },
+    { "key": "weather_conditions", "label": "Weather Conditions", "required": true, "min_words": 40, "max_words": 160, "instructions": "A markdown table with columns: Conditions | High Temp | Precipitation | Wind (one row). Then one short paragraph 'Impact on Work' from the user's weather input. Do not invent figures not provided." },
+    { "key": "crew", "label": "Crew", "required": true, "min_words": 15, "max_words": 120, "instructions": "A markdown table with columns: Name | Role | Hours | Cert, one row per crew member parsed from the crew field (pipe-delimited). Add a final 'Total Crew Hours' row summing Hours. Right-align Hours." },
+    { "key": "work_performed", "label": "Work Performed", "required": true, "min_words": 80, "max_words": 450, "instructions": "A markdown table with columns: Time | Activity, one row per time block from the work-performed field, in chronological order. Preserve the user's times and details exactly; do not embellish." },
+    { "key": "work_status", "label": "Installation / Work Status", "required": true, "min_words": 30, "max_words": 200, "instructions": "A markdown table with columns: Area | Quantity | Status | Notes from the work-status field, plus a final TOTAL row. Right-align Quantity." },
+    { "key": "equipment_on_site", "label": "Equipment On Site", "required": false, "min_words": 10, "max_words": 200, "instructions": "A tight bullet list, one item per line from the equipment field. Omit the section entirely if no equipment was provided." },
+    { "key": "materials_consumed", "label": "Materials Consumed", "required": false, "min_words": 10, "max_words": 200, "instructions": "A tight bullet list of materials from the materials field. Omit if none provided." },
+    { "key": "third_party_activity", "label": "Third-Party / Subcontractor Activity", "required": false, "min_words": 5, "max_words": 150, "instructions": "A tight bullet list of other parties on site. Omit if none provided." },
+    { "key": "issues_delays", "label": "Issues, Delays, and Schedule Variance", "required": false, "min_words": 5, "max_words": 200, "instructions": "A tight bullet list. If none provided, render a single line: 'No issues, delays, or schedule variance.'" },
+    { "key": "safety_observations", "label": "Safety Observations", "required": false, "min_words": 5, "max_words": 200, "instructions": "A tight bullet list of safety observations from the field. Omit if none provided." },
+    { "key": "signature", "label": "Report Prepared and Submitted By", "required": true, "min_words": 5, "max_words": 60, "instructions": "Render the preparer block: name, title, and credentials from prepared_by, each on its own line, followed by a line 'Signature & Date'. No table." }
+  ]
+}

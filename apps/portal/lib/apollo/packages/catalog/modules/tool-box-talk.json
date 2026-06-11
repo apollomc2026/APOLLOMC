@@ -1,0 +1,32 @@
+{
+  "deliverable_slug": "tool-box-talk",
+  "required_fields": [
+    { "key": "project_name", "label": "Project name", "type": "text", "placeholder": "e.g., Nashua Elm/High Street Parking Garages — Inductive Loop Installation" },
+    { "key": "job_number", "label": "Job / contract number", "type": "text", "placeholder": "e.g., WT Job #3154 / 3155" },
+    { "key": "briefing_location", "label": "Briefing location", "type": "text", "placeholder": "e.g., High Street Garage — staging area" },
+    { "key": "briefing_time", "label": "Briefing date / time", "type": "text", "placeholder": "e.g., 6:00 AM — pre-shift, prior to Plaza 4 cutting" },
+    { "key": "conducted_by", "label": "Conducted by (name, title, credentials)", "type": "text", "placeholder": "e.g., Jonathan Sargent — OSHA-30; MA LV; Competent Person" },
+    { "key": "attendees", "label": "Attendees (one per line: Name | Role / Company)", "type": "textarea", "placeholder": "Jonathan Sargent | Principal / Competent Person — On Spot Solutions LLC" },
+    { "key": "work_scope", "label": "Today's work scope (one item per line)", "type": "textarea", "placeholder": "Plaza 4: markout, cut, lay-in, seal final 4 loops ..." },
+    { "key": "hazards_controls", "label": "Hazards & controls (one per line: Hazard | Controls confirmed in place)", "type": "textarea", "placeholder": "Respirable Crystalline Silica (29 CFR 1926.1153) | Water pump verified; Table 1; N95 worn" }
+  ],
+  "optional_fields": [
+    { "key": "reference_documents", "label": "Reference documents", "type": "textarea", "placeholder": "SOW, AHA, SDS, prior TBTs/reports" },
+    { "key": "ppe_required", "label": "PPE required (one item per line)", "type": "textarea", "placeholder": "ANSI Z87.1 safety glasses\nN95 respirators during cutting\nHi-vis vest ..." },
+    { "key": "topics_discussed", "label": "Specific topics discussed (one item per line)", "type": "textarea", "placeholder": "Confirmed prior protocols\nWeather watch / rain response\nDemobilization plan ..." },
+    { "key": "notes", "label": "Notes / discussion", "type": "textarea", "placeholder": "Free-form notes captured at the briefing" }
+  ],
+  "file_upload_prompts": [
+    { "kind": "reference_doc", "label": "Upload AHA, SDS, or prior tool box talks", "required": false }
+  ],
+  "sections": [
+    { "key": "identification", "label": "Briefing Details", "required": true, "min_words": 20, "max_words": 120, "instructions": "ONLY a two-column markdown table: Project, Job #, Briefing Location, Briefing Time, Conducted By, Reference Documents (omit the last row if not provided). No prose." },
+    { "key": "attendees", "label": "Attendees", "required": true, "min_words": 10, "max_words": 150, "instructions": "A markdown table: Name | Role / Company | Signature / Initials, one row per attendee (leave the signature cell blank for wet-ink sign-off)." },
+    { "key": "work_scope", "label": "Today's Work Scope", "required": true, "min_words": 20, "max_words": 250, "instructions": "A tight bullet list, one item per line of work_scope. Operational and specific; no narrative padding." },
+    { "key": "hazards_controls", "label": "Hazards Reviewed & Controls Confirmed", "required": true, "min_words": 30, "max_words": 400, "instructions": "A markdown table: Hazard | Controls Confirmed In Place, one row per pipe-delimited line of hazards_controls. Reproduce regulatory citations exactly as provided." },
+    { "key": "ppe_required", "label": "PPE Required — Verified Issued and Worn", "required": false, "min_words": 10, "max_words": 160, "instructions": "Render each ppe_required line as a '- [x] …' markdown checkbox item. Omit if not provided." },
+    { "key": "topics_discussed", "label": "Specific Topics Discussed", "required": false, "min_words": 10, "max_words": 250, "instructions": "Render each topics_discussed line as a '- [x] …' markdown checkbox item. Omit if not provided." },
+    { "key": "notes", "label": "Notes / Discussion", "required": false, "min_words": 10, "max_words": 200, "instructions": "Short paragraphs or bullets from notes. Omit if not provided." },
+    { "key": "signatures", "label": "Acknowledgment", "required": true, "min_words": 10, "max_words": 120, "instructions": "Two parallel blocks: 'Briefing Conducted By' (from conducted_by) and 'Crew Acknowledgment' (the lead attendee) — each name, title, company, then 'Signature & Date'." }
+  ]
+}

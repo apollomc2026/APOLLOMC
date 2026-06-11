@@ -1,0 +1,31 @@
+{
+  "deliverable_slug": "project-completion-notice",
+  "required_fields": [
+    { "key": "issued_to", "label": "Issued to (GC / customer)", "type": "text", "placeholder": "e.g., Whiting-Turner Contracting Company / Flowbird Group" },
+    { "key": "project_name", "label": "Project name", "type": "text", "placeholder": "e.g., Nashua Elm/High Street Parking Garages — Inductive Loop Installation" },
+    { "key": "job_number", "label": "Job / contract number", "type": "text", "placeholder": "e.g., WT Job #3154 / 3155" },
+    { "key": "issued_by", "label": "Issued by (name, title, company)", "type": "text", "placeholder": "e.g., Jonathan Sargent, Principal, On Spot Solutions LLC" },
+    { "key": "completion_date", "label": "Date of substantial completion", "type": "text", "placeholder": "e.g., Wednesday, May 13, 2026 — 12:00 PM" },
+    { "key": "completion_statement", "label": "Substantial-completion statement", "type": "textarea", "placeholder": "What was completed, where, verified how, within what window" },
+    { "key": "scope_completed", "label": "Scope completed (one per line: Area | Quantity | Status / detail)", "type": "textarea", "placeholder": "Plaza 1 — Garden St S (Elm Garage) | 7 | Cut, lay-in, sealed; all verified PASS" },
+    { "key": "scope_boundary", "label": "Scope boundary & handoff", "type": "textarea", "placeholder": "Where this scope terminates and what falls to other parties (per SOW §)" }
+  ],
+  "optional_fields": [
+    { "key": "reference_documents", "label": "Reference documents", "type": "textarea", "placeholder": "SOW v2.0 (executed ...), Change Order #1, Invoice ..." },
+    { "key": "site_conditions", "label": "Site conditions at completion (one checklist item per line)", "type": "textarea", "placeholder": "All loops installed and verified PASS\nSites restored to broom-clean\nZero incidents ..." },
+    { "key": "acknowledgments", "label": "Acknowledgments (one per line)", "type": "textarea", "placeholder": "Name (Company / role) — for ..." },
+    { "key": "signatories", "label": "Signatories (one per line: Role | Name | Title | Company)", "type": "textarea", "placeholder": "Issued By | Jonathan Sargent | Principal | On Spot Solutions LLC\nAcknowledged (GC) | Cameron McGrady | Site Superintendent | Whiting-Turner" }
+  ],
+  "file_upload_prompts": [
+    { "kind": "reference_doc", "label": "Upload SOW, change orders, or final QC report", "required": false }
+  ],
+  "sections": [
+    { "key": "identification", "label": "Notice Details", "required": true, "min_words": 20, "max_words": 110, "instructions": "ONLY a two-column markdown table: Issued To, Project, Job #, Reference Documents, Issued By (omit Reference Documents row if not provided). No prose." },
+    { "key": "declaration", "label": "Declaration of Substantial Completion", "required": true, "min_words": 40, "max_words": 180, "instructions": "Open with one short formal sentence declaring substantial completion. Then an emphasized line with the completion_date, then one short paragraph from completion_statement. Plain, formal, no marketing." },
+    { "key": "scope_completed", "label": "Scope of Work Completed", "required": true, "min_words": 30, "max_words": 260, "instructions": "A markdown table: Area | Quantity | Completion Status from scope_completed, plus a PROJECT TOTAL row. Right-align Quantity." },
+    { "key": "scope_boundary", "label": "Scope Boundary & Handoff", "required": true, "min_words": 30, "max_words": 220, "instructions": "One or two short paragraphs from scope_boundary stating where this scope terminates and what falls to other parties. Factual, no embellishment." },
+    { "key": "site_conditions", "label": "Site Conditions at Completion", "required": false, "min_words": 10, "max_words": 180, "instructions": "A checklist: render each line of site_conditions as a '- [x] …' markdown checkbox item. Omit the section if none provided." },
+    { "key": "acknowledgments", "label": "Acknowledgments", "required": false, "min_words": 10, "max_words": 200, "instructions": "A tight bullet list crediting the parties from acknowledgments. Omit if none provided." },
+    { "key": "signatures", "label": "Signatures", "required": true, "min_words": 10, "max_words": 140, "instructions": "For each line of signatories, render a block: the ROLE label, then Name, Title, Company on separate lines, then 'Signature & Date'. Separate the parties clearly so they read as parallel sign-off columns." }
+  ]
+}

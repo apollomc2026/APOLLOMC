@@ -6,7 +6,7 @@
 // has zero runtime file dependencies — required for Vercel serverless where
 // outputFileTracingIncludes is unreliable with the --turbopack production build.
 //
-// Counts at generation time: 31 modules, 31 schemas, 15 styles.
+// Counts at generation time: 35 modules, 35 schemas, 16 styles.
 
 /* eslint-disable */
 
@@ -379,6 +379,46 @@ export const CATALOG_RAW = {
           "estimated_minutes": 4,
           "base_price_cents": 4500,
           "schema_file": "quote.schema.json"
+        },
+        {
+          "slug": "daily-construction-report",
+          "label": "Daily Construction Report",
+          "description": "Daily field/construction report — weather, crew, time-ordered work log, installation status, equipment, materials, and safety, in a dense tabular form.",
+          "estimated_pages_min": 3,
+          "estimated_pages_max": 4,
+          "estimated_minutes": 5,
+          "base_price_cents": 0,
+          "schema_file": "daily-construction-report.schema.json"
+        },
+        {
+          "slug": "final-qc-report",
+          "label": "Final Quality Control Report",
+          "description": "Final quality-control / inspection report — acceptance criteria, test instruments, a per-item results table, and certification.",
+          "estimated_pages_min": 3,
+          "estimated_pages_max": 4,
+          "estimated_minutes": 5,
+          "base_price_cents": 0,
+          "schema_file": "final-qc-report.schema.json"
+        },
+        {
+          "slug": "project-completion-notice",
+          "label": "Project Completion Notice",
+          "description": "Substantial-completion and scope-handoff notice with a completed-scope table, scope boundary, site-condition checklist, and multi-party signatures.",
+          "estimated_pages_min": 2,
+          "estimated_pages_max": 3,
+          "estimated_minutes": 5,
+          "base_price_cents": 0,
+          "schema_file": "project-completion-notice.schema.json"
+        },
+        {
+          "slug": "tool-box-talk",
+          "label": "Tool Box Talk",
+          "description": "Pre-shift safety briefing — attendees, work scope, hazards & controls table, PPE and topics checklists, and crew acknowledgment.",
+          "estimated_pages_min": 3,
+          "estimated_pages_max": 3,
+          "estimated_minutes": 5,
+          "base_price_cents": 0,
+          "schema_file": "tool-box-talk.schema.json"
         }
       ]
     },
@@ -2041,6 +2081,211 @@ export const MODULES_RAW: Record<string, unknown> = {
       }
     ]
   },
+  "daily-construction-report": {
+    "deliverable_slug": "daily-construction-report",
+    "required_fields": [
+      {
+        "key": "project_name",
+        "label": "Project name",
+        "type": "text",
+        "placeholder": "e.g., Nashua Elm/High Street Parking Garages — Inductive Loop Installation"
+      },
+      {
+        "key": "job_number",
+        "label": "Job / contract number",
+        "type": "text",
+        "placeholder": "e.g., WT Job #3154 / 3155"
+      },
+      {
+        "key": "site_location",
+        "label": "Site location",
+        "type": "text",
+        "placeholder": "e.g., 19 Elm Street + 15 High Street, Nashua, NH"
+      },
+      {
+        "key": "report_date",
+        "label": "Report date",
+        "type": "date",
+        "placeholder": "Day of the report"
+      },
+      {
+        "key": "prepared_by",
+        "label": "Prepared by (name, title, credentials)",
+        "type": "text",
+        "placeholder": "e.g., Jonathan Sargent — Principal, OSHA-30, MA LV"
+      },
+      {
+        "key": "day_summary",
+        "label": "Day headline / status",
+        "type": "text",
+        "placeholder": "e.g., Day 3 of 3 — Project Completion / all 19 loops installed & QC verified"
+      },
+      {
+        "key": "weather_conditions",
+        "label": "Weather (conditions, temp, precipitation, wind, impact on work)",
+        "type": "textarea",
+        "placeholder": "Conditions | High temp | Precipitation | Wind, then the impact-on-work narrative"
+      },
+      {
+        "key": "crew_roster",
+        "label": "Crew (one per line: Name | Role | Hours | Cert)",
+        "type": "textarea",
+        "placeholder": "Jonathan Sargent | Principal / QC | 6.5 | OSHA-30, MA LV\nTomas Galeano | Technician | 6.5 | OJT"
+      },
+      {
+        "key": "work_performed",
+        "label": "Work performed (time-ordered activity log)",
+        "type": "textarea",
+        "placeholder": "One entry per time block: time range — what was done, where, by whom"
+      },
+      {
+        "key": "work_status",
+        "label": "Work / installation status (one area per line: Area | Quantity | Status | Notes)",
+        "type": "textarea",
+        "placeholder": "Plaza 1 | 7 loops | QC PASS — Complete | Open to traffic"
+      }
+    ],
+    "optional_fields": [
+      {
+        "key": "equipment_on_site",
+        "label": "Equipment on site (one per line)",
+        "type": "textarea",
+        "placeholder": "Hilti DSH 900-X 16\" gas saw\nChampion 4500W generator ..."
+      },
+      {
+        "key": "materials_consumed",
+        "label": "Materials consumed (one per line)",
+        "type": "textarea",
+        "placeholder": "BD Loop Sealant: 5 bottles\n14 AWG THHN: ~350 ft ..."
+      },
+      {
+        "key": "subcontractor_activity",
+        "label": "Third-party / subcontractor activity (one per line)",
+        "type": "textarea",
+        "placeholder": "Name (Company / role) on site"
+      },
+      {
+        "key": "issues_delays",
+        "label": "Issues, delays, and schedule variance (one per line)",
+        "type": "textarea",
+        "placeholder": "Weather event: light drizzle ~10:30 AM; rain response protocol executed; no schedule impact"
+      },
+      {
+        "key": "safety_observations",
+        "label": "Safety observations (one per line)",
+        "type": "textarea",
+        "placeholder": "No incidents, near-misses, or recordables; PPE worn and verified ..."
+      },
+      {
+        "key": "follow_up",
+        "label": "Follow-up / next-day plan",
+        "type": "textarea",
+        "placeholder": "Courtesy follow-up inspection scheduled ..."
+      }
+    ],
+    "file_upload_prompts": [
+      {
+        "kind": "reference_doc",
+        "label": "Upload SOW, drawings, or prior daily reports",
+        "required": false
+      },
+      {
+        "kind": "reference_image",
+        "label": "Upload site / progress photos",
+        "required": false
+      }
+    ],
+    "sections": [
+      {
+        "key": "identification",
+        "label": "Report Details",
+        "required": true,
+        "min_words": 20,
+        "max_words": 90,
+        "instructions": "Render ONLY a two-column markdown table of the report metadata: rows for Project, Job #, Location, Report Date, Day/Status, Prepared By — values from the user fields. No prose. This is the boxed identification block."
+      },
+      {
+        "key": "weather_conditions",
+        "label": "Weather Conditions",
+        "required": true,
+        "min_words": 40,
+        "max_words": 160,
+        "instructions": "A markdown table with columns: Conditions | High Temp | Precipitation | Wind (one row). Then one short paragraph 'Impact on Work' from the user's weather input. Do not invent figures not provided."
+      },
+      {
+        "key": "crew",
+        "label": "Crew",
+        "required": true,
+        "min_words": 15,
+        "max_words": 120,
+        "instructions": "A markdown table with columns: Name | Role | Hours | Cert, one row per crew member parsed from the crew field (pipe-delimited). Add a final 'Total Crew Hours' row summing Hours. Right-align Hours."
+      },
+      {
+        "key": "work_performed",
+        "label": "Work Performed",
+        "required": true,
+        "min_words": 80,
+        "max_words": 450,
+        "instructions": "A markdown table with columns: Time | Activity, one row per time block from the work-performed field, in chronological order. Preserve the user's times and details exactly; do not embellish."
+      },
+      {
+        "key": "work_status",
+        "label": "Installation / Work Status",
+        "required": true,
+        "min_words": 30,
+        "max_words": 200,
+        "instructions": "A markdown table with columns: Area | Quantity | Status | Notes from the work-status field, plus a final TOTAL row. Right-align Quantity."
+      },
+      {
+        "key": "equipment_on_site",
+        "label": "Equipment On Site",
+        "required": false,
+        "min_words": 10,
+        "max_words": 200,
+        "instructions": "A tight bullet list, one item per line from the equipment field. Omit the section entirely if no equipment was provided."
+      },
+      {
+        "key": "materials_consumed",
+        "label": "Materials Consumed",
+        "required": false,
+        "min_words": 10,
+        "max_words": 200,
+        "instructions": "A tight bullet list of materials from the materials field. Omit if none provided."
+      },
+      {
+        "key": "third_party_activity",
+        "label": "Third-Party / Subcontractor Activity",
+        "required": false,
+        "min_words": 5,
+        "max_words": 150,
+        "instructions": "A tight bullet list of other parties on site. Omit if none provided."
+      },
+      {
+        "key": "issues_delays",
+        "label": "Issues, Delays, and Schedule Variance",
+        "required": false,
+        "min_words": 5,
+        "max_words": 200,
+        "instructions": "A tight bullet list. If none provided, render a single line: 'No issues, delays, or schedule variance.'"
+      },
+      {
+        "key": "safety_observations",
+        "label": "Safety Observations",
+        "required": false,
+        "min_words": 5,
+        "max_words": 200,
+        "instructions": "A tight bullet list of safety observations from the field. Omit if none provided."
+      },
+      {
+        "key": "signature",
+        "label": "Report Prepared and Submitted By",
+        "required": true,
+        "min_words": 5,
+        "max_words": 60,
+        "instructions": "Render the preparer block: name, title, and credentials from prepared_by, each on its own line, followed by a line 'Signature & Date'. No table."
+      }
+    ]
+  },
   "discovery-summary": {
     "deliverable_slug": "discovery-summary",
     "required_fields": [
@@ -3132,6 +3377,158 @@ export const MODULES_RAW: Record<string, unknown> = {
         "min_words": 50,
         "max_words": 500,
         "instructions": "Supporting materials including resumes, certifications, letters of commitment from teaming partners, and detailed pricing tables."
+      }
+    ]
+  },
+  "final-qc-report": {
+    "deliverable_slug": "final-qc-report",
+    "required_fields": [
+      {
+        "key": "project_name",
+        "label": "Project name",
+        "type": "text",
+        "placeholder": "e.g., Nashua Elm/High Street Parking Garages — Inductive Loop Installation"
+      },
+      {
+        "key": "job_number",
+        "label": "Job / contract number",
+        "type": "text",
+        "placeholder": "e.g., WT Job #3154 / 3155"
+      },
+      {
+        "key": "project_period",
+        "label": "Project period",
+        "type": "text",
+        "placeholder": "e.g., May 11–13, 2026 (3-day Site Window)"
+      },
+      {
+        "key": "report_date",
+        "label": "Report date",
+        "type": "date",
+        "placeholder": "Date of QC report"
+      },
+      {
+        "key": "inspector",
+        "label": "Inspector (name, title, credentials)",
+        "type": "text",
+        "placeholder": "e.g., Jonathan Sargent — Principal / QC Inspector; MA LV (Class C); OSHA-30"
+      },
+      {
+        "key": "reference_documents",
+        "label": "Reference documents / standards",
+        "type": "textarea",
+        "placeholder": "SOW §, drawings, FHWA handbook, prior QC reports ..."
+      },
+      {
+        "key": "completion_statement",
+        "label": "Completion / pass statement",
+        "type": "text",
+        "placeholder": "e.g., All 19 inductive loops verified PASS per acceptance criteria"
+      },
+      {
+        "key": "acceptance_criteria",
+        "label": "Acceptance criteria (one per line: Test | Pass | Marginal | Fail)",
+        "type": "textarea",
+        "placeholder": "Continuity | Closed circuit | — | Open circuit\nDC Resistance | < 5 Ω | 5–8 Ω | > 8 Ω"
+      },
+      {
+        "key": "test_results",
+        "label": "Test results (one per line: ID | Location | + your measured columns | Result)",
+        "type": "textarea",
+        "placeholder": "P1-L1 | Plaza 1 — Garden St S | Closed | ~3 Ω | ~124 MΩ | PASS"
+      }
+    ],
+    "optional_fields": [
+      {
+        "key": "test_instruments",
+        "label": "Test instruments (one per line: Instrument | Purpose)",
+        "type": "textarea",
+        "placeholder": "Digital Ohmmeter | Continuity + DC resistance\nMegohmmeter | Insulation resistance to ground"
+      },
+      {
+        "key": "quality_summary",
+        "label": "Quality summary (one per line: Group | Quantity | Status)",
+        "type": "textarea",
+        "placeholder": "Elm Street Garage | 11 | ALL PASS"
+      },
+      {
+        "key": "qc_notes",
+        "label": "Final QC notes (one per line)",
+        "type": "textarea",
+        "placeholder": "Readings clustered; no deviations from SOW; scope handoff notes ..."
+      }
+    ],
+    "file_upload_prompts": [
+      {
+        "kind": "reference_doc",
+        "label": "Upload SOW, acceptance standards, or raw test logs",
+        "required": false
+      }
+    ],
+    "sections": [
+      {
+        "key": "identification",
+        "label": "Report Details",
+        "required": true,
+        "min_words": 20,
+        "max_words": 110,
+        "instructions": "ONLY a two-column markdown table: Project, Job #, Project Period, Report Date, Inspector, Reference. No prose."
+      },
+      {
+        "key": "completion_statement",
+        "label": "Project Completion",
+        "required": true,
+        "min_words": 15,
+        "max_words": 90,
+        "instructions": "One short emphasized paragraph stating the overall pass/completion result from completion_statement. No table, no fabricated counts beyond what is provided."
+      },
+      {
+        "key": "acceptance_criteria",
+        "label": "Acceptance Criteria",
+        "required": true,
+        "min_words": 30,
+        "max_words": 220,
+        "instructions": "A markdown table with columns: Test | Pass | Marginal / Review | Fail, one row per criterion from the acceptance_criteria field (pipe-delimited). Use '—' for empty cells. Reproduce thresholds exactly as provided."
+      },
+      {
+        "key": "test_instruments",
+        "label": "Test Instruments",
+        "required": false,
+        "min_words": 10,
+        "max_words": 150,
+        "instructions": "A markdown table: Instrument | Purpose, from the field. Omit the section if not provided."
+      },
+      {
+        "key": "test_results",
+        "label": "Final Test Results",
+        "required": true,
+        "min_words": 40,
+        "max_words": 600,
+        "instructions": "A markdown table whose columns match the header of the test_results field (e.g., ID | Location | Continuity | DC Resistance | Insulation R | Result), one row per item. Right-align numeric/measurement columns. Reproduce every value exactly; never invent a reading. Below the table, one line stating overall pass."
+      },
+      {
+        "key": "quality_summary",
+        "label": "Project Quality Summary",
+        "required": false,
+        "min_words": 10,
+        "max_words": 150,
+        "instructions": "A markdown table: Group | Quantity | Status from quality_summary, plus a TOTAL row. Omit if not provided."
+      },
+      {
+        "key": "qc_notes",
+        "label": "Final QC Notes",
+        "required": false,
+        "min_words": 10,
+        "max_words": 250,
+        "instructions": "A tight bullet list of QC notes. Omit if none provided."
+      },
+      {
+        "key": "certification",
+        "label": "Final QC Report Prepared and Certified By",
+        "required": true,
+        "min_words": 5,
+        "max_words": 60,
+        "instructions": "The certifying inspector block from inspector: name, title, credentials each on its own line, then 'Signature & Date'."
       }
     ]
   },
@@ -6111,6 +6508,150 @@ export const MODULES_RAW: Record<string, unknown> = {
       }
     ]
   },
+  "project-completion-notice": {
+    "deliverable_slug": "project-completion-notice",
+    "required_fields": [
+      {
+        "key": "issued_to",
+        "label": "Issued to (GC / customer)",
+        "type": "text",
+        "placeholder": "e.g., Whiting-Turner Contracting Company / Flowbird Group"
+      },
+      {
+        "key": "project_name",
+        "label": "Project name",
+        "type": "text",
+        "placeholder": "e.g., Nashua Elm/High Street Parking Garages — Inductive Loop Installation"
+      },
+      {
+        "key": "job_number",
+        "label": "Job / contract number",
+        "type": "text",
+        "placeholder": "e.g., WT Job #3154 / 3155"
+      },
+      {
+        "key": "issued_by",
+        "label": "Issued by (name, title, company)",
+        "type": "text",
+        "placeholder": "e.g., Jonathan Sargent, Principal, On Spot Solutions LLC"
+      },
+      {
+        "key": "completion_date",
+        "label": "Date of substantial completion",
+        "type": "text",
+        "placeholder": "e.g., Wednesday, May 13, 2026 — 12:00 PM"
+      },
+      {
+        "key": "completion_statement",
+        "label": "Substantial-completion statement",
+        "type": "textarea",
+        "placeholder": "What was completed, where, verified how, within what window"
+      },
+      {
+        "key": "scope_completed",
+        "label": "Scope completed (one per line: Area | Quantity | Status / detail)",
+        "type": "textarea",
+        "placeholder": "Plaza 1 — Garden St S (Elm Garage) | 7 | Cut, lay-in, sealed; all verified PASS"
+      },
+      {
+        "key": "scope_boundary",
+        "label": "Scope boundary & handoff",
+        "type": "textarea",
+        "placeholder": "Where this scope terminates and what falls to other parties (per SOW §)"
+      }
+    ],
+    "optional_fields": [
+      {
+        "key": "reference_documents",
+        "label": "Reference documents",
+        "type": "textarea",
+        "placeholder": "SOW v2.0 (executed ...), Change Order #1, Invoice ..."
+      },
+      {
+        "key": "site_conditions",
+        "label": "Site conditions at completion (one checklist item per line)",
+        "type": "textarea",
+        "placeholder": "All loops installed and verified PASS\nSites restored to broom-clean\nZero incidents ..."
+      },
+      {
+        "key": "acknowledgments",
+        "label": "Acknowledgments (one per line)",
+        "type": "textarea",
+        "placeholder": "Name (Company / role) — for ..."
+      },
+      {
+        "key": "signatories",
+        "label": "Signatories (one per line: Role | Name | Title | Company)",
+        "type": "textarea",
+        "placeholder": "Issued By | Jonathan Sargent | Principal | On Spot Solutions LLC\nAcknowledged (GC) | Cameron McGrady | Site Superintendent | Whiting-Turner"
+      }
+    ],
+    "file_upload_prompts": [
+      {
+        "kind": "reference_doc",
+        "label": "Upload SOW, change orders, or final QC report",
+        "required": false
+      }
+    ],
+    "sections": [
+      {
+        "key": "identification",
+        "label": "Notice Details",
+        "required": true,
+        "min_words": 20,
+        "max_words": 110,
+        "instructions": "ONLY a two-column markdown table: Issued To, Project, Job #, Reference Documents, Issued By (omit Reference Documents row if not provided). No prose."
+      },
+      {
+        "key": "declaration",
+        "label": "Declaration of Substantial Completion",
+        "required": true,
+        "min_words": 40,
+        "max_words": 180,
+        "instructions": "Open with one short formal sentence declaring substantial completion. Then an emphasized line with the completion_date, then one short paragraph from completion_statement. Plain, formal, no marketing."
+      },
+      {
+        "key": "scope_completed",
+        "label": "Scope of Work Completed",
+        "required": true,
+        "min_words": 30,
+        "max_words": 260,
+        "instructions": "A markdown table: Area | Quantity | Completion Status from scope_completed, plus a PROJECT TOTAL row. Right-align Quantity."
+      },
+      {
+        "key": "scope_boundary",
+        "label": "Scope Boundary & Handoff",
+        "required": true,
+        "min_words": 30,
+        "max_words": 220,
+        "instructions": "One or two short paragraphs from scope_boundary stating where this scope terminates and what falls to other parties. Factual, no embellishment."
+      },
+      {
+        "key": "site_conditions",
+        "label": "Site Conditions at Completion",
+        "required": false,
+        "min_words": 10,
+        "max_words": 180,
+        "instructions": "A checklist: render each line of site_conditions as a '- [x] …' markdown checkbox item. Omit the section if none provided."
+      },
+      {
+        "key": "acknowledgments",
+        "label": "Acknowledgments",
+        "required": false,
+        "min_words": 10,
+        "max_words": 200,
+        "instructions": "A tight bullet list crediting the parties from acknowledgments. Omit if none provided."
+      },
+      {
+        "key": "signatures",
+        "label": "Signatures",
+        "required": true,
+        "min_words": 10,
+        "max_words": 140,
+        "instructions": "For each line of signatories, render a block: the ROLE label, then Name, Title, Company on separate lines, then 'Signature & Date'. Separate the parties clearly so they read as parallel sign-off columns."
+      }
+    ]
+  },
   "proposal": {
     "deliverable_slug": "proposal",
     "required_fields": [
@@ -7341,6 +7882,158 @@ export const MODULES_RAW: Record<string, unknown> = {
         "instructions": "QUARTERLY ESTIMATED PAYMENTS AND SAFE HARBOR: Branch on whether prior_year_tax_liability is provided.\nIf provided: \"Safe Harbor Analysis: To avoid an underpayment penalty under IRC §6654, the taxpayer should pay through withholdings and estimated quarterly payments by the year-end deadline at least the LESSER of:\n  (a) 90% of the current year's actual tax liability, or\n  (b) 100% of the prior year's tax liability ($[prior_year_tax_liability]) — increased to 110% if prior year AGI exceeded $150,000 ($75,000 if married filing separately).\nCurrent YTD payments (withholdings + estimated): $[withholdings_ytd + estimated_payments_ytd].\nWhether this meets safe harbor depends on the actual current-year tax liability (currently TBD). Consult a CPA to confirm safe harbor compliance and determine if additional Q3/Q4 estimated payments are advisable. Quarterly due dates for the tax year are typically April 15, June 15, September 15, and January 15 of the following year — verify against current IRS schedule.\"\nIf not provided: \"Safe Harbor Analysis Not Available: Prior-year tax liability is required for safe harbor analysis. To compute whether current YTD payments meet IRC §6654 safe harbor thresholds, provide the prior year's total tax liability. Without this data, the taxpayer should consult a CPA to evaluate underpayment penalty risk.\"\n\nEnd the document with a final reminder paragraph (NOT a separate section): \"Reminder: This document is an estimate prepared for planning purposes only. It is not tax advice. Consult a licensed CPA or tax attorney before relying on these figures, filing any return, or making decisions affecting tax liability. — [prepared_by], [prepared_date].\""
       }
     ]
+  },
+  "tool-box-talk": {
+    "deliverable_slug": "tool-box-talk",
+    "required_fields": [
+      {
+        "key": "project_name",
+        "label": "Project name",
+        "type": "text",
+        "placeholder": "e.g., Nashua Elm/High Street Parking Garages — Inductive Loop Installation"
+      },
+      {
+        "key": "job_number",
+        "label": "Job / contract number",
+        "type": "text",
+        "placeholder": "e.g., WT Job #3154 / 3155"
+      },
+      {
+        "key": "briefing_location",
+        "label": "Briefing location",
+        "type": "text",
+        "placeholder": "e.g., High Street Garage — staging area"
+      },
+      {
+        "key": "briefing_time",
+        "label": "Briefing date / time",
+        "type": "text",
+        "placeholder": "e.g., 6:00 AM — pre-shift, prior to Plaza 4 cutting"
+      },
+      {
+        "key": "conducted_by",
+        "label": "Conducted by (name, title, credentials)",
+        "type": "text",
+        "placeholder": "e.g., Jonathan Sargent — OSHA-30; MA LV; Competent Person"
+      },
+      {
+        "key": "attendees",
+        "label": "Attendees (one per line: Name | Role / Company)",
+        "type": "textarea",
+        "placeholder": "Jonathan Sargent | Principal / Competent Person — On Spot Solutions LLC"
+      },
+      {
+        "key": "work_scope",
+        "label": "Today's work scope (one item per line)",
+        "type": "textarea",
+        "placeholder": "Plaza 4: markout, cut, lay-in, seal final 4 loops ..."
+      },
+      {
+        "key": "hazards_controls",
+        "label": "Hazards & controls (one per line: Hazard | Controls confirmed in place)",
+        "type": "textarea",
+        "placeholder": "Respirable Crystalline Silica (29 CFR 1926.1153) | Water pump verified; Table 1; N95 worn"
+      }
+    ],
+    "optional_fields": [
+      {
+        "key": "reference_documents",
+        "label": "Reference documents",
+        "type": "textarea",
+        "placeholder": "SOW, AHA, SDS, prior TBTs/reports"
+      },
+      {
+        "key": "ppe_required",
+        "label": "PPE required (one item per line)",
+        "type": "textarea",
+        "placeholder": "ANSI Z87.1 safety glasses\nN95 respirators during cutting\nHi-vis vest ..."
+      },
+      {
+        "key": "topics_discussed",
+        "label": "Specific topics discussed (one item per line)",
+        "type": "textarea",
+        "placeholder": "Confirmed prior protocols\nWeather watch / rain response\nDemobilization plan ..."
+      },
+      {
+        "key": "notes",
+        "label": "Notes / discussion",
+        "type": "textarea",
+        "placeholder": "Free-form notes captured at the briefing"
+      }
+    ],
+    "file_upload_prompts": [
+      {
+        "kind": "reference_doc",
+        "label": "Upload AHA, SDS, or prior tool box talks",
+        "required": false
+      }
+    ],
+    "sections": [
+      {
+        "key": "identification",
+        "label": "Briefing Details",
+        "required": true,
+        "min_words": 20,
+        "max_words": 120,
+        "instructions": "ONLY a two-column markdown table: Project, Job #, Briefing Location, Briefing Time, Conducted By, Reference Documents (omit the last row if not provided). No prose."
+      },
+      {
+        "key": "attendees",
+        "label": "Attendees",
+        "required": true,
+        "min_words": 10,
+        "max_words": 150,
+        "instructions": "A markdown table: Name | Role / Company | Signature / Initials, one row per attendee (leave the signature cell blank for wet-ink sign-off)."
+      },
+      {
+        "key": "work_scope",
+        "label": "Today's Work Scope",
+        "required": true,
+        "min_words": 20,
+        "max_words": 250,
+        "instructions": "A tight bullet list, one item per line of work_scope. Operational and specific; no narrative padding."
+      },
+      {
+        "key": "hazards_controls",
+        "label": "Hazards Reviewed & Controls Confirmed",
+        "required": true,
+        "min_words": 30,
+        "max_words": 400,
+        "instructions": "A markdown table: Hazard | Controls Confirmed In Place, one row per pipe-delimited line of hazards_controls. Reproduce regulatory citations exactly as provided."
+      },
+      {
+        "key": "ppe_required",
+        "label": "PPE Required — Verified Issued and Worn",
+        "required": false,
+        "min_words": 10,
+        "max_words": 160,
+        "instructions": "Render each ppe_required line as a '- [x] …' markdown checkbox item. Omit if not provided."
+      },
+      {
+        "key": "topics_discussed",
+        "label": "Specific Topics Discussed",
+        "required": false,
+        "min_words": 10,
+        "max_words": 250,
+        "instructions": "Render each topics_discussed line as a '- [x] …' markdown checkbox item. Omit if not provided."
+      },
+      {
+        "key": "notes",
+        "label": "Notes / Discussion",
+        "required": false,
+        "min_words": 10,
+        "max_words": 200,
+        "instructions": "Short paragraphs or bullets from notes. Omit if not provided."
+      },
+      {
+        "key": "signatures",
+        "label": "Acknowledgment",
+        "required": true,
+        "min_words": 10,
+        "max_words": 120,
+        "instructions": "Two parallel blocks: 'Briefing Conducted By' (from conducted_by) and 'Crew Acknowledgment' (the lead attendee) — each name, title, company, then 'Signature & Date'."
+      }
+    ]
   }
 };
 
@@ -8288,6 +8981,85 @@ export const SCHEMAS_RAW: Record<string, unknown> = {
       }
     }
   },
+  "daily-construction-report": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Daily Construction Report",
+    "description": "Structured output schema for a daily construction / field report (contractor_form genre).",
+    "type": "object",
+    "required": [
+      "metadata",
+      "sections"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "metadata": {
+        "type": "object",
+        "required": [
+          "deliverable_type",
+          "title"
+        ],
+        "properties": {
+          "deliverable_type": {
+            "type": "string",
+            "const": "daily-construction-report"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 3
+          },
+          "project_name": {
+            "type": "string"
+          },
+          "job_number": {
+            "type": "string"
+          },
+          "report_date": {
+            "type": "string"
+          },
+          "prepared_by": {
+            "type": "string"
+          }
+        }
+      },
+      "sections": {
+        "type": "array",
+        "minItems": 6,
+        "items": {
+          "type": "object",
+          "required": [
+            "key",
+            "label",
+            "content"
+          ],
+          "properties": {
+            "key": {
+              "type": "string",
+              "enum": [
+                "identification",
+                "weather_conditions",
+                "crew",
+                "work_performed",
+                "work_status",
+                "equipment_on_site",
+                "materials_consumed",
+                "third_party_activity",
+                "issues_delays",
+                "safety_observations",
+                "signature"
+              ]
+            },
+            "label": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
+  },
   "discovery-summary": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "Discovery Summary",
@@ -8807,6 +9579,82 @@ export const SCHEMAS_RAW: Record<string, unknown> = {
                   }
                 }
               }
+            }
+          }
+        }
+      }
+    }
+  },
+  "final-qc-report": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Final Quality Control Report",
+    "description": "Structured output schema for a final QC / inspection report (contractor_form genre).",
+    "type": "object",
+    "required": [
+      "metadata",
+      "sections"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "metadata": {
+        "type": "object",
+        "required": [
+          "deliverable_type",
+          "title"
+        ],
+        "properties": {
+          "deliverable_type": {
+            "type": "string",
+            "const": "final-qc-report"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 3
+          },
+          "project_name": {
+            "type": "string"
+          },
+          "job_number": {
+            "type": "string"
+          },
+          "report_date": {
+            "type": "string"
+          },
+          "inspector": {
+            "type": "string"
+          }
+        }
+      },
+      "sections": {
+        "type": "array",
+        "minItems": 5,
+        "items": {
+          "type": "object",
+          "required": [
+            "key",
+            "label",
+            "content"
+          ],
+          "properties": {
+            "key": {
+              "type": "string",
+              "enum": [
+                "identification",
+                "completion_statement",
+                "acceptance_criteria",
+                "test_instruments",
+                "test_results",
+                "quality_summary",
+                "qc_notes",
+                "certification"
+              ]
+            },
+            "label": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string",
+              "minLength": 1
             }
           }
         }
@@ -9894,6 +10742,81 @@ export const SCHEMAS_RAW: Record<string, unknown> = {
       }
     }
   },
+  "project-completion-notice": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Project Completion Notice",
+    "description": "Structured output schema for a substantial-completion / scope-handoff notice (contractor_form genre).",
+    "type": "object",
+    "required": [
+      "metadata",
+      "sections"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "metadata": {
+        "type": "object",
+        "required": [
+          "deliverable_type",
+          "title"
+        ],
+        "properties": {
+          "deliverable_type": {
+            "type": "string",
+            "const": "project-completion-notice"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 3
+          },
+          "project_name": {
+            "type": "string"
+          },
+          "job_number": {
+            "type": "string"
+          },
+          "issued_to": {
+            "type": "string"
+          },
+          "issued_by": {
+            "type": "string"
+          }
+        }
+      },
+      "sections": {
+        "type": "array",
+        "minItems": 5,
+        "items": {
+          "type": "object",
+          "required": [
+            "key",
+            "label",
+            "content"
+          ],
+          "properties": {
+            "key": {
+              "type": "string",
+              "enum": [
+                "identification",
+                "declaration",
+                "scope_completed",
+                "scope_boundary",
+                "site_conditions",
+                "acknowledgments",
+                "signatures"
+              ]
+            },
+            "label": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
+  },
   "proposal": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://apollomc.ai/schemas/proposal.schema.json",
@@ -10373,6 +11296,82 @@ export const SCHEMAS_RAW: Record<string, unknown> = {
       }
     },
     "additionalProperties": true
+  },
+  "tool-box-talk": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Tool Box Talk",
+    "description": "Structured output schema for a pre-shift safety briefing / tool box talk (contractor_form genre).",
+    "type": "object",
+    "required": [
+      "metadata",
+      "sections"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "metadata": {
+        "type": "object",
+        "required": [
+          "deliverable_type",
+          "title"
+        ],
+        "properties": {
+          "deliverable_type": {
+            "type": "string",
+            "const": "tool-box-talk"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 3
+          },
+          "project_name": {
+            "type": "string"
+          },
+          "job_number": {
+            "type": "string"
+          },
+          "briefing_time": {
+            "type": "string"
+          },
+          "conducted_by": {
+            "type": "string"
+          }
+        }
+      },
+      "sections": {
+        "type": "array",
+        "minItems": 5,
+        "items": {
+          "type": "object",
+          "required": [
+            "key",
+            "label",
+            "content"
+          ],
+          "properties": {
+            "key": {
+              "type": "string",
+              "enum": [
+                "identification",
+                "attendees",
+                "work_scope",
+                "hazards_controls",
+                "ppe_required",
+                "topics_discussed",
+                "notes",
+                "signatures"
+              ]
+            },
+            "label": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
   }
 };
 
@@ -10381,6 +11380,9 @@ export const STYLES_RAW: Record<string, Record<string, string>> = {
     "consulting-bold": "# Consulting Bold — Style Specification\n**Version:** 1\n**Industry:** Consulting\n\n## Typography\n- Heading font: Montserrat\n- Body font: Open Sans\n- Heading sizes: H1 32pt extra-bold, H2 24pt bold, H3 18pt semibold, H4 14pt semibold\n- Body size: 11pt\n- Line height: 1.55\n- Pull quote size: 20pt Montserrat light italic\n- Stat callout size: 48pt Montserrat extra-bold\n- Caption size: 9pt\n\n## Color palette\n- Primary: #E76F51 — use for headings, primary callouts, key action items, and chart emphasis\n- Secondary: #264653 — use for body section headers, secondary chart series, and footer\n- Accent: #2A9D8F — use for success indicators, positive metrics, and supporting callouts\n- Tertiary: #E9C46A — use for warning states, attention badges, and highlight backgrounds\n- Body text: #264653\n- Background: #FFFFFF\n- Hero section background: #264653 with white text\n- Callout background: #FFF3EE\n- Table header background: #E76F51 with white text\n- Table alternating rows: #FEF9F6\n\n## Layout rules\n- Page size: 8.5in x 11in (US Letter)\n- Margins: 0.75in top, 0.75in bottom, 0.85in left, 0.85in right\n- Section spacing: 30pt before H1, 20pt before H2, 14pt before H3\n- Paragraph spacing: 8pt after each paragraph\n- Column structure: flexible — full-width for narrative, two-column for impact metrics, three-column for feature comparisons\n- Page numbers: bottom right, 10pt bold, #E76F51\n- Header: bold orange (#E76F51) bar (4pt) across top of every page\n- Footer: dark (#264653) bar with white page number and document title\n- Hero blocks: full-width #264653 background sections for major transitions\n\n## Formatting conventions\n- Impact statements in large-format stat blocks: 48pt number + descriptor below in 11pt\n- Key takeaways in orange-bordered boxes with #FFF3EE background\n- Icon usage encouraged: checkmarks, arrows, warning triangles for quick visual scanning\n- Before/after comparisons in side-by-side panels with contrasting backgrounds\n- Progress bars and percentage indicators for completion or growth metrics\n- Section dividers: full-width #E76F51 rule (3pt) between major parts\n- No Roman numerals — use bold decimal numbering (1, 2, 3) or no numbering at all\n- Bullet points: filled orange circles for primary, gray circles for secondary\n- Call-to-action boxes: #E76F51 background, white bold text, centered\n\n## Tone and voice\n- Energetic, confident, and action-oriented\n- Write as a transformation advisor who sees opportunity everywhere\n- Lead with impact: \"This initiative will save $2.4M annually\" not \"We have identified potential savings\"\n- Short, punchy sentences for emphasis. Longer sentences for explanation.\n- Use imperatives for recommendations: \"Implement,\" \"Launch,\" \"Accelerate,\" \"Prioritize\"\n- Rhetorical questions permitted to engage readers: \"What would 30% faster delivery mean for your pipeline?\"\n- Superlatives acceptable when supported by data\n- First person plural (\"we\") for engagement team; second person (\"you,\" \"your team\") for client\n- Bold claims backed by bold evidence\n\n## What this style MUST produce\n- High-energy documents that feel more like a pitch than a report\n- At least two large-format stat callouts per document (48pt numbers)\n- Hero sections with dark backgrounds for major document transitions\n- Orange accent elements visible on every page\n- Impact-first writing: conclusions and numbers before explanations\n- Before/after or current-state/future-state comparisons where relevant\n- Call-to-action elements for all recommendation sections\n- Page count: per deliverable type specification\n- All sections in the order specified by the deliverable module\n",
     "consulting-executive": "# Consulting Executive — Style Specification\n**Version:** 1\n**Industry:** Consulting\n\n## Typography\n- Heading font: Georgia\n- Body font: Georgia\n- Heading sizes: H1 30pt bold, H2 22pt bold, H3 16pt semibold, H4 13pt semibold italic\n- Body size: 11.5pt\n- Line height: 1.5\n- Caption and label size: 9pt\n- Chart annotation size: 8.5pt\n\n## Color palette\n- Primary: #0A2463 — use for headings, key metric callouts, chart primary series, and section dividers\n- Secondary: #1E5288 — use for subheadings, secondary chart series, and table headers\n- Accent: #D4AF37 — use for highlight indicators, key figure underlines, and executive summary borders\n- Body text: #1C1C1C\n- Background: #FFFFFF\n- Callout background: #F4F6FA\n- Table header background: #0A2463 with white text\n- Table alternating rows: #F8F9FB\n- Chart palette: #0A2463, #1E5288, #3A7CA5, #D4AF37, #81B29A\n\n## Layout rules\n- Page size: 8.5in x 11in (US Letter)\n- Margins: 0.85in top, 0.85in bottom, 1in left, 1in right\n- Section spacing: 24pt before H1, 18pt before H2, 12pt before H3\n- Paragraph spacing: 8pt after each paragraph\n- Column structure: single column for narrative; two-column permitted for key metrics dashboards\n- Page numbers: bottom right, 9pt, \"Page X\" format\n- Header: company logo placeholder left, document classification right, separated by #0A2463 rule (2pt)\n- Footer: thin gold (#D4AF37) accent line, confidential notice centered, 8pt #888888\n- Cover page: required for all documents over 5 pages — title centered vertically, client name, date, prepared by\n\n## Formatting conventions\n- Executive summary box on page 1 or 2: bordered with #D4AF37 left accent (4pt), #F4F6FA background\n- Key metrics presented in large-format callout numbers: 36pt bold #0A2463 with label below in 9pt\n- Section numbering: Roman numerals for top level (I, II, III), decimal for subsections (1.1, 1.2)\n- Recommendations formatted as numbered action items in a distinct box\n- All financial figures right-aligned in tables, formatted with commas and appropriate currency symbols\n- Charts preferred over tables where data supports visualization\n- Appendices numbered separately (Appendix A, B, C)\n- Source citations as footnotes, 9pt, gray text\n\n## Tone and voice\n- Authoritative, measured, and commanding\n- Write as a senior partner addressing a board of directors\n- Lead every section with the conclusion or recommendation, then provide supporting evidence\n- Use \"we recommend,\" \"our analysis indicates,\" \"the evidence supports\"\n- Avoid hedging unless genuinely uncertain — state findings with confidence\n- No jargon without immediate definition in parentheses\n- Quantify everything possible: \"revenue increased 23%\" not \"revenue increased significantly\"\n- Third person for the client organization; first person plural for the consulting engagement\n\n## What this style MUST produce\n- Boardroom-ready documents that convey authority and analytical depth\n- Cover page for documents exceeding 5 pages\n- Executive summary within the first 2 pages with gold accent border\n- At least one key metrics callout per major section (large-format numbers)\n- Numbered action items in a visually distinct recommendations section\n- Professional chart styling using the defined color palette\n- All financial data properly formatted and right-aligned\n- Page count: per deliverable type specification\n- All sections in the order specified by the deliverable module\n",
     "consulting-strategy": "# Consulting Strategy — Style Specification\n**Version:** 1\n**Industry:** Consulting\n\n## Typography\n- Heading font: Calibri\n- Body font: Calibri\n- Heading sizes: H1 26pt bold, H2 20pt semibold, H3 15pt semibold, H4 12pt bold\n- Body size: 11pt\n- Line height: 1.45\n- Table cell text: 10pt\n- Data labels and annotations: 9pt\n- Footnote size: 8.5pt\n\n## Color palette\n- Primary: #006D77 — use for headings, primary chart series, key insight borders, and section dividers\n- Secondary: #83C5BE — use for secondary chart series, callout backgrounds, and progress indicators\n- Accent: #E29578 — use for warnings, risk indicators, and attention-required highlights\n- Body text: #2B2B2B\n- Background: #FFFFFF\n- Insight box background: #EDF6F7\n- Table header background: #006D77 with white text\n- Table alternating rows: #F5FAFA\n- Chart palette: #006D77, #83C5BE, #E29578, #264653, #FFDDD2\n\n## Layout rules\n- Page size: 8.5in x 11in (US Letter)\n- Margins: 0.8in top, 0.8in bottom, 0.9in left, 0.9in right\n- Section spacing: 22pt before H1, 16pt before H2, 10pt before H3\n- Paragraph spacing: 7pt after each paragraph\n- Column structure: single column for narrative; two-column for comparative analysis and side-by-side data\n- Page numbers: bottom center, 9pt\n- Header: section title left-aligned, page classification right-aligned, thin #006D77 underline\n- Footer: document title centered, 8pt #AAAAAA\n- Data-heavy pages may use landscape orientation where noted\n\n## Formatting conventions\n- Insight callouts: teal left border (3pt #006D77), #EDF6F7 background, bold lead sentence\n- SWOT and matrix frameworks: 2x2 grid layout with colored quadrant headers\n- Risk indicators: traffic light system — green (#006D77), amber (#E29578), red (#C1121F)\n- All quantitative claims must include source reference as inline citation or footnote\n- Comparison tables: use checkmark and cross icons for feature matrices\n- Process flows: numbered steps in horizontal layout with connecting arrows\n- Section numbering: decimal throughout (1.0, 1.1, 2.0, 2.1)\n- Gantt charts and timelines: horizontal bar format using primary and secondary palette\n- Recommendations: numbered list with priority tag (High/Medium/Low) color-coded\n\n## Tone and voice\n- Analytical, evidence-based, and forward-looking\n- Write as a strategy consultant presenting to a C-suite audience\n- Every assertion backed by data, market evidence, or structured reasoning\n- Use frameworks explicitly: \"Applying Porter's Five Forces,\" \"Using a PESTEL lens\"\n- Prefer \"the data indicates\" and \"market analysis reveals\" over opinion-based language\n- Active voice dominant; passive acceptable for methodology descriptions\n- Concise paragraphs — maximum 5 sentences per paragraph\n- Use \"we identify,\" \"this analysis demonstrates,\" \"the strategic imperative is\"\n- Quantify impact wherever possible: time savings, cost reduction percentages, market share shifts\n\n## What this style MUST produce\n- Strategy-grade documents with visible analytical frameworks and data backing\n- At least one insight callout box per major section\n- Quantitative evidence for every major recommendation\n- Risk or opportunity assessment using traffic light or matrix format\n- Clear numbered recommendations with priority indicators\n- Comparison matrices where alternatives are evaluated\n- Professional chart and data visualization styling\n- Page count: per deliverable type specification\n- All sections in the order specified by the deliverable module\n"
+  },
+  "field-service": {
+    "contractor-form": "# Contractor Form — Style Specification\n**Version:** 1\n**Industry:** Field Service\n**Genre:** contractor_form\n\nA dense, tabular field-documentation style for construction and field-service records. The document is a working form, not an essay: boxed identification metadata, ALL-CAPS section headings with hairline rules, data carried in tables and tight bullet lists, and a signature/sign-off block at the end. One to three pages. There is no cover page, no table of contents, no executive summary, and no concluding remarks — every line is operational record.\n\n## What this style MUST produce\n- Lead with an **identification block**: a compact key/value table of the project metadata (project name, job number, location, date, prepared/conducted by). Render it as the first section's content using a two-column markdown table.\n- Use **markdown tables** for every tabular section — weather, crew, timeline of work, status/results, acceptance criteria, hazards/controls, attendees. Columns exactly as the section instructions specify. Right-align numeric columns (hours, counts, measurements).\n- Use **tight bullet lists** for equipment, materials, observations, and topics — one item per line, no narrative padding.\n- Use **checkbox lines** (`- [x] …`) for verified site-condition and PPE checklists where the section calls for them.\n- Keep prose to the minimum the record requires. Short declarative sentences. Concrete nouns, measured quantities, times, and identifiers.\n- End at the **signature block** content the section specifies — name, title, company, and a \"Signature & Date\" line. Multi-party sign-offs render as parallel signature columns.\n\n## What this style MUST NOT produce\n- No cover page, no document-title frontispiece, no table of contents, no section frontispieces or Roman-numeral section openers.\n- No executive summary, abstract, introduction-for-its-own-sake, or \"conclusion\"/\"closing remarks\" section unless the module's section list explicitly defines one.\n- No marketing language, adjectives of praise, emoji, or decorative characters.\n- No invented data. If a value was not provided, write \"—\" or \"Not recorded\" in the cell — never fabricate a measurement, name, time, or quantity.\n\n## Typography & density\n- Headings: ALL-CAPS, body sans, letter-spaced, with a thin accent rule beneath — the masthead and section heads carry the brand accent only as a hairline.\n- Tables: full-width, hairline borders, dark header row, compact 4–6pt cell padding, 9pt body. Numeric cells right-aligned.\n- Generous use of vertical space between sections is wrong here — this is a dense record. Keep it tight.\n"
   },
   "finance": {
     "finance-audit": "# Finance Audit — Style Specification\n**Version:** 1\n**Industry:** Finance\n\n## Typography\n- Heading font: Arial\n- Body font: Arial\n- Heading sizes: H1 18pt bold, H2 15pt bold, H3 12pt bold, H4 11pt bold\n- Body size: 10.5pt\n- Line height: 1.4\n- Table text: 9.5pt\n- Finding reference codes: 10pt Consolas monospace\n- Footnote and disclaimer size: 8.5pt\n\n## Color palette\n- Primary: #4A4E69 — use for headings, section dividers, and primary table headers\n- Secondary: #6B7094 — use for subheadings and secondary labels\n- Critical finding: #9B2226 — use for material weakness indicators and critical findings\n- Significant finding: #BC6C25 — use for significant deficiency indicators\n- Observation: #4A4E69 — use for standard observations and improvement recommendations\n- Resolved: #606C38 — use for remediated items and closed findings\n- Body text: #22223B\n- Background: #FFFFFF\n- Finding box background: #F8F8FA\n- Table header background: #4A4E69 with white text\n- Table borders: #D0D0D8\n\n## Layout rules\n- Page size: 8.5in x 11in (US Letter)\n- Margins: 1in all sides\n- Section spacing: 18pt before H1, 14pt before H2, 8pt before H3\n- Paragraph spacing: 6pt after each paragraph\n- Column structure: single column for narrative; tabular layouts for findings and control matrices\n- Page numbers: bottom center, \"Page X of Y\", 9pt\n- Header: report title left, \"CONFIDENTIAL\" right, 9pt, #4A4E69 rule below (1pt)\n- Footer: firm name left, engagement number center, date right, 8.5pt #999999\n- Title page: engagement title, entity name, period under audit, report date, issuing firm\n\n## Formatting conventions\n- Finding IDs: sequential code format (e.g., FIN-2026-001, FIN-2026-002) in monospace\n- Each finding structured as: ID, Title, Severity, Criteria, Condition, Cause, Effect, Recommendation, Management Response\n- Severity badges: colored inline labels — MATERIAL WEAKNESS (red), SIGNIFICANT DEFICIENCY (amber), OBSERVATION (gray)\n- Control matrix: table mapping control objectives to test results (Effective / Ineffective / Not Tested)\n- Testing summary statistics: total controls tested, pass rate, findings by severity\n- Trend comparison: current period findings vs. prior period in side-by-side table\n- References to accounting standards: ASC, GAAS, PCAOB citations formatted precisely\n- Workpaper cross-references: (WP-[number]) in parentheses after evidence statements\n- Management response section: indented block with \"Management Response:\" header in italic\n- Appendices: detailed testing procedures, sample selection methodology, acronym glossary\n\n## Tone and voice\n- Objective, precise, and methodical\n- Write as an independent auditor — never express opinion beyond what evidence supports\n- Use audit-standard language: \"We noted,\" \"Testing revealed,\" \"Based on our examination\"\n- Findings stated as facts, not judgments: \"The control did not operate effectively during Q2\" not \"Management failed\"\n- Recommendations are specific and actionable: \"Implement automated three-way match by Q3 2026\" not \"Improve controls\"\n- Management responses recorded without editorial comment\n- Risk language calibrated precisely: \"material weakness\" has a defined threshold, do not use casually\n- No passive-aggressive phrasing — audit findings are professional, not adversarial\n- Disclaimer language for scope limitations stated explicitly: \"Our audit did not extend to\"\n\n## What this style MUST produce\n- Audit-standard reports suitable for filing with regulators or audit committees\n- Title page with engagement details\n- Executive summary of findings by severity with totals\n- Standardized finding format for every issue (ID, severity, criteria, condition, cause, effect, recommendation, response)\n- Severity badges with consistent color coding\n- Control testing matrix with pass/fail results\n- Prior period comparison for repeat findings\n- Workpaper cross-references for all evidence-based statements\n- Acronym glossary and scope description\n- Page count: per deliverable type specification\n- All sections in the order specified by the deliverable module\n",

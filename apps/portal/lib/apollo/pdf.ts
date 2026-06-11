@@ -442,9 +442,35 @@ hr.hairline {
 `
 }
 
-// Dispatch to the right layout renderer. Default is the contract layout
-// (cover + TOC + numbered sections + signatures).
+// Layout-genre registry (WS2). The GENRE selects the layout primitive;
+// brand (palette, typography, logo furniture) is shared across all genres —
+// genre changes structure and density, never brand. A deliverable's genre is
+// resolved from its slug here: this is the single place a new genre, or a new
+// slug joining one, gets wired.
+export type Genre = 'editorial' | 'contractor_form' | 'ledger'
+
+const CONTRACTOR_FORM_SLUGS = new Set<string>([
+  'daily-construction-report',
+  'final-qc-report',
+  'project-completion-notice',
+  'tool-box-talk',
+])
+const LEDGER_SLUGS = new Set<string>([]) // populated in WS5 (accounting ledger modules)
+
+export function genreForSlug(slug: string): Genre {
+  if (CONTRACTOR_FORM_SLUGS.has(slug)) return 'contractor_form'
+  if (LEDGER_SLUGS.has(slug)) return 'ledger'
+  return 'editorial'
+}
+
+// Dispatch to the right layout renderer. Genre is checked first; within the
+// editorial genre, the legacy per-deliverable `layout` field still selects the
+// specialized editorial layouts (invoice / one-pager / minutes / financial).
 function buildFullHtml(args: BuildPdfArgs): string {
+  const genre = genreForSlug(args.template.slug)
+  if (genre === 'contractor_form') return buildContractorFormHtml(args)
+  // 'ledger' primitive lands in WS5; until then ledger deliverables (none yet)
+  // fall through to the editorial layouts below.
   const layout = args.template.layout ?? 'contract'
   switch (layout) {
     case 'invoice':
@@ -460,6 +486,67 @@ function buildFullHtml(args: BuildPdfArgs): string {
     default:
       return buildContractHtml(args)
   }
+}
+
+// contractor_form genre primitive (WS2). Dense, tabular field-documentation
+// layout: a compact masthead (typeset wordmark + title + meta), then the
+// section body rendered tight — ALL-CAPS ruled headings, markdown tables and
+// checklists styled compactly, signature/sign-off carried in the body. NO
+// cover page, NO TOC, NO Roman-numeral section openers. 1–3 pages.
+function buildContractorFormHtml(args: BuildPdfArgs): string {
+  const palette = resolvePaletteForBuild(args)
+  const preset = resolvePreset(args.fontPreset?.key)
+  const docTitle = args.template.label
+  const wordmark = brandWordmark(args.brand.slug)
+  // Strip the leading <h1> (title lives in the masthead) and any mid-body
+  // wordmark banner. Do NOT numberSections — contractor forms have no
+  // numbered section openers; headings render as ALL-CAPS ruled labels.
+  const body = stripPreH2Banner(stripAllH1(stripLeadingTitle(args.contentHtml)))
+  const meta = [args.documentId, args.preparedDate]
+    .filter((s) => s && String(s).trim())
+    .map((s) => escapeHtml(String(s)))
+    .join(' &middot; ')
+  const brandLine = wordmark ? `<div class="cf-brand">${escapeHtml(wordmark)}</div>` : ''
+
+  return `<!doctype html>
+<html lang="en">${sharedHead(palette, preset, docTitle)}
+<style>
+@page { size: 8.5in 11in; margin: 0.9in 0.8in 0.85in 0.8in; }
+@page :first { margin: 0.7in 0.8in 0.85in 0.8in; }
+body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.42; color: var(--ink); }
+.cf-masthead {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  border-bottom: 1.5pt solid var(--accent); padding-bottom: 7pt; margin-bottom: 14pt;
+}
+.cf-brand { font-family: var(--font-body); font-size: 8pt; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--ink); }
+.cf-title { font-family: var(--font-display); font-size: 17pt; font-weight: 600; margin: 3pt 0 0 0; color: var(--ink); }
+.cf-meta { text-align: right; font-size: 7.5pt; letter-spacing: 0.14em; text-transform: uppercase; color: var(--metadata); white-space: nowrap; padding-left: 18pt; }
+.cf-body h2 {
+  font-family: var(--font-body); font-size: 10pt; font-weight: 600; letter-spacing: 0.13em;
+  text-transform: uppercase; color: var(--ink); margin: 15pt 0 5pt 0; padding-bottom: 3pt;
+  border-bottom: 0.75pt solid var(--accent); break-after: avoid;
+}
+.cf-body h3 { font-family: var(--font-body); font-size: 9pt; font-weight: 600; margin: 8pt 0 2pt 0; color: var(--ink); }
+.cf-body table { width: 100%; border-collapse: collapse; margin: 4pt 0 9pt 0; font-size: 8.8pt; }
+.cf-body th { background: var(--ink); color: #fff; text-align: left; font-weight: 600; padding: 4pt 6pt; font-size: 8pt; letter-spacing: 0.04em; }
+.cf-body td { border: 0.5pt solid var(--hairline); padding: 3.5pt 6pt; vertical-align: top; }
+.cf-body tbody tr:nth-child(even) td { background: #fafafa; }
+.cf-body ul { margin: 3pt 0 9pt 0; padding-left: 15pt; }
+.cf-body li { margin: 1.5pt 0; }
+.cf-body p { margin: 0 0 6pt 0; }
+.cf-body table:last-child, .cf-body ul:last-child, .cf-body p:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+  <div class="cf-masthead">
+    <div>${brandLine}<div class="cf-title">${escapeHtml(docTitle)}</div></div>
+    <div class="cf-meta">${meta}</div>
+  </div>
+  <div class="cf-body">
+${body}
+  </div>
+</body>
+</html>`
 }
 
 function buildContractHtml(args: BuildPdfArgs): string {
