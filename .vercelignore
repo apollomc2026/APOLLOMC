@@ -1,0 +1,9 @@
+# Local scratch + reference artifacts at the monorepo root. These are not part
+# of the deploy (Root Directory is apps/portal) and must never be uploaded —
+# public_html.zip alone is ~115 MB and trips Vercel's 100 MB upload limit.
+_live_snapshot/
+_refs/
+_smoke/
+_deploy/
+*.zip
+htaccess
