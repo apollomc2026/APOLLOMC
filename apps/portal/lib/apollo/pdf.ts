@@ -477,7 +477,10 @@ const CONTRACTOR_FORM_SLUGS = new Set<string>([
   'project-completion-notice',
   'tool-box-talk',
 ])
-const LEDGER_SLUGS = new Set<string>([]) // populated in WS5 (accounting ledger modules)
+const LEDGER_SLUGS = new Set<string>([
+  'financial-statements-package',
+  'cash-flow-budget-package',
+])
 
 export function genreForSlug(slug: string): Genre {
   if (CONTRACTOR_FORM_SLUGS.has(slug)) return 'contractor_form'
@@ -492,8 +495,7 @@ function buildFullHtml(args: BuildPdfArgs): string {
   args = { ...args, contentHtml: sanitizeContentHtml(args.contentHtml) }
   const genre = genreForSlug(args.template.slug)
   if (genre === 'contractor_form') return buildContractorFormHtml(args)
-  // 'ledger' primitive lands in WS5; until then ledger deliverables (none yet)
-  // fall through to the editorial layouts below.
+  if (genre === 'ledger') return buildLedgerHtml(args)
   const layout = args.template.layout ?? 'contract'
   switch (layout) {
     case 'invoice':
@@ -566,6 +568,67 @@ body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.42; color
     <div class="cf-meta">${meta}</div>
   </div>
   <div class="cf-body">
+${body}
+  </div>
+</body>
+</html>`
+}
+
+// ledger genre primitive (WS5). Clean financial typesetting: a quiet masthead,
+// then ruled statement tables with right-aligned, tabular figures and totals
+// emphasized by the model's bold. NO cover, NO TOC, NO section openers. Brand
+// (palette/typography) is shared with every other genre.
+function buildLedgerHtml(args: BuildPdfArgs): string {
+  const palette = resolvePaletteForBuild(args)
+  const preset = resolvePreset(args.fontPreset?.key)
+  const docTitle = args.template.label
+  const wordmark = brandWordmark(args.brand.slug)
+  const body = stripPreH2Banner(stripAllH1(stripLeadingTitle(args.contentHtml)))
+  const meta = [args.documentId, args.preparedDate]
+    .filter((s) => s && String(s).trim())
+    .map((s) => escapeHtml(String(s)))
+    .join(' &middot; ')
+  const brandLine = wordmark ? `<div class="ld-brand">${escapeHtml(wordmark)}</div>` : ''
+
+  return `<!doctype html>
+<html lang="en">${sharedHead(palette, preset, docTitle)}
+<style>
+@page { size: 8.5in 11in; margin: 0.9in 0.85in 0.85in 0.85in; }
+@page :first { margin: 0.75in 0.85in 0.85in 0.85in; }
+body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.4; color: var(--ink); }
+.ld-masthead {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  border-bottom: 1.5pt solid var(--accent); padding-bottom: 7pt; margin-bottom: 14pt;
+}
+.ld-brand { font-family: var(--font-body); font-size: 8pt; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--ink); }
+.ld-title { font-family: var(--font-display); font-size: 17pt; font-weight: 600; margin: 3pt 0 0 0; color: var(--ink); }
+.ld-meta { text-align: right; font-size: 7.5pt; letter-spacing: 0.14em; text-transform: uppercase; color: var(--metadata); white-space: nowrap; padding-left: 18pt; }
+.ld-body h2 {
+  font-family: var(--font-body); font-size: 10pt; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ink); margin: 16pt 0 5pt 0; padding-bottom: 3pt;
+  border-bottom: 0.75pt solid var(--accent); break-after: avoid;
+}
+.ld-body h3 { font-family: var(--font-body); font-size: 9pt; font-weight: 600; margin: 8pt 0 2pt 0; color: var(--ink); }
+.ld-body table { width: 100%; border-collapse: collapse; margin: 4pt 0 10pt 0; font-size: 9pt; }
+.ld-body thead th { background: var(--ink); color: #fff; font-weight: 600; padding: 4pt 8pt; font-size: 8pt; letter-spacing: 0.04em; text-align: left; }
+.ld-body thead th:not(:first-child) { text-align: right; }
+.ld-body td { border-bottom: 0.25pt solid var(--hairline); padding: 3pt 8pt; vertical-align: top; }
+/* Line-item label left; every figure column right-aligned with tabular numerals. */
+.ld-body td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ld-body td strong { font-weight: 700; }
+.ld-body tbody tr:last-child td { border-bottom: 0.5pt solid var(--ink); }
+.ld-body ul { margin: 3pt 0 9pt 0; padding-left: 15pt; }
+.ld-body li { margin: 1.5pt 0; }
+.ld-body p { margin: 0 0 7pt 0; }
+.ld-body table:last-child, .ld-body ul:last-child, .ld-body p:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+  <div class="ld-masthead">
+    <div>${brandLine}<div class="ld-title">${escapeHtml(docTitle)}</div></div>
+    <div class="ld-meta">${meta}</div>
+  </div>
+  <div class="ld-body">
 ${body}
   </div>
 </body>

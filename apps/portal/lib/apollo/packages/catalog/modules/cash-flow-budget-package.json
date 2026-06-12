@@ -1,0 +1,28 @@
+{
+  "deliverable_slug": "cash-flow-budget-package",
+  "required_fields": [
+    { "key": "entity_name", "label": "Entity name", "type": "text", "placeholder": "Reporting entity" },
+    { "key": "forecast_period", "label": "Forecast period", "type": "text", "placeholder": "e.g., Rolling 12 months, January–December 2026" },
+    { "key": "base_case_lines", "label": "Base-case monthly forecast (one row per month: Month | Opening cash | Inflows | Outflows | Net change | Closing cash)", "type": "textarea", "placeholder": "Jan 2026 | 312,400 | 358,000 | (341,000) | 17,000 | 329,400\nFeb 2026 | 329,400 | 372,000 | (360,000) | 12,000 | 341,400\n..." },
+    { "key": "scenario_summary", "label": "Scenario comparison (one row per scenario: Scenario | Ending cash | Lowest monthly cash | Total inflows | Total outflows)", "type": "textarea", "placeholder": "Base | 462,400 | 329,400 | 4,460,000 | (4,310,000)\nBest | 548,900 | 341,400 | 4,720,000 | (4,180,000)\nWorst | 286,100 | 198,200 | 4,090,000 | (4,360,000)" },
+    { "key": "key_assumptions", "label": "Key assumptions (one per line)", "type": "textarea", "placeholder": "Revenue grows 3% MoM base case\nCollections at 45-day average\nPayroll paid bi-weekly\n..." }
+  ],
+  "optional_fields": [
+    { "key": "prepared_by", "label": "Prepared by", "type": "text", "placeholder": "Preparer name, title, firm" },
+    { "key": "working_capital_lines", "label": "Working-capital metrics (Metric | Value)", "type": "textarea", "placeholder": "Days sales outstanding (DSO) | 44\nDays payable outstanding (DPO) | 38\nDays inventory outstanding (DIO) | 21\nCash conversion cycle | 27 days\nMinimum operating cash target | 250,000" },
+    { "key": "best_case_lines", "label": "Best-case monthly forecast (same columns as base case)", "type": "textarea", "placeholder": "Month | Opening | Inflows | Outflows | Net | Closing" },
+    { "key": "worst_case_lines", "label": "Worst-case monthly forecast (same columns as base case)", "type": "textarea", "placeholder": "Month | Opening | Inflows | Outflows | Net | Closing" },
+    { "key": "budget_lines", "label": "Annual budget summary (Category | Budget | Notes)", "type": "textarea", "placeholder": "Revenue | 4,460,000 | base case\nPayroll | (1,980,000) | \n..." }
+  ],
+  "file_upload_prompts": [
+    { "kind": "financial_data", "label": "Upload the working model / trial balance / AR aging", "required": false }
+  ],
+  "sections": [
+    { "key": "identification", "label": "Forecast Details", "required": true, "min_words": 15, "max_words": 100, "instructions": "ONLY a two-column markdown table: Entity, Forecast period, Prepared by, Basis (note: forward-looking projection, not historical statements). Use 'to be confirmed' for missing values. No prose." },
+    { "key": "ownership_notice", "label": "Basis of Presentation", "required": true, "min_words": 25, "max_words": 110, "instructions": "One short paragraph: this is a forward-looking projection built from practitioner/management-provided assumptions and figures; assumptions and figures are owned by the practitioner; actual results will differ. Do not assert the forecast is achievable or endorse it." },
+    { "key": "base_case_forecast", "label": "Base-Case Cash Flow Forecast", "required": true, "min_words": 30, "max_words": 600, "instructions": "A markdown table from base_case_lines: columns Month | Opening Cash | Inflows | Outflows | Net Change | Closing Cash, all figure columns right-aligned, reproduced EXACTLY as provided. Do not recompute closing balances or net change — typeset the supplied figures. Bold a final 'Total / Year-end' row only if the practitioner provided one; otherwise omit it. Use 'to be confirmed' for any missing month." },
+    { "key": "scenario_comparison", "label": "Scenario Comparison", "required": true, "min_words": 20, "max_words": 250, "instructions": "A markdown table from scenario_summary: Scenario | Ending Cash | Lowest Monthly Cash | Total Inflows | Total Outflows, figures right-aligned and exact. One row each for Base / Best / Worst as provided. If best_case_lines / worst_case_lines are provided, you may render them as additional ruled monthly tables below; otherwise rely on the summary only — never fabricate the missing scenarios' monthly detail." },
+    { "key": "working_capital", "label": "Working Capital", "required": false, "min_words": 15, "max_words": 220, "instructions": "If working_capital_lines is provided, render a two-column Metric | Value table (values right-aligned, exact). Omit the section entirely if not provided. Do not compute metrics that were not supplied." },
+    { "key": "assumptions", "label": "Key Assumptions", "required": true, "min_words": 20, "max_words": 350, "instructions": "A tight bullet list reproducing key_assumptions, one per line, in the practitioner's words. These define the forecast; do not add assumptions of your own." }
+  ]
+}

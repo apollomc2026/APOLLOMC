@@ -429,6 +429,36 @@
       "status": "placeholder",
       "placeholder_cta": "Send a sample deliverable to spec this industry. Production reports, editorial briefs, content schedules, and review documents welcome.",
       "deliverables": []
+    },
+    {
+      "slug": "accounting-advisory",
+      "label": "Accounting & Advisory",
+      "description": "CPA-firm deliverables — financial statements, forecasts, and advisory packages typeset from practitioner-provided data",
+      "icon_key": "calculator",
+      "sort_order": 9,
+      "status": "active",
+      "deliverables": [
+        {
+          "slug": "financial-statements-package",
+          "label": "Financial Statements Package",
+          "description": "Audited / reviewed / compiled financial statements — balance sheet, statement of operations, and cash flows with notes and disclosures, plus the practitioner's report letter. Typesets practitioner-provided figures exactly; never computes or opines. (beta)",
+          "estimated_pages_min": 6,
+          "estimated_pages_max": 20,
+          "estimated_minutes": 12,
+          "base_price_cents": 0,
+          "schema_file": "financial-statements-package.schema.json"
+        },
+        {
+          "slug": "cash-flow-budget-package",
+          "label": "Cash Flow Forecast & Budget Package",
+          "description": "Rolling cash-flow forecast and budget — base / best / worst monthly projections, scenario comparison, and working-capital metrics from practitioner-supplied assumptions. (beta)",
+          "estimated_pages_min": 4,
+          "estimated_pages_max": 14,
+          "estimated_minutes": 10,
+          "base_price_cents": 0,
+          "schema_file": "cash-flow-budget-package.schema.json"
+        }
+      ]
     }
   ]
 }

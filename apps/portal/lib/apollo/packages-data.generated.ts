@@ -6,7 +6,7 @@
 // has zero runtime file dependencies — required for Vercel serverless where
 // outputFileTracingIncludes is unreliable with the --turbopack production build.
 //
-// Counts at generation time: 35 modules, 35 schemas, 16 styles.
+// Counts at generation time: 37 modules, 37 schemas, 17 styles.
 
 /* eslint-disable */
 
@@ -441,6 +441,36 @@ export const CATALOG_RAW = {
       "status": "placeholder",
       "placeholder_cta": "Send a sample deliverable to spec this industry. Production reports, editorial briefs, content schedules, and review documents welcome.",
       "deliverables": []
+    },
+    {
+      "slug": "accounting-advisory",
+      "label": "Accounting & Advisory",
+      "description": "CPA-firm deliverables — financial statements, forecasts, and advisory packages typeset from practitioner-provided data",
+      "icon_key": "calculator",
+      "sort_order": 9,
+      "status": "active",
+      "deliverables": [
+        {
+          "slug": "financial-statements-package",
+          "label": "Financial Statements Package",
+          "description": "Audited / reviewed / compiled financial statements — balance sheet, statement of operations, and cash flows with notes and disclosures, plus the practitioner's report letter. Typesets practitioner-provided figures exactly; never computes or opines. (beta)",
+          "estimated_pages_min": 6,
+          "estimated_pages_max": 20,
+          "estimated_minutes": 12,
+          "base_price_cents": 0,
+          "schema_file": "financial-statements-package.schema.json"
+        },
+        {
+          "slug": "cash-flow-budget-package",
+          "label": "Cash Flow Forecast & Budget Package",
+          "description": "Rolling cash-flow forecast and budget — base / best / worst monthly projections, scenario comparison, and working-capital metrics from practitioner-supplied assumptions. (beta)",
+          "estimated_pages_min": 4,
+          "estimated_pages_max": 14,
+          "estimated_minutes": 10,
+          "base_price_cents": 0,
+          "schema_file": "cash-flow-budget-package.schema.json"
+        }
+      ]
     }
   ]
 } as const;
@@ -1317,6 +1347,130 @@ export const MODULES_RAW: Record<string, unknown> = {
         "min_words": 10,
         "max_words": 60,
         "instructions": "Full contact block with company name, address, POC name, phone, email, and website."
+      }
+    ]
+  },
+  "cash-flow-budget-package": {
+    "deliverable_slug": "cash-flow-budget-package",
+    "required_fields": [
+      {
+        "key": "entity_name",
+        "label": "Entity name",
+        "type": "text",
+        "placeholder": "Reporting entity"
+      },
+      {
+        "key": "forecast_period",
+        "label": "Forecast period",
+        "type": "text",
+        "placeholder": "e.g., Rolling 12 months, January–December 2026"
+      },
+      {
+        "key": "base_case_lines",
+        "label": "Base-case monthly forecast (one row per month: Month | Opening cash | Inflows | Outflows | Net change | Closing cash)",
+        "type": "textarea",
+        "placeholder": "Jan 2026 | 312,400 | 358,000 | (341,000) | 17,000 | 329,400\nFeb 2026 | 329,400 | 372,000 | (360,000) | 12,000 | 341,400\n..."
+      },
+      {
+        "key": "scenario_summary",
+        "label": "Scenario comparison (one row per scenario: Scenario | Ending cash | Lowest monthly cash | Total inflows | Total outflows)",
+        "type": "textarea",
+        "placeholder": "Base | 462,400 | 329,400 | 4,460,000 | (4,310,000)\nBest | 548,900 | 341,400 | 4,720,000 | (4,180,000)\nWorst | 286,100 | 198,200 | 4,090,000 | (4,360,000)"
+      },
+      {
+        "key": "key_assumptions",
+        "label": "Key assumptions (one per line)",
+        "type": "textarea",
+        "placeholder": "Revenue grows 3% MoM base case\nCollections at 45-day average\nPayroll paid bi-weekly\n..."
+      }
+    ],
+    "optional_fields": [
+      {
+        "key": "prepared_by",
+        "label": "Prepared by",
+        "type": "text",
+        "placeholder": "Preparer name, title, firm"
+      },
+      {
+        "key": "working_capital_lines",
+        "label": "Working-capital metrics (Metric | Value)",
+        "type": "textarea",
+        "placeholder": "Days sales outstanding (DSO) | 44\nDays payable outstanding (DPO) | 38\nDays inventory outstanding (DIO) | 21\nCash conversion cycle | 27 days\nMinimum operating cash target | 250,000"
+      },
+      {
+        "key": "best_case_lines",
+        "label": "Best-case monthly forecast (same columns as base case)",
+        "type": "textarea",
+        "placeholder": "Month | Opening | Inflows | Outflows | Net | Closing"
+      },
+      {
+        "key": "worst_case_lines",
+        "label": "Worst-case monthly forecast (same columns as base case)",
+        "type": "textarea",
+        "placeholder": "Month | Opening | Inflows | Outflows | Net | Closing"
+      },
+      {
+        "key": "budget_lines",
+        "label": "Annual budget summary (Category | Budget | Notes)",
+        "type": "textarea",
+        "placeholder": "Revenue | 4,460,000 | base case\nPayroll | (1,980,000) | \n..."
+      }
+    ],
+    "file_upload_prompts": [
+      {
+        "kind": "financial_data",
+        "label": "Upload the working model / trial balance / AR aging",
+        "required": false
+      }
+    ],
+    "sections": [
+      {
+        "key": "identification",
+        "label": "Forecast Details",
+        "required": true,
+        "min_words": 15,
+        "max_words": 100,
+        "instructions": "ONLY a two-column markdown table: Entity, Forecast period, Prepared by, Basis (note: forward-looking projection, not historical statements). Use 'to be confirmed' for missing values. No prose."
+      },
+      {
+        "key": "ownership_notice",
+        "label": "Basis of Presentation",
+        "required": true,
+        "min_words": 25,
+        "max_words": 110,
+        "instructions": "One short paragraph: this is a forward-looking projection built from practitioner/management-provided assumptions and figures; assumptions and figures are owned by the practitioner; actual results will differ. Do not assert the forecast is achievable or endorse it."
+      },
+      {
+        "key": "base_case_forecast",
+        "label": "Base-Case Cash Flow Forecast",
+        "required": true,
+        "min_words": 30,
+        "max_words": 600,
+        "instructions": "A markdown table from base_case_lines: columns Month | Opening Cash | Inflows | Outflows | Net Change | Closing Cash, all figure columns right-aligned, reproduced EXACTLY as provided. Do not recompute closing balances or net change — typeset the supplied figures. Bold a final 'Total / Year-end' row only if the practitioner provided one; otherwise omit it. Use 'to be confirmed' for any missing month."
+      },
+      {
+        "key": "scenario_comparison",
+        "label": "Scenario Comparison",
+        "required": true,
+        "min_words": 20,
+        "max_words": 250,
+        "instructions": "A markdown table from scenario_summary: Scenario | Ending Cash | Lowest Monthly Cash | Total Inflows | Total Outflows, figures right-aligned and exact. One row each for Base / Best / Worst as provided. If best_case_lines / worst_case_lines are provided, you may render them as additional ruled monthly tables below; otherwise rely on the summary only — never fabricate the missing scenarios' monthly detail."
+      },
+      {
+        "key": "working_capital",
+        "label": "Working Capital",
+        "required": false,
+        "min_words": 15,
+        "max_words": 220,
+        "instructions": "If working_capital_lines is provided, render a two-column Metric | Value table (values right-aligned, exact). Omit the section entirely if not provided. Do not compute metrics that were not supplied."
+      },
+      {
+        "key": "assumptions",
+        "label": "Key Assumptions",
+        "required": true,
+        "min_words": 20,
+        "max_words": 350,
+        "instructions": "A tight bullet list reproducing key_assumptions, one per line, in the practitioner's words. These define the forecast; do not add assumptions of your own."
       }
     ]
   },
@@ -3529,6 +3683,217 @@ export const MODULES_RAW: Record<string, unknown> = {
         "min_words": 5,
         "max_words": 60,
         "instructions": "The certifying inspector block from inspector: name, title, credentials each on its own line, then 'Signature & Date'."
+      }
+    ]
+  },
+  "financial-statements-package": {
+    "deliverable_slug": "financial-statements-package",
+    "required_fields": [
+      {
+        "key": "entity_name",
+        "label": "Entity name",
+        "type": "text",
+        "placeholder": "Full legal name of the reporting entity"
+      },
+      {
+        "key": "fiscal_year_end",
+        "label": "Fiscal year-end (current period)",
+        "type": "text",
+        "placeholder": "e.g., December 31, 2025"
+      },
+      {
+        "key": "basis_of_accounting",
+        "label": "Basis of accounting",
+        "type": "select",
+        "options": [
+          {
+            "value": "us-gaap",
+            "label": "U.S. GAAP"
+          },
+          {
+            "value": "tax-basis",
+            "label": "Income-tax basis"
+          },
+          {
+            "value": "cash-basis",
+            "label": "Cash / modified-cash basis"
+          },
+          {
+            "value": "ifrs",
+            "label": "IFRS"
+          }
+        ]
+      },
+      {
+        "key": "opinion_type",
+        "label": "Report / opinion type",
+        "type": "select",
+        "options": [
+          {
+            "value": "unqualified",
+            "label": "Unqualified (unmodified) audit opinion"
+          },
+          {
+            "value": "qualified",
+            "label": "Qualified opinion"
+          },
+          {
+            "value": "adverse",
+            "label": "Adverse opinion"
+          },
+          {
+            "value": "disclaimer",
+            "label": "Disclaimer of opinion"
+          },
+          {
+            "value": "review",
+            "label": "Review report (SSARS)"
+          },
+          {
+            "value": "compilation",
+            "label": "Compilation report (SSARS)"
+          }
+        ]
+      },
+      {
+        "key": "opinion_letter_body",
+        "label": "Opinion / report letter — practitioner's language (verbatim)",
+        "type": "textarea",
+        "placeholder": "Paste the practitioner's report language. Apollo reproduces it verbatim; it does not author or modify an opinion."
+      },
+      {
+        "key": "balance_sheet_lines",
+        "label": "Balance sheet (one line per row: Line item | Current | Prior)",
+        "type": "textarea",
+        "placeholder": "Cash and cash equivalents | 312,400 | 302,900\nAccounts receivable, net | 458,200 | 421,000\n...\nTotal assets | 1,524,400 | 1,461,200"
+      },
+      {
+        "key": "income_statement_lines",
+        "label": "Income statement (Line item | Current | Prior)",
+        "type": "textarea",
+        "placeholder": "Revenue | 4,210,000 | 3,940,000\nCost of services | (2,684,000) | (2,540,000)\n...\nNet income | 345,500 | 298,000"
+      },
+      {
+        "key": "cash_flow_lines",
+        "label": "Statement of cash flows (Line item | Current | Prior)",
+        "type": "textarea",
+        "placeholder": "Net income | 345,500 | 298,000\nDepreciation and amortization | 96,000 | 91,000\n...\nNet change in cash | 9,500 | 12,400"
+      }
+    ],
+    "optional_fields": [
+      {
+        "key": "prior_year_end",
+        "label": "Prior period year-end",
+        "type": "text",
+        "placeholder": "e.g., December 31, 2024"
+      },
+      {
+        "key": "practitioner_firm",
+        "label": "Practitioner / firm (signing party)",
+        "type": "text",
+        "placeholder": "Firm name, city, state; signer name and license"
+      },
+      {
+        "key": "report_date",
+        "label": "Report date",
+        "type": "text",
+        "placeholder": "Date of the auditor's/accountant's report"
+      },
+      {
+        "key": "statement_of_equity_lines",
+        "label": "Statement of changes in equity (Line item | amount)",
+        "type": "textarea",
+        "placeholder": "Beginning balance | 528,800\nNet income | 345,500\nDistributions | (120,000)\nEnding balance | 754,300"
+      },
+      {
+        "key": "notes_disclosures",
+        "label": "Notes to the financial statements (one note per block)",
+        "type": "textarea",
+        "placeholder": "Note 1 — Nature of operations and summary of significant accounting policies: ...\nNote 2 — ..."
+      },
+      {
+        "key": "going_concern_note",
+        "label": "Going-concern disclosure (if applicable)",
+        "type": "textarea",
+        "placeholder": "Practitioner's going-concern language, if any"
+      }
+    ],
+    "file_upload_prompts": [
+      {
+        "kind": "financial_data",
+        "label": "Upload the adjusted trial balance / general ledger export",
+        "required": false
+      },
+      {
+        "kind": "prior_filing",
+        "label": "Upload the prior-year financial statements",
+        "required": false
+      }
+    ],
+    "sections": [
+      {
+        "key": "identification",
+        "label": "Report Details",
+        "required": true,
+        "min_words": 20,
+        "max_words": 120,
+        "instructions": "ONLY a two-column markdown table: Entity, Period(s) presented (current and prior year-ends), Basis of accounting, Report type, Practitioner/firm, Report date. Use 'to be confirmed' for any value not provided. No prose."
+      },
+      {
+        "key": "ownership_notice",
+        "label": "Basis of Presentation",
+        "required": true,
+        "min_words": 30,
+        "max_words": 110,
+        "instructions": "One short paragraph stating that the figures, judgments, and the report opinion are supplied and owned by the licensed practitioner, that this document typesets practitioner-provided data, and the basis of accounting used. Do not characterize the financial position."
+      },
+      {
+        "key": "opinion_letter",
+        "label": "Independent Accountant's Report",
+        "required": true,
+        "min_words": 40,
+        "max_words": 500,
+        "instructions": "Reproduce opinion_letter_body VERBATIM as prose. Do not author, soften, strengthen, or reword any opinion language. If opinion_letter_body is empty, render 'to be confirmed — practitioner's report language required'."
+      },
+      {
+        "key": "balance_sheet",
+        "label": "Balance Sheet",
+        "required": true,
+        "min_words": 30,
+        "max_words": 500,
+        "instructions": "A markdown table from balance_sheet_lines: first column = line item (left), then a Current and Prior figure column (right-aligned). Reproduce every figure EXACTLY as provided — do not recompute or invent. Bold the subtotal/total rows (Total current assets, Total assets, Total liabilities, Total equity, etc.). Use '—' for an empty cell and 'to be confirmed' for a missing required total. Never compute a total the practitioner did not supply."
+      },
+      {
+        "key": "income_statement",
+        "label": "Statement of Operations",
+        "required": true,
+        "min_words": 30,
+        "max_words": 400,
+        "instructions": "A markdown table from income_statement_lines (Line item | Current | Prior), figures right-aligned, reproduced exactly; subtotals/totals bold (Gross profit, Operating income, Net income). Parenthesize amounts only as the practitioner provided. No invented figures or ratios."
+      },
+      {
+        "key": "cash_flow_statement",
+        "label": "Statement of Cash Flows",
+        "required": true,
+        "min_words": 30,
+        "max_words": 400,
+        "instructions": "A markdown table from cash_flow_lines, grouped as the practitioner provided (operating / investing / financing). Figures right-aligned, reproduced exactly; section subtotals and net change bold. Do not derive figures."
+      },
+      {
+        "key": "statement_of_equity",
+        "label": "Statement of Changes in Equity",
+        "required": false,
+        "min_words": 15,
+        "max_words": 250,
+        "instructions": "If statement_of_equity_lines is provided, render it as a ruled table (beginning balance, additions, distributions, ending balance), figures right-aligned and exact, ending balance bold. Omit the section if not provided."
+      },
+      {
+        "key": "notes_disclosures",
+        "label": "Notes to the Financial Statements",
+        "required": false,
+        "min_words": 20,
+        "max_words": 900,
+        "instructions": "Reproduce notes_disclosures as numbered note blocks (Note 1, Note 2, ...) in the practitioner's words. Include the going-concern note if going_concern_note is provided. Do not author new accounting policies or disclosures."
       }
     ]
   },
@@ -8605,6 +8970,74 @@ export const SCHEMAS_RAW: Record<string, unknown> = {
       }
     }
   },
+  "cash-flow-budget-package": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Cash Flow Forecast & Budget Package",
+    "description": "Structured output schema for a rolling cash-flow forecast and budget package (ledger genre).",
+    "type": "object",
+    "required": [
+      "metadata",
+      "sections"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "metadata": {
+        "type": "object",
+        "required": [
+          "deliverable_type",
+          "title"
+        ],
+        "properties": {
+          "deliverable_type": {
+            "type": "string",
+            "const": "cash-flow-budget-package"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 3
+          },
+          "entity_name": {
+            "type": "string"
+          },
+          "forecast_period": {
+            "type": "string"
+          }
+        }
+      },
+      "sections": {
+        "type": "array",
+        "minItems": 5,
+        "items": {
+          "type": "object",
+          "required": [
+            "key",
+            "label",
+            "content"
+          ],
+          "properties": {
+            "key": {
+              "type": "string",
+              "enum": [
+                "identification",
+                "ownership_notice",
+                "base_case_forecast",
+                "scenario_comparison",
+                "working_capital",
+                "assumptions"
+              ]
+            },
+            "label": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
+  },
   "cash-flow-forecast": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://apollomc.ai/schemas/cash-flow-forecast.schema.json",
@@ -9647,6 +10080,82 @@ export const SCHEMAS_RAW: Record<string, unknown> = {
                 "quality_summary",
                 "qc_notes",
                 "certification"
+              ]
+            },
+            "label": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
+  },
+  "financial-statements-package": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Financial Statements Package",
+    "description": "Structured output schema for an audited/reviewed/compiled financial statements package (ledger genre).",
+    "type": "object",
+    "required": [
+      "metadata",
+      "sections"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "metadata": {
+        "type": "object",
+        "required": [
+          "deliverable_type",
+          "title"
+        ],
+        "properties": {
+          "deliverable_type": {
+            "type": "string",
+            "const": "financial-statements-package"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 3
+          },
+          "entity_name": {
+            "type": "string"
+          },
+          "fiscal_year_end": {
+            "type": "string"
+          },
+          "basis_of_accounting": {
+            "type": "string"
+          },
+          "opinion_type": {
+            "type": "string"
+          }
+        }
+      },
+      "sections": {
+        "type": "array",
+        "minItems": 6,
+        "items": {
+          "type": "object",
+          "required": [
+            "key",
+            "label",
+            "content"
+          ],
+          "properties": {
+            "key": {
+              "type": "string",
+              "enum": [
+                "identification",
+                "ownership_notice",
+                "opinion_letter",
+                "balance_sheet",
+                "income_statement",
+                "cash_flow_statement",
+                "statement_of_equity",
+                "notes_disclosures"
               ]
             },
             "label": {
@@ -11376,6 +11885,9 @@ export const SCHEMAS_RAW: Record<string, unknown> = {
 };
 
 export const STYLES_RAW: Record<string, Record<string, string>> = {
+  "accounting-advisory": {
+    "ledger": "# Ledger — Style Specification\n**Version:** 1\n**Industry:** Accounting & Advisory\n**Genre:** ledger\n\nClean financial typesetting for accounting deliverables: ruled statement tables, right-aligned figures with consistent thousands separators, emphasized subtotals and totals, and quiet section headings. This is a working financial document, not an essay — no cover frontispiece, no table of contents, no decorative section openers. Every figure is a number the practitioner provided.\n\n## Practitioner ownership (state once, near the top of every deliverable)\nOutputs are drafts structured from firm-provided engagement data; figures, professional judgments, and opinions are supplied and owned by the licensed practitioner. Apollo typesets the practitioner's data and language into a finished document; it does not audit, opine, compute, or independently verify any figure.\n\n## Absolute rule — never fabricate figures\n- Typeset the line items, subtotals, and totals **exactly as provided** by the practitioner. Do not recompute, re-derive, round differently, or invent any number.\n- If a required line, subtotal, total, period, or disclosure is **not provided**, render the cell or passage as **\"to be confirmed\"** (or \"—\" inside a numeric cell). Never compute a missing total from the other rows, and never supply a plausible-looking placeholder figure.\n- Do not introduce ratios, variances, or percentages the practitioner did not supply.\n- Professional opinions (audit opinion language, going-concern conclusions, valuation conclusions) are reproduced from the practitioner's input verbatim; never author or soften an opinion.\n\n## What this style MUST produce\n- A compact identification block (entity, period, basis of accounting, report date, practitioner) as the first section — a two-column key/value markdown table.\n- Financial statements as **markdown tables**: the first column is the line-item label (left-aligned); all figure columns are right-aligned. Use the periods/columns the practitioner specified (e.g., current year / prior year, or base / best / worst).\n- Subtotals and totals as their own rows, emphasized with **bold** (the renderer rules them off).\n- Notes and disclosures as numbered or labeled prose blocks beneath the statements, in the practitioner's words.\n- A signature / attestation block where the document type calls for one (opinion letter signature, preparer block).\n\n## What this style MUST NOT produce\n- No cover page, no document-title frontispiece, no table of contents, no Roman-numeral section openers.\n- No marketing language, no adjectives of praise, no emoji, no decorative characters.\n- No invented figures, totals, dates, party names, or opinions (see the absolute rule above).\n\n## Typography & density\n- Headings: small, letter-spaced, with a thin accent rule beneath. Quiet.\n- Tables: full-width, hairline borders, dark header row, compact cell padding, tabular figures. Figure columns right-aligned; total rows ruled (top border) and bold.\n- Tight vertical rhythm — this is a dense financial record.\n"
+  },
   "consulting": {
     "consulting-bold": "# Consulting Bold — Style Specification\n**Version:** 1\n**Industry:** Consulting\n\n## Typography\n- Heading font: Montserrat\n- Body font: Open Sans\n- Heading sizes: H1 32pt extra-bold, H2 24pt bold, H3 18pt semibold, H4 14pt semibold\n- Body size: 11pt\n- Line height: 1.55\n- Pull quote size: 20pt Montserrat light italic\n- Stat callout size: 48pt Montserrat extra-bold\n- Caption size: 9pt\n\n## Color palette\n- Primary: #E76F51 — use for headings, primary callouts, key action items, and chart emphasis\n- Secondary: #264653 — use for body section headers, secondary chart series, and footer\n- Accent: #2A9D8F — use for success indicators, positive metrics, and supporting callouts\n- Tertiary: #E9C46A — use for warning states, attention badges, and highlight backgrounds\n- Body text: #264653\n- Background: #FFFFFF\n- Hero section background: #264653 with white text\n- Callout background: #FFF3EE\n- Table header background: #E76F51 with white text\n- Table alternating rows: #FEF9F6\n\n## Layout rules\n- Page size: 8.5in x 11in (US Letter)\n- Margins: 0.75in top, 0.75in bottom, 0.85in left, 0.85in right\n- Section spacing: 30pt before H1, 20pt before H2, 14pt before H3\n- Paragraph spacing: 8pt after each paragraph\n- Column structure: flexible — full-width for narrative, two-column for impact metrics, three-column for feature comparisons\n- Page numbers: bottom right, 10pt bold, #E76F51\n- Header: bold orange (#E76F51) bar (4pt) across top of every page\n- Footer: dark (#264653) bar with white page number and document title\n- Hero blocks: full-width #264653 background sections for major transitions\n\n## Formatting conventions\n- Impact statements in large-format stat blocks: 48pt number + descriptor below in 11pt\n- Key takeaways in orange-bordered boxes with #FFF3EE background\n- Icon usage encouraged: checkmarks, arrows, warning triangles for quick visual scanning\n- Before/after comparisons in side-by-side panels with contrasting backgrounds\n- Progress bars and percentage indicators for completion or growth metrics\n- Section dividers: full-width #E76F51 rule (3pt) between major parts\n- No Roman numerals — use bold decimal numbering (1, 2, 3) or no numbering at all\n- Bullet points: filled orange circles for primary, gray circles for secondary\n- Call-to-action boxes: #E76F51 background, white bold text, centered\n\n## Tone and voice\n- Energetic, confident, and action-oriented\n- Write as a transformation advisor who sees opportunity everywhere\n- Lead with impact: \"This initiative will save $2.4M annually\" not \"We have identified potential savings\"\n- Short, punchy sentences for emphasis. Longer sentences for explanation.\n- Use imperatives for recommendations: \"Implement,\" \"Launch,\" \"Accelerate,\" \"Prioritize\"\n- Rhetorical questions permitted to engage readers: \"What would 30% faster delivery mean for your pipeline?\"\n- Superlatives acceptable when supported by data\n- First person plural (\"we\") for engagement team; second person (\"you,\" \"your team\") for client\n- Bold claims backed by bold evidence\n\n## What this style MUST produce\n- High-energy documents that feel more like a pitch than a report\n- At least two large-format stat callouts per document (48pt numbers)\n- Hero sections with dark backgrounds for major document transitions\n- Orange accent elements visible on every page\n- Impact-first writing: conclusions and numbers before explanations\n- Before/after or current-state/future-state comparisons where relevant\n- Call-to-action elements for all recommendation sections\n- Page count: per deliverable type specification\n- All sections in the order specified by the deliverable module\n",
     "consulting-executive": "# Consulting Executive — Style Specification\n**Version:** 1\n**Industry:** Consulting\n\n## Typography\n- Heading font: Georgia\n- Body font: Georgia\n- Heading sizes: H1 30pt bold, H2 22pt bold, H3 16pt semibold, H4 13pt semibold italic\n- Body size: 11.5pt\n- Line height: 1.5\n- Caption and label size: 9pt\n- Chart annotation size: 8.5pt\n\n## Color palette\n- Primary: #0A2463 — use for headings, key metric callouts, chart primary series, and section dividers\n- Secondary: #1E5288 — use for subheadings, secondary chart series, and table headers\n- Accent: #D4AF37 — use for highlight indicators, key figure underlines, and executive summary borders\n- Body text: #1C1C1C\n- Background: #FFFFFF\n- Callout background: #F4F6FA\n- Table header background: #0A2463 with white text\n- Table alternating rows: #F8F9FB\n- Chart palette: #0A2463, #1E5288, #3A7CA5, #D4AF37, #81B29A\n\n## Layout rules\n- Page size: 8.5in x 11in (US Letter)\n- Margins: 0.85in top, 0.85in bottom, 1in left, 1in right\n- Section spacing: 24pt before H1, 18pt before H2, 12pt before H3\n- Paragraph spacing: 8pt after each paragraph\n- Column structure: single column for narrative; two-column permitted for key metrics dashboards\n- Page numbers: bottom right, 9pt, \"Page X\" format\n- Header: company logo placeholder left, document classification right, separated by #0A2463 rule (2pt)\n- Footer: thin gold (#D4AF37) accent line, confidential notice centered, 8pt #888888\n- Cover page: required for all documents over 5 pages — title centered vertically, client name, date, prepared by\n\n## Formatting conventions\n- Executive summary box on page 1 or 2: bordered with #D4AF37 left accent (4pt), #F4F6FA background\n- Key metrics presented in large-format callout numbers: 36pt bold #0A2463 with label below in 9pt\n- Section numbering: Roman numerals for top level (I, II, III), decimal for subsections (1.1, 1.2)\n- Recommendations formatted as numbered action items in a distinct box\n- All financial figures right-aligned in tables, formatted with commas and appropriate currency symbols\n- Charts preferred over tables where data supports visualization\n- Appendices numbered separately (Appendix A, B, C)\n- Source citations as footnotes, 9pt, gray text\n\n## Tone and voice\n- Authoritative, measured, and commanding\n- Write as a senior partner addressing a board of directors\n- Lead every section with the conclusion or recommendation, then provide supporting evidence\n- Use \"we recommend,\" \"our analysis indicates,\" \"the evidence supports\"\n- Avoid hedging unless genuinely uncertain — state findings with confidence\n- No jargon without immediate definition in parentheses\n- Quantify everything possible: \"revenue increased 23%\" not \"revenue increased significantly\"\n- Third person for the client organization; first person plural for the consulting engagement\n\n## What this style MUST produce\n- Boardroom-ready documents that convey authority and analytical depth\n- Cover page for documents exceeding 5 pages\n- Executive summary within the first 2 pages with gold accent border\n- At least one key metrics callout per major section (large-format numbers)\n- Numbered action items in a visually distinct recommendations section\n- Professional chart styling using the defined color palette\n- All financial data properly formatted and right-aligned\n- Page count: per deliverable type specification\n- All sections in the order specified by the deliverable module\n",
