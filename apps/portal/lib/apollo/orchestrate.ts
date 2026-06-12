@@ -450,7 +450,12 @@ function escapeHtml(input: string): string {
 
 function markdownToHtml(input: string): string {
   if (!input.trim()) return ''
-  const html = marked.parse(input, { async: false }) as string
+  // breaks:true so a single newline inside a paragraph becomes <br>. Without
+  // it, the model's intra-paragraph line breaks collapse to spaces — which is
+  // why inline-labelled blocks ("Objective: …\nStatus: …\nMilestones: …") and
+  // stacked signature blocks (firm / city, state / date) rendered as one
+  // undifferentiated run. gfm stays on; <br> is allow-listed by the sanitizer.
+  const html = marked.parse(input, { async: false, gfm: true, breaks: true }) as string
   return html.trim()
 }
 

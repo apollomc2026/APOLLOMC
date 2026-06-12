@@ -1386,6 +1386,12 @@ export const MODULES_RAW: Record<string, unknown> = {
     ],
     "optional_fields": [
       {
+        "key": "ownership_notice_body",
+        "label": "Basis of presentation — boilerplate (verbatim)",
+        "type": "textarea",
+        "placeholder": "Forward-looking / practitioner-ownership notice. Apollo reproduces it verbatim."
+      },
+      {
         "key": "prepared_by",
         "label": "Prepared by",
         "type": "text",
@@ -1438,7 +1444,7 @@ export const MODULES_RAW: Record<string, unknown> = {
         "required": true,
         "min_words": 25,
         "max_words": 110,
-        "instructions": "One short paragraph: this is a forward-looking projection built from practitioner/management-provided assumptions and figures; assumptions and figures are owned by the practitioner; actual results will differ. Do not assert the forecast is achievable or endorse it."
+        "instructions": "If ownership_notice_body is provided, reproduce it VERBATIM as a single paragraph — do not reword or re-spell it. Otherwise write one short paragraph: this is a forward-looking projection built from practitioner/management-provided assumptions and figures; assumptions and figures are owned by the practitioner; actual results will differ. Do not assert the forecast is achievable or endorse it."
       },
       {
         "key": "base_case_forecast",
@@ -3782,6 +3788,12 @@ export const MODULES_RAW: Record<string, unknown> = {
     ],
     "optional_fields": [
       {
+        "key": "ownership_notice_body",
+        "label": "Basis of presentation — boilerplate (verbatim)",
+        "type": "textarea",
+        "placeholder": "Practitioner-ownership / typesetting-only notice. Apollo reproduces it verbatim."
+      },
+      {
         "key": "prior_year_end",
         "label": "Prior period year-end",
         "type": "text",
@@ -3843,17 +3855,17 @@ export const MODULES_RAW: Record<string, unknown> = {
         "key": "ownership_notice",
         "label": "Basis of Presentation",
         "required": true,
-        "min_words": 30,
+        "min_words": 25,
         "max_words": 110,
-        "instructions": "One short paragraph stating that the figures, judgments, and the report opinion are supplied and owned by the licensed practitioner, that this document typesets practitioner-provided data, and the basis of accounting used. Do not characterize the financial position."
+        "instructions": "If ownership_notice_body is provided, reproduce it VERBATIM as a single paragraph — do not reword or re-spell it. Otherwise write one short paragraph stating that the figures, judgments, and the report opinion are supplied and owned by the licensed practitioner, that this document typesets practitioner-provided data, and the basis of accounting used. Do not characterize the financial position."
       },
       {
         "key": "opinion_letter",
-        "label": "Independent Accountant's Report",
+        "label": "Independent Auditor's Report",
         "required": true,
         "min_words": 40,
-        "max_words": 500,
-        "instructions": "Reproduce opinion_letter_body VERBATIM as prose. Do not author, soften, strengthen, or reword any opinion language. If opinion_letter_body is empty, render 'to be confirmed — practitioner's report language required'."
+        "max_words": 700,
+        "instructions": "Reproduce opinion_letter_body VERBATIM as prose, preserving its section headings (Opinion; Basis for Opinion; Responsibilities of Management for the Financial Statements; Auditor's Responsibilities for the Audit of the Financial Statements) and the closing firm/city/date signature block on separate lines. Do not author, soften, strengthen, or reword any opinion language. If opinion_letter_body is empty, render 'to be confirmed — practitioner's report language required'."
       },
       {
         "key": "balance_sheet",
