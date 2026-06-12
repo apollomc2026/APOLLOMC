@@ -329,7 +329,12 @@ export async function POST(request: Request) {
     const contentHtml = await generateDocumentHtml({ template, brand, inputs, images })
 
     const preparedDate = formatPreparedDate(undefined)
-    const documentId = `${brandSlug.toUpperCase().slice(0, 3)}-${templateSlug.toUpperCase().slice(0, 3)}-${todayStamp()}-${shortId()}`
+    // Strip non-alphanumerics BEFORE slicing: a hyphen inside the first three
+    // characters of a slug (e.g. "on-board" -> "ON-") used to survive the
+    // slice and collide with the separator, rendering doubled hyphens
+    // ("ON--BOARD--"). Alphanumeric-only codes keep the ID clean.
+    const idCode = (s: string) => s.replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, 3)
+    const documentId = `${idCode(brandSlug)}-${idCode(templateSlug)}-${todayStamp()}-${shortId()}`
 
     const pdfBuffer = await buildPdf({
       template,
