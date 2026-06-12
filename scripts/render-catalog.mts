@@ -102,6 +102,28 @@ const SEEDS: Record<string, Record<string, unknown>> = {
     notes_disclosures:
       'Note 1 — Nature of operations and summary of significant accounting policies. Northline Logistics LLC provides regional third-party logistics and freight-brokerage services. The financial statements are prepared on the accrual basis in accordance with U.S. GAAP. Revenue is recognized as services are performed. Property and equipment are stated at cost and depreciated on a straight-line basis over estimated useful lives of three to ten years.\nNote 2 — Long-term debt. Long-term debt consists of a term loan secured by equipment, bearing interest at 6.25%, with monthly principal payments and final maturity in 2030. Current maturities of $90,000 are classified as current liabilities.\nNote 3 — Members’ equity. The Company is a Massachusetts limited liability company; members’ capital and distributions are governed by the operating agreement. Distributions of $225,000 were made during 2025.\nNote 4 — Intangible assets. Intangible assets, net, of $88,000 at December 31, 2025 and 2024 consist of an acquired perpetual operating authority and related rights. The Company has determined these assets to have indefinite useful lives; accordingly, they are not amortized but are tested for impairment at least annually and whenever events or changes in circumstances indicate that the carrying amount may not be recoverable. No impairment was recognized during the years ended December 31, 2025 or 2024.\nNote 5 — Subsequent events. Management has evaluated subsequent events through March 14, 2026, the date the financial statements were available to be issued.',
   },
+  'board-report': {
+    organization_name: 'Northline Logistics LLC',
+    reporting_period: 'Q4 2025 and Full Year 2025',
+    report_type: 'Quarterly Board Report',
+    board_meeting_date: '2026-01-28',
+    prepared_by: 'Office of the CFO',
+    classification: 'Board Confidential',
+    financial_highlights:
+      'Full-year 2025 revenue of $4.21 million, up 6.9% vs. prior year. Net income of $363,500 (8.6% net margin) exceeded budget by $48,000. Cash position of $312,400 at December 31, 2025, up from $302,900. Total assets $1.52 million; debt-to-equity 0.54x, down from 0.87x at year-end 2024.',
+    strategic_initiatives:
+      'Northeastern corridor expansion: Phase 1 contracts signed with three new shipper accounts totaling ~$620,000 annualized revenue; onboarding Q1 2026. Fleet modernization: three Class 8 replacements committed, delivery Q2 2026, estimated CapEx $310,000. Technology: TMS upgrade (McLeod Software) scheduled for Q2 2026 implementation, $85,000 budget.',
+    key_risks:
+      'Fuel cost volatility (diesel +14% vs. budget in Q4). Driver retention: turnover 22% vs. 18% target. Two key customer contracts up for renewal in H1 2026 (combined ~$1.1M revenue). Macro: regional manufacturing slowdown reducing spot rate opportunities.',
+    operational_metrics:
+      'Active drivers: 31 (vs. 33 target). Fleet utilization: 84%. On-time delivery rate: 96.2%. Customer count: 47 active accounts. Top-10 customer concentration: 62% of revenue.',
+    compliance_updates:
+      'FMCSA compliance: no open violations; last roadside inspection (Q3 2025) — satisfactory. No open EEOC or OSHA matters. Annual insurance renewals completed November 2025 — no material coverage gaps.',
+    board_actions_needed:
+      'Approval: FY 2026 capital expenditure budget of $1.2 million. Approval: Q4 2025 member distribution of $112,500. Ratification: director indemnification agreements (three new independent directors). Discussion/direction: Northeast expansion Phase 2 commitment (Q2 2026 decision point).',
+    forward_guidance:
+      '2026 revenue guidance: $4.55–4.75 million (base case). Key assumptions: 3% rate increase effective March 1, northeast expansion ramp, TMS-enabled efficiency gains of ~2% on operating costs. Principal risks to guidance: driver shortage, fuel, customer concentration renewals.',
+  },
   'cash-flow-budget-package': {
     entity_name: 'Northline Logistics LLC',
     forecast_period: 'Rolling 12 months — January through December 2026',
