@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Financial Statements Package</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #fafafa;
+  --ink: #14151a;
+  --accent: #6be3ff;
+  --metadata: #5a5e66;
+  --hairline: rgba(20,21,26,0.22);
+
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+
+  --weight-display-italic: 400;
+  --weight-display-bold: 600;
+  --weight-body-regular: 400;
+  --weight-body-medium: 500;
+  --weight-body-bold: 600;
+  --weight-mono-regular: 400;
+}
+html, body {
+  background: var(--paper);
+  color: var(--ink);
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-body);
+  font-size: 10.5pt;
+  line-height: 1.62;
+  font-weight: var(--weight-body-regular);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+strong { font-weight: var(--weight-body-bold); }
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: 8pt;
+  font-weight: var(--weight-body-medium);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--metadata);
+  margin: 0 0 12pt 0;
+}
+hr.hairline {
+  border: 0;
+  border-top: 0.5pt solid var(--hairline);
+  margin: 18pt 0;
+}
+</style>
+
+<style>
+@page { size: 8.5in 11in; margin: 0.9in 0.85in 0.85in 0.85in; }
+@page :first { margin: 0.75in 0.85in 0.85in 0.85in; }
+body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.4; color: var(--ink); }
+.ld-masthead {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  border-bottom: 1.5pt solid var(--accent); padding-bottom: 7pt; margin-bottom: 14pt;
+}
+.ld-brand { font-family: var(--font-body); font-size: 8pt; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--ink); }
+.ld-title { font-family: var(--font-display); font-size: 17pt; font-weight: 600; margin: 3pt 0 0 0; color: var(--ink); }
+.ld-meta { text-align: right; font-size: 7.5pt; letter-spacing: 0.14em; text-transform: uppercase; color: var(--metadata); white-space: nowrap; padding-left: 18pt; }
+.ld-body h2 {
+  font-family: var(--font-body); font-size: 10pt; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ink); margin: 16pt 0 5pt 0; padding-bottom: 3pt;
+  border-bottom: 0.75pt solid var(--accent); break-after: avoid;
+}
+.ld-body h3 { font-family: var(--font-body); font-size: 9pt; font-weight: 600; margin: 8pt 0 2pt 0; color: var(--ink); }
+.ld-body table { width: 100%; border-collapse: collapse; margin: 4pt 0 10pt 0; font-size: 9pt; }
+.ld-body thead th { background: var(--ink); color: #fff; font-weight: 600; padding: 4pt 8pt; font-size: 8pt; letter-spacing: 0.04em; text-align: left; }
+.ld-body thead th:not(:first-child) { text-align: right; }
+.ld-body td { border-bottom: 0.25pt solid var(--hairline); padding: 3pt 8pt; vertical-align: top; }
+/* Line-item label left; every figure column right-aligned with tabular numerals. */
+.ld-body td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ld-body td strong { font-weight: 700; }
+.ld-body tbody tr:last-child td { border-bottom: 0.5pt solid var(--ink); }
+/* Grand totals (total assets, total L+E, net income, ending cash, year-end):
+   single rule above, double rule below — placed after the :last-child rule so
+   the final row, which is itself a grand total, double-rules rather than single. */
+.ld-body tbody tr.ld-grandtotal td { border-top: 0.5pt solid var(--ink); border-bottom: 2.25pt double var(--ink); font-weight: 700; }
+/* Italic section separators (Operating/Investing/Financing; Assets/Liabilities/Members' equity).
+   Span all columns, no bottom border, top padding to open the section visually. */
+.ld-body tbody tr.ld-section-header td { font-style: italic; font-size: 8.5pt; color: var(--metadata); padding-top: 10pt; padding-bottom: 2pt; border-bottom: none; }
+/* "The accompanying notes…" legend under each primary statement. */
+.ld-legend { font-style: italic; font-size: 8pt; color: var(--metadata); margin: -5pt 0 13pt 0; text-align: right; }
+.ld-body ul { margin: 3pt 0 9pt 0; padding-left: 15pt; }
+.ld-body li { margin: 1.5pt 0; }
+.ld-body p { margin: 0 0 7pt 0; }
+.ld-body table:last-child, .ld-body ul:last-child, .ld-body p:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+  <div class="ld-masthead">
+    <div><div class="ld-brand">Harding &amp; Mealey CPAs, P.C.</div><div class="ld-title">Financial Statements Package</div></div>
+    <div class="ld-meta">FSP-2026-001 &middot; 11 June 2026</div>
+  </div>
+  <div class="ld-body">
+<h2>Report Details</h2>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Entity</td>
+<td>Northline Logistics LLC</td>
+</tr>
+<tr>
+<td>Current period</td>
+<td>December 31, 2025</td>
+</tr>
+<tr>
+<td>Prior period</td>
+<td>December 31, 2024</td>
+</tr>
+<tr>
+<td>Basis of accounting</td>
+<td>U.S. Generally Accepted Accounting Principles (U.S. GAAP)</td>
+</tr>
+<tr>
+<td>Report type</td>
+<td>Unqualified (Independent Auditor's Report)</td>
+</tr>
+<tr>
+<td>Practitioner / firm</td>
+<td>Harding &amp; Mealey CPAs, P.C. — Worcester, Massachusetts</td>
+</tr>
+<tr>
+<td>Report date</td>
+<td>March 14, 2026</td>
+</tr>
+</tbody></table>
+<h2>Basis of Presentation</h2>
+<p>The financial statements, figures, professional judgments, and the report opinion presented herein are supplied and owned by the licensed practitioner. Apollo typesets the practitioner-provided data into a finished financial statements package; it does not audit, opine on, compute, or independently verify any figure. The statements are presented on the basis of accounting indicated in the report details above.</p>
+<h2>Independent Auditor's Report</h2>
+<p>To the Members of Northline Logistics LLC</p>
+<p>Opinion<br />We have audited the accompanying financial statements of Northline Logistics LLC, which comprise the balance sheets as of December 31, 2025 and 2024, and the related statements of operations, changes in members' equity, and cash flows for the years then ended, and the related notes to the financial statements. In our opinion, the accompanying financial statements present fairly, in all material respects, the financial position of Northline Logistics LLC as of December 31, 2025 and 2024, and the results of its operations and its cash flows for the years then ended in accordance with accounting principles generally accepted in the United States of America.</p>
+<p>Basis for Opinion<br />We conducted our audits in accordance with auditing standards generally accepted in the United States of America (GAAS). Our responsibilities under those standards are further described in the Auditor's Responsibilities for the Audit of the Financial Statements section of our report. We are required to be independent of Northline Logistics LLC and to meet our other ethical responsibilities in accordance with the relevant ethical requirements relating to our audits. We believe that the audit evidence we have obtained is sufficient and appropriate to provide a basis for our audit opinion.</p>
+<p>Responsibilities of Management for the Financial Statements<br />Management is responsible for the preparation and fair presentation of these financial statements in accordance with accounting principles generally accepted in the United States of America, and for the design, implementation, and maintenance of internal control relevant to the preparation and fair presentation of financial statements that are free from material misstatement, whether due to fraud or error. In preparing the financial statements, management is required to evaluate whether there are conditions or events, considered in the aggregate, that raise substantial doubt about the Company's ability to continue as a going concern for one year after the date the financial statements are available to be issued.</p>
+<p>Auditor's Responsibilities for the Audit of the Financial Statements<br />Our objectives are to obtain reasonable assurance about whether the financial statements as a whole are free from material misstatement, whether due to fraud or error, and to issue an auditor's report that includes our opinion. Reasonable assurance is a high level of assurance but is not absolute assurance and therefore is not a guarantee that an audit conducted in accordance with GAAS will always detect a material misstatement when it exists. The risk of not detecting a material misstatement resulting from fraud is higher than for one resulting from error, as fraud may involve collusion, forgery, intentional omissions, misrepresentations, or the override of internal control. Misstatements are considered material if there is a substantial likelihood that, individually or in the aggregate, they would influence the judgment made by a reasonable user based on the financial statements. In performing an audit in accordance with GAAS, we exercise professional judgment and maintain professional skepticism throughout the audit. We also evaluate the appropriateness of accounting policies used and the reasonableness of significant accounting estimates made by management, as well as the overall presentation of the financial statements, and we conclude whether, in our judgment, there are conditions or events that raise substantial doubt about the Company's ability to continue as a going concern for a reasonable period of time. We are required to communicate with those charged with governance regarding, among other matters, the planned scope and timing of the audit and significant audit findings.</p>
+<p>Harding &amp; Mealey CPAs, P.C.<br />Worcester, Massachusetts<br />March 14, 2026</p>
+<h2>Balance Sheet</h2>
+<p>Northline Logistics LLC — Balance Sheets as of December 31, 2025 and 2024</p>
+<table>
+<thead>
+<tr>
+<th align="left">Line Item</th>
+<th align="right">2025</th>
+<th align="right">2024</th>
+</tr>
+</thead>
+<tbody><tr class="ld-section-header"><td colspan="99"><em>Assets</em></td></tr>
+<tr>
+<td align="left">Cash and cash equivalents</td>
+<td align="right">$312,400</td>
+<td align="right">$302,900</td>
+</tr><tr>
+<td align="left">Accounts receivable, net</td>
+<td align="right">458,200</td>
+<td align="right">427,000</td>
+</tr><tr>
+<td align="left">Prepaid expenses</td>
+<td align="right">41,300</td>
+<td align="right">36,300</td>
+</tr><tr>
+<td align="left"><strong>Total current assets</strong></td>
+<td align="right"><strong>811,900</strong></td>
+<td align="right"><strong>766,200</strong></td>
+</tr><tr>
+<td align="left">Property and equipment, net</td>
+<td align="right">624,500</td>
+<td align="right">610,000</td>
+</tr><tr>
+<td align="left">Intangible assets, net</td>
+<td align="right">88,000</td>
+<td align="right">88,000</td>
+</tr><tr class="ld-grandtotal">
+<td align="left"><strong>Total assets</strong></td>
+<td align="right"><strong>$1,524,400</strong></td>
+<td align="right"><strong>$1,464,200</strong></td>
+</tr><tr class="ld-section-header"><td colspan="99"><em>Liabilities</em></td></tr>
+<tr>
+<td align="left">Accounts payable</td>
+<td align="right">196,700</td>
+<td align="right">188,400</td>
+</tr><tr>
+<td align="left">Accrued liabilities</td>
+<td align="right">73,400</td>
+<td align="right">70,000</td>
+</tr><tr>
+<td align="left">Current portion of long-term debt</td>
+<td align="right">90,000</td>
+<td align="right">90,000</td>
+</tr><tr>
+<td align="left"><strong>Total current liabilities</strong></td>
+<td align="right"><strong>360,100</strong></td>
+<td align="right"><strong>348,400</strong></td>
+</tr><tr>
+<td align="left">Long-term debt, net of current portion</td>
+<td align="right">410,000</td>
+<td align="right">500,000</td>
+</tr><tr>
+<td align="left"><strong>Total liabilities</strong></td>
+<td align="right"><strong>770,100</strong></td>
+<td align="right"><strong>848,400</strong></td>
+</tr><tr class="ld-section-header"><td colspan="99"><em>Members&#39; equity</em></td></tr>
+<tr>
+<td align="left">Members' capital</td>
+<td align="right">500,000</td>
+<td align="right">500,000</td>
+</tr><tr>
+<td align="left">Retained earnings</td>
+<td align="right">254,300</td>
+<td align="right">115,800</td>
+</tr><tr>
+<td align="left"><strong>Total members' equity</strong></td>
+<td align="right"><strong>754,300</strong></td>
+<td align="right"><strong>615,800</strong></td>
+</tr><tr class="ld-grandtotal">
+<td align="left"><strong>Total liabilities and members' equity</strong></td>
+<td align="right"><strong>$1,524,400</strong></td>
+<td align="right"><strong>$1,464,200</strong></td>
+</tr></tbody></table>
+<p class="ld-legend">The accompanying notes are an integral part of these financial statements.</p>
+<h2>Statement of Operations</h2>
+<p>Northline Logistics LLC — Statements of Operations for the Years Ended December 31, 2025 and 2024</p>
+<table>
+<thead>
+<tr>
+<th align="left">Line Item</th>
+<th align="right">2025</th>
+<th align="right">2024</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Revenue</td>
+<td align="right">$4,210,000</td>
+<td align="right">$3,940,000</td>
+</tr><tr>
+<td align="left">Cost of services</td>
+<td align="right">(2,684,000)</td>
+<td align="right">(2,540,000)</td>
+</tr><tr>
+<td align="left"><strong>Gross profit</strong></td>
+<td align="right"><strong>1,526,000</strong></td>
+<td align="right"><strong>1,400,000</strong></td>
+</tr><tr>
+<td align="left">Salaries and benefits</td>
+<td align="right">(742,000)</td>
+<td align="right">(705,000)</td>
+</tr><tr>
+<td align="left">General and administrative</td>
+<td align="right">(286,000)</td>
+<td align="right">(272,000)</td>
+</tr><tr>
+<td align="left">Depreciation and amortization</td>
+<td align="right">(96,000)</td>
+<td align="right">(91,000)</td>
+</tr><tr>
+<td align="left"><strong>Total operating expenses</strong></td>
+<td align="right"><strong>(1,124,000)</strong></td>
+<td align="right"><strong>(1,068,000)</strong></td>
+</tr><tr>
+<td align="left"><strong>Operating income</strong></td>
+<td align="right"><strong>402,000</strong></td>
+<td align="right"><strong>332,000</strong></td>
+</tr><tr>
+<td align="left">Interest expense</td>
+<td align="right">(38,500)</td>
+<td align="right">(44,000)</td>
+</tr><tr class="ld-grandtotal">
+<td align="left"><strong>Net income</strong></td>
+<td align="right"><strong>$363,500</strong></td>
+<td align="right"><strong>$288,000</strong></td>
+</tr></tbody></table>
+<p class="ld-legend">The accompanying notes are an integral part of these financial statements.</p>
+<h2>Statement of Cash Flows</h2>
+<p>Northline Logistics LLC — Statements of Cash Flows for the Years Ended December 31, 2025 and 2024</p>
+<table>
+<thead>
+<tr>
+<th align="left">Line Item</th>
+<th align="right">2025</th>
+<th align="right">2024</th>
+</tr>
+</thead>
+<tbody><tr class="ld-section-header"><td colspan="99"><em>Operating activities</em></td></tr>
+<tr>
+<td align="left">Net income</td>
+<td align="right">$363,500</td>
+<td align="right">$288,000</td>
+</tr><tr>
+<td align="left">Depreciation and amortization</td>
+<td align="right">96,000</td>
+<td align="right">91,000</td>
+</tr><tr>
+<td align="left">Increase in accounts receivable</td>
+<td align="right">(31,200)</td>
+<td align="right">(28,600)</td>
+</tr><tr>
+<td align="left">Increase in prepaid expenses</td>
+<td align="right">(5,000)</td>
+<td align="right">(3,000)</td>
+</tr><tr>
+<td align="left">Increase in accounts payable</td>
+<td align="right">8,300</td>
+<td align="right">9,000</td>
+</tr><tr>
+<td align="left">Increase in accrued liabilities</td>
+<td align="right">3,400</td>
+<td align="right">2,000</td>
+</tr><tr>
+<td align="left"><strong>Net cash from operating activities</strong></td>
+<td align="right"><strong>435,000</strong></td>
+<td align="right"><strong>358,400</strong></td>
+</tr><tr class="ld-section-header"><td colspan="99"><em>Investing activities</em></td></tr>
+<tr>
+<td align="left">Purchases of property and equipment</td>
+<td align="right">(110,500)</td>
+<td align="right">(120,000)</td>
+</tr><tr>
+<td align="left"><strong>Net cash used in investing activities</strong></td>
+<td align="right"><strong>(110,500)</strong></td>
+<td align="right"><strong>(120,000)</strong></td>
+</tr><tr class="ld-section-header"><td colspan="99"><em>Financing activities</em></td></tr>
+<tr>
+<td align="left">Repayment of long-term debt</td>
+<td align="right">(90,000)</td>
+<td align="right">(90,000)</td>
+</tr><tr>
+<td align="left">Member distributions</td>
+<td align="right">(225,000)</td>
+<td align="right">(142,000)</td>
+</tr><tr>
+<td align="left"><strong>Net cash used in financing activities</strong></td>
+<td align="right"><strong>(315,000)</strong></td>
+<td align="right"><strong>(232,000)</strong></td>
+</tr><tr>
+<td align="left"><strong>Net change in cash</strong></td>
+<td align="right"><strong>9,500</strong></td>
+<td align="right"><strong>6,400</strong></td>
+</tr><tr>
+<td align="left">Cash, beginning of year</td>
+<td align="right">302,900</td>
+<td align="right">296,500</td>
+</tr><tr class="ld-grandtotal">
+<td align="left"><strong>Cash, end of year</strong></td>
+<td align="right"><strong>$312,400</strong></td>
+<td align="right"><strong>$302,900</strong></td>
+</tr></tbody></table>
+<p class="ld-legend">The accompanying notes are an integral part of these financial statements.</p>
+<h2>Statement of Changes in Equity</h2>
+<p>Northline Logistics LLC — Statement of Changes in Members' Equity for the Year Ended December 31, 2025</p>
+<table>
+<thead>
+<tr>
+<th align="left">Line Item</th>
+<th align="right">Amount</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Beginning members' equity</td>
+<td align="right">$615,800</td>
+</tr><tr>
+<td align="left">Net income</td>
+<td align="right">363,500</td>
+</tr><tr>
+<td align="left">Member distributions</td>
+<td align="right">(225,000)</td>
+</tr><tr class="ld-grandtotal">
+<td align="left"><strong>Ending members' equity</strong></td>
+<td align="right"><strong>$754,300</strong></td>
+</tr></tbody></table>
+<p class="ld-legend">The accompanying notes are an integral part of these financial statements.</p>
+<h2>Notes to the Financial Statements</h2>
+<p>Note 1 — Nature of operations and summary of significant accounting policies. Northline Logistics LLC provides regional third-party logistics and freight-brokerage services. The financial statements are prepared on the accrual basis in accordance with U.S. GAAP. Revenue is recognized as services are performed. Property and equipment are stated at cost and depreciated on a straight-line basis over estimated useful lives of three to ten years.</p>
+<p>Note 2 — Long-term debt. Long-term debt consists of a term loan secured by equipment, bearing interest at 6.25%, with monthly principal payments and final maturity in 2030. Current maturities of $90,000 are classified as current liabilities.</p>
+<p>Note 3 — Members' equity. The Company is a Massachusetts limited liability company; members' capital and distributions are governed by the operating agreement. Distributions of $225,000 were made during 2025.</p>
+<p>Note 4 — Intangible assets. Intangible assets, net, of $88,000 at December 31, 2025 and 2024 consist of an acquired perpetual operating authority and related rights. The Company has determined these assets to have indefinite useful lives; accordingly, they are not amortized but are tested for impairment at least annually and whenever events or changes in circumstances indicate that the carrying amount may not be recoverable. No impairment was recognized during the years ended December 31, 2025 or 2024.</p>
+<p>Note 5 — Subsequent events. Management has evaluated subsequent events through March 14, 2026, the date the financial statements were available to be issued.</p>
+  </div>
+</body>
+</html>

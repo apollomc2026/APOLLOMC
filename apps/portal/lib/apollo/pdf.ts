@@ -642,6 +642,53 @@ function styleStatementTable(table: string): string {
   })
 }
 
+// Italic section-separator rows injected by the renderer so they appear
+// regardless of whether the model emits them. One row spans all columns.
+function makeHeaderRow(label: string): string {
+  return `<tr class="ld-section-header"><td colspan="99"><em>${escapeHtml(label)}</em></td></tr>\n`
+}
+
+// Cash Flow statement: inject "Operating activities" before the first body row,
+// "Investing activities" after the operating subtotal, "Financing activities"
+// after the investing subtotal.
+function injectCashFlowSectionHeaders(table: string): string {
+  return table.replace(/<tbody>([\s\S]*?)<\/tbody>/i, (_m, body: string) => {
+    const rows = body.match(/<tr\b[\s\S]*?<\/tr>/gi) || []
+    const out: string[] = [makeHeaderRow('Operating activities')]
+    for (const row of rows) {
+      out.push(row)
+      const cellText = (row.match(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/i)?.[1] || '')
+        .replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+      if (/^net cash (from|provided by) operating activities/i.test(cellText)) {
+        out.push(makeHeaderRow('Investing activities'))
+      } else if (/^net cash (used in|from) investing activities/i.test(cellText)) {
+        out.push(makeHeaderRow('Financing activities'))
+      }
+    }
+    return `<tbody>${out.join('')}</tbody>`
+  })
+}
+
+// Balance Sheet: inject "Assets" before the first body row, "Liabilities" after
+// Total assets, "Members' equity" after Total liabilities.
+function injectBalanceSheetSectionHeaders(table: string): string {
+  return table.replace(/<tbody>([\s\S]*?)<\/tbody>/i, (_m, body: string) => {
+    const rows = body.match(/<tr\b[\s\S]*?<\/tr>/gi) || []
+    const out: string[] = [makeHeaderRow('Assets')]
+    for (const row of rows) {
+      out.push(row)
+      const cellText = (row.match(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/i)?.[1] || '')
+        .replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+      if (/^total assets$/i.test(cellText)) {
+        out.push(makeHeaderRow('Liabilities'))
+      } else if (/^total liabilities$/i.test(cellText)) {
+        out.push(makeHeaderRow("Members' equity"))
+      }
+    }
+    return `<tbody>${out.join('')}</tbody>`
+  })
+}
+
 // Walk h2-delimited sections; decorate only the primary-statement tables, and
 // (statements package only) append the "accompanying notes" legend under each.
 function decorateLedgerStatements(html: string, isStatementsPackage: boolean): string {
@@ -650,7 +697,15 @@ function decorateLedgerStatements(html: string, isStatementsPackage: boolean): s
     (whole, h2tag: string, h2inner: string, bodyAfter: string) => {
       const heading = h2inner.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
       if (!PRIMARY_STATEMENT_RE.test(heading)) return whole
-      let block = bodyAfter.replace(/<table[\s\S]*?<\/table>/i, (tbl) => styleStatementTable(tbl))
+      let block = bodyAfter.replace(/<table[\s\S]*?<\/table>/i, (tbl) => {
+        let decorated = styleStatementTable(tbl)
+        if (/balance sheet/i.test(heading)) {
+          decorated = injectBalanceSheetSectionHeaders(decorated)
+        } else if (/statement of cash flows/i.test(heading)) {
+          decorated = injectCashFlowSectionHeaders(decorated)
+        }
+        return decorated
+      })
       if (isStatementsPackage) {
         block = block.replace(
           /<\/table>/i,
@@ -721,6 +776,9 @@ body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.4; color:
    single rule above, double rule below — placed after the :last-child rule so
    the final row, which is itself a grand total, double-rules rather than single. */
 .ld-body tbody tr.ld-grandtotal td { border-top: 0.5pt solid var(--ink); border-bottom: 2.25pt double var(--ink); font-weight: 700; }
+/* Italic section separators (Operating/Investing/Financing; Assets/Liabilities/Members' equity).
+   Span all columns, no bottom border, top padding to open the section visually. */
+.ld-body tbody tr.ld-section-header td { font-style: italic; font-size: 8.5pt; color: var(--metadata); padding-top: 10pt; padding-bottom: 2pt; border-bottom: none; }
 /* "The accompanying notes…" legend under each primary statement. */
 .ld-legend { font-style: italic; font-size: 8pt; color: var(--metadata); margin: -5pt 0 13pt 0; text-align: right; }
 .ld-body ul { margin: 3pt 0 9pt 0; padding-left: 15pt; }
@@ -961,7 +1019,10 @@ hr.hairline, .hairline {
   font-size: 14pt;
   font-weight: 500;
   color: var(--ink);
-  flex-shrink: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 /* TOC dot leaders via a repeating radial gradient — CSS dotted borders
    render inconsistently in Chromium's PDF backend, but gradients are
