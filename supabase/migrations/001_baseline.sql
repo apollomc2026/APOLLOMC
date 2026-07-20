@@ -12,7 +12,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- CATALOG TABLES (seeded, not user-generated)
 -- ============================================================
 
-CREATE TABLE industries (
+CREATE TABLE IF NOT EXISTS industries (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   slug          VARCHAR(50) UNIQUE NOT NULL,
   label         VARCHAR(100) NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE industries (
   created_at    TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE deliverable_types (
+CREATE TABLE IF NOT EXISTS deliverable_types (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   industry_id         UUID NOT NULL REFERENCES industries(id),
   slug                VARCHAR(100) UNIQUE NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE deliverable_types (
   created_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE style_templates (
+CREATE TABLE IF NOT EXISTS style_templates (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   deliverable_type_id UUID NOT NULL REFERENCES deliverable_types(id),
   slug                VARCHAR(100) UNIQUE NOT NULL,
@@ -56,7 +56,7 @@ CREATE TABLE style_templates (
 -- USER TABLES
 -- ============================================================
 
-CREATE TABLE profiles (
+CREATE TABLE IF NOT EXISTS profiles (
   id              UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email           VARCHAR(255) NOT NULL,
   full_name       VARCHAR(255),
@@ -72,7 +72,7 @@ CREATE TABLE profiles (
 -- MISSION TABLES
 -- ============================================================
 
-CREATE TABLE missions (
+CREATE TABLE IF NOT EXISTS missions (
   id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id               UUID NOT NULL REFERENCES profiles(id),
   industry_id           UUID NOT NULL REFERENCES industries(id),
@@ -116,7 +116,7 @@ CREATE TABLE missions (
 -- INTAKE TABLES
 -- ============================================================
 
-CREATE TABLE intake_sessions (
+CREATE TABLE IF NOT EXISTS intake_sessions (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   mission_id  UUID NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
   messages    JSONB DEFAULT '[]',   -- full conversation history
@@ -126,7 +126,7 @@ CREATE TABLE intake_sessions (
   updated_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE uploaded_files (
+CREATE TABLE IF NOT EXISTS uploaded_files (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   mission_id      UUID NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
   kind            VARCHAR(50) NOT NULL,
@@ -145,7 +145,7 @@ CREATE TABLE uploaded_files (
 -- TASK TABLES (execution engine)
 -- ============================================================
 
-CREATE TABLE tasks (
+CREATE TABLE IF NOT EXISTS tasks (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   mission_id      UUID NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
   task_type       VARCHAR(100) NOT NULL,
@@ -173,7 +173,7 @@ CREATE TABLE tasks (
 -- OUTPUT TABLES
 -- ============================================================
 
-CREATE TABLE outputs (
+CREATE TABLE IF NOT EXISTS outputs (
   id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   mission_id            UUID NOT NULL REFERENCES missions(id),
   version               INTEGER DEFAULT 1,
@@ -188,7 +188,7 @@ CREATE TABLE outputs (
   created_at            TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE delivery_tokens (
+CREATE TABLE IF NOT EXISTS delivery_tokens (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   output_id     UUID NOT NULL REFERENCES outputs(id),
   mission_id    UUID NOT NULL REFERENCES missions(id),
@@ -202,7 +202,7 @@ CREATE TABLE delivery_tokens (
 -- AUDIT TABLES
 -- ============================================================
 
-CREATE TABLE events (
+CREATE TABLE IF NOT EXISTS events (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   mission_id  UUID REFERENCES missions(id),
   user_id     UUID REFERENCES profiles(id),
@@ -211,7 +211,7 @@ CREATE TABLE events (
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE prompt_runs (
+CREATE TABLE IF NOT EXISTS prompt_runs (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   task_id         UUID NOT NULL REFERENCES tasks(id),
   provider        VARCHAR(50) NOT NULL,
@@ -227,17 +227,17 @@ CREATE TABLE prompt_runs (
 -- INDEXES
 -- ============================================================
 
-CREATE INDEX idx_missions_user_id ON missions(user_id);
-CREATE INDEX idx_missions_status ON missions(status);
-CREATE INDEX idx_tasks_mission_id ON tasks(mission_id);
-CREATE INDEX idx_tasks_status ON tasks(status);
-CREATE INDEX idx_uploaded_files_mission_id ON uploaded_files(mission_id);
-CREATE INDEX idx_outputs_mission_id ON outputs(mission_id);
-CREATE INDEX idx_events_mission_id ON events(mission_id);
-CREATE INDEX idx_delivery_tokens_token ON delivery_tokens(token);
-CREATE INDEX idx_delivery_tokens_expires ON delivery_tokens(expires_at);
-CREATE INDEX idx_deliverable_types_industry ON deliverable_types(industry_id);
-CREATE INDEX idx_style_templates_deliverable ON style_templates(deliverable_type_id);
+CREATE INDEX IF NOT EXISTS idx_missions_user_id ON missions(user_id);
+CREATE INDEX IF NOT EXISTS idx_missions_status ON missions(status);
+CREATE INDEX IF NOT EXISTS idx_tasks_mission_id ON tasks(mission_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+CREATE INDEX IF NOT EXISTS idx_uploaded_files_mission_id ON uploaded_files(mission_id);
+CREATE INDEX IF NOT EXISTS idx_outputs_mission_id ON outputs(mission_id);
+CREATE INDEX IF NOT EXISTS idx_events_mission_id ON events(mission_id);
+CREATE INDEX IF NOT EXISTS idx_delivery_tokens_token ON delivery_tokens(token);
+CREATE INDEX IF NOT EXISTS idx_delivery_tokens_expires ON delivery_tokens(expires_at);
+CREATE INDEX IF NOT EXISTS idx_deliverable_types_industry ON deliverable_types(industry_id);
+CREATE INDEX IF NOT EXISTS idx_style_templates_deliverable ON style_templates(deliverable_type_id);
 
 -- ============================================================
 -- ROW LEVEL SECURITY
@@ -253,40 +253,49 @@ ALTER TABLE delivery_tokens ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 
 -- Profiles: users see only their own
+DROP POLICY IF EXISTS "profiles_own" ON profiles;
 CREATE POLICY "profiles_own" ON profiles
   FOR ALL USING (auth.uid() = id);
 
 -- Missions: users see only their own
+DROP POLICY IF EXISTS "missions_own" ON missions;
 CREATE POLICY "missions_own" ON missions
   FOR ALL USING (auth.uid() = user_id);
 
 -- Intake sessions: via mission ownership
+DROP POLICY IF EXISTS "intake_own" ON intake_sessions;
 CREATE POLICY "intake_own" ON intake_sessions
   FOR ALL USING (
     mission_id IN (SELECT id FROM missions WHERE user_id = auth.uid())
   );
 
 -- Uploaded files: via mission ownership
+DROP POLICY IF EXISTS "files_own" ON uploaded_files;
 CREATE POLICY "files_own" ON uploaded_files
   FOR ALL USING (
     mission_id IN (SELECT id FROM missions WHERE user_id = auth.uid())
   );
 
 -- Tasks: read-only via mission ownership
+DROP POLICY IF EXISTS "tasks_read_own" ON tasks;
 CREATE POLICY "tasks_read_own" ON tasks
   FOR SELECT USING (
     mission_id IN (SELECT id FROM missions WHERE user_id = auth.uid())
   );
 
 -- Outputs: via mission ownership
+DROP POLICY IF EXISTS "outputs_own" ON outputs;
 CREATE POLICY "outputs_own" ON outputs
   FOR SELECT USING (
     mission_id IN (SELECT id FROM missions WHERE user_id = auth.uid())
   );
 
 -- Catalog tables: public read
+DROP POLICY IF EXISTS "industries_public_read" ON industries;
 CREATE POLICY "industries_public_read" ON industries FOR SELECT USING (true);
+DROP POLICY IF EXISTS "deliverable_types_public_read" ON deliverable_types;
 CREATE POLICY "deliverable_types_public_read" ON deliverable_types FOR SELECT USING (true);
+DROP POLICY IF EXISTS "style_templates_public_read" ON style_templates;
 CREATE POLICY "style_templates_public_read" ON style_templates FOR SELECT USING (true);
 
 -- Enable RLS on catalog
@@ -303,10 +312,13 @@ RETURNS TRIGGER AS $$
 BEGIN NEW.updated_at = NOW(); RETURN NEW; END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_profiles_updated_at ON profiles;
 CREATE TRIGGER trg_profiles_updated_at
   BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+DROP TRIGGER IF EXISTS trg_missions_updated_at ON missions;
 CREATE TRIGGER trg_missions_updated_at
   BEFORE UPDATE ON missions FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+DROP TRIGGER IF EXISTS trg_intake_updated_at ON intake_sessions;
 CREATE TRIGGER trg_intake_updated_at
   BEFORE UPDATE ON intake_sessions FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
@@ -323,6 +335,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
