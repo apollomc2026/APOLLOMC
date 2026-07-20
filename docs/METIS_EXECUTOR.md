@@ -27,6 +27,8 @@ This release is staging-only. It truthfully advertises PDF support and a confide
 5. Google Drive draft delivery is implemented and verified if Drive is required for activation.
 6. DOCX/XLSX are implemented and separately advertised before METIS requests them.
 
+The METIS staging callback receiver and expiring operational event store were provisioned on 2026-07-20. Staging activation still requires this APOLLO branch's schema deployment and the full unattended ATLAS acceptance run; this note does not authorize production activation.
+
 ## Safety
 
 - No APOLLO worker receives METIS database credentials.
