@@ -127,7 +127,7 @@ export async function renderAndStorePdf(order: DocumentWorkOrder, contentHtml: s
     conversation_id: order.conversation_id,
     task_id: order.task_id,
     title: summary.label,
-    artifact_type: order.deliverable_type,
+    artifact_type: 'document',
     lifecycle: 'draft',
     storage_provider: 's3',
     storage_file_id: stored.s3Key,

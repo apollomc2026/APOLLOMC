@@ -40,6 +40,14 @@ describe('METIS executor boundary', () => {
     expect(() => assertAllowedCallbackUrl('https://attacker.example/callback')).toThrow(/not allowed/)
   })
 
+  it('rejects non-HTTPS source and callback URLs', () => {
+    expect(() => parseWorkOrder({ ...order, callback_url: 'http://metis.example/api/executor-events' })).toThrow(/HTTPS/)
+    expect(() => parseWorkOrder({
+      ...order,
+      sources: [{ source_id: 'source-1', name: 'input.txt', media_type: 'text/plain', retrieval_url: 'http://files.example/input.txt', content_sha256: 'a'.repeat(64), sensitivity: 'internal', expires_at: '2026-07-21T00:00:00.000Z' }],
+    })).toThrow(/HTTPS/)
+  })
+
   it('authenticates method, path, timestamp, and body and rejects tampering', () => {
     vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-07-20T12:00:00.000Z'))
     const timestamp = '2026-07-20T12:00:00.000Z'

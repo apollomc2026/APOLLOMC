@@ -55,7 +55,7 @@ export interface ArtifactManifest {
   conversation_id: string
   task_id: string
   title: string
-  artifact_type: string
+  artifact_type: 'document'
   lifecycle: 'draft'
   storage_provider: 's3' | 'google-drive'
   storage_file_id: string
@@ -97,9 +97,14 @@ export function parseWorkOrder(value: unknown): DocumentWorkOrder {
   if (!isRecord(value.fields)) throw new Error('fields must be an object')
   if (!Array.isArray(value.sources)) throw new Error('sources must be an array')
   for (const source of value.sources) {
-    if (!isRecord(source) || typeof source.content_sha256 !== 'string' || !SHA256.test(source.content_sha256)) {
-      throw new Error('each source requires a valid content_sha256')
+    if (!isRecord(source)) throw new Error('each source must be an object')
+    for (const key of ['source_id', 'name', 'media_type', 'retrieval_url', 'sensitivity', 'expires_at']) {
+      if (typeof source[key] !== 'string' || !(source[key] as string).trim()) throw new Error(`source ${key} is required`)
     }
+    if (typeof source.content_sha256 !== 'string' || !SHA256.test(source.content_sha256)) throw new Error('each source requires a valid content_sha256')
+    const sourceUrl = new URL(source.retrieval_url as string)
+    if (sourceUrl.protocol !== 'https:') throw new Error('source retrieval_url must use HTTPS')
+    if (!Number.isFinite(Date.parse(source.expires_at as string))) throw new Error('source expires_at must be an ISO timestamp')
   }
   if (!isRecord(value.drive_destination) || value.drive_destination.lifecycle !== 'draft') {
     throw new Error('drive_destination must target draft lifecycle')
@@ -107,7 +112,9 @@ export function parseWorkOrder(value: unknown): DocumentWorkOrder {
   if (!isRecord(value.quality_gates) || value.quality_gates.schema_validation !== true || value.quality_gates.source_grounding !== true || value.quality_gates.human_approval_before_publish !== true) {
     throw new Error('mandatory quality gates cannot be disabled')
   }
-  new URL(value.callback_url as string)
+  const callbackUrl = new URL(value.callback_url as string)
+  if (callbackUrl.protocol !== 'https:') throw new Error('callback_url must use HTTPS')
+  if (!Number.isFinite(Date.parse(value.created_at as string))) throw new Error('created_at must be an ISO timestamp')
   return value as unknown as DocumentWorkOrder
 }
 
