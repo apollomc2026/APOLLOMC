@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Board Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #fafafa;
+  --ink: #14151a;
+  --accent: #6be3ff;
+  --metadata: #5a5e66;
+  --hairline: rgba(20,21,26,0.22);
+
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+
+  --weight-display-italic: 400;
+  --weight-display-bold: 600;
+  --weight-body-regular: 400;
+  --weight-body-medium: 500;
+  --weight-body-bold: 600;
+  --weight-mono-regular: 400;
+}
+html, body {
+  background: var(--paper);
+  color: var(--ink);
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-body);
+  font-size: 10.5pt;
+  line-height: 1.62;
+  font-weight: var(--weight-body-regular);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+strong { font-weight: var(--weight-body-bold); }
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: 8pt;
+  font-weight: var(--weight-body-medium);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--metadata);
+  margin: 0 0 12pt 0;
+}
+hr.hairline {
+  border: 0;
+  border-top: 0.5pt solid var(--hairline);
+  margin: 18pt 0;
+}
+</style>
+
+<style>
+/* Paged media. 8.5 × 11, generous margins. */
+@page {
+  size: 8.5in 11in;
+  margin: 1.5in 1.25in 1.25in 1.25in;
+}
+@page :first {
+  margin: 1in 1.25in 1in 1.25in;
+}
+
+h1, h2, h3, .display, .cover-title, .sig-heading {
+  font-family: var(--font-display);
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: 0;
+}
+
+p {
+  margin: 0 0 10pt 0;
+}
+
+strong { font-weight: 600; }
+em, i {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+}
+
+/* Eyebrow labels — the signature small-caps metadata voice. */
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: 8pt;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--metadata);
+  margin: 0 0 12pt 0;
+}
+
+/* Fine hairline accents. Never thick borders. */
+hr.hairline, .hairline {
+  border: 0;
+  border-top: 0.5pt solid var(--hairline);
+  margin: 18pt 0;
+  width: 100%;
+}
+.section-rule {
+  border: 0;
+  border-top: 0.5pt solid var(--accent);
+  width: 1.5in;
+  margin: 14pt 0 28pt 0;
+}
+
+/* ========================================================================
+   COVER PAGE
+   Restrained to the extreme. Wordmark small. Title center-weight.
+   Generous vertical rhythm. No logo PNG — typeset wordmark only.
+   ======================================================================== */
+.cover {
+  page-break-after: always;
+  height: 9in;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.cover-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.cover-wordmark {
+  font-family: var(--font-body);
+  font-size: 10pt;
+  font-weight: 600;
+  letter-spacing: 0.38em;
+  color: var(--ink);
+}
+.cover-docid {
+  font-family: var(--font-body);
+  font-size: 8pt;
+  letter-spacing: 0.18em;
+  color: var(--metadata);
+  text-transform: uppercase;
+  text-align: right;
+}
+.cover-center {
+  margin-top: 2.1in;
+  text-align: center;
+}
+.cover-kicker {
+  font-family: var(--font-body);
+  font-size: 8.5pt;
+  font-weight: 500;
+  letter-spacing: 0.38em;
+  color: var(--metadata);
+  text-transform: uppercase;
+  margin-bottom: 56pt;
+}
+.cover-title {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 40pt;
+  line-height: 1.1;
+  color: var(--ink);
+  margin: 0;
+}
+.cover-parties {
+  margin-top: 84pt;
+  text-align: center;
+}
+.cover-parties .party {
+  font-family: var(--font-body);
+  font-size: 10pt;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin: 0;
+}
+.cover-parties .party-rule {
+  width: 0.6in;
+  margin: 14pt auto;
+  border-top: 0.5pt solid var(--accent);
+}
+.cover-and {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 12pt;
+  color: var(--metadata);
+  margin: 4pt 0;
+}
+.cover-bottom {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  font-family: var(--font-body);
+  font-size: 8pt;
+  letter-spacing: 0.18em;
+  color: var(--metadata);
+  text-transform: uppercase;
+}
+
+/* ========================================================================
+   TOC PAGE
+   ======================================================================== */
+.toc-page {
+  page-break-after: always;
+  padding-top: 0.25in;
+}
+.toc-eyebrow {
+  margin-bottom: 8pt;
+}
+.toc {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  counter-reset: toc;
+}
+.toc-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12pt;
+  padding: 10pt 0;
+  border-bottom: 0.25pt solid var(--hairline);
+}
+.toc-row:last-child { border-bottom: none; }
+.toc-num {
+  font-family: var(--font-body);
+  font-size: 9pt;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+  min-width: 0.6in;
+}
+.toc-title {
+  font-family: var(--font-display);
+  font-size: 14pt;
+  font-weight: 500;
+  color: var(--ink);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* TOC dot leaders via a repeating radial gradient — CSS dotted borders
+   render inconsistently in Chromium's PDF backend, but gradients are
+   rock-solid. Small round dots at ~4pt spacing match classical typesetting. */
+.toc-dots {
+  flex: 1;
+  min-width: 32pt;
+  height: 6pt;
+  background-image: radial-gradient(circle, rgba(20, 21, 26, 0.55) 0.6pt, transparent 0.7pt);
+  background-size: 4pt 6pt;
+  background-repeat: repeat-x;
+  background-position: 0 5pt;
+  margin: 0 8pt;
+}
+
+/* ========================================================================
+   BODY — section openers + prose
+   ======================================================================== */
+.body-content {
+  font-family: var(--font-body);
+  font-size: 10.5pt;
+  line-height: 1.62;
+  text-align: left;
+  hyphens: none;
+  color: var(--ink);
+}
+.body-content p { margin: 0 0 10pt 0; }
+.body-content ol,
+.body-content ul {
+  margin: 10pt 0 14pt 0;
+  padding-left: 20pt;
+}
+.body-content li { margin-bottom: 6pt; }
+.body-content strong {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 11pt;
+  color: var(--ink);
+}
+
+.section-opener {
+  break-inside: avoid;
+  margin-top: 54pt;
+  margin-bottom: 6pt;
+}
+.section-opener:first-of-type { margin-top: 18pt; }
+.section-opener h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 22pt;
+  line-height: 1.15;
+  color: var(--ink);
+  margin: 6pt 0 0 0;
+}
+
+/* Preamble — the recital paragraph(s) above the first numbered section.
+   Rendered inside a narrower measure, in Cormorant italic, with generous
+   vertical margin and a centered hairline below to separate it from the
+   numbered body. Quiet-luxury legal-doc convention. */
+.preamble {
+  max-width: 4.9in;
+  margin: 36pt auto 48pt auto;
+  text-align: left;
+}
+.preamble p {
+  /* Body font (not display). The display font breaks under the Technical
+     preset which uses a monospace for display — italic monospace reads as
+     "computer error code," not "legal recital." Body font stays legible
+     in italic across all five presets. */
+  font-family: var(--font-body);
+  font-style: italic;
+  font-weight: var(--weight-body-regular);
+  font-size: 12pt;
+  line-height: 1.65;
+  color: var(--ink);
+  margin: 0 0 10pt 0;
+}
+.preamble p:last-child { margin-bottom: 0; }
+.preamble::after {
+  content: '';
+  display: block;
+  width: 0.6in;
+  margin: 32pt auto 0 auto;
+  border-top: 0.5pt solid var(--accent);
+}
+
+/* ========================================================================
+   SIGNATURES
+   ======================================================================== */
+.signatures-page {
+  page-break-before: always;
+  padding-top: 0.25in;
+}
+.sig-eyebrow { margin-bottom: 8pt; }
+.sig-heading {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 28pt;
+  margin: 0;
+}
+.sig-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48pt;
+  margin-top: 36pt;
+}
+.sig-grid-1 {
+  grid-template-columns: minmax(0, 3.6in);
+  justify-content: center;
+}
+.sig-cell { display: flex; flex-direction: column; }
+.sig-cell .eyebrow { margin-bottom: 10pt; }
+.sig-name {
+  font-family: var(--font-display);
+  font-size: 14pt;
+  font-weight: 500;
+  color: var(--ink);
+  margin: 0 0 42pt 0;
+}
+.sig-name-placeholder { color: var(--metadata); }
+.sig-line {
+  border-bottom: 0.5pt solid var(--ink);
+  height: 1pt;
+  margin-top: 0;
+  margin-bottom: 6pt;
+}
+.sig-line-short { width: 40%; margin-top: 28pt; }
+.sig-caption {
+  font-family: var(--font-body);
+  font-size: 8pt;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--metadata);
+  margin: 0 0 18pt 0;
+}
+
+    /* A single fixed-position element repeats on every paged-media page.
+       Setting it small enough + positioning it in the page margin keeps
+       it visible as brand stationery without overlapping the signature
+       block on the signatures page. */
+    .apollo-watermark {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: auto;
+      height: 38%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: -1;
+    }
+    .apollo-watermark img {
+      width: 32%;
+      max-width: 3.2in;
+      opacity: 0.08;
+      filter: grayscale(1);
+    }
+    /* Signature page gets an extra fainter pass — we can't reliably gate
+       a fixed-position element to specific pages in Chromium's paged-media
+       layer, but the higher-specificity rule takes precedence on the
+       signatures page when the wrapper sits inside that section. */
+    .signatures-page .apollo-watermark img,
+    .signatures-page ~ .apollo-watermark img {
+      opacity: 0.04;
+    }
+  
+
+    .apollo-sig-mark {
+      display: flex;
+      justify-content: center;
+      margin: 36pt 0 12pt 0;
+    }
+    .apollo-sig-mark img {
+      height: 0.7in;
+      opacity: 0.75;
+    }
+  
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-top">
+    <div class="cover-wordmark">APOLLO</div>
+    <div class="cover-docid">BR-2026-001</div>
+  </div>
+  <div class="cover-center">
+    <h1 class="cover-title">Board Report</h1>
+    
+  </div>
+  <div class="cover-bottom">
+    <div>Prepared 11 June 2026</div>
+    <div></div>
+  </div>
+</div>
+
+<!-- TABLE OF CONTENTS -->
+
+    <div class="toc-page">
+      <p class="eyebrow toc-eyebrow">Contents</p>
+      <ol class="toc">
+      <li class="toc-row">
+        <span class="toc-num">I</span>
+        <span class="toc-title">Executive Summary</span>
+        <span class="toc-dots"></span>
+      </li>
+      <li class="toc-row">
+        <span class="toc-num">II</span>
+        <span class="toc-title">Financial Performance</span>
+        <span class="toc-dots"></span>
+      </li>
+      <li class="toc-row">
+        <span class="toc-num">III</span>
+        <span class="toc-title">Strategic Initiatives</span>
+        <span class="toc-dots"></span>
+      </li>
+      <li class="toc-row">
+        <span class="toc-num">IV</span>
+        <span class="toc-title">Operational Highlights</span>
+        <span class="toc-dots"></span>
+      </li>
+      <li class="toc-row">
+        <span class="toc-num">V</span>
+        <span class="toc-title">Risk Assessment</span>
+        <span class="toc-dots"></span>
+      </li>
+      <li class="toc-row">
+        <span class="toc-num">VI</span>
+        <span class="toc-title">Compliance Update</span>
+        <span class="toc-dots"></span>
+      </li>
+      <li class="toc-row">
+        <span class="toc-num">VII</span>
+        <span class="toc-title">Forward Outlook</span>
+        <span class="toc-dots"></span>
+      </li>
+      <li class="toc-row">
+        <span class="toc-num">VIII</span>
+        <span class="toc-title">Board Actions Required</span>
+        <span class="toc-dots"></span>
+      </li>
+      <li class="toc-row">
+        <span class="toc-num">IX</span>
+        <span class="toc-title">Appendices</span>
+        <span class="toc-dots"></span>
+      </li></ol>
+    </div>
+  
+
+<!-- BODY -->
+<main class="body-content">
+
+
+      <section class="section-opener">
+        <p class="eyebrow">Section I</p>
+        <h2>Executive Summary</h2>
+        <hr class="section-rule" />
+      </section>
+    
+<p>Northline Logistics LLC closed full-year 2025 with revenue of $4.21 million, representing 6.9% growth over the prior year and net income of $363,500 — an 8.6% net margin that exceeded budget by $48,000. The balance sheet strengthened materially: debt-to-equity declined from 0.87x at year-end 2024 to 0.54x, and cash on hand increased to $312,400 at December 31, 2025.</p>
+<p>Operationally, on-time delivery held at 96.2% and fleet utilization was 84%, both within acceptable range. Driver headcount of 31 fell short of the 33-driver target, and full-year turnover of 22% exceeded the 18% goal — a dynamic that warrants continued board attention heading into 2026.</p>
+<p>Strategic execution advanced on two fronts. Phase 1 of the northeastern corridor expansion is under contract, with three new shipper accounts representing approximately $620,000 in annualized revenue beginning to onboard in Q1 2026. Fleet modernization and a transportation management system (TMS) upgrade are both committed for Q2 2026 delivery.</p>
+<p>The primary risk profile for 2026 centers on fuel cost volatility, driver retention, and two customer contracts representing combined revenue of approximately $1.1 million that come up for renewal in H1 2026. Management is actively engaged on all three fronts.</p>
+<p>The board is asked to act on four items at this meeting: approval of the FY 2026 capital expenditure budget ($1.2 million), authorization of a Q4 2025 member distribution ($112,500), ratification of director indemnification agreements for three new independent directors, and directional guidance on the northeast expansion Phase 2 commitment ahead of the Q2 2026 decision point.</p>
+
+      <section class="section-opener">
+        <p class="eyebrow">Section II</p>
+        <h2>Financial Performance</h2>
+        <hr class="section-rule" />
+      </section>
+    
+<p>Full-Year 2025 Revenue<br />Northline Logistics LLC recorded full-year 2025 revenue of $4.21 million, an increase of $271,000 (6.9%) versus full-year 2024. Growth was driven by contracted freight rate increases and volume expansion with existing accounts. Spot market contribution was constrained in Q4 by a regional manufacturing slowdown; management estimates approximately $85,000 in anticipated spot revenue was not realized as a result.</p>
+<p>Profitability<br />Net income for full-year 2025 was $363,500, equating to an 8.6% net margin. This result exceeded the approved budget by $48,000. The favorable variance was attributable to better-than-budgeted revenue realization in Q1–Q3 and operating cost discipline, partially offset by diesel fuel overruns in Q4. Q4 fuel costs ran approximately 14% above budget — an estimated unfavorable variance of $31,200 for the quarter — which moderated what would have been a stronger full-year result.</p>
+<p>Balance Sheet<br />Total assets at December 31, 2025 were $1.52 million. Cash and cash equivalents of $312,400 increased from $302,900 at December 31, 2024, a net increase of $9,500 after operating activities, debt service, and distributions. The debt-to-equity ratio improved from 0.87x at year-end 2024 to 0.54x at year-end 2025, reflecting scheduled debt paydown and retained earnings accumulation. No new long-term debt was incurred during 2025.</p>
+<p>Cash Flow and Liquidity<br />Operating cash generation supported both debt service and balance sheet improvement. Liquidity remains adequate for current operations. The proposed Q4 2025 member distribution of $112,500, if approved, would reduce the cash position to approximately $199,900 — a level management considers sufficient given near-term operating requirements, though timing of the FY 2026 fleet CapEx draw will require monitoring.</p>
+<p>Variance Summary vs. Budget<br />Revenue came in approximately 2.1% above budget for the full year. Net income exceeded budget by $48,000 (15.2% favorable variance). The primary unfavorable driver was Q4 diesel fuel, which is partially hedged in the 2026 operating budget through a conservative fuel cost assumption.</p>
+<p>Prior Period Comparison<br />Full-year 2024 net income and margin data are not provided in the current intake; prior-period net income margin is therefore listed as TBD. Management is requested to confirm the full-year 2024 net income figure for inclusion in the permanent record.</p>
+
+      <section class="section-opener">
+        <p class="eyebrow">Section III</p>
+        <h2>Strategic Initiatives</h2>
+        <hr class="section-rule" />
+      </section>
+    
+<p>Three strategic initiatives are currently active. Status designations follow the standard RAG (Red / Yellow / Green) classification.</p>
+<p>Initiative 1: Northeastern Corridor Expansion — Phase 1<br />Status: GREEN<br />Objective: Establish contracted freight presence in the northeastern corridor to diversify the customer base and capture higher per-mile rate structures in that lane.<br />Milestones Achieved: Phase 1 contracts executed with three new shipper accounts. Combined annualized revenue value is approximately $620,000. Legal review and credit assessment of all three accounts completed. Onboarding is scheduled for Q1 2026.<br />Next Steps: Complete driver and dispatch orientation for new lane protocols by January 31, 2026. Confirm equipment allocation for initial lane coverage. Track week-one performance metrics against contracted service requirements. Phase 2 commitment decision is targeted for Q2 2026; the board is asked for directional guidance at this meeting.</p>
+<p>Initiative 2: Fleet Modernization — Class 8 Replacement Program<br />Status: GREEN<br />Objective: Replace three aging Class 8 units to reduce maintenance cost, improve fuel efficiency, and maintain compliance with evolving emissions standards.<br />Milestones Achieved: Three replacement units selected; purchase commitments executed. Financing structure confirmed. Estimated total capital expenditure is $310,000, included in the proposed FY 2026 CapEx budget pending board approval.<br />Next Steps: Units are scheduled for Q2 2026 delivery. Disposition of replaced units (auction or trade) to be finalized by March 2026. Driver transition and pre-delivery inspection protocols to be completed prior to deployment.</p>
+<p>Initiative 3: TMS Upgrade — McLeod Software Implementation<br />Status: YELLOW<br />Objective: Replace the current transportation management system with McLeod Software to improve load planning efficiency, reduce administrative overhead, and enable the data infrastructure required for Phase 2 expansion.<br />Milestones Achieved: Vendor contract executed. Budget of $85,000 approved at the operations level. Implementation scoping and data migration planning underway.<br />Next Steps: Go-live is targeted for Q2 2026. The yellow designation reflects implementation timeline risk: the Q2 window is concurrent with fleet delivery and expansion ramp, creating resource strain on the operations and dispatch teams. Management is monitoring for schedule conflicts and will escalate to red if timeline slippage exceeds four weeks.</p>
+
+      <section class="section-opener">
+        <p class="eyebrow">Section IV</p>
+        <h2>Operational Highlights</h2>
+        <hr class="section-rule" />
+      </section>
+    
+<p>Personnel<br />Active driver headcount stood at 31 at December 31, 2025, against a target of 33. Full-year driver turnover was 22%, exceeding the 18% target by four percentage points. Two driver vacancies remain open. Management has engaged a regional CDL recruiting partner and expanded sign-on incentive eligibility; these measures are reflected in the 2026 operating budget. Turnover at the current rate creates measurable cost exposure through recruiting, onboarding, and reduced utilization on affected equipment.</p>
+<p>Fleet and Utilization<br />Fleet utilization for Q4 2025 averaged 84%. While within an operationally acceptable range, utilization reflects the two driver vacancies. At full headcount of 33, management estimates utilization would have been approximately 89–90%. The three Class 8 units scheduled for retirement in advance of Q2 2026 replacements will temporarily constrain available equipment capacity; dispatch has been advised to pre-plan accordingly.</p>
+<p>Service Delivery<br />On-time delivery rate for full-year 2025 was 96.2%, consistent with contractual service-level commitments across the active account base. No material service failures or customer claims were recorded in Q4 2025. This metric is tracked weekly and reported to operations management.</p>
+<p>Customer Base<br />Northline closed 2025 with 47 active accounts. Top-10 customer concentration stands at 62% of total revenue, a level that represents meaningful single-customer risk. Two of the top-10 accounts have contracts expiring in H1 2026 with combined revenue of approximately $1.1 million. Renewal discussions are in early stages; no adverse signals have been received to date. Management will provide a status update at the Q1 2026 board meeting.</p>
+<p>Technology<br />Current TMS operations are stable. The McLeod Software upgrade, while not yet implemented, has not disrupted current dispatch or billing workflows. Integration readiness assessment is underway.</p>
+
+      <section class="section-opener">
+        <p class="eyebrow">Section V</p>
+        <h2>Risk Assessment</h2>
+        <hr class="section-rule" />
+      </section>
+    
+<p>The following risks are ranked by assessed severity. Severity ratings reflect likelihood and potential financial or operational impact.</p>
+<p>Risk 1: Customer Concentration and Contract Renewal (Severity: HIGH)<br />Two contracts representing a combined approximately $1.1 million in annual revenue — roughly 26% of full-year 2025 revenue — are subject to renewal in H1 2026. Loss of either account without replacement would materially impair 2026 revenue guidance. Mitigation: Management has initiated proactive renewal outreach. The northeastern corridor expansion partially diversifies the revenue base, but onboarding timelines mean that replacement revenue would not be immediately available. The board should expect a renewal status update at the Q1 2026 meeting.</p>
+<p>Risk 2: Fuel Cost Volatility (Severity: HIGH)<br />Diesel fuel costs in Q4 2025 exceeded budget by approximately 14%, representing an estimated unfavorable quarterly impact of $31,200. The 2026 operating budget incorporates a more conservative fuel cost assumption, but further price escalation beyond current forecasts would compress margins. Mitigation: Management is evaluating fuel surcharge adjustment mechanisms and selective hedging options. No hedging program is currently in place.</p>
+<p>Risk 3: Driver Retention and Availability (Severity: MEDIUM-HIGH)<br />Driver turnover of 22% against an 18% target, combined with two open positions, creates operational risk — particularly as northeast expansion onboarding and fleet transition occur simultaneously in Q1–Q2 2026. Mitigation: Expanded recruiting engagement and revised retention incentives are budgeted for 2026. Resolution timeline is estimated at two to three quarters.</p>
+<p>Risk 4: Regional Manufacturing Slowdown — Spot Rate Environment (Severity: MEDIUM)<br />Softening in regional manufacturing activity reduced spot freight opportunities in Q4 2025. If this trend persists into 2026, the company's ability to optimize revenue per mile will be constrained. Mitigation: Contracted freight growth through the northeast expansion reduces dependence on spot market volume.</p>
+<p>Risk 5: Q2 2026 Operational Concentration (Severity: MEDIUM)<br />Fleet delivery, TMS go-live, and northeast expansion ramp are all scheduled for Q2 2026. Execution risk is elevated due to the simultaneous demands on management bandwidth and the operations team. Mitigation: Management is developing a phased execution calendar; the board may wish to consider whether any Q2 milestones should be staggered.</p>
+
+      <section class="section-opener">
+        <p class="eyebrow">Section VI</p>
+        <h2>Compliance Update</h2>
+        <hr class="section-rule" />
+      </section>
+    
+<p>FMCSA Compliance<br />Northline Logistics LLC has no open FMCSA violations as of the date of this report. The most recent roadside inspection, conducted in Q3 2025, was rated satisfactory. The company's safety rating remains current and in good standing. No corrective action plans are outstanding.</p>
+<p>Employment and Workplace<br />There are no open matters with the Equal Employment Opportunity Commission (EEOC) or the Occupational Safety and Health Administration (OSHA). No workplace incidents requiring OSHA recordable reporting occurred during Q4 2025.</p>
+<p>Insurance<br />Annual insurance renewals were completed in November 2025. Coverage includes commercial auto liability, general liability, cargo, and workers' compensation. No material coverage gaps were identified in the renewal process. Premium changes, if any, are reflected in the approved 2026 operating budget.</p>
+<p>Regulatory Environment<br />No material regulatory changes affecting commercial trucking operations in Northline's operating territory are anticipated in the near term. Management monitors FMCSA rulemaking activity on a quarterly basis and will flag any developments requiring operational or compliance response.</p>
+
+      <section class="section-opener">
+        <p class="eyebrow">Section VII</p>
+        <h2>Forward Outlook</h2>
+        <hr class="section-rule" />
+      </section>
+    
+<p>Management's base-case revenue guidance for full-year 2026 is $4.55 million to $4.75 million, representing growth of 8.1% to 12.8% over 2025 actuals.</p>
+<p>Key Assumptions<br />The guidance range is premised on: (1) a 3% contracted rate increase effective March 1, 2026; (2) successful ramp of the three northeastern corridor accounts through Q2–Q3 2026, contributing an estimated $310,000–$400,000 in incremental in-year revenue; and (3) TMS-enabled operating efficiency gains of approximately 2% on total operating costs following Q2 2026 go-live.</p>
+<p>Principal Risks to Guidance<br />The guidance range does not assume loss of either of the two major renewing customer contracts. If one or both renewals are not retained, management estimates a revenue impact of $550,000 to $1.1 million, which would push realized revenue below the base-case range. Fuel cost escalation beyond current budget assumptions and continued driver shortage represent secondary risks to the margin component of guidance.</p>
+<p>Opportunities<br />Successful execution of the northeast expansion creates a pathway to a Phase 2 commitment that could add further contracted revenue in the second half of 2026. The TMS upgrade is expected to support improved load optimization and reduced empty miles, the financial benefit of which is not fully reflected in current guidance. The board is asked for directional guidance on Phase 2 at this meeting.</p>
+
+      <section class="section-opener">
+        <p class="eyebrow">Section VIII</p>
+        <h2>Board Actions Required</h2>
+        <hr class="section-rule" />
+      </section>
+    
+<p>The following items require formal board action at the January 28, 2026 meeting:</p>
+<ol>
+<li><p>Approval — FY 2026 Capital Expenditure Budget: Authorize total capital expenditures of $1.2 million for fiscal year 2026, inclusive of fleet modernization ($310,000), TMS implementation ($85,000), and remaining allocations as detailed in the proposed budget.</p>
+</li>
+<li><p>Approval — Q4 2025 Member Distribution: Authorize a member distribution of $112,500 from accumulated earnings attributable to Q4 2025 operations.</p>
+</li>
+<li><p>Ratification — Director Indemnification Agreements: Ratify indemnification agreements for three newly appointed independent directors in the form previously circulated to the board.</p>
+</li>
+<li><p>Discussion and Direction — Northeast Expansion Phase 2: Provide management with directional guidance on proceeding toward a Phase 2 commitment decision, to be presented for formal action at the Q2 2026 board meeting.</p>
+</li>
+</ol>
+
+      <section class="section-opener">
+        <p class="eyebrow">Section IX</p>
+        <h2>Appendices</h2>
+        <hr class="section-rule" />
+      </section>
+    
+<p>The following supporting schedules are referenced throughout this report. Final versions will be distributed under separate cover to board members in advance of the January 28, 2026 meeting.</p>
+<p>Appendix A — Summary Income Statement, Full-Year 2025 vs. Budget vs. Prior Year<br />Tabular comparison of revenue, operating expenses by category, EBITDA, depreciation, interest, and net income. Source: management accounts (unaudited).</p>
+<p>Appendix B — Balance Sheet as of December 31, 2025<br />Asset, liability, and members' equity detail. Includes year-over-year comparison to December 31, 2024.</p>
+<p>Appendix C — Cash Flow Summary, Full-Year 2025<br />Operating, investing, and financing activities. Net change in cash reconciled to opening and closing positions.</p>
+<p>Appendix D — Proposed FY 2026 Capital Expenditure Budget<br />Line-item schedule of approved and proposed capital projects, estimated costs, and anticipated deployment timeline. Basis for Action Item 1.</p>
+<p>Appendix E — Driver Turnover and Headcount Trend (Quarterly, 2024–2025)<br />Quarterly headcount, hires, terminations, and turnover rate. Supports risk and operational narrative.</p>
+<p>Appendix F — Customer Concentration Schedule<br />Top-10 customer revenue, percentage of total, contract expiration dates, and renewal status. Presented on a confidential basis.</p>
+</main>
+
+<!-- SIGNATURES -->
+
+
+
+
+
+</body>
+</html>

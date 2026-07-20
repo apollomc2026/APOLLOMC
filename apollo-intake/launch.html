@@ -296,6 +296,38 @@
   .wiz-field.has-error textarea,
   .wiz-field.has-error select { border-color: var(--alert); }
 
+  .wiz-extracted-badge {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    letter-spacing: var(--track-mono-tight);
+    color: var(--cyan-go);
+    opacity: 0.8;
+    text-transform: uppercase;
+  }
+  .wiz-field.extracted input,
+  .wiz-field.extracted textarea,
+  .wiz-field.extracted select { border-color: var(--cyan-go); opacity: 0.9; }
+
+  .wiz-extract-chip {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    letter-spacing: var(--track-mono-tight);
+    padding: var(--s-2) var(--s-4);
+    margin-bottom: var(--s-4);
+    border-left: 3px solid currentColor;
+  }
+  .wiz-extract-chip.pending { color: var(--ivory-3); }
+  .wiz-extract-chip.done { color: var(--cyan-go); }
+  .wiz-extract-chip.failed { color: var(--ivory-3); }
+
+  .wiz-extract-needed {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    letter-spacing: var(--track-mono-tight);
+    color: var(--ivory-3);
+    margin-bottom: var(--s-3);
+  }
+
   .wiz-help {
     font-size: 12px;
     color: var(--ivory-3);
@@ -724,6 +756,10 @@ const state = {
   result: null,
   error: null,
   missionCode: null,
+  // Extraction state (U2 prefill)
+  extractionStatus: null,   // null | 'pending' | 'done' | 'failed'
+  extractionResult: null,   // { fields, found_count, missing } | null
+  extractedFields: new Set(), // field keys prefilled from extraction (badge display)
 };
 
 requireAuth({
@@ -783,7 +819,7 @@ async function bootWizard(slug) {
   if (draft) {
     if (draft.fields) state.fields = draft.fields;
     if (draft.style_id) state.style_id = draft.style_id;
-    if (typeof draft.step === 'number') state.step = Math.max(1, Math.min(6, draft.step));
+    if (typeof draft.step === 'number') state.step = Math.max(1, Math.min(wizardStepList().length, draft.step));
     if (Array.isArray(draft.upload_ids) && draft.upload_ids.length) {
       rehydrateDraftUploads(draft.upload_ids);
     }
@@ -825,18 +861,17 @@ function clearDraftForCurrent() {
 }
 
 // ---- Step navigation ----
+// New order (Upload-first): Upload → Style/Brand → Required → Optional → Review → Generate.
+// Upload (step 1) is always present and always skippable.
 function wizardStepList() {
-  const t = state.template;
-  const hasFiles = !!(t && Array.isArray(t.file_upload_prompts) && t.file_upload_prompts.length);
-  const all = [
-    { key: 'identity', label: 'Identity', n: 1 },
-    { key: 'required', label: 'Required', n: 2 },
-    { key: 'optional', label: 'Optional', n: 3 },
-    { key: 'files',    label: 'Files',    n: 4 },
-    { key: 'review',   label: 'Review',   n: 5 },
-    { key: 'generate', label: 'Generate', n: 6 },
+  return [
+    { key: 'upload',    label: 'Upload',    n: 1 },
+    { key: 'identity',  label: 'Style',     n: 2 },
+    { key: 'required',  label: 'Required',  n: 3 },
+    { key: 'optional',  label: 'Optional',  n: 4 },
+    { key: 'review',    label: 'Review',    n: 5 },
+    { key: 'generate',  label: 'Generate',  n: 6 },
   ];
-  return hasFiles ? all : all.filter((s) => s.key !== 'files');
 }
 function wizardNext() {
   const list = wizardStepList();
@@ -868,10 +903,10 @@ function renderWizard() {
   root.appendChild(renderStepBar());
   const stage = el('div', { class: 'wiz-stage' });
   root.appendChild(stage);
-  if (state.step === 1) renderStep1Identity(stage);
-  else if (state.step === 2) renderStep2Required(stage);
-  else if (state.step === 3) renderStep3Optional(stage);
-  else if (state.step === 4) renderStep4Files(stage);
+  if (state.step === 1) renderStep1Upload(stage);
+  else if (state.step === 2) renderStep1Identity(stage);
+  else if (state.step === 3) renderStep2Required(stage);
+  else if (state.step === 4) renderStep3Optional(stage);
   else if (state.step === 5) renderStep5Review(stage);
   else if (state.step === 6) renderStep6Generate(stage);
 }
@@ -910,7 +945,87 @@ function missionCodeFor(template) {
   return state.missionCode;
 }
 
-// ---- Step 1: Identity ----
+// ---- Async extraction (fires after uploads, never blocks navigation) ----
+async function fireExtraction() {
+  const t = state.template;
+  if (!t) return;
+  const ids = (state.uploads || []).map((u) => u.id);
+  if (!ids.length) return;
+  state.extractionStatus = 'pending';
+  renderWizard();
+  try {
+    const result = await apiJson('/api/apollo/extract', {
+      method: 'POST',
+      body: { upload_ids: ids, module_slug: t.slug },
+    });
+    if (result && typeof result.fields === 'object') {
+      state.extractionResult = result;
+      state.extractionStatus = 'done';
+    } else {
+      state.extractionStatus = 'failed';
+    }
+  } catch {
+    state.extractionStatus = 'failed';
+  }
+  renderWizard();
+}
+
+// Apply extraction results to fields that are still empty/untouched.
+function prefillFromExtraction(moduleFields) {
+  if (!state.extractionResult || !state.extractionResult.fields) return;
+  const extracted = state.extractionResult.fields;
+  for (const f of moduleFields) {
+    const v = state.fields[f.key];
+    const isEmpty =
+      v === undefined || v === null ||
+      (typeof v === 'string' && v.trim() === '') ||
+      (Array.isArray(v) && v.length === 0);
+    if (isEmpty && extracted[f.key] != null && extracted[f.key] !== '') {
+      state.fields[f.key] = extracted[f.key];
+      state.extractedFields.add(f.key);
+    }
+  }
+}
+
+// ---- Step 1: Upload ----
+function renderStep1Upload(host) {
+  const t = state.template;
+  const prompts = (t && t.file_upload_prompts) || [];
+
+  host.appendChild(el('div', { class: 'wiz-head' },
+    el('h2', null, 'Upload reference documents'),
+    el('p', { class: 'wiz-subtle' },
+      'Upload financial data, brand guides, or prior documents — Apollo reads them to pre-fill your form. ' +
+      'You can skip this and enter details manually.'),
+  ));
+
+  if (state.uploadError) {
+    host.appendChild(el('div', { class: 'wiz-error-banner' }, state.uploadError));
+  }
+
+  if (prompts.length > 0) {
+    for (const p of prompts) host.appendChild(renderUploadSlot(p));
+  } else {
+    host.appendChild(el('p', { class: 'wiz-subtle' },
+      'This deliverable has no specific file prompts — upload any relevant reference material below.'));
+    host.appendChild(renderUploadSlot({
+      kind: 'reference_doc',
+      label: 'Reference document',
+      required: false,
+      multiple: true,
+    }));
+  }
+
+  host.appendChild(navRow({
+    next: wizardNext,
+    nextLabel: state.uploads.length
+      ? 'CONTINUE →'
+      : 'SKIP — I\'ll enter details manually →',
+    hideBack: true,
+  }));
+}
+
+// ---- Step 2: Identity (brand + style) ----
 const BRAND_LABELS = {
   apollo: 'Apollo',
   atlas: 'Atlas',
@@ -952,6 +1067,21 @@ function renderStep1Identity(host) {
   telemetry.appendChild(el('span', { class: 'price-active' }, 'FREE PREVIEW'));
   head.appendChild(telemetry);
   host.appendChild(head);
+
+  // Extraction status chip — non-blocking; shows while docs are being read.
+  if (state.extractionStatus === 'pending') {
+    host.appendChild(el('div', { class: 'wiz-extract-chip pending' },
+      '⋯ Reading your documents…'));
+  } else if (state.extractionStatus === 'done' && state.extractionResult) {
+    const n = state.extractionResult.found_count || 0;
+    host.appendChild(el('div', { class: 'wiz-extract-chip done' },
+      n > 0
+        ? '✓ Details extracted — verify on the next steps.'
+        : 'Documents read — no extractable fields found. Fill fields manually.'));
+  } else if (state.extractionStatus === 'failed') {
+    host.appendChild(el('div', { class: 'wiz-extract-chip failed' },
+      "Couldn't read documents — fill fields manually."));
+  }
 
   // Brand picker — slab list, defaults to current brand_slug
   host.appendChild(el('h3', { class: 'wiz-section-title' }, 'Brand Identity'));
@@ -1022,13 +1152,30 @@ function renderStep2Required(host) {
   const t = state.template;
   const required = t.required_fields || [];
 
+  // Prefill from extraction before rendering (no-op if extraction not done or field already filled).
+  prefillFromExtraction(required);
+
   host.appendChild(el('div', { class: 'wiz-head' },
     el('h2', null, 'Required information'),
     el('p', { class: 'wiz-subtle' }, 'Fill the fields below. They drive the body of your ' + t.label + '.'),
   ));
 
+  // Group missing-from-extraction fields first so the user sees their remaining work at a glance.
+  const missingSet = new Set(state.extractionResult ? (state.extractionResult.missing || []) : []);
+  const orderedRequired = state.extractionResult
+    ? [...required.filter((f) => missingSet.has(f.key)), ...required.filter((f) => !missingSet.has(f.key))]
+    : required;
+
+  if (state.extractionResult && missingSet.size > 0) {
+    const missingRequired = required.filter((f) => missingSet.has(f.key));
+    if (missingRequired.length > 0) {
+      host.appendChild(el('p', { class: 'wiz-extract-needed' },
+        '↓ We need these from you — not found in your documents.'));
+    }
+  }
+
   const form = el('div', { class: 'wiz-form' });
-  for (const f of required) form.appendChild(renderModuleField(f, true));
+  for (const f of orderedRequired) form.appendChild(renderModuleField(f, true));
   host.appendChild(form);
 
   if (state.validation_general) {
@@ -1053,6 +1200,9 @@ function renderStep2Required(host) {
 function renderStep3Optional(host) {
   const t = state.template;
   const optional = t.optional_fields || [];
+
+  // Prefill from extraction before rendering.
+  prefillFromExtraction(optional);
 
   host.appendChild(el('div', { class: 'wiz-head' },
     el('h2', null, 'Optional details'),
@@ -1085,42 +1235,6 @@ function renderStep3Optional(host) {
 }
 
 // ---- Step 4: Files ----
-function renderStep4Files(host) {
-  const t = state.template;
-  const prompts = t.file_upload_prompts || [];
-
-  host.appendChild(el('div', { class: 'wiz-head' },
-    el('h2', null, 'Files & references'),
-    el('p', { class: 'wiz-subtle' },
-      'Upload reference materials. Brand guides, photos, prior documents — Apollo reads them when generating your deliverable.'),
-  ));
-
-  if (state.uploadError) {
-    host.appendChild(el('div', { class: 'wiz-error-banner' }, state.uploadError));
-  }
-
-  for (const p of prompts) host.appendChild(renderUploadSlot(p));
-
-  host.appendChild(navRow({
-    back: wizardBack,
-    next: () => {
-      const missing = [];
-      for (const p of prompts) {
-        if (!p.required) continue;
-        const has = (state.uploads || []).some((u) => u.upload_kind === p.kind);
-        if (!has) missing.push(p.label || p.kind);
-      }
-      if (missing.length) {
-        state.uploadError = 'Required uploads missing: ' + missing.join(', ');
-        renderWizard();
-        return;
-      }
-      state.uploadError = null;
-      wizardNext();
-    },
-  }));
-}
-
 function renderUploadSlot(prompt) {
   const accepts = prompt.accepts || (prompt.kind && prompt.kind.includes('photo') ? 'image/*' : '*/*');
   const multiple = !!prompt.multiple;
@@ -1197,6 +1311,7 @@ function renderUploadSlot(prompt) {
 async function handleUploadFiles(fileList, prompt) {
   if (!fileList || fileList.length === 0) return;
   const files = Array.from(fileList);
+  let anySucceeded = false;
   for (const file of files) {
     const v = uploads.validateFile(file, { maxBytes: 50 * 1024 * 1024 });
     if (!v.ok) { toast(v.error, { variant: 'error' }); continue; }
@@ -1208,6 +1323,7 @@ async function handleUploadFiles(fileList, prompt) {
       if (row) {
         state.uploads.push(row);
         saveDraft();
+        anySucceeded = true;
       }
     } catch (err) {
       toast('Upload failed: ' + (err && err.message || String(err)), { variant: 'error' });
@@ -1216,6 +1332,8 @@ async function handleUploadFiles(fileList, prompt) {
       renderWizard();
     }
   }
+  // Fire extraction async after all files in batch are processed — never blocks navigation.
+  if (anySucceeded) fireExtraction();
 }
 
 async function removeUpload(id) {
@@ -1418,16 +1536,20 @@ async function submitWizard() {
 // ---- Field renderer ----
 function renderModuleField(f, isRequired) {
   const errMsg = state.validation_errors[f.key];
-  const wrap = el('div', { class: 'wiz-field' + (errMsg ? ' has-error' : '') });
+  const isExtracted = state.extractedFields.has(f.key);
+  const wrap = el('div', { class: 'wiz-field' + (errMsg ? ' has-error' : '') + (isExtracted ? ' extracted' : '') });
   const label = el('label', null,
     f.label,
     isRequired ? el('span', { class: 'wiz-req' }, ' *') : null,
+    isExtracted ? el('span', { class: 'wiz-extracted-badge' }, ' · Extracted — verify') : null,
   );
   wrap.appendChild(label);
 
   const v = state.fields[f.key];
   const setV = (val) => {
     state.fields[f.key] = val;
+    // User input always wins — once edited, field is no longer marked as extracted.
+    state.extractedFields.delete(f.key);
     if (state.validation_errors[f.key]) delete state.validation_errors[f.key];
     saveDraftDebounced();
   };

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Cash Flow Forecast & Budget Package",
+  "description": "Structured output schema for a rolling cash-flow forecast and budget package (ledger genre).",
+  "type": "object",
+  "required": ["metadata", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["deliverable_type", "title"],
+      "properties": {
+        "deliverable_type": { "type": "string", "const": "cash-flow-budget-package" },
+        "title": { "type": "string", "minLength": 3 },
+        "entity_name": { "type": "string" },
+        "forecast_period": { "type": "string" }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "content"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "identification",
+              "ownership_notice",
+              "base_case_forecast",
+              "scenario_comparison",
+              "working_capital",
+              "assumptions"
+            ]
+          },
+          "label": { "type": "string" },
+          "content": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

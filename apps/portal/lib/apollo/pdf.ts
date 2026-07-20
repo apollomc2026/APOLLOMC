@@ -16,6 +16,21 @@ import sanitizeHtml from 'sanitize-html'
 // chain (html-encoding-sniffer -> @exodus/bytes ESM) broke require() there and
 // 500'd the submit route. Defense-in-depth with the JS-disabled rendering +
 // network egress block in buildPdf().
+// Renderer text normalization (applies to every genre). The model and uploaded
+// source occasionally carry typographic characters that Chromium renders as if
+// the word were jammed together — the "burn-reduction" → "burnreduction",
+// "low-voltage" → "lowvoltage" symptom. The culprits are the SOFT HYPHEN
+// (U+00AD, invisible except at a line-break opportunity) used in place of a
+// real hyphen, the NON-BREAKING HYPHEN (U+2011) some fonts can't place, and
+// zero-width characters (U+200B/U+200C/U+200D/U+FEFF) wedged between letters.
+// Convert the hyphen variants that sit between word characters into a visible
+// hyphen-minus, and strip zero-width characters outright.
+function normalizeRenderText(html: string): string {
+  return html
+    .replace(/[­‑]/g, '-')
+    .replace(/[​‌‍﻿]/g, '')
+}
+
 function sanitizeContentHtml(html: string): string {
   return sanitizeHtml(html, {
     allowedTags: [
@@ -477,7 +492,10 @@ const CONTRACTOR_FORM_SLUGS = new Set<string>([
   'project-completion-notice',
   'tool-box-talk',
 ])
-const LEDGER_SLUGS = new Set<string>([]) // populated in WS5 (accounting ledger modules)
+const LEDGER_SLUGS = new Set<string>([
+  'financial-statements-package',
+  'cash-flow-budget-package',
+])
 
 export function genreForSlug(slug: string): Genre {
   if (CONTRACTOR_FORM_SLUGS.has(slug)) return 'contractor_form'
@@ -489,11 +507,10 @@ export function genreForSlug(slug: string): Genre {
 // editorial genre, the legacy per-deliverable `layout` field still selects the
 // specialized editorial layouts (invoice / one-pager / minutes / financial).
 function buildFullHtml(args: BuildPdfArgs): string {
-  args = { ...args, contentHtml: sanitizeContentHtml(args.contentHtml) }
+  args = { ...args, contentHtml: normalizeRenderText(sanitizeContentHtml(args.contentHtml)) }
   const genre = genreForSlug(args.template.slug)
   if (genre === 'contractor_form') return buildContractorFormHtml(args)
-  // 'ledger' primitive lands in WS5; until then ledger deliverables (none yet)
-  // fall through to the editorial layouts below.
+  if (genre === 'ledger') return buildLedgerHtml(args)
   const layout = args.template.layout ?? 'contract'
   switch (layout) {
     case 'invoice':
@@ -572,6 +589,216 @@ ${body}
 </html>`
 }
 
+// WS3 ledger polish. The model emits each statement as a plain markdown table;
+// these helpers add the accounting-typesetting conventions CSS can't infer from
+// the markup alone: a double rule under grand totals, and a leading "$" on the
+// first data row and the grand-total row of every figure column. Digits are
+// never touched — only a leading "$" and a row class are added. Only PRIMARY
+// statement tables are decorated (identification, scenario, working-capital and
+// assumption tables are left exactly as rendered).
+const PRIMARY_STATEMENT_RE =
+  /(balance sheet|statement of operations|income statement|statement of cash flows|statement of changes in equity|cash flow forecast)/i
+const GRAND_TOTAL_RE =
+  /^(total assets|total liabilities and (members.?\s*)?equity|net income|cash, end of (year|period)|ending (members.?\s*)?equity|total\s*\/\s*year)/i
+
+function addHtmlClass(attrs: string, cls: string): string {
+  if (/class\s*=\s*"/i.test(attrs)) {
+    return attrs.replace(/class\s*=\s*"([^"]*)"/i, (_m, c: string) => `class="${c} ${cls}"`)
+  }
+  return `${attrs} class="${cls}"`
+}
+
+// Prefix "$" to the figure columns (every cell after the first) of one row.
+function dollarizeRow(row: string): string {
+  let cellIndex = 0
+  return row.replace(/<td\b([^>]*)>([\s\S]*?)<\/td>/gi, (whole, attrs: string, inner: string) => {
+    const i = cellIndex++
+    if (i === 0) return whole // line-item label column — never a currency cell
+    if (inner.includes('$') || !/\d/.test(inner)) return whole // already $, or empty/dash
+    // Insert "$" before the first "(" or digit, after any opening <strong> etc.
+    return `<td${attrs}>${inner.replace(/[(\d]/, (d) => `$${d}`)}</td>`
+  })
+}
+
+function styleStatementTable(table: string): string {
+  return table.replace(/<tbody>([\s\S]*?)<\/tbody>/i, (_m, body: string) => {
+    const rows = body.match(/<tr\b[\s\S]*?<\/tr>/gi) || []
+    const out = rows.map((row, idx) => {
+      const firstCell = (row.match(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/i)?.[1] || '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+      // A grand total both reads like one AND is emphasized (bold). The bold
+      // gate is what distinguishes the statement's bottom-line "Net income" from
+      // the non-bold "Net income" rollforward lines that open the cash-flow and
+      // equity statements — those must not be double-ruled.
+      const isGrand = GRAND_TOTAL_RE.test(firstCell) && /<strong>/i.test(row)
+      let r = row
+      if (isGrand) r = r.replace(/<tr(\b[^>]*)>/i, (_mm, a: string) => `<tr${addHtmlClass(a, 'ld-grandtotal')}>`)
+      if (idx === 0 || isGrand) r = dollarizeRow(r)
+      return r
+    })
+    return `<tbody>${out.join('')}</tbody>`
+  })
+}
+
+// Italic section-separator rows injected by the renderer so they appear
+// regardless of whether the model emits them. One row spans all columns.
+function makeHeaderRow(label: string): string {
+  return `<tr class="ld-section-header"><td colspan="99"><em>${escapeHtml(label)}</em></td></tr>\n`
+}
+
+// Cash Flow statement: inject "Operating activities" before the first body row,
+// "Investing activities" after the operating subtotal, "Financing activities"
+// after the investing subtotal.
+function injectCashFlowSectionHeaders(table: string): string {
+  return table.replace(/<tbody>([\s\S]*?)<\/tbody>/i, (_m, body: string) => {
+    const rows = body.match(/<tr\b[\s\S]*?<\/tr>/gi) || []
+    const out: string[] = [makeHeaderRow('Operating activities')]
+    for (const row of rows) {
+      out.push(row)
+      const cellText = (row.match(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/i)?.[1] || '')
+        .replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+      if (/^net cash (from|provided by) operating activities/i.test(cellText)) {
+        out.push(makeHeaderRow('Investing activities'))
+      } else if (/^net cash (used in|from) investing activities/i.test(cellText)) {
+        out.push(makeHeaderRow('Financing activities'))
+      }
+    }
+    return `<tbody>${out.join('')}</tbody>`
+  })
+}
+
+// Balance Sheet: inject "Assets" before the first body row, "Liabilities" after
+// Total assets, "Members' equity" after Total liabilities.
+function injectBalanceSheetSectionHeaders(table: string): string {
+  return table.replace(/<tbody>([\s\S]*?)<\/tbody>/i, (_m, body: string) => {
+    const rows = body.match(/<tr\b[\s\S]*?<\/tr>/gi) || []
+    const out: string[] = [makeHeaderRow('Assets')]
+    for (const row of rows) {
+      out.push(row)
+      const cellText = (row.match(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/i)?.[1] || '')
+        .replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+      if (/^total assets$/i.test(cellText)) {
+        out.push(makeHeaderRow('Liabilities'))
+      } else if (/^total liabilities$/i.test(cellText)) {
+        out.push(makeHeaderRow("Members' equity"))
+      }
+    }
+    return `<tbody>${out.join('')}</tbody>`
+  })
+}
+
+// Walk h2-delimited sections; decorate only the primary-statement tables, and
+// (statements package only) append the "accompanying notes" legend under each.
+function decorateLedgerStatements(html: string, isStatementsPackage: boolean): string {
+  return html.replace(
+    /(<h2\b[^>]*>([\s\S]*?)<\/h2>)([\s\S]*?)(?=<h2\b|$)/gi,
+    (whole, h2tag: string, h2inner: string, bodyAfter: string) => {
+      const heading = h2inner.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+      if (!PRIMARY_STATEMENT_RE.test(heading)) return whole
+      let block = bodyAfter.replace(/<table[\s\S]*?<\/table>/i, (tbl) => {
+        let decorated = styleStatementTable(tbl)
+        if (/balance sheet/i.test(heading)) {
+          decorated = injectBalanceSheetSectionHeaders(decorated)
+        } else if (/statement of cash flows/i.test(heading)) {
+          decorated = injectCashFlowSectionHeaders(decorated)
+        }
+        return decorated
+      })
+      if (isStatementsPackage) {
+        block = block.replace(
+          /<\/table>/i,
+          `</table>\n<p class="ld-legend">The accompanying notes are an integral part of these financial statements.</p>`
+        )
+      }
+      return h2tag + block
+    }
+  )
+}
+
+// ledger genre primitive (WS5). Clean financial typesetting: a quiet masthead,
+// then ruled statement tables with right-aligned, tabular figures and totals
+// emphasized by the model's bold. NO cover, NO TOC, NO section openers. Brand
+// (palette/typography) is shared with every other genre.
+function buildLedgerHtml(args: BuildPdfArgs): string {
+  const palette = resolvePaletteForBuild(args)
+  const preset = resolvePreset(args.fontPreset?.key)
+  const docTitle = args.template.label
+  // A5 branding: the practitioner firm leads the masthead — Apollo chrome is
+  // removed here (it survives only as the fine-print footer attribution). Fall
+  // back to prepared-by / entity when no firm is named.
+  const firmFull =
+    readString(args.inputs, 'practitioner_firm') ||
+    readString(args.inputs, 'prepared_by') ||
+    readString(args.inputs, 'entity_name')
+  const firmLead = firmFull.split(/\s+[—–-]\s+/)[0].trim()
+  const isStatementsPackage = args.template.slug === 'financial-statements-package'
+  const decorated = decorateLedgerStatements(
+    stripPreH2Banner(stripAllH1(stripLeadingTitle(args.contentHtml))),
+    isStatementsPackage
+  )
+  const body = decorated
+  const meta = [args.documentId, args.preparedDate]
+    .filter((s) => s && String(s).trim())
+    .map((s) => escapeHtml(String(s)))
+    .join(' &middot; ')
+  const brandLine = firmLead ? `<div class="ld-brand">${escapeHtml(firmLead)}</div>` : ''
+
+  return `<!doctype html>
+<html lang="en">${sharedHead(palette, preset, docTitle)}
+<style>
+@page { size: 8.5in 11in; margin: 0.9in 0.85in 0.85in 0.85in; }
+@page :first { margin: 0.75in 0.85in 0.85in 0.85in; }
+body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.4; color: var(--ink); }
+.ld-masthead {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  border-bottom: 1.5pt solid var(--accent); padding-bottom: 7pt; margin-bottom: 14pt;
+}
+.ld-brand { font-family: var(--font-body); font-size: 8pt; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--ink); }
+.ld-title { font-family: var(--font-display); font-size: 17pt; font-weight: 600; margin: 3pt 0 0 0; color: var(--ink); }
+.ld-meta { text-align: right; font-size: 7.5pt; letter-spacing: 0.14em; text-transform: uppercase; color: var(--metadata); white-space: nowrap; padding-left: 18pt; }
+.ld-body h2 {
+  font-family: var(--font-body); font-size: 10pt; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ink); margin: 16pt 0 5pt 0; padding-bottom: 3pt;
+  border-bottom: 0.75pt solid var(--accent); break-after: avoid;
+}
+.ld-body h3 { font-family: var(--font-body); font-size: 9pt; font-weight: 600; margin: 8pt 0 2pt 0; color: var(--ink); }
+.ld-body table { width: 100%; border-collapse: collapse; margin: 4pt 0 10pt 0; font-size: 9pt; }
+.ld-body thead th { background: var(--ink); color: #fff; font-weight: 600; padding: 4pt 8pt; font-size: 8pt; letter-spacing: 0.04em; text-align: left; }
+.ld-body thead th:not(:first-child) { text-align: right; }
+.ld-body td { border-bottom: 0.25pt solid var(--hairline); padding: 3pt 8pt; vertical-align: top; }
+/* Line-item label left; every figure column right-aligned with tabular numerals. */
+.ld-body td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ld-body td strong { font-weight: 700; }
+.ld-body tbody tr:last-child td { border-bottom: 0.5pt solid var(--ink); }
+/* Grand totals (total assets, total L+E, net income, ending cash, year-end):
+   single rule above, double rule below — placed after the :last-child rule so
+   the final row, which is itself a grand total, double-rules rather than single. */
+.ld-body tbody tr.ld-grandtotal td { border-top: 0.5pt solid var(--ink); border-bottom: 2.25pt double var(--ink); font-weight: 700; }
+/* Italic section separators (Operating/Investing/Financing; Assets/Liabilities/Members' equity).
+   Span all columns, no bottom border, top padding to open the section visually. */
+.ld-body tbody tr.ld-section-header td { font-style: italic; font-size: 8.5pt; color: var(--metadata); padding-top: 10pt; padding-bottom: 2pt; border-bottom: none; }
+/* "The accompanying notes…" legend under each primary statement. */
+.ld-legend { font-style: italic; font-size: 8pt; color: var(--metadata); margin: -5pt 0 13pt 0; text-align: right; }
+.ld-body ul { margin: 3pt 0 9pt 0; padding-left: 15pt; }
+.ld-body li { margin: 1.5pt 0; }
+.ld-body p { margin: 0 0 7pt 0; }
+.ld-body table:last-child, .ld-body ul:last-child, .ld-body p:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+  <div class="ld-masthead">
+    <div>${brandLine}<div class="ld-title">${escapeHtml(docTitle)}</div></div>
+    <div class="ld-meta">${meta}</div>
+  </div>
+  <div class="ld-body">
+${body}
+  </div>
+</body>
+</html>`
+}
+
 function buildContractHtml(args: BuildPdfArgs): string {
   const palette = resolvePaletteForBuild(args)
   const preset = resolvePreset(args.fontPreset?.key)
@@ -590,7 +817,6 @@ function buildContractHtml(args: BuildPdfArgs): string {
   const signaturesHtml = renderSignatureBlock(args)
   const wordmark = brandWordmark(args.brand.slug)
   const docTitle = args.template.label
-  const docTitleUpper = docTitle.toUpperCase()
   const preparedFor = args.preparedFor
     ?? readString(args.inputs, 'receiving_party_name')
     ?? readString(args.inputs, 'receiving_party')
@@ -793,7 +1019,10 @@ hr.hairline, .hairline {
   font-size: 14pt;
   font-weight: 500;
   color: var(--ink);
-  flex-shrink: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 /* TOC dot leaders via a repeating radial gradient — CSS dotted borders
    render inconsistently in Chromium's PDF backend, but gradients are
@@ -944,7 +1173,6 @@ ${sigMarkCss()}
     <div class="cover-docid">${escapeHtml(args.documentId)}</div>
   </div>
   <div class="cover-center">
-    <p class="cover-kicker">${escapeHtml(docTitleUpper)}</p>
     <h1 class="cover-title">${escapeHtml(docTitle)}</h1>
     ${
       partyA || partyB
@@ -1590,18 +1818,45 @@ export async function buildPdf(args: BuildPdfArgs): Promise<Buffer> {
     const disclaimerHtml = args.disclaimer
       ? `<div style="font-style:italic;text-transform:none;letter-spacing:0;font-size:6.5pt;line-height:1.35;padding:0 1.25in 4pt 1.25in;color:${headerFooterColor};">${escapeHtml(args.disclaimer)}</div>`
       : ''
-    const footerTemplate = `
-      ${disclaimerHtml}
-      <div style="width:100%;font-family:${footerFontStack};font-size:7pt;letter-spacing:0.18em;text-transform:uppercase;color:${headerFooterColor};padding:0 1.25in;display:flex;justify-content:space-between;">
-        <span>${escapeHtml(brandWordmark(args.brand.slug))} · ${escapeHtml(args.template.label.toUpperCase())}</span>
-        <span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>
-      </div>
-    `
+    // A5 branding (ledger genre): the running footer carries the entity +
+    // reporting period; the Apollo wordmark is removed from the footer band and
+    // demoted to a single discreet fine-print attribution line in the smallest
+    // metadata type, never competing with the firm's identity. Other genres keep
+    // the standard wordmark · document-title footer.
+    const isLedger = genreForSlug(args.template.slug) === 'ledger'
+    let footerTemplate: string
+    if (isLedger) {
+      const entity = readString(args.inputs, 'entity_name')
+      const period =
+        readString(args.inputs, 'fiscal_year_end') ||
+        readString(args.inputs, 'forecast_period')
+      const footerLeft = [entity, period].filter((s) => s && s.trim()).map(escapeHtml).join(' &middot; ')
+      footerTemplate = `
+        ${disclaimerHtml}
+        <div style="width:100%;font-family:${footerFontStack};color:${headerFooterColor};padding:0 1.25in;">
+          <div style="font-size:7pt;letter-spacing:0.16em;text-transform:uppercase;display:flex;justify-content:space-between;">
+            <span>${footerLeft}</span>
+            <span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>
+          </div>
+          <div style="font-size:5.5pt;letter-spacing:0.08em;text-transform:none;text-align:center;margin-top:2.5pt;opacity:0.85;">Generated by APOLLO &middot; a product of On Spot Solutions LLC</div>
+        </div>
+      `
+    } else {
+      footerTemplate = `
+        ${disclaimerHtml}
+        <div style="width:100%;font-family:${footerFontStack};font-size:7pt;letter-spacing:0.18em;text-transform:uppercase;color:${headerFooterColor};padding:0 1.25in;display:flex;justify-content:space-between;">
+          <span>${escapeHtml(brandWordmark(args.brand.slug))} · ${escapeHtml(args.template.label.toUpperCase())}</span>
+          <span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>
+        </div>
+      `
+    }
     // Header template for the per-body-page logo mark. Empty when the
     // placement doesn't request a header mark; otherwise a small,
     // right-aligned logo at 60% opacity.
+    // A5 branding: the ledger genre carries no Apollo header logo mark either —
+    // the firm leads, Apollo survives only as the footer fine-print line.
     const headerTemplate =
-      flags.hasHeaderMark && logoDataUri
+      !isLedger && flags.hasHeaderMark && logoDataUri
         ? `<div style="width:100%;padding:0 1.25in;display:flex;justify-content:flex-end;"><img src="${logoDataUri}" style="height:0.38in;opacity:0.6;" /></div>`
         : '<div></div>'
     const pdf = await page.pdf({
