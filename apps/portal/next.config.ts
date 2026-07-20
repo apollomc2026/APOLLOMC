@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import path from "path";
+import { withWorkflow } from "workflow/next";
 
 const nextConfig: NextConfig = {
   // Turbo monorepo: @sparticuz/chromium is hoisted to the repo root's
@@ -53,4 +54,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withWorkflow(nextConfig);

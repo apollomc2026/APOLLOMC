@@ -11,7 +11,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "gen:thumbnails": "node scripts/generate-style-thumbnails.mjs",
-    "test": "echo 'No tests configured yet'"
+    "test": "vitest run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.52.0",
@@ -28,7 +28,7 @@
     "lucide-react": "^0.577.0",
     "mammoth": "^1.12.0",
     "marked": "^18.0.2",
-    "next": "15.5.14",
+    "next": "^15.5.20",
     "pdf-parse": "^2.4.5",
     "playwright-core": "^1.58.2",
     "react": "19.1.0",
@@ -36,6 +36,7 @@
     "sanitize-html": "^2.17.5",
     "sharp": "^0.34.5",
     "stripe": "^20.4.1",
+    "workflow": "^4.6.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zustand": "^5.0.12"
   },
@@ -48,9 +49,10 @@
     "@types/react-dom": "^19",
     "@types/sanitize-html": "^2.16.1",
     "eslint": "^9",
-    "eslint-config-next": "15.5.14",
+    "eslint-config-next": "15.5.20",
     "playwright": "^1.58.2",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }
