@@ -6,6 +6,48 @@
 --   s3_prefix   stores the submission-scoped prefix, e.g. "apollo/<submission_id>/".
 --   s3_key      stores the full S3 key of the primary DOCX output.
 
-ALTER TABLE apollo_submissions RENAME COLUMN drive_folder_id TO s3_prefix;
-ALTER TABLE apollo_submissions RENAME COLUMN drive_file_id   TO s3_key;
-ALTER TABLE apollo_submissions RENAME COLUMN drive_file_url  TO download_url;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'apollo_submissions'
+      AND column_name = 'drive_folder_id'
+  ) AND NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'apollo_submissions'
+      AND column_name = 's3_prefix'
+  ) THEN
+    ALTER TABLE apollo_submissions RENAME COLUMN drive_folder_id TO s3_prefix;
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'apollo_submissions'
+      AND column_name = 'drive_file_id'
+  ) AND NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'apollo_submissions'
+      AND column_name = 's3_key'
+  ) THEN
+    ALTER TABLE apollo_submissions RENAME COLUMN drive_file_id TO s3_key;
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'apollo_submissions'
+      AND column_name = 'drive_file_url'
+  ) AND NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'apollo_submissions'
+      AND column_name = 'download_url'
+  ) THEN
+    ALTER TABLE apollo_submissions RENAME COLUMN drive_file_url TO download_url;
+  END IF;
+END
+$$;
