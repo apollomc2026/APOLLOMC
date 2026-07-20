@@ -24,6 +24,12 @@ const nextConfig: NextConfig = {
     "/api/apollo/submit": [
       "../../node_modules/@sparticuz/chromium/**/*",
     ],
+    "/.well-known/workflow/v1/flow": [
+      "../../node_modules/@sparticuz/chromium/**/*",
+    ],
+    "/.well-known/workflow/v1/step": [
+      "../../node_modules/@sparticuz/chromium/**/*",
+    ],
   },
 
   // Keep the package external so Next doesn't rewrite the import path
