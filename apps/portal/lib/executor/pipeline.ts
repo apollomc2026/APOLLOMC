@@ -8,6 +8,7 @@ import { buildPdf } from '@/lib/apollo/pdf'
 import type { Template } from '@/lib/apollo/templates'
 import { uploadSubmissionOutput } from '@/lib/apollo/storage'
 import type { ArtifactManifest, DocumentSource, DocumentWorkOrder } from './contracts'
+import { uploadDriveDraft } from './google-drive'
 
 const MAX_SOURCE_BYTES = 10 * 1024 * 1024
 
@@ -115,11 +116,18 @@ export async function renderAndStorePdf(order: DocumentWorkOrder, contentHtml: s
   })
   const digest = createHash('sha256').update(pdf).digest('hex')
   const filename = `${order.deliverable_type}_${order.project_id}_${stamp}_${order.work_order_id.slice(0, 6)}.pdf`
-  const stored = await uploadSubmissionOutput({
+  await uploadSubmissionOutput({
     submissionId: order.work_order_id,
     pdfBuffer: pdf,
     filename,
     submissionJson: { work_order: order, output, content_sha256: digest, lifecycle: 'draft' },
+  })
+  const drive = await uploadDriveDraft({
+    folderId: order.drive_destination.folder_id,
+    workOrderId: order.work_order_id,
+    filename,
+    contentSha256: digest,
+    pdf,
   })
   return {
     artifact_id: randomUUID(),
@@ -129,9 +137,10 @@ export async function renderAndStorePdf(order: DocumentWorkOrder, contentHtml: s
     title: summary.label,
     artifact_type: 'document',
     lifecycle: 'draft',
-    storage_provider: 's3',
-    storage_file_id: stored.s3Key,
-    storage_parent_id: stored.s3Prefix,
+    storage_provider: 'google-drive',
+    storage_file_id: drive.fileId,
+    storage_parent_id: drive.parentId,
+    web_view_url: drive.webViewLink,
     version: 1,
     content_sha256: digest,
     mime_type: 'application/pdf',

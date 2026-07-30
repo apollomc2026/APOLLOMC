@@ -6,6 +6,7 @@ import { parseWorkOrder } from '@/lib/executor/contracts'
 import { verifyExecutorRequest } from '@/lib/executor/auth'
 import { createJob, setWorkflowRun, updateJob } from '@/lib/executor/ledger'
 import { findDeliverable } from '@/lib/apollo/packages-loader'
+import { googleDriveConfigured } from '@/lib/executor/google-drive'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
@@ -25,6 +26,7 @@ export async function POST(request: Request) {
   if (order.sensitivity === 'restricted') return NextResponse.json({ error: 'restricted work orders are not supported' }, { status: 422 })
   if (order.formats.some((format) => format !== 'pdf')) return NextResponse.json({ error: 'this executor version supports PDF only' }, { status: 422 })
   if (!findDeliverable(order.deliverable_type)) return NextResponse.json({ error: 'unknown deliverable_type' }, { status: 422 })
+  if (!googleDriveConfigured()) return NextResponse.json({ error: 'Google Drive artifact custody is unavailable' }, { status: 503 })
 
   try {
     const created = await createJob(order)
