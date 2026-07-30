@@ -60,6 +60,7 @@ export interface ArtifactManifest {
   storage_provider: 's3' | 'google-drive'
   storage_file_id: string
   storage_parent_id: string
+  web_view_url?: string
   version: number
   content_sha256: string
   mime_type: string
