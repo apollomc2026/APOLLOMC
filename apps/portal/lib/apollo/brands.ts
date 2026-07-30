@@ -40,6 +40,7 @@ const BRAND_LABELS: Record<string, string> = {
   atlas: 'Atlas',
   'on-spot-solutions': 'On Spot Solutions',
   habi: 'Habi',
+  metis: 'Metis',
   themis: 'Themis',
 }
 
@@ -48,6 +49,7 @@ const PRIMARY_LOGO_CANDIDATES: Record<string, string[]> = {
   atlas: ['atlas-logo-hires.png', 'atlas-statue.png'],
   'on-spot-solutions': ['OnSpot_FULL_nearTouch.png'],
   habi: [],
+  metis: [],
   themis: [],
 }
 
