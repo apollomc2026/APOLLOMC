@@ -57,8 +57,8 @@ export default function ReviewWindow({ missionId }: Props) {
         .single()
       setOutput(o)
 
-      if (o?.s3_key_preview) {
-        const res = await fetch(`/api/delivery/preview?key=${encodeURIComponent(o.s3_key_preview)}`)
+      if (o?.id && o.s3_key_preview) {
+        const res = await fetch(`/api/delivery/preview?output=${encodeURIComponent(o.id)}`)
         if (res.ok) {
           const data = await res.json()
           setPreviewUrl(data.url)
