@@ -24,23 +24,6 @@ export function MissionControl() {
   const transcriptRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    const requestedMission = new URLSearchParams(window.location.search).get('mission')
-    if (requestedMission) {
-      setConversationId(requestedMission)
-      void restoreConversation(requestedMission).finally(() => setHydrated(true))
-      return
-    }
-    const saved = window.localStorage.getItem(STORAGE_KEY)
-    if (!saved) { setHydrated(true); return }
-    try {
-      const state = JSON.parse(saved) as { turns: ConversationTurn[]; specification: DeliverableSpecification | null; readiness: number; conversationId?: string | null; specificationVersion?: number; jobId?: string | null; jobState?: string | null; artifactUrl?: string | null }
-      setTurns(state.turns.length ? state.turns : [opening]); setSpecification(state.specification); setReadiness(state.readiness); setConversationId(state.conversationId ?? null); setSpecificationVersion(state.specificationVersion ?? 0); setJobId(state.jobId ?? null); setJobState(state.jobState ?? null); setArtifactUrl(state.artifactUrl ?? null)
-      if (state.conversationId) void restoreConversation(state.conversationId)
-    } catch { window.localStorage.removeItem(STORAGE_KEY) }
-    setHydrated(true)
-  }, [])
-
   async function restoreConversation(id: string) {
     const response = await fetch(`/api/mission-control/conversation?id=${encodeURIComponent(id)}`)
     if (!response.ok) return
@@ -48,6 +31,26 @@ export function MissionControl() {
     setTurns(restored.turns.length ? restored.turns : [opening]); setSpecification(restored.specification); setReadiness(restored.readiness); setSpecificationVersion(restored.specification_version)
     if (restored.job) { setJobId(restored.job.id); setJobState(restored.job.state); setArtifactUrl(restored.job.artifact_url) }
   }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const requestedMission = new URLSearchParams(window.location.search).get('mission')
+      if (requestedMission) {
+        setConversationId(requestedMission)
+        void restoreConversation(requestedMission).finally(() => setHydrated(true))
+        return
+      }
+      const saved = window.localStorage.getItem(STORAGE_KEY)
+      if (!saved) { setHydrated(true); return }
+      try {
+        const state = JSON.parse(saved) as { turns: ConversationTurn[]; specification: DeliverableSpecification | null; readiness: number; conversationId?: string | null; specificationVersion?: number; jobId?: string | null; jobState?: string | null; artifactUrl?: string | null }
+        setTurns(state.turns.length ? state.turns : [opening]); setSpecification(state.specification); setReadiness(state.readiness); setConversationId(state.conversationId ?? null); setSpecificationVersion(state.specificationVersion ?? 0); setJobId(state.jobId ?? null); setJobState(state.jobState ?? null); setArtifactUrl(state.artifactUrl ?? null)
+        if (state.conversationId) void restoreConversation(state.conversationId)
+      } catch { window.localStorage.removeItem(STORAGE_KEY) }
+      setHydrated(true)
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [])
 
   useEffect(() => {
     if (!hydrated) return

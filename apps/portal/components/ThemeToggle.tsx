@@ -9,7 +9,10 @@ export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>('dark')
 
   useEffect(() => {
-    setTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark')
+    const timer = window.setTimeout(() => {
+      setTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark')
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [])
 
   function toggle() {
