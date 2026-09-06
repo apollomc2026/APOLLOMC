@@ -16,6 +16,7 @@ Authoritative product direction: `guiding light/Apollo guiding light.docx` in th
 | Guiding-light requirement | Implementation evidence | Automated gate |
 |---|---|---|
 | Natural-language first | `components/mission-control/MissionControl.tsx`, `/api/mission-control/interpret` | `tests/mission-control.spec.ts` |
+| Voice intake seam | Browser speech recognition streams interim text into the same editable mission draft; low-confidence and critical values require visible review before submission | `tests/mission-control.spec.ts` |
 | Versioned semantic control plane | `lib/mission-control/contracts.ts`, `repository.ts`, migration RPCs | Typecheck and RLS pgTAP suite |
 | Fact provenance and evidence custody | `lib/mission-control/evidence.ts`, evidence API, SHA-256 source manifests | `tests/mission-evidence.test.ts` |
 | Specialist recommendation | deterministic router plus Claude Sonnet 5 interpretation | `tests/mission-interpreter.test.ts`, `tests/golden-missions.test.ts` |
@@ -36,8 +37,8 @@ Authoritative product direction: `guiding light/Apollo guiding light.docx` in th
 
 - Framework: Next.js 16.3.4 and React 19.2.8; the version-16 proxy convention is in use.
 - TypeScript: passed (`npm run typecheck --workspace apps/portal`).
-- Unit/contract suite: 45 passed across 12 files.
-- Chromium journeys: 8 passed, including desktop/mobile mission intake, advanced launch handoff, Evidence Vault, brand custody, operational surfaces, both themes, atmospheric rendering, and reduced motion.
+- Unit/contract suite: 48 passed across 13 files.
+- Chromium journeys: 9 passed, including desktop/mobile mission intake, editable voice capture with critical-value review, advanced launch handoff, Evidence Vault, brand custody, operational surfaces, both themes, atmospheric rendering, and reduced motion.
 - Production build: passed with all portal, executor and Workflow routes emitted.
 - Dependency audit: 0 critical, 0 low, 2 moderate and 14 high. All 16 remaining advisories originate in `workflow@4.8.5` and its pinned `nanoid`/`undici` graph. npm's proposed forced remediation is a breaking downgrade to Workflow 2.0.6, so it is not an acceptable automatic release change. Track the upstream 4.x remediation before public release.
 - Billing remains scaffold-only. `BILLING_MODE=internal` is a release invariant and no payment provider is activated.
@@ -45,6 +46,7 @@ Authoritative product direction: `guiding light/Apollo guiding light.docx` in th
 ## Hosted evidence
 
 - GitHub branch `audit/conversational-intake-rebuild` is the tested release candidate.
+- GitHub Actions run `34043939894` passed the production build, lint baseline, typecheck, 48-test unit/contract suite, Chromium installation, and the complete browser acceptance suite for commit `d3e38b4`.
 - The Vercel preview for release-candidate commit `b6db13e` reached `READY`. Its homepage and login returned HTTP 200, and a protected dashboard request safely resolved to the explicit configuration boundary with HTTP 200 rather than a middleware/render failure. Deployment-scoped runtime logs contained no error or fatal entries after these probes.
 - Preview currently lacks the public Supabase configuration and therefore cannot authenticate. The login surface reports this state without exposing values or throwing a server error.
 - The APOLLO Supabase project `yarbyhyomuimetsppsrz` is now connected and healthy. The conversational mission-control and brand-kit migrations were applied on 2026-09-06. Live catalog verification proves RLS is enabled on all five new tables with the expected 15 ownership policies.

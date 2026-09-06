@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowUp, Check, FilePlus2, Orbit, Paperclip, ShieldCheck, Sparkles } from 'lucide-react'
 import type { ConversationTurn, DeliverableSpecification, MissionTurnResult } from '@/lib/mission-control/contracts'
+import { VoiceControl } from './VoiceControl'
 
 const STORAGE_KEY = 'apollo:mission-control:v1'
 const opening: ConversationTurn = { id: 'opening', role: 'apollo', content: 'Tell me what you need to accomplish. Speak naturally, type, or add the files you already have. I will identify the right deliverable, surface consequential gaps, and prepare the mission brief.', createdAt: '' }
@@ -90,6 +91,10 @@ export function MissionControl() {
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to continue the mission.'); setDraft(message) } finally { setWorking(false) }
   }
 
+  function acceptVoiceTranscript(text: string) {
+    setDraft(current => [current.trim(), text].filter(Boolean).join(' '))
+  }
+
   function resetMission() {
     setTurns([opening]); setSpecification(null); setReadiness(0); setConversationId(null); setSpecificationVersion(0); setJobId(null); setJobState(null); setArtifactUrl(null); setDraft(''); setError(null); window.localStorage.removeItem(STORAGE_KEY)
   }
@@ -159,7 +164,7 @@ export function MissionControl() {
           {turns.map(turn => <article key={turn.id} className={`mc-turn ${turn.role}`}><div className="mc-turn-role">{turn.role === 'apollo' ? <><Sparkles size={13}/> APOLLO</> : 'YOU'}</div>{turn.content.split('\n').map((line, index) => <p key={index}>{line || <br/>}</p>)}{turn.reason ? <small><ShieldCheck size={13}/>{turn.reason}</small> : null}</article>)}
           {working ? <div className="mc-thinking"><i/><i/><i/> Engineering the next move</div> : null}
         </div>
-        <div className="mc-composer"><div className="mc-prompt-label">Respond naturally—one answer can resolve several facts.</div><textarea value={draft} onChange={event => setDraft(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void submit() } }} placeholder="Describe what must be accomplished, who it is for, and what you already have…" rows={4}/><div className="mc-composer-tools"><input ref={fileRef} type="file" multiple hidden accept=".pdf,.docx,.xlsx,.csv,.txt,.png,.jpg,.jpeg" onChange={event => void attachEvidence(event.target.files)}/><button type="button" className="mc-icon-button" onClick={() => fileRef.current?.click()} disabled={working}><Paperclip size={18}/><span>Add evidence</span></button><button type="button" className="mc-send" onClick={() => void submit()} disabled={working}><span>{working ? 'Interpreting' : 'Send to APOLLO'}</span><ArrowUp size={18}/></button></div>{error ? <p className="mc-error">{error}</p> : null}</div>
+        <div className="mc-composer"><div className="mc-prompt-label">Respond naturally—one answer can resolve several facts.</div><textarea value={draft} onChange={event => setDraft(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void submit() } }} placeholder="Describe what must be accomplished, who it is for, and what you already have…" rows={4}/><div className="mc-composer-tools"><div className="mc-input-tools"><input ref={fileRef} type="file" multiple hidden accept=".pdf,.docx,.xlsx,.csv,.txt,.png,.jpg,.jpeg" onChange={event => void attachEvidence(event.target.files)}/><button type="button" className="mc-icon-button" onClick={() => fileRef.current?.click()} disabled={working}><Paperclip size={18}/><span>Add evidence</span></button><VoiceControl disabled={working} onTranscript={acceptVoiceTranscript}/></div><button type="button" className="mc-send" onClick={() => void submit()} disabled={working}><span>{working ? 'Interpreting' : 'Send to APOLLO'}</span><ArrowUp size={18}/></button></div>{error ? <p className="mc-error">{error}</p> : null}</div>
       </section>
       <aside className="mc-brief" aria-label="Live mission brief">
         <div className="mc-panel-heading"><div><span>Live mission brief</span><h2>{title}</h2></div><FilePlus2 size={20}/></div>
