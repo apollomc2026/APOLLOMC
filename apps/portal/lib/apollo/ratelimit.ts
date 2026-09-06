@@ -3,14 +3,18 @@ import { createServiceClient } from '@/lib/supabase/server'
 // HS4.1: Supabase-backed fixed-window rate limiter. Atomic increment via the
 // `apollo_rate_limit_hit` RPC (SQL provided to Jon in the hardening report).
 //
-// Degradation: if the RPC/table is absent (SQL not yet applied) it FAILS OPEN
-// so the app keeps working — the limiter is dormant until Jon runs the SQL.
-// Once the table exists, it fails CLOSED on the limit (the cost/abuse control).
+// The limiter may fail open during local development so an unavailable local
+// Supabase instance does not block UI work. Production fails closed: a broken
+// cost/abuse control must never silently authorize another generation.
 export async function rateLimit(
   key: string,
   limit: number,
   windowSeconds: number
 ): Promise<{ ok: boolean; count: number }> {
+  const unavailable = process.env.NODE_ENV === 'production'
+    ? { ok: false, count: limit }
+    : { ok: true, count: 0 }
+
   try {
     const supabase = await createServiceClient()
     const bucket = Math.floor(Date.now() / 1000 / windowSeconds) * windowSeconds
@@ -20,11 +24,11 @@ export async function rateLimit(
       p_window_start: windowStart,
       p_limit: limit,
     })
-    if (error || !data) return { ok: true, count: 0 } // dormant until SQL applied
+    if (error || !data) return unavailable
     const row = Array.isArray(data) ? data[0] : data
     return { ok: !!row?.allowed, count: Number(row?.current_count ?? 0) }
   } catch {
-    return { ok: true, count: 0 }
+    return unavailable
   }
 }
 
