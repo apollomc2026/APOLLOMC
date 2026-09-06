@@ -59,12 +59,16 @@ export function applyClaudeInterpretation(base: MissionTurnResult, patch: Claude
   }
   let readiness = Math.min(92, base.readiness + Math.min(16, Math.max(0, merged.size - facts.length) * 4))
   const gaps = executionGaps(specification)
+  const gapQuestions = gaps.map(gap => `What should APOLLO use for ${gap.label.toLowerCase()}?`)
   if (gaps.length) {
     readiness = Math.min(readiness, 70)
-    const gapQuestion = `What should APOLLO use for ${gaps[0].label.toLowerCase()}?`
-    question = gapQuestion
-    specification.content.open_questions = [gapQuestion, ...specification.content.open_questions.filter(item => item !== gapQuestion)]
+    question = gapQuestions[0]
   }
+  const modelQuestion = safeText(patch.next_question, 500)
+  const openQuestions = [...new Set([...gapQuestions, ...(modelQuestion && !gapQuestions.includes(modelQuestion) ? [modelQuestion] : [])])]
+  specification.content.open_questions = openQuestions
+  specification.content.assumptions = openQuestions.map(item => item.replace(/\?$/, ' remains unresolved'))
+  if (!gaps.length) question = modelQuestion ?? null
   specification.approval.status = readiness >= 75 ? 'ready' : 'draft'
   return { ...base, acknowledgement: safeText(patch.acknowledgement, 1200) ?? base.acknowledgement, question, question_reason: safeText(patch.question_reason, 500) ?? base.question_reason, readiness, readiness_state: readiness >= 75 ? 'ready' : readiness >= 50 ? 'calibrating' : 'discovery', specification }
 }

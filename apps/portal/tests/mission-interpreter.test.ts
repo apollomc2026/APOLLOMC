@@ -45,6 +45,7 @@ describe('mission interpreter', () => {
     ]))
     expect(result.specification.audience.primary).toEqual(['Acme Facilities'])
     expect(result.question).toContain('prospect contact')
+    expect(result.specification.content.open_questions).not.toContain('What price or pricing structure should the recipient see?')
   })
 
   it('accepts Claude specialist routing when the natural request is ambiguous', () => {
