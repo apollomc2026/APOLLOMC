@@ -3,7 +3,36 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "env": [
+        "ANTHROPIC_API_KEY",
+        "APOLLO_ALLOWED_EMAILS",
+        "APOLLO_EXECUTOR_CALLBACK_URL",
+        "APOLLO_MODEL_EXTRACTION",
+        "APOLLO_SOURCE_ORIGINS",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_LAMBDA_FUNCTION_NAME",
+        "AWS_REGION",
+        "AWS_SECRET_ACCESS_KEY",
+        "BILLING_MODE",
+        "CRON_SECRET",
+        "GOOGLE_DRIVE_CLIENT_ID",
+        "GOOGLE_DRIVE_CLIENT_SECRET",
+        "GOOGLE_DRIVE_REFRESH_TOKEN",
+        "GOOGLE_DRIVE_ROOT_FOLDER_ID",
+        "METIS_CALLBACK_ORIGINS",
+        "METIS_EXECUTOR_CALLBACK_SECRET",
+        "METIS_EXECUTOR_SHARED_SECRET",
+        "NEXT_PUBLIC_APP_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "S3_BUCKET_PRIVATE",
+        "SES_FROM_ADDRESS",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "WORKER_SECRET_KEY"
+      ]
     },
     "dev": {
       "cache": false,
