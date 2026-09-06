@@ -45,8 +45,8 @@ Authoritative product direction: `guiding light/Apollo guiding light.docx` in th
 ## Hosted evidence
 
 - GitHub branch `audit/conversational-intake-rebuild` is the tested release candidate.
-- The Vercel preview for commit `4614d4b` reached `READY`; its public homepage returned HTTP 200 with the required security headers.
-- A protected preview request correctly reaches the configuration boundary, but Preview currently lacks the public Supabase configuration and therefore cannot authenticate. The login surface now reports this state without throwing a server error.
+- The Vercel preview for release-candidate commit `b6db13e` reached `READY`. Its homepage and login returned HTTP 200, and a protected dashboard request safely resolved to the explicit configuration boundary with HTTP 200 rather than a middleware/render failure. Deployment-scoped runtime logs contained no error or fatal entries after these probes.
+- Preview currently lacks the public Supabase configuration and therefore cannot authenticate. The login surface reports this state without exposing values or throwing a server error.
 - The APOLLO Supabase project is `yarbyhyomuimetsppsrz`. It is not exposed to the connected Supabase tooling, so the migrations and pgTAP suite have not been applied or executed remotely. No substitute project may be used.
 - The approval migration now hashes the exact approved JSON and does not append evidence facts a second time. `pgcrypto`, caller-privilege execution, Data API grants, least-privilege function grants, ownership RLS and foreign-key indexes are asserted in migration/pgTAP evidence.
 
