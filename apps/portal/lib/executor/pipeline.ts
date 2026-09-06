@@ -138,6 +138,7 @@ export async function renderAndStorePdf(order: DocumentWorkOrder, contentHtml: s
     submissionJson: { work_order: order, output, content_sha256: digest, lifecycle: 'draft' },
   })
   const drive = await uploadDriveDraft({
+    userId: order.requested_by,
     folderId: order.drive_destination.folder_id,
     workOrderId: order.work_order_id,
     filename,

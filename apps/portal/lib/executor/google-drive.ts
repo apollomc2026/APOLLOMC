@@ -1,6 +1,7 @@
 const DRIVE_API = 'https://www.googleapis.com/drive/v3'
 const DRIVE_UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3'
 const FOLDER_MIME = 'application/vnd.google-apps.folder'
+import { driveRefreshToken } from '@/lib/integrations/google-drive-auth'
 
 interface DriveFile {
   id: string
@@ -35,14 +36,14 @@ function escapeQuery(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
 }
 
-async function accessToken(): Promise<string> {
+async function accessToken(userId: string): Promise<string> {
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       client_id: required('GOOGLE_DRIVE_CLIENT_ID'),
       client_secret: required('GOOGLE_DRIVE_CLIENT_SECRET'),
-      refresh_token: required('GOOGLE_DRIVE_REFRESH_TOKEN'),
+      refresh_token: await driveRefreshToken(userId),
       grant_type: 'refresh_token',
     }),
     signal: AbortSignal.timeout(15_000),
@@ -112,13 +113,14 @@ async function upload(
 }
 
 export async function uploadDriveDraft(input: {
+  userId?: string
   folderId: string
   workOrderId: string
   filename: string
   contentSha256: string
   pdf: Buffer
 }): Promise<DriveDraft> {
-  const token = await accessToken()
+  const token = await accessToken(input.userId ?? '')
   await assertWritableFolder(input.folderId, token)
   const existing = await findExisting(input.folderId, input.workOrderId, token)
   const metadata = {
