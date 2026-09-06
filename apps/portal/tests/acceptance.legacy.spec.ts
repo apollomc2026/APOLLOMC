@@ -1,5 +1,8 @@
 import { test, expect, type Page } from '@playwright/test'
 
+// Historical APOLLO 2 taxonomy-first flow. Retained as migration evidence, but
+// intentionally excluded from the APOLLO 3 release gate by playwright.config.ts.
+
 // ============================================================
 // APOLLO MC — 16-Step Acceptance Test Suite
 // ============================================================

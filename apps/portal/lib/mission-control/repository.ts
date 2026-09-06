@@ -24,15 +24,8 @@ export async function persistMissionTurn(input: {
 
 export async function approveSpecification(input: { userId: string; conversationId: string; version: number }) {
   const db = await createClient()
-  const { data: conversation, error: conversationError } = await db.from('apollo_conversations').select('id, current_spec_version, readiness').eq('id', input.conversationId).eq('user_id', input.userId).single()
-  if (conversationError || !conversation) throw new MissionPersistenceError('Mission conversation was not found')
-  if (Number(conversation.current_spec_version) !== input.version || Number(conversation.readiness) < 75) throw new MissionPersistenceError('Only the current ready specification can be approved')
-  const now = new Date().toISOString()
-  const { data, error } = await db.from('apollo_specification_versions').update({ status: 'approved', approved_by: input.userId, approved_at: now }).eq('conversation_id', input.conversationId).eq('version', input.version).in('status', ['ready', 'draft']).select('id, specification, content_hash').single()
+  const { data, error } = await db.rpc('apollo_approve_specification', { p_conversation_id: input.conversationId, p_version: input.version }).single()
   if (error || !data) throw new MissionPersistenceError('Specification approval failed')
-  const { error: updateError } = await db.from('apollo_conversations').update({ status: 'approved' }).eq('id', input.conversationId).eq('user_id', input.userId)
-  if (updateError) throw new MissionPersistenceError(updateError.message)
-  const specification = data.specification as DeliverableSpecification
-  specification.approval = { status: 'approved', approved_by: input.userId, approved_at: now }
-  return { approved: true, approved_at: now, specification_id: String(data.id), specification, content_hash: String(data.content_hash) }
+  const row = data as { specification_id: string; specification: DeliverableSpecification; content_hash: string; approved_at: string }
+  return { approved: true, approved_at: row.approved_at, specification_id: String(row.specification_id), specification: row.specification, content_hash: String(row.content_hash) }
 }

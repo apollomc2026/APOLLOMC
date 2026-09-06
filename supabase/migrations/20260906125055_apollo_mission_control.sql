@@ -148,3 +148,27 @@ end $$;
 
 revoke all on function public.apollo_commit_mission_turn(uuid,text,text,text,jsonb,text,text,text,smallint,text,text) from public, anon;
 grant execute on function public.apollo_commit_mission_turn(uuid,text,text,text,jsonb,text,text,text,smallint,text,text) to authenticated;
+
+create or replace function public.apollo_approve_specification(p_conversation_id uuid, p_version integer)
+returns table(specification_id uuid, specification jsonb, content_hash text, approved_at timestamptz)
+language plpgsql security invoker set search_path = '' as $$
+declare v_now timestamptz := now();
+begin
+  if not exists (
+    select 1 from public.apollo_conversations
+    where id = p_conversation_id and user_id = (select auth.uid())
+      and current_spec_version = p_version and readiness >= 75
+    for update
+  ) then raise exception 'only the current ready specification can be approved'; end if;
+  return query
+    update public.apollo_specification_versions s set
+      status = 'approved', approved_by = (select auth.uid()), approved_at = v_now,
+      specification = jsonb_set(jsonb_set(jsonb_set(s.specification, '{approval,status}', '"approved"'), '{approval,approved_by}', to_jsonb((select auth.uid())::text)), '{approval,approved_at}', to_jsonb(v_now::text))
+    where s.conversation_id = p_conversation_id and s.version = p_version and s.status in ('ready', 'draft')
+    returning s.id, s.specification, s.content_hash, s.approved_at;
+  if not found then raise exception 'specification approval failed'; end if;
+  update public.apollo_conversations set status = 'approved' where id = p_conversation_id;
+end $$;
+
+revoke all on function public.apollo_approve_specification(uuid,integer) from public, anon;
+grant execute on function public.apollo_approve_specification(uuid,integer) to authenticated;
