@@ -2,18 +2,20 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { Archive, CreditCard, FileText, Gauge, LayoutDashboard, Palette, Plus, Settings } from 'lucide-react'
 
 const NAV_MISSION = [
-  { href: '/dashboard',  icon: '⬡', label: 'Mission Control' },
-  { href: '/launch-pad', icon: '🚀', label: 'Launch Pad', badge: 'NEW' },
-  { href: '/telemetry',  icon: '📡', label: 'Telemetry' },
-  { href: '/archive',    icon: '🗄️',  label: 'Archive' },
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Mission Control' },
+  { href: '/dashboard?new=1', icon: Plus, label: 'New Mission', badge: 'NEW' },
+  { href: '/telemetry', icon: Gauge, label: 'Telemetry' },
+  { href: '/archive', icon: Archive, label: 'Archive' },
 ]
 
 const NAV_SYSTEM = [
-  { href: '/settings/brand', icon: '🎨', label: 'Brand Config' },
-  { href: '/settings/billing', icon: '💳', label: 'Billing' },
-  { href: '/settings', icon: '⚙️', label: 'Settings' },
+  { href: '/files', icon: FileText, label: 'Evidence Vault' },
+  { href: '/settings/brand', icon: Palette, label: 'Brand Config' },
+  { href: '/settings/billing', icon: CreditCard, label: 'Billing' },
+  { href: '/settings', icon: Settings, label: 'Settings' },
 ]
 
 interface SidebarProps {
@@ -49,7 +51,7 @@ export function Sidebar({ userName = 'Commander', userEmail, tier = 'MERCURY' }:
           href={item.href}
           className={`sidebar-nav-item ${pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)) ? 'active' : ''}`}
         >
-          <span className="sidebar-nav-icon">{item.icon}</span>
+          <item.icon className="sidebar-nav-icon" aria-hidden="true" />
           {item.label}
           {item.badge && <span className="sidebar-nav-badge">{item.badge}</span>}
         </Link>
@@ -63,7 +65,7 @@ export function Sidebar({ userName = 'Commander', userEmail, tier = 'MERCURY' }:
           href={item.href}
           className={`sidebar-nav-item ${pathname === item.href ? 'active' : ''}`}
         >
-          <span className="sidebar-nav-icon">{item.icon}</span>
+          <item.icon className="sidebar-nav-icon" aria-hidden="true" />
           {item.label}
         </Link>
       ))}

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "predev": "node scripts/generate-packages-data.mjs",
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "prebuild": "node scripts/generate-packages-data.mjs",
     "build": "next build --turbopack",
     "start": "next start",
