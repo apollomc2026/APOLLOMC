@@ -14,6 +14,14 @@ interface DriveFile {
   capabilities?: { canAddChildren?: boolean }
 }
 
+export class GoogleDriveAuthorizationError extends Error {
+  readonly code = 'GOOGLE_DRIVE_RECONNECT_REQUIRED'
+  constructor(detail?: string) {
+    super(`Google Drive must be reconnected${detail ? `: ${detail}` : ''}`)
+    this.name = 'GoogleDriveAuthorizationError'
+  }
+}
+
 export interface DriveDraft {
   fileId: string
   parentId: string
@@ -49,7 +57,7 @@ async function accessToken(userId: string): Promise<string> {
     signal: AbortSignal.timeout(15_000),
   })
   const body = await response.json() as { access_token?: string; error?: string }
-  if (!response.ok || !body.access_token) throw new Error(`Google Drive authorization failed${body.error ? `: ${body.error}` : ''}`)
+  if (!response.ok || !body.access_token) throw new GoogleDriveAuthorizationError(body.error)
   return body.access_token
 }
 

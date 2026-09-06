@@ -5,6 +5,7 @@ import type { ArtifactManifest, DocumentWorkOrder, JobState } from '@/lib/execut
 import { assertNotCancelled, completeJob, getJob, updateJob } from '@/lib/executor/ledger'
 import { generateStructuredDocument, renderAndStorePdf } from '@/lib/executor/pipeline'
 import { verifyFinancialDocument } from '@/lib/executor/financial-verification'
+import { GoogleDriveAuthorizationError } from '@/lib/executor/google-drive'
 
 export async function documentJobWorkflow(order: DocumentWorkOrder): Promise<{ artifacts: ArtifactManifest[] }> {
   'use workflow'
@@ -55,9 +56,20 @@ async function renderStep(order: DocumentWorkOrder, contentHtml: string, output:
   console.log(`[apollo-document] rendering START job=${order.work_order_id}`)
   await assertNotCancelled(order.work_order_id)
   await updateJob(order.work_order_id, 'rendering', 70, 'Rendering and storing PDF draft')
-  const artifact = await renderAndStorePdf(order, contentHtml, output)
-  console.log(`[apollo-document] rendering DONE job=${order.work_order_id}`)
-  return artifact
+  try {
+    const artifact = await renderAndStorePdf(order, contentHtml, output)
+    console.log(`[apollo-document] rendering DONE job=${order.work_order_id}`)
+    return artifact
+  } catch (error) {
+    if (error instanceof GoogleDriveAuthorizationError) {
+      await updateJob(order.work_order_id, 'blocked', 75, 'Google Drive must be reconnected in Settings', {
+        error_code: error.code,
+        missing_inputs: ['google_drive_connection'],
+      })
+      await callback(order, 'blocked', 75, 'Google Drive must be reconnected in Settings', [], ['google_drive_connection'])
+    }
+    throw error
+  }
 }
 
 async function verifyStep(order: DocumentWorkOrder, contentHtml: string): Promise<void> {
