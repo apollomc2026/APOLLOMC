@@ -25,6 +25,7 @@ function extractFacts(text: string): MissionFact[] {
   const money = text.match(/\$[\d,]+(?:\.\d{2})?/)
   const date = text.match(/(?:by|before|due)\s+([A-Z][a-z]+\s+\d{1,2}(?:,\s*\d{4})?|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i)
   const audience = text.match(/(?:send|give|present|submit)(?:\s+it)?\s+to\s+(?:the\s+)?([^,.]+)/i)
+    ?? text.match(/\bfor\s+(?:the\s+)?([^,.$]+?)(?=\s+for\s+\$|\s+(?:due|by|before)\b|[,.]|$)/i)
   if (money) facts.push({ key: 'commercial_value', label: 'Commercial value', value: money[0], source: 'user', confidence: 1 })
   if (date) facts.push({ key: 'deadline', label: 'Deadline', value: date[1], source: 'user', confidence: .92 })
   if (audience) facts.push({ key: 'primary_audience', label: 'Primary audience', value: audience[1].trim(), source: 'user', confidence: .88 })
