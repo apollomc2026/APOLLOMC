@@ -2,13 +2,24 @@ import { createHash, randomUUID } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { requireAllowedUser } from '@/lib/apollo/auth'
 import { createClient } from '@/lib/supabase/server'
-import { deleteFromS3, uploadToS3 } from '@/lib/s3/client'
+import { deleteFromS3, getPresignedUrl, uploadToS3 } from '@/lib/s3/client'
 import { evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractEvidenceFacts } from '@/lib/mission-control/evidence'
 import { executionGaps } from '@/lib/mission-control/work-order'
 import type { DeliverableSpecification } from '@/lib/mission-control/contracts'
 
 const ALLOWED = new Set(['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv', 'text/plain', 'image/png', 'image/jpeg'])
 const MAX_BYTES = 20 * 1024 * 1024
+
+export async function GET() {
+  if (process.env.PLAYWRIGHT_TESTING === 'true') return NextResponse.json({ evidence: [{ id: 'ev-demo', conversation_id: 'mission-demo', mission: 'Field Operations Proposal', name: 'site-survey.pdf', mime_type: 'application/pdf', size_bytes: 482300, status: 'verified', fact_count: 7, created_at: '2026-09-06T12:00:00.000Z', download_url: null }] })
+  const allowed = await requireAllowedUser()
+  if (!allowed.ok) return NextResponse.json({ error: allowed.error }, { status: allowed.status })
+  const db = await createClient()
+  const result = await db.from('apollo_conversation_evidence').select('id, conversation_id, original_name, mime_type, size_bytes, extraction_status, extracted_facts, storage_key, created_at, apollo_conversations!inner(title)').eq('user_id', allowed.user.userId).order('created_at', { ascending: false })
+  if (result.error) return NextResponse.json({ error: result.error.message }, { status: 500 })
+  const evidence = await Promise.all((result.data ?? []).map(async (row: any) => ({ id: row.id, conversation_id: row.conversation_id, mission: row.apollo_conversations?.title ?? 'Untitled mission', name: row.original_name, mime_type: row.mime_type, size_bytes: row.size_bytes, status: row.extraction_status, fact_count: Array.isArray(row.extracted_facts) ? row.extracted_facts.length : 0, created_at: row.created_at, download_url: row.storage_key ? await getPresignedUrl(row.storage_key, 300).catch(() => null) : null })))
+  return NextResponse.json({ evidence })
+}
 
 export async function POST(request: Request) {
   const allowed = await requireAllowedUser()

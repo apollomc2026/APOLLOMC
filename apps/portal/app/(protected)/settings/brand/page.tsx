@@ -1,24 +1,13 @@
-'use client'
-
-import Link from 'next/link'
 import { Sidebar } from '@/components/Sidebar'
+import { BrandKitManager } from '@/components/brand/BrandKitManager'
 
 export default function BrandConfigPage() {
   return (
     <div className="app-shell">
       <Sidebar />
       <main className="main-content">
-        <div className="coming-soon-page">
-          <div className="coming-soon-icon">🎨</div>
-          <div className="coming-soon-title">Brand Configuration</div>
-          <div className="coming-soon-desc">
-            Upload your brand assets, set color palettes, define tone guidelines,
-            and configure document styling for all deliverables.
-          </div>
-          <Link href="/dashboard" className="coming-soon-back">
-            ← Back to Mission Control
-          </Link>
-        </div>
+        <header className="page-heading"><span>IDENTITY SYSTEM · CONTROLLED</span><h1>Brand Configuration</h1><p>Create a brand system from first principles or secure an existing guide for consistent mission output.</p></header>
+        <BrandKitManager />
       </main>
     </div>
   )

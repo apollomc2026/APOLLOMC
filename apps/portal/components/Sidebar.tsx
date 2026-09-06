@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Archive, CreditCard, FileText, Gauge, LayoutDashboard, Palette, Plus, Settings } from 'lucide-react'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 const NAV_MISSION = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Mission Control' },
@@ -71,6 +72,8 @@ export function Sidebar({ userName = 'Commander', userEmail, tier = 'MERCURY' }:
       ))}
 
       <div className="sidebar-divider" />
+
+      <ThemeToggle />
 
       {/* User Card */}
       <div className="sidebar-user">

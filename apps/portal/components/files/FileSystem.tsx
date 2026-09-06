@@ -1,113 +1,38 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import type { Mission, DeliverableType } from '@/lib/types/database'
-import { FileText, Clock, Filter } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { CheckCircle2, Download, FileText, Search, ShieldCheck } from 'lucide-react'
 
-interface MissionWithDeliverable extends Mission {
-  deliverable_types: DeliverableType | null
-}
+type Evidence = { id:string; conversation_id:string; mission:string; name:string; mime_type:string|null; size_bytes:number|null; status:string; fact_count:number; created_at:string; download_url:string|null }
+const formatBytes = (value:number|null) => !value ? '—' : value < 1048576 ? `${Math.ceil(value / 1024)} KB` : `${(value / 1048576).toFixed(1)} MB`
 
 export default function FileSystem() {
-  const [missions, setMissions] = useState<MissionWithDeliverable[]>([])
-  const [filter, setFilter] = useState<string>('all')
+  const [items, setItems] = useState<Evidence[]>([])
+  const [query, setQuery] = useState('')
+  const [status, setStatus] = useState('all')
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data } = await supabase
-        .from('missions')
-        .select('*, deliverable_types(*)')
-        .eq('user_id', user.id)
-        .in('status', ['delivered', 'paid', 'review', 'awaiting_payment'])
-        .order('created_at', { ascending: false })
-
-      setMissions((data || []) as MissionWithDeliverable[])
-      setLoading(false)
-    }
-    load()
+    fetch('/api/mission-control/evidence', { credentials:'include' })
+      .then(async response => { if (!response.ok) throw new Error((await response.json()).error || 'Evidence could not be loaded'); return response.json() })
+      .then(body => setItems(body.evidence ?? []))
+      .catch(cause => setError(cause instanceof Error ? cause.message : 'Evidence could not be loaded'))
+      .finally(() => setLoading(false))
   }, [])
 
-  const filtered = filter === 'all'
-    ? missions
-    : missions.filter((m) => m.status === filter)
+  const filtered = useMemo(() => items.filter(item => (status === 'all' || item.status === status) && `${item.name} ${item.mission}`.toLowerCase().includes(query.toLowerCase())), [items, query, status])
 
-  if (loading) {
-    return <div className="animate-pulse h-96 bg-[var(--apollo-navy)] rounded-xl" />
-  }
-
-  return (
-    <div>
-      {/* Filters */}
-      <div className="flex items-center gap-2 mb-6">
-        <Filter className="w-4 h-4 text-[var(--apollo-text-faint)]" />
-        {['all', 'delivered', 'review', 'awaiting_payment'].map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              filter === f
-                ? 'bg-[var(--apollo-blue-subtle)] text-[var(--apollo-blue)] border border-[var(--apollo-blue)]/20'
-                : 'bg-[var(--apollo-surface)] text-[var(--apollo-text-muted)] hover:bg-[var(--apollo-border)] border border-transparent'
-            }`}
-          >
-            {f === 'all' ? 'All' : f.replace(/_/g, ' ')}
-          </button>
-        ))}
-      </div>
-
-      {filtered.length === 0 ? (
-        <div className="text-center py-16 bg-[var(--apollo-navy)] border border-[var(--apollo-border)] rounded-xl">
-          <FileText className="w-12 h-12 text-[var(--apollo-text-faint)] mx-auto mb-4" />
-          <h3 className="text-lg font-medium">No Files Yet</h3>
-          <p className="text-[var(--apollo-text-muted)] mt-1">Completed missions will appear here.</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filtered.map((mission) => (
-            <div
-              key={mission.id}
-              className="bg-[var(--apollo-navy)] rounded-xl p-5 mission-card"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium">
-                    {mission.deliverable_types?.label || 'Untitled'}
-                  </h3>
-                  <div className="flex items-center gap-4 mt-1 text-sm text-[var(--apollo-text-faint)]">
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {new Date(mission.created_at).toLocaleDateString()}
-                    </span>
-                    <span
-                      className={
-                        mission.status === 'delivered'
-                          ? 'text-[var(--apollo-success)]'
-                          : 'text-[var(--apollo-warning)]'
-                      }
-                    >
-                      {mission.status.replace(/_/g, ' ')}
-                    </span>
-                    {mission.paid_price_cents && (
-                      <span>${(mission.paid_price_cents / 100).toFixed(2)}</span>
-                    )}
-                  </div>
-                </div>
-                {mission.status === 'delivered' && (
-                  <span className="px-3 py-2 bg-[var(--apollo-surface)] rounded-lg text-sm text-[var(--apollo-text-muted)] border border-[var(--apollo-border)]">
-                    Internal custody active
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+  return <section className="vault" aria-busy={loading}>
+    <div className="vault-toolbar">
+      <label className="vault-search"><Search aria-hidden="true"/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search evidence or mission" aria-label="Search evidence" /></label>
+      <div className="vault-filters" aria-label="Evidence filters">{['all','verified','processing','failed'].map(value => <button type="button" key={value} className={status === value ? 'active' : ''} onClick={() => setStatus(value)}>{value}</button>)}</div>
     </div>
-  )
+    {error && <div className="vault-state error"><ShieldCheck/><h2>Vault connection interrupted</h2><p>{error}</p><button type="button" onClick={() => location.reload()}>Retry connection</button></div>}
+    {!error && loading && <div className="vault-state"><div className="vault-loader"/><p>Verifying evidence custody…</p></div>}
+    {!error && !loading && filtered.length === 0 && <div className="vault-state"><FileText/><h2>No matching evidence</h2><p>Evidence attached in Mission Control will appear here with its custody status.</p></div>}
+    {!error && !loading && filtered.length > 0 && <div className="vault-grid">{filtered.map(item => <article className="vault-card" key={item.id}>
+      <div className="vault-card-icon"><FileText/></div><div className="vault-card-body"><div className="vault-card-top"><span className={`vault-status ${item.status}`}><CheckCircle2/>{item.status}</span><span>{formatBytes(item.size_bytes)}</span></div><h2>{item.name}</h2><p>{item.mission}</p><footer><span>{item.fact_count} verified facts</span><time>{new Date(item.created_at).toLocaleDateString()}</time>{item.download_url ? <a href={item.download_url} target="_blank" rel="noreferrer"><Download/> Download</a> : <span>Custody active</span>}</footer></div>
+    </article>)}</div>}
+  </section>
 }

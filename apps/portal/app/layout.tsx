@@ -63,6 +63,8 @@ const swScript = `
   }
 `;
 
+const themeScript = `(function(){try{var saved=localStorage.getItem('apollo:theme');var theme=saved==='light'||saved==='dark'?saved:(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.dataset.theme=theme;document.documentElement.style.colorScheme=theme}catch(e){document.documentElement.dataset.theme='dark'}})()`
+
 // ── Root Layout ────────────────────────────────────────────
 export default function RootLayout({
   children,
@@ -70,8 +72,9 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" data-theme="dark" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         {/* Preconnect for fonts loaded in globals.css */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -84,7 +87,7 @@ export default function RootLayout({
         <meta name="msapplication-tap-highlight" content="no" />
 
         {/* Prevent flash of wrong theme */}
-        <meta name="color-scheme" content="dark" />
+        <meta name="color-scheme" content="dark light" />
       </head>
       <body>
         {/* Ambient background (renders behind everything) */}
