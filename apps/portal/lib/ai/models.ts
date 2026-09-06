@@ -1,9 +1,8 @@
 // Single source of truth for model selection. Env-overridable per role.
 //
-// Claude Sonnet 4 (the dated 2025-05-14 snapshot) retires 2026-06-15. Sonnet
-// 4.6 (`claude-sonnet-4-6`) is its documented drop-in replacement
-// (platform.claude.com/docs/en/about-claude/models/overview). The 4.6 family
-// needs no explicit effort/thinking parameter — it runs on documented defaults.
+// Claude Sonnet 5 (`claude-sonnet-5`) is the current Sonnet generation.
+// APOLLO intentionally relies on the model's defaults: Sonnet 5 rejects manual
+// extended-thinking configuration and non-default sampling parameters.
 export type TaskRole =
   | 'draft_compile'      // generate.ts one-shot whole-document
   | 'structured_fill'    // orchestrate.ts primary (tool-forced schema emit)
@@ -12,11 +11,11 @@ export type TaskRole =
   | 'extraction'         // brand.py-class tasks (future)
 
 const DEFAULTS: Record<TaskRole, string> = {
-  draft_compile:   'claude-sonnet-4-6',
-  structured_fill: 'claude-sonnet-4-6',
-  repair:          'claude-sonnet-4-6',
-  section_draft:   'claude-sonnet-4-6',
-  extraction:      'claude-sonnet-4-6', // Haiku 4.5 is the planned experiment for this role — flip via env when validated
+  draft_compile:   'claude-sonnet-5',
+  structured_fill: 'claude-sonnet-5',
+  repair:          'claude-sonnet-5',
+  section_draft:   'claude-sonnet-5',
+  extraction:      'claude-sonnet-5', // Haiku 4.5 remains an optional extraction experiment via env override
 }
 
 export function modelFor(role: TaskRole): string {

@@ -7,9 +7,9 @@ from typing import Any
 import anthropic
 
 # Mirrors the 'extraction' role in apps/portal/lib/ai/models.ts. No shared map
-# across the TS/Python boundary, so keep this in sync. Claude Sonnet 4 (the
-# dated 2025-05-14 snapshot) retires 2026-06-15; Sonnet 4.6 is its replacement.
-APOLLO_EXTRACTION_MODEL = os.environ.get("APOLLO_MODEL_EXTRACTION", "claude-sonnet-4-6")
+# across the TS/Python boundary, so keep this in sync. Sonnet 5 is the current
+# Sonnet generation and APOLLO relies on its default adaptive-thinking behavior.
+APOLLO_EXTRACTION_MODEL = os.environ.get("APOLLO_MODEL_EXTRACTION", "claude-sonnet-5")
 
 
 def extract_brand_rules(extracted_content: dict[str, Any]) -> dict[str, Any]:
