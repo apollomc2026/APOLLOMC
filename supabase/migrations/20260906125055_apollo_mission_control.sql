@@ -44,6 +44,10 @@ create table if not exists public.apollo_conversation_evidence (
   user_id uuid not null references auth.users(id) on delete cascade,
   original_name text not null,
   storage_key text,
+  content_sha256 text,
+  retrieval_storage_key text,
+  retrieval_mime_type text,
+  retrieval_sha256 text,
   mime_type text,
   size_bytes bigint check (size_bytes is null or size_bytes >= 0),
   extraction_status text not null default 'pending'
@@ -152,7 +156,9 @@ grant execute on function public.apollo_commit_mission_turn(uuid,text,text,text,
 create or replace function public.apollo_approve_specification(p_conversation_id uuid, p_version integer)
 returns table(specification_id uuid, specification jsonb, content_hash text, approved_at timestamptz)
 language plpgsql security invoker set search_path = '' as $$
-declare v_now timestamptz := now();
+declare
+  v_now timestamptz := now();
+  v_evidence_facts jsonb;
 begin
   if not exists (
     select 1 from public.apollo_conversations
@@ -160,10 +166,15 @@ begin
       and current_spec_version = p_version and readiness >= 75
     for update
   ) then raise exception 'only the current ready specification can be approved'; end if;
+  select coalesce(jsonb_agg(fact), '[]'::jsonb) into v_evidence_facts
+    from public.apollo_conversation_evidence evidence,
+      lateral jsonb_array_elements(evidence.extracted_facts) fact
+    where evidence.conversation_id = p_conversation_id and evidence.user_id = (select auth.uid())
+      and evidence.extraction_status = 'verified';
   return query
     update public.apollo_specification_versions s set
       status = 'approved', approved_by = (select auth.uid()), approved_at = v_now,
-      specification = jsonb_set(jsonb_set(jsonb_set(s.specification, '{approval,status}', '"approved"'), '{approval,approved_by}', to_jsonb((select auth.uid())::text)), '{approval,approved_at}', to_jsonb(v_now::text))
+      specification = jsonb_set(jsonb_set(jsonb_set(jsonb_set(s.specification, '{content,facts}', coalesce(s.specification #> '{content,facts}', '[]'::jsonb) || v_evidence_facts), '{approval,status}', '"approved"'), '{approval,approved_by}', to_jsonb((select auth.uid())::text)), '{approval,approved_at}', to_jsonb(v_now::text))
     where s.conversation_id = p_conversation_id and s.version = p_version and s.status in ('ready', 'draft')
     returning s.id, s.specification, s.content_hash, s.approved_at;
   if not found then raise exception 'specification approval failed'; end if;
@@ -172,3 +183,28 @@ end $$;
 
 revoke all on function public.apollo_approve_specification(uuid,integer) from public, anon;
 grant execute on function public.apollo_approve_specification(uuid,integer) to authenticated;
+
+create or replace function public.apollo_commit_evidence_specification(
+  p_conversation_id uuid,
+  p_specification jsonb,
+  p_content_hash text,
+  p_readiness smallint,
+  p_status text
+) returns integer
+language plpgsql security invoker set search_path = '' as $$
+declare v_version integer;
+begin
+  select current_spec_version into v_version from public.apollo_conversations
+    where id = p_conversation_id and user_id = (select auth.uid()) for update;
+  if v_version is null then raise exception 'mission conversation was not found'; end if;
+  v_version := v_version + 1;
+  insert into public.apollo_specification_versions(conversation_id, version, schema_version, specification, content_hash, status)
+    values (p_conversation_id, v_version, p_specification->>'schema_version', p_specification, p_content_hash, p_status);
+  update public.apollo_conversations set current_spec_version = v_version, readiness = p_readiness,
+    status = case when p_readiness >= 75 then 'brief_ready' else 'calibrating' end
+    where id = p_conversation_id;
+  return v_version;
+end $$;
+
+revoke all on function public.apollo_commit_evidence_specification(uuid,jsonb,text,smallint,text) from public, anon;
+grant execute on function public.apollo_commit_evidence_specification(uuid,jsonb,text,smallint,text) to authenticated;

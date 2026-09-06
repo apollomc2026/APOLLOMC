@@ -1,7 +1,7 @@
 {
   "name": "Apollo Mission Control",
   "short_name": "Apollo MC",
-  "description": "Autonomous deliverables execution platform for professional services",
+  "description": "Evidence-aware mission control for professional deliverables",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#080810",
@@ -10,36 +10,6 @@
   "scope": "/",
   "categories": ["business", "productivity"],
   "icons": [
-    {
-      "src": "/icons/icon-72.png",
-      "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-96.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any"
-    },
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
@@ -59,31 +29,7 @@
       "purpose": "any maskable"
     }
   ],
-  "shortcuts": [
-    {
-      "name": "Launch Pad",
-      "short_name": "Launch",
-      "description": "Start a new mission",
-      "url": "/launch-pad",
-      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
-    },
-    {
-      "name": "Telemetry",
-      "short_name": "Telemetry",
-      "description": "View mission status",
-      "url": "/telemetry",
-      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/screenshots/desktop.png",
-      "sizes": "1280x800",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Apollo Mission Control Dashboard"
-    }
-  ],
+  "shortcuts": [{ "name": "New mission", "short_name": "New mission", "description": "Start with the outcome", "url": "/dashboard?new=1" }],
   "prefer_related_applications": false,
   "related_applications": []
 }

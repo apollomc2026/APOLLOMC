@@ -1,5 +1,5 @@
 begin;
-select plan(12);
+select plan(18);
 
 select ok(relrowsecurity, 'conversations has RLS enabled') from pg_class where oid = 'public.apollo_conversations'::regclass;
 select ok(relrowsecurity, 'turns has RLS enabled') from pg_class where oid = 'public.apollo_conversation_turns'::regclass;
@@ -15,6 +15,13 @@ select ok(not has_table_privilege('anon', 'public.apollo_conversations', 'SELECT
 select ok(not has_table_privilege('anon', 'public.apollo_conversation_turns', 'INSERT'), 'anonymous role cannot append turns');
 select ok(has_table_privilege('authenticated', 'public.apollo_conversations', 'SELECT'), 'authenticated role has conversation Data API grant');
 select ok(has_table_privilege('authenticated', 'public.apollo_specification_versions', 'UPDATE'), 'authenticated role can approve an owned specification');
+
+select ok(not has_function_privilege('anon', 'public.apollo_commit_mission_turn(uuid,text,text,text,jsonb,text,text,text,smallint,text,text)', 'EXECUTE'), 'anonymous role cannot commit mission turns');
+select ok(has_function_privilege('authenticated', 'public.apollo_commit_mission_turn(uuid,text,text,text,jsonb,text,text,text,smallint,text,text)', 'EXECUTE'), 'authenticated role can atomically commit mission turns');
+select ok(not has_function_privilege('anon', 'public.apollo_approve_specification(uuid,integer)', 'EXECUTE'), 'anonymous role cannot approve specifications');
+select ok(has_function_privilege('authenticated', 'public.apollo_approve_specification(uuid,integer)', 'EXECUTE'), 'authenticated role can atomically approve owned specifications');
+select ok(not has_function_privilege('anon', 'public.apollo_commit_evidence_specification(uuid,jsonb,text,smallint,text)', 'EXECUTE'), 'anonymous role cannot commit evidence specifications');
+select ok(has_function_privilege('authenticated', 'public.apollo_commit_evidence_specification(uuid,jsonb,text,smallint,text)', 'EXECUTE'), 'authenticated role can commit evidence-derived versions');
 
 select * from finish();
 rollback;

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireAllowedUser } from '@/lib/apollo/auth'
-import { approveSpecification, MissionPersistenceError } from '@/lib/mission-control/repository'
+import { approveSpecification, loadExecutionEvidence, MissionPersistenceError } from '@/lib/mission-control/repository'
 import { compileApprovedSpecification } from '@/lib/mission-control/work-order'
 import { acceptWorkOrder, WorkOrderAcceptanceError } from '@/lib/executor/accept'
 
@@ -15,7 +15,8 @@ export async function POST(request: Request) {
     const callbackUrl = process.env.APOLLO_EXECUTOR_CALLBACK_URL
     const driveFolderId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID
     if (!callbackUrl || !driveFolderId) return NextResponse.json({ ...approval, execution: { state: 'blocked', missing: ['APOLLO_EXECUTOR_CALLBACK_URL', 'GOOGLE_DRIVE_ROOT_FOLDER_ID'] } })
-    const compiled = compileApprovedSpecification({ specification: approval.specification, specificationId: approval.specification_id, specificationHash: approval.content_hash, conversationId: body.conversation_id, requestedBy: allowed.user.userId, callbackUrl, driveFolderId })
+    const sources = await loadExecutionEvidence({ userId: allowed.user.userId, conversationId: body.conversation_id })
+    const compiled = compileApprovedSpecification({ specification: approval.specification, specificationId: approval.specification_id, specificationHash: approval.content_hash, conversationId: body.conversation_id, requestedBy: allowed.user.userId, callbackUrl, driveFolderId, sources })
     if (!compiled.ok) return NextResponse.json({ ...approval, execution: { state: 'blocked', missing: compiled.missing } })
     return NextResponse.json({ ...approval, execution: await acceptWorkOrder(compiled.order) })
   } catch (error) {

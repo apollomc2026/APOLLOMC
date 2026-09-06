@@ -1,14 +1,10 @@
-// Apollo Mission Control — Service Worker v1
-// Cache-first for static assets, network-first for API calls
+// Apollo Mission Control — Service Worker v2
+// Only immutable public assets are cached. Authenticated data is network-only.
 
-const CACHE_NAME = 'apollo-mc-v1';
-const STATIC_CACHE = 'apollo-static-v1';
-const API_CACHE = 'apollo-api-v1';
+const STATIC_CACHE = 'apollo-static-v2';
 
 // Assets to pre-cache on install
 const PRECACHE_ASSETS = [
-  '/',
-  '/dashboard',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
@@ -25,7 +21,7 @@ self.addEventListener('install', event => {
 
 // ── Activate: clean stale caches ────────────────────────
 self.addEventListener('activate', event => {
-  const validCaches = [CACHE_NAME, STATIC_CACHE, API_CACHE];
+  const validCaches = [STATIC_CACHE];
   event.waitUntil(
     caches.keys()
       .then(keys => Promise.all(
@@ -46,9 +42,9 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET') return;
   if (url.protocol === 'chrome-extension:') return;
 
-  // API calls — network first, fall back to cache
+  // API and page requests may contain private mission data and are never cached.
   if (url.pathname.startsWith('/api/')) {
-    event.respondWith(networkFirst(request, API_CACHE, 5000));
+    event.respondWith(fetch(request));
     return;
   }
 
@@ -75,9 +71,9 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // HTML pages — stale-while-revalidate
+  // Never persist authenticated or user-specific HTML.
   if (request.headers.get('accept')?.includes('text/html')) {
-    event.respondWith(staleWhileRevalidate(request, CACHE_NAME));
+    event.respondWith(fetch(request));
     return;
   }
 
@@ -99,39 +95,6 @@ async function cacheFirst(request, cacheName) {
   } catch {
     return new Response('Offline', { status: 503 });
   }
-}
-
-async function networkFirst(request, cacheName, timeout = 5000) {
-  const cache = await caches.open(cacheName);
-
-  try {
-    const networkPromise = fetch(request);
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('timeout')), timeout)
-    );
-
-    const response = await Promise.race([networkPromise, timeoutPromise]);
-    if (response.ok) cache.put(request, response.clone());
-    return response;
-  } catch {
-    const cached = await cache.match(request);
-    return cached || new Response(JSON.stringify({ error: 'offline' }), {
-      status: 503,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-}
-
-async function staleWhileRevalidate(request, cacheName) {
-  const cache = await caches.open(cacheName);
-  const cached = await cache.match(request);
-
-  const networkUpdate = fetch(request).then(response => {
-    if (response.ok) cache.put(request, response.clone());
-    return response;
-  }).catch(() => cached);
-
-  return cached || networkUpdate;
 }
 
 // ── Background Sync (mission status polling) ─────────────
@@ -160,7 +123,7 @@ self.addEventListener('push', event => {
   const options = {
     body: data.body || 'Mission status update',
     icon: '/icons/icon-192.png',
-    badge: '/icons/icon-72.png',
+    badge: '/icons/icon-192.png',
     tag: data.missionId || 'apollo-notification',
     renotify: true,
     requireInteraction: data.requireInteraction || false,

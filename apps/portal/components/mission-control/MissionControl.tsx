@@ -29,8 +29,17 @@ export function MissionControl() {
     try {
       const state = JSON.parse(saved) as { turns: ConversationTurn[]; specification: DeliverableSpecification | null; readiness: number; conversationId?: string | null; specificationVersion?: number; jobId?: string | null; jobState?: string | null; artifactUrl?: string | null }
       setTurns(state.turns.length ? state.turns : [opening]); setSpecification(state.specification); setReadiness(state.readiness); setConversationId(state.conversationId ?? null); setSpecificationVersion(state.specificationVersion ?? 0); setJobId(state.jobId ?? null); setJobState(state.jobState ?? null); setArtifactUrl(state.artifactUrl ?? null)
+      if (state.conversationId) void restoreConversation(state.conversationId)
     } catch { window.localStorage.removeItem(STORAGE_KEY) }
   }, [])
+
+  async function restoreConversation(id: string) {
+    const response = await fetch(`/api/mission-control/conversation?id=${encodeURIComponent(id)}`)
+    if (!response.ok) return
+    const restored = await response.json() as { turns: ConversationTurn[]; specification: DeliverableSpecification; readiness: number; specification_version: number; job?: { id: string; state: string; artifact_url: string | null } | null }
+    setTurns(restored.turns.length ? restored.turns : [opening]); setSpecification(restored.specification); setReadiness(restored.readiness); setSpecificationVersion(restored.specification_version)
+    if (restored.job) { setJobId(restored.job.id); setJobState(restored.job.state); setArtifactUrl(restored.job.artifact_url) }
+  }
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ turns, specification, readiness, conversationId, specificationVersion, jobId, jobState, artifactUrl }))
@@ -78,15 +87,20 @@ export function MissionControl() {
     if (!conversationId || !specification) { setError('Describe the mission first, then attach evidence to its durable record.'); return }
     setWorking(true); setError(null)
     try {
-      const additions: Array<{ id: string; name: string; status: 'pending' }> = []
+      const additions: Array<{ id: string; name: string; status: 'pending' | 'verified' | 'failed' }> = []
       for (const file of [...files]) {
         const form = new FormData(); form.set('conversation_id', conversationId); form.set('file', file)
         const response = await fetch('/api/mission-control/evidence', { method: 'POST', body: form })
         if (!response.ok) throw new Error(`Unable to secure ${file.name} in the evidence record.`)
-        additions.push(await response.json() as { id: string; name: string; status: 'pending' })
+        const uploaded = await response.json() as { id: string; name: string; status: 'pending' | 'verified' | 'failed'; facts?: DeliverableSpecification['content']['facts']; specification?: DeliverableSpecification; specification_version?: number; readiness?: number }
+        additions.push(uploaded)
+        if (uploaded.specification) setSpecification(uploaded.specification)
+        if (uploaded.specification_version) setSpecificationVersion(uploaded.specification_version)
+        if (typeof uploaded.readiness === 'number') setReadiness(uploaded.readiness)
       }
       setSpecification(current => current ? { ...current, sources: [...current.sources, ...additions] } : current)
-      setTurns(current => [...current, { id: crypto.randomUUID(), role: 'apollo', content: `${additions.length} evidence file${additions.length === 1 ? '' : 's'} secured for extraction and fact reconciliation.`, createdAt: new Date().toISOString() }])
+      const failures = additions.filter(item => item.status === 'failed')
+      setTurns(current => [...current, { id: crypto.randomUUID(), role: 'apollo', content: failures.length ? `${additions.length - failures.length} evidence files verified; ${failures.length} could not be safely extracted and will not enter execution.` : `${additions.length} evidence file${additions.length === 1 ? '' : 's'} secured, integrity-checked, and ready for source-grounded execution.`, createdAt: new Date().toISOString() }])
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Evidence upload failed.') } finally { setWorking(false); if (fileRef.current) fileRef.current.value = '' }
   }
 

@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { findDeliverable, getModule, getStylesForIndustry } from '@/lib/apollo/packages-loader'
 import type { DocumentWorkOrder } from '@/lib/executor/contracts'
+import type { DocumentSource } from '@/lib/executor/contracts'
 import type { DeliverableSpecification } from './contracts'
 
 export type WorkOrderCompilation =
@@ -13,7 +14,7 @@ export function uuidFromDigest(digest: string, offset = 0) {
 }
 
 function factMap(specification: DeliverableSpecification): Record<string, string> {
-  return Object.fromEntries(specification.content.facts.filter(fact => fact.source === 'user' || fact.confidence >= .75).map(fact => [fact.key, fact.value]))
+  return Object.fromEntries(specification.content.facts.filter(fact => fact.source === 'user' || fact.source === 'evidence' || fact.confidence >= .75).map(fact => [fact.key, fact.value]))
 }
 
 export function executionFields(spec: DeliverableSpecification, now = new Date()): Record<string, unknown> {
@@ -44,6 +45,7 @@ export function compileApprovedSpecification(input: {
   requestedBy: string
   callbackUrl: string
   driveFolderId: string
+  sources?: DocumentSource[]
   now?: Date
 }): WorkOrderCompilation {
   const spec = input.specification
@@ -59,8 +61,9 @@ export function compileApprovedSpecification(input: {
   const style = getStylesForIndustry(deliverable.industry_slug)[0]
   if (!style) return { ok: false, missing: [{ key: 'style', label: 'Compatible design profile', reason: 'No active design profile is mapped to this deliverable.' }] }
   const now = input.now ?? new Date()
-  const digest = createHash('sha256').update(`${input.specificationId}:${input.specificationHash}`).digest('hex')
+  const sourceIdentity = (input.sources ?? []).map(source => `${source.source_id}:${source.content_sha256}`).sort().join('|')
+  const digest = createHash('sha256').update(`${input.specificationId}:${input.specificationHash}:${sourceIdentity}`).digest('hex')
   return { ok: true, order: {
-    protocol_version: '1.0', work_order_id: uuidFromDigest(digest), idempotency_key: `spec-${digest}`, project_id: input.specificationId, conversation_id: input.conversationId, task_id: uuidFromDigest(digest, 32), requested_by: input.requestedBy, capability: 'professional-document-generation', deliverable_type: spec.artifact.recommended_type, objective: spec.mission.objective, audience: spec.audience.primary.join(', '), formats: ['pdf'], fields, sources: [], brand_id: spec.presentation.brand_profile_id ?? 'apollo', style_id: style.id, sensitivity: spec.mission.stakes === 'high' ? 'confidential' : 'internal', priority: spec.mission.deadline ? 'high' : 'medium', deadline: spec.mission.deadline ?? undefined, drive_destination: { folder_id: input.driveFolderId, lifecycle: 'draft' }, quality_gates: { schema_validation: true, source_grounding: true, independent_review: spec.mission.stakes === 'high', deterministic_financial_verification: spec.specialist.playbook_id === 'financial-package', human_approval_before_publish: true }, callback_url: input.callbackUrl, created_at: now.toISOString(),
+    protocol_version: '1.0', work_order_id: uuidFromDigest(digest), idempotency_key: `spec-${digest}`, project_id: input.specificationId, conversation_id: input.conversationId, task_id: uuidFromDigest(digest, 32), requested_by: input.requestedBy, capability: 'professional-document-generation', deliverable_type: spec.artifact.recommended_type, objective: spec.mission.objective, audience: spec.audience.primary.join(', '), formats: ['pdf'], fields, sources: input.sources ?? [], brand_id: spec.presentation.brand_profile_id ?? 'apollo', style_id: style.id, sensitivity: spec.mission.stakes === 'high' ? 'confidential' : 'internal', priority: spec.mission.deadline ? 'high' : 'medium', deadline: spec.mission.deadline ?? undefined, drive_destination: { folder_id: input.driveFolderId, lifecycle: 'draft' }, quality_gates: { schema_validation: true, source_grounding: true, independent_review: spec.mission.stakes === 'high', deterministic_financial_verification: spec.specialist.playbook_id === 'financial-package', human_approval_before_publish: true }, callback_url: input.callbackUrl, created_at: now.toISOString(),
   } }
 }

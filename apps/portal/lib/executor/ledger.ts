@@ -28,8 +28,12 @@ export async function createJob(order: DocumentWorkOrder) {
   const existing = await db.from('apollo_document_jobs').select('*').eq('idempotency_key', order.idempotency_key).single()
   if (existing.error || !existing.data) throw new Error(existing.error?.message ?? 'idempotent job lookup failed')
   const existingOrder = existing.data.work_order as DocumentWorkOrder
-  if (JSON.stringify(existingOrder) !== JSON.stringify(order)) throw new Error('idempotency key reused with a different work order')
+  if (canonicalOrder(existingOrder) !== canonicalOrder(order)) throw new Error('idempotency key reused with a different work order')
   return { job: existing.data, duplicate: true }
+}
+
+function canonicalOrder(order: DocumentWorkOrder) {
+  return JSON.stringify({ ...order, sources: order.sources.map(source => ({ source_id: source.source_id, name: source.name, media_type: source.media_type, content_sha256: source.content_sha256, sensitivity: source.sensitivity })) })
 }
 
 export async function getJob(jobId: string) {

@@ -47,4 +47,18 @@ describe('approved specification compiler', () => {
       expect(first.fields.revision_of).toBe(compiled.order.work_order_id)
     }
   })
+
+  it('binds verified evidence and its integrity hash into the execution identity', () => {
+    const specification = interpretMission('Send a proposal to Acme Facilities for $18,500 before October 15, 2026.').specification
+    specification.approval.status = 'approved'
+    for (const field of getModule('proposal')!.required_fields) specification.content.facts.push({ key: field.key, label: field.label, value: `Confirmed ${field.label}`, source: 'user', confidence: 1 })
+    const source = { source_id: 'evidence-1', name: 'scope.txt', media_type: 'text/plain', retrieval_url: 'https://evidence.example/signed', content_sha256: 'c'.repeat(64), sensitivity: 'confidential' as const, expires_at: '2026-09-06T13:00:00Z' }
+    const without = compileApprovedSpecification({ specification, ...ids })
+    const withEvidence = compileApprovedSpecification({ specification, ...ids, sources: [source] })
+    expect(without.ok && withEvidence.ok).toBe(true)
+    if (without.ok && withEvidence.ok) {
+      expect(withEvidence.order.sources).toEqual([source])
+      expect(withEvidence.order.work_order_id).not.toBe(without.order.work_order_id)
+    }
+  })
 })

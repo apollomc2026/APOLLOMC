@@ -11,7 +11,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "gen:thumbnails": "node scripts/generate-style-thumbnails.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "release:check": "node scripts/release-readiness.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.52.0",

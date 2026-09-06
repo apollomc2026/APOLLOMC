@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { interpretMissionWithClaude } from './ai-interpreter'
 import type { DeliverableSpecification, MissionTurnResult } from './contracts'
+import type { DocumentSource } from '@/lib/executor/contracts'
+import { getPresignedUrl } from '@/lib/s3/client'
 
 export class MissionPersistenceError extends Error {}
 
@@ -28,4 +30,16 @@ export async function approveSpecification(input: { userId: string; conversation
   if (error || !data) throw new MissionPersistenceError('Specification approval failed')
   const row = data as { specification_id: string; specification: DeliverableSpecification; content_hash: string; approved_at: string }
   return { approved: true, approved_at: row.approved_at, specification_id: String(row.specification_id), specification: row.specification, content_hash: String(row.content_hash) }
+}
+
+export async function loadExecutionEvidence(input: { userId: string; conversationId: string }): Promise<DocumentSource[]> {
+  const db = await createClient()
+  const result = await db.from('apollo_conversation_evidence').select('id, original_name, retrieval_storage_key, retrieval_mime_type, retrieval_sha256').eq('conversation_id', input.conversationId).eq('user_id', input.userId).eq('extraction_status', 'verified')
+  if (result.error) throw new MissionPersistenceError(result.error.message)
+  const expiresIn = 3600
+  const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString()
+  return Promise.all((result.data ?? []).map(async row => {
+    if (!row.retrieval_storage_key || !row.retrieval_mime_type || !row.retrieval_sha256) throw new MissionPersistenceError(`Evidence ${row.original_name} is missing its integrity record`)
+    return { source_id: String(row.id), name: String(row.original_name), media_type: String(row.retrieval_mime_type), retrieval_url: await getPresignedUrl(String(row.retrieval_storage_key), expiresIn), content_sha256: String(row.retrieval_sha256), sensitivity: 'confidential' as const, expires_at: expiresAt }
+  }))
 }

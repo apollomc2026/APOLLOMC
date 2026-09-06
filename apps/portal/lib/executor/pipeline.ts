@@ -9,6 +9,7 @@ import type { Template } from '@/lib/apollo/templates'
 import { uploadSubmissionOutput } from '@/lib/apollo/storage'
 import type { ArtifactManifest, DocumentSource, DocumentWorkOrder } from './contracts'
 import { uploadDriveDraft } from './google-drive'
+import { BUCKET } from '@/lib/s3/client'
 
 const MAX_SOURCE_BYTES = 10 * 1024 * 1024
 
@@ -23,7 +24,8 @@ function shouldHaveSignatureBlock(slug: string): boolean {
 async function retrieveSource(source: DocumentSource): Promise<OrchestrateUpload> {
   const url = new URL(source.retrieval_url)
   if (url.protocol !== 'https:') throw new Error(`source ${source.source_id} must use HTTPS`)
-  const allowed = (process.env.APOLLO_SOURCE_ORIGINS ?? '').split(',').map((value) => value.trim()).filter(Boolean)
+  const region = process.env.AWS_REGION || 'us-east-1'
+  const allowed = [...(process.env.APOLLO_SOURCE_ORIGINS ?? '').split(',').map((value) => value.trim()).filter(Boolean), `https://${BUCKET}.s3.${region}.amazonaws.com`, `https://${BUCKET}.s3.amazonaws.com`]
   if (allowed.length === 0 || !allowed.includes(url.origin)) throw new Error(`source ${source.source_id} origin is not allowed`)
   if (Date.parse(source.expires_at) <= Date.now()) throw new Error(`source ${source.source_id} URL expired`)
   const response = await fetch(url, { signal: AbortSignal.timeout(30_000), redirect: 'error' })
