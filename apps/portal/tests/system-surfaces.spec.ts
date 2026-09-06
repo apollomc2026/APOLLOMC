@@ -72,8 +72,15 @@ test('archive, telemetry, and settings are operational surfaces', async ({ page 
   await expect(page.getByText('Average readiness')).toBeVisible()
   await page.goto('/settings')
   await expect(page.getByRole('heading', { name:'Settings' })).toBeVisible()
+  await expect(page.getByRole('button', { name:'Connect Google Drive' })).toBeVisible()
   await page.getByRole('button', { name:'Save preferences' }).click()
   await expect(page.getByRole('button', { name:'Saved' })).toBeVisible()
+})
+
+test('legacy launch pad converges on the authoritative mission intake', async ({ page }) => {
+  await page.goto('/launch-pad?industry=legal&payloads=proposal')
+  await expect(page).toHaveURL(/\/new-mission$/)
+  await expect(page.getByRole('heading', { name:'Engineer the launch brief.' })).toBeVisible()
 })
 
 test('New Mission opens advanced branded intake and hands off to Mission Control', async ({ page }) => {
