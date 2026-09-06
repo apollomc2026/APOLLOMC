@@ -47,8 +47,10 @@ Authoritative product direction: `guiding light/Apollo guiding light.docx` in th
 - GitHub branch `audit/conversational-intake-rebuild` is the tested release candidate.
 - The Vercel preview for release-candidate commit `b6db13e` reached `READY`. Its homepage and login returned HTTP 200, and a protected dashboard request safely resolved to the explicit configuration boundary with HTTP 200 rather than a middleware/render failure. Deployment-scoped runtime logs contained no error or fatal entries after these probes.
 - Preview currently lacks the public Supabase configuration and therefore cannot authenticate. The login surface reports this state without exposing values or throwing a server error.
-- The APOLLO Supabase project is `yarbyhyomuimetsppsrz`. It is not exposed to the connected Supabase tooling, so the migrations and pgTAP suite have not been applied or executed remotely. No substitute project may be used.
-- The approval migration now hashes the exact approved JSON and does not append evidence facts a second time. `pgcrypto`, caller-privilege execution, Data API grants, least-privilege function grants, ownership RLS and foreign-key indexes are asserted in migration/pgTAP evidence.
+- The APOLLO Supabase project `yarbyhyomuimetsppsrz` is now connected and healthy. The conversational mission-control and brand-kit migrations were applied on 2026-09-06. Live catalog verification proves RLS is enabled on all five new tables with the expected 15 ownership policies.
+- A live rollback transaction exercised authenticated mission creation, specification approval, cross-user rejection and the server-only rate limiter without retaining test data.
+- The approval migration hashes the exact approved JSON and does not append evidence facts a second time. `pgcrypto`, caller-privilege execution, Data API grants, least-privilege function grants, ownership RLS and foreign-key indexes are asserted in migration/pgTAP evidence.
+- `20260906154531_harden_legacy_database_functions.sql` fixes mutable search paths and removes anonymous/authenticated access to privileged trigger and rate-limit functions. The live security advisor now reports no exposed-function findings; remaining no-policy notices are informational for deliberately server-only tables.
 
 ## Release commands
 
@@ -66,4 +68,4 @@ The first four gates can run locally. The environment check must run inside the 
 
 ## Hosted activation
 
-Apply `supabase/migrations/20260906125055_apollo_mission_control.sql` and `supabase/migrations/20260906183000_apollo_brand_kits.sql` only to APOLLO project `yarbyhyomuimetsppsrz`, then run `supabase/tests/apollo_mission_control_rls_test.sql`. Never substitute another project. Deploy the tested commit with `BILLING_MODE=internal`, run the hosted environment check, and execute one real internal golden mission through Google Drive custody before promoting the branch.
+Configure the release-candidate deployment for APOLLO project `yarbyhyomuimetsppsrz` with `BILLING_MODE=internal`, run the hosted environment check, and execute one real internal golden mission through Google Drive custody before promoting the branch. Never substitute another Supabase project.
