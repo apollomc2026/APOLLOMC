@@ -5,6 +5,7 @@ import { compileApprovedSpecification } from '../lib/mission-control/work-order'
 
 const golden = [
   ['field-service proposal', 'Prepare a proposal for the client site work.', 'proposal'],
+  ['inspection proposal', 'Prepare a decisive field service proposal using the attached inspection evidence.', 'proposal'],
   ['balanced agreement', 'Prepare a balanced service agreement with termination terms.', 'contract-package'],
   ['site report', 'Prepare the daily construction site report with photos.', 'daily-construction-report'],
   ['capability statement', 'Prepare our concise capability statement for an executive audience.', 'capability-statement'],
