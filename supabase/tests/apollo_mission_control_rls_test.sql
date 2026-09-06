@@ -1,5 +1,5 @@
 begin;
-select plan(18);
+select plan(21);
 
 select ok(relrowsecurity, 'conversations has RLS enabled') from pg_class where oid = 'public.apollo_conversations'::regclass;
 select ok(relrowsecurity, 'turns has RLS enabled') from pg_class where oid = 'public.apollo_conversation_turns'::regclass;
@@ -22,6 +22,10 @@ select ok(not has_function_privilege('anon', 'public.apollo_approve_specificatio
 select ok(has_function_privilege('authenticated', 'public.apollo_approve_specification(uuid,integer)', 'EXECUTE'), 'authenticated role can atomically approve owned specifications');
 select ok(not has_function_privilege('anon', 'public.apollo_commit_evidence_specification(uuid,jsonb,text,smallint,text)', 'EXECUTE'), 'anonymous role cannot commit evidence specifications');
 select ok(has_function_privilege('authenticated', 'public.apollo_commit_evidence_specification(uuid,jsonb,text,smallint,text)', 'EXECUTE'), 'authenticated role can commit evidence-derived versions');
+
+select ok(exists (select 1 from pg_extension where extname = 'pgcrypto'), 'pgcrypto is available for approved-specification hashing');
+select ok(not prosecdef, 'approval function runs with caller privileges') from pg_proc where oid = 'public.apollo_approve_specification(uuid,integer)'::regprocedure;
+select like(pg_get_functiondef('public.apollo_approve_specification(uuid,integer)'::regprocedure), '%content_hash = encode(extensions.digest%', 'approval re-hashes the exact approved specification');
 
 select * from finish();
 rollback;

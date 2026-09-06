@@ -30,6 +30,25 @@ Authoritative product direction: `guiding light/Apollo guiding light.docx` in th
 | Light and dark UI | persisted theme selection across public and protected surfaces; navigation-specific contrast tokens | `tests/system-surfaces.spec.ts` |
 | Operational navigation | Archive, Telemetry, and Settings read current mission/executor state; no release-facing placeholder pages | `tests/system-surfaces.spec.ts` |
 | Advanced mission launch | `/new-mission` combines natural-language intent with optional audience, deadline, format, evidence, persisted aura calibration and executable custom brand kits | `tests/system-surfaces.spec.ts` |
+| Stellar atmosphere | Theme-aware orange sunburst, drifting nebula and staggered star flicker; reduced-motion users receive a static background | `tests/system-surfaces.spec.ts` |
+
+## Verification snapshot — 2026-09-06
+
+- Framework: Next.js 16.3.4 and React 19.2.8; the version-16 proxy convention is in use.
+- TypeScript: passed (`npm run typecheck --workspace apps/portal`).
+- Unit/contract suite: 45 passed across 12 files.
+- Chromium journeys: 8 passed, including desktop/mobile mission intake, advanced launch handoff, Evidence Vault, brand custody, operational surfaces, both themes, atmospheric rendering, and reduced motion.
+- Production build: passed with all portal, executor and Workflow routes emitted.
+- Dependency audit: 0 critical, 0 low, 2 moderate and 14 high. All 16 remaining advisories originate in `workflow@4.8.5` and its pinned `nanoid`/`undici` graph. npm's proposed forced remediation is a breaking downgrade to Workflow 2.0.6, so it is not an acceptable automatic release change. Track the upstream 4.x remediation before public release.
+- Billing remains scaffold-only. `BILLING_MODE=internal` is a release invariant and no payment provider is activated.
+
+## Hosted evidence
+
+- GitHub branch `audit/conversational-intake-rebuild` is the tested release candidate.
+- The Vercel preview for commit `4614d4b` reached `READY`; its public homepage returned HTTP 200 with the required security headers.
+- A protected preview request correctly reaches the configuration boundary, but Preview currently lacks the public Supabase configuration and therefore cannot authenticate. The login surface now reports this state without throwing a server error.
+- The APOLLO Supabase project is `yarbyhyomuimetsppsrz`. It is not exposed to the connected Supabase tooling, so the migrations and pgTAP suite have not been applied or executed remotely. No substitute project may be used.
+- The approval migration now hashes the exact approved JSON and does not append evidence facts a second time. `pgcrypto`, caller-privilege execution, Data API grants, least-privilege function grants, ownership RLS and foreign-key indexes are asserted in migration/pgTAP evidence.
 
 ## Release commands
 

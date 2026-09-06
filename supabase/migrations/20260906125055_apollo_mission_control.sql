@@ -1,6 +1,8 @@
 -- APOLLO 3 conversational control plane.
 -- Additive: legacy missions/intake tables remain available during measured cutover.
 
+create extension if not exists pgcrypto with schema extensions;
+
 create table if not exists public.apollo_conversations (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -158,7 +160,7 @@ returns table(specification_id uuid, specification jsonb, content_hash text, app
 language plpgsql security invoker set search_path = '' as $$
 declare
   v_now timestamptz := now();
-  v_evidence_facts jsonb;
+  v_approved_specification jsonb;
 begin
   if not exists (
     select 1 from public.apollo_conversations
@@ -166,15 +168,24 @@ begin
       and current_spec_version = p_version and readiness >= 75
     for update
   ) then raise exception 'only the current ready specification can be approved'; end if;
-  select coalesce(jsonb_agg(fact), '[]'::jsonb) into v_evidence_facts
-    from public.apollo_conversation_evidence evidence,
-      lateral jsonb_array_elements(evidence.extracted_facts) fact
-    where evidence.conversation_id = p_conversation_id and evidence.user_id = (select auth.uid())
-      and evidence.extraction_status = 'verified';
+  select jsonb_set(
+    jsonb_set(
+      jsonb_set(s.specification, '{approval,status}', '"approved"'),
+      '{approval,approved_by}', to_jsonb((select auth.uid())::text)
+    ),
+    '{approval,approved_at}', to_jsonb(v_now::text)
+  ) into v_approved_specification
+  from public.apollo_specification_versions s
+  where s.conversation_id = p_conversation_id and s.version = p_version
+    and s.status in ('ready', 'draft')
+  for update;
+  if v_approved_specification is null then raise exception 'specification approval failed'; end if;
+
   return query
     update public.apollo_specification_versions s set
       status = 'approved', approved_by = (select auth.uid()), approved_at = v_now,
-      specification = jsonb_set(jsonb_set(jsonb_set(jsonb_set(s.specification, '{content,facts}', coalesce(s.specification #> '{content,facts}', '[]'::jsonb) || v_evidence_facts), '{approval,status}', '"approved"'), '{approval,approved_by}', to_jsonb((select auth.uid())::text)), '{approval,approved_at}', to_jsonb(v_now::text))
+      specification = v_approved_specification,
+      content_hash = encode(extensions.digest(convert_to(v_approved_specification::text, 'UTF8'), 'sha256'), 'hex')
     where s.conversation_id = p_conversation_id and s.version = p_version and s.status in ('ready', 'draft')
     returning s.id, s.specification, s.content_hash, s.approved_at;
   if not found then raise exception 'specification approval failed'; end if;

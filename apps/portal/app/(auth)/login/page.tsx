@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import Link from 'next/link'
 
 export default function LoginPage() {
@@ -9,13 +9,19 @@ export default function LoginPage() {
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const supabase = createClient()
+  const configured = isSupabaseConfigured()
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
+    if (!configured) {
+      setError('Mission Control is awaiting hosted database configuration.')
+      setLoading(false)
+      return
+    }
 
+    const supabase = createClient()
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
@@ -96,12 +102,19 @@ export default function LoginPage() {
               </div>
             )}
 
+            {!configured && !error && (
+              <div className="flex items-center gap-2 text-[var(--apollo-danger)] text-sm">
+                <div className="w-1.5 h-1.5 rounded-full bg-[var(--apollo-danger)]" />
+                Hosted database configuration is required before commander access can open.
+              </div>
+            )}
+
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !configured}
               className="w-full py-3.5 px-4 bg-[var(--apollo-blue)] hover:bg-[var(--apollo-blue-hover)] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all glow-blue"
             >
-              {loading ? 'Transmitting...' : 'Launch Secure Link'}
+              {loading ? 'Transmitting...' : configured ? 'Launch Secure Link' : 'Configuration Required'}
             </button>
           </form>
         </div>
