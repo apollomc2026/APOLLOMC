@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { interpretMission } from '../lib/mission-control/interpreter'
-import { applyClaudeInterpretation } from '../lib/mission-control/ai-interpreter'
+import { applyClaudeInterpretation, applyExplicitMissionDirectives } from '../lib/mission-control/ai-interpreter'
 
 describe('mission interpreter', () => {
   it('starts from natural language and recommends a field-service proposal', () => {
@@ -52,5 +52,14 @@ describe('mission interpreter', () => {
     const result = applyClaudeInterpretation(interpretMission('Help me prepare this.'), { recommendation: 'capability-statement', rationale: 'The audience needs a concise qualifications summary.' })
     expect(result.specification.artifact.recommended_type).toBe('capability-statement')
     expect(result.specification.specialist.playbook_id).toBe('executive-capability')
+  })
+
+  it('maps a natural APOLLO brand selection without asking for an internal identifier', () => {
+    const interpreted = applyClaudeInterpretation(interpretMission('Create a proposal for Acme.'), {
+      next_question: 'What exact brand_profile_id should be applied?',
+    })
+    const result = applyExplicitMissionDirectives(interpreted, 'Use the approved APOLLO Mission Control brand and logo.')
+    expect(result.specification.presentation.brand_profile_id).toBe('apollo')
+    expect(result.specification.content.open_questions).not.toContain('What exact brand_profile_id should be applied?')
   })
 })

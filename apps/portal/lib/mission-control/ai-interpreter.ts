@@ -73,6 +73,25 @@ export function applyClaudeInterpretation(base: MissionTurnResult, patch: Claude
   return { ...base, acknowledgement: safeText(patch.acknowledgement, 1200) ?? base.acknowledgement, question, question_reason: safeText(patch.question_reason, 500) ?? base.question_reason, readiness, readiness_state: readiness >= 75 ? 'ready' : readiness >= 50 ? 'calibrating' : 'discovery', specification }
 }
 
+export function applyExplicitMissionDirectives(result: MissionTurnResult, text: string): MissionTurnResult {
+  const selectsApolloBrand = /(?:approved\s+)?apollo(?:\s+mission\s+control)?\s+(?:brand|logo)|(?:brand|logo)(?:\s+profile)?\s+(?:is|use)\s+(?:the\s+)?(?:approved\s+)?apollo/i.test(text)
+  if (!selectsApolloBrand) return result
+  const isBrandQuestion = (item: string) => /brand_profile_id|brand profile|approved.*(?:brand|logo)/i.test(item)
+  const openQuestions = result.specification.content.open_questions.filter(item => !isBrandQuestion(item))
+  const assumptions = result.specification.content.assumptions.filter(item => !isBrandQuestion(item))
+  const question = result.question && isBrandQuestion(result.question) ? openQuestions[0] ?? null : result.question
+  return {
+    ...result,
+    question,
+    question_reason: question ? result.question_reason : null,
+    specification: {
+      ...result.specification,
+      content: { ...result.specification.content, open_questions: openQuestions, assumptions },
+      presentation: { ...result.specification.presentation, brand_profile_id: 'apollo' },
+    },
+  }
+}
+
 export async function interpretMissionWithClaude(text: string, prior?: DeliverableSpecification): Promise<MissionTurnResult> {
   const base = interpretMission(text, prior)
   if (!process.env.ANTHROPIC_API_KEY) return base
@@ -90,7 +109,7 @@ export async function interpretMissionWithClaude(text: string, prior?: Deliverab
     const patch = JSON.parse(json) as ClaudeInterpretation
     const explicit = explicitMissionArtifact(text)
     if (explicit) patch.recommendation = explicit
-    return applyClaudeInterpretation(base, patch)
+    return applyExplicitMissionDirectives(applyClaudeInterpretation(base, patch), text)
   } catch (error) {
     console.warn('[mission-control] Claude interpretation fallback:', error instanceof Error ? error.message : 'unknown error')
     return base
