@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { loadBrand, loadBrandPalette, applyPaletteOverride } from '@/lib/apollo/brands'
+import { loadBrand, loadBrandPalette, applyPaletteOverride, DEFAULT_BRAND_PALETTE, type LoadedBrand, type BrandPalette } from '@/lib/apollo/brands'
 import { resolvePreset } from '@/lib/apollo/font-presets'
 import { resolvePlacement } from '@/lib/apollo/logo-placement'
 import { orchestrate, chooseLayoutForSlug, shouldRenderToc, type OrchestrateUpload } from '@/lib/apollo/orchestrate'
@@ -10,8 +10,21 @@ import { uploadSubmissionOutput } from '@/lib/apollo/storage'
 import type { ArtifactManifest, DocumentSource, DocumentWorkOrder } from './contracts'
 import { uploadDriveDraft } from './google-drive'
 import { BUCKET } from '@/lib/s3/client'
+import { createServiceClient } from '@/lib/supabase/server'
 
 const MAX_SOURCE_BYTES = 10 * 1024 * 1024
+
+async function loadExecutionBrand(order: DocumentWorkOrder): Promise<{ brand:LoadedBrand|null; palette:BrandPalette }> {
+  if (!order.brand_id.startsWith('kit:')) return { brand:await loadBrand(order.brand_id), palette:await loadBrandPalette(order.brand_id) }
+  const id = order.brand_id.slice(4)
+  const db = await createServiceClient()
+  const result = await db.from('apollo_brand_kits').select('id,name,primary_color,secondary_color,accent_color,heading_font,body_font,voice').eq('id',id).eq('user_id',order.requested_by).single()
+  if (result.error || !result.data) return { brand:null, palette:DEFAULT_BRAND_PALETTE }
+  const kit = result.data
+  const palette = { ...DEFAULT_BRAND_PALETTE, ink:kit.primary_color || DEFAULT_BRAND_PALETTE.ink, accent:kit.accent_color || DEFAULT_BRAND_PALETTE.accent, metadata:kit.secondary_color || DEFAULT_BRAND_PALETTE.metadata }
+  const brand:LoadedBrand = { slug:order.brand_id, label:kit.name, logo_file:null, logo_path:null, logo_bytes:null, logo_mime:null, brand_md:[`# ${kit.name}`,kit.voice&&`Voice: ${kit.voice}`,kit.heading_font&&`Heading typeface: ${kit.heading_font}`,kit.body_font&&`Body typeface: ${kit.body_font}`,`Primary: ${palette.ink}`,`Accent: ${palette.accent}`].filter(Boolean).join('\n') }
+  return { brand, palette }
+}
 
 function safeCode(value: string, length: number): string {
   return value.replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, length)
@@ -59,7 +72,7 @@ export async function generateStructuredDocument(order: DocumentWorkOrder) {
   const moduleData = getModule(order.deliverable_type)
   const schema = getSchema(order.deliverable_type)
   const style = getStyleById(order.style_id)
-  const brand = await loadBrand(order.brand_id)
+  const { brand } = await loadExecutionBrand(order)
   if (!moduleData || !schema || !style || !brand) throw new Error('document module, schema, style, or brand is unavailable')
   const missing = moduleData.required_fields.filter((field) => {
     const value = order.fields[field.key]
@@ -88,7 +101,7 @@ export async function generateStructuredDocument(order: DocumentWorkOrder) {
 export async function renderAndStorePdf(order: DocumentWorkOrder, contentHtml: string, output: Record<string, unknown>): Promise<ArtifactManifest> {
   const summary = findDeliverable(order.deliverable_type)
   const moduleData = getModule(order.deliverable_type)
-  const brand = await loadBrand(order.brand_id)
+  const { brand, palette } = await loadExecutionBrand(order)
   if (!summary || !moduleData || !brand) throw new Error('render inputs are unavailable')
   const template: Template = {
     slug: order.deliverable_type,
@@ -112,7 +125,7 @@ export async function renderAndStorePdf(order: DocumentWorkOrder, contentHtml: s
     contentHtml,
     documentId: `${safeCode(order.brand_id, 3)}-${safeCode(order.deliverable_type, 6)}-${stamp}-${order.work_order_id.slice(0, 6)}`,
     preparedDate: now.toISOString(),
-    palette: applyPaletteOverride(await loadBrandPalette(order.brand_id), undefined),
+    palette: applyPaletteOverride(palette, undefined),
     fontPreset: resolvePreset(undefined),
     logoPlacement: resolvePlacement(undefined),
   })

@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation'
 import { ThemeToggle } from '@/components/ThemeToggle'
 
-const protectedRoots = ['/dashboard','/telemetry','/archive','/files','/launch-pad','/settings']
+const protectedRoots = ['/dashboard','/new-mission','/telemetry','/archive','/files','/launch-pad','/settings']
 
 export function GlobalThemeAccess() {
   const pathname = usePathname()

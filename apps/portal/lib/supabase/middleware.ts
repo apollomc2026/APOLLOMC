@@ -4,9 +4,21 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
+  const protectedPaths = ['/dashboard', '/new-mission', '/mission', '/review', '/files', '/telemetry', '/archive', '/settings', '/launch-pad']
+  const isProtected = protectedPaths.some((path) => request.nextUrl.pathname.startsWith(path))
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!supabaseUrl || !supabaseKey) {
+    if (!isProtected) return supabaseResponse
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    url.searchParams.set('configuration', 'required')
+    return NextResponse.redirect(url)
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         getAll() {
@@ -28,11 +40,6 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
-  const protectedPaths = ['/dashboard', '/new-mission', '/mission', '/review', '/files']
-  const isProtected = protectedPaths.some((path) =>
-    request.nextUrl.pathname.startsWith(path)
-  )
 
   if (isProtected && !user) {
     const url = request.nextUrl.clone()

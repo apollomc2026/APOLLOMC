@@ -50,3 +50,17 @@ test('archive, telemetry, and settings are operational surfaces', async ({ page 
   await page.getByRole('button', { name:'Save preferences' }).click()
   await expect(page.getByRole('button', { name:'Saved' })).toBeVisible()
 })
+
+test('New Mission opens advanced branded intake and hands off to Mission Control', async ({ page }) => {
+  await page.goto('/dashboard')
+  await page.getByRole('link', { name:/New Mission/ }).click()
+  await expect(page.getByRole('heading', { name:'Engineer the launch brief.' })).toBeVisible()
+  await expect(page.getByLabel('Mission brand')).toBeVisible()
+  await expect(page.getByText('AURA CALIBRATION')).toBeVisible()
+  await page.getByLabel('What must be accomplished?').fill('Prepare a decisive field service proposal for Acme Facilities covering inspection, remediation, and verification.')
+  await page.getByLabel(/Primary audience/).fill('Acme Facilities procurement director')
+  await page.getByRole('button', { name:/Initialize controlled mission/ }).click()
+  await expect(page).toHaveURL(/\/dashboard$/)
+  await expect(page.locator('.mc-panel-heading h2')).not.toHaveText('Mission strategy pending')
+  await expect(page.locator('.mc-aura').filter({ hasText:'authority' }).getByText('75')).toBeVisible()
+})

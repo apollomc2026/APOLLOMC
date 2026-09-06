@@ -20,6 +20,7 @@ export function MissionControl() {
   const [artifactUrl, setArtifactUrl] = useState<string | null>(null)
   const [revision, setRevision] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [hydrated, setHydrated] = useState(false)
   const transcriptRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -27,16 +28,17 @@ export function MissionControl() {
     const requestedMission = new URLSearchParams(window.location.search).get('mission')
     if (requestedMission) {
       setConversationId(requestedMission)
-      void restoreConversation(requestedMission)
+      void restoreConversation(requestedMission).finally(() => setHydrated(true))
       return
     }
     const saved = window.localStorage.getItem(STORAGE_KEY)
-    if (!saved) return
+    if (!saved) { setHydrated(true); return }
     try {
       const state = JSON.parse(saved) as { turns: ConversationTurn[]; specification: DeliverableSpecification | null; readiness: number; conversationId?: string | null; specificationVersion?: number; jobId?: string | null; jobState?: string | null; artifactUrl?: string | null }
       setTurns(state.turns.length ? state.turns : [opening]); setSpecification(state.specification); setReadiness(state.readiness); setConversationId(state.conversationId ?? null); setSpecificationVersion(state.specificationVersion ?? 0); setJobId(state.jobId ?? null); setJobState(state.jobState ?? null); setArtifactUrl(state.artifactUrl ?? null)
       if (state.conversationId) void restoreConversation(state.conversationId)
     } catch { window.localStorage.removeItem(STORAGE_KEY) }
+    setHydrated(true)
   }, [])
 
   async function restoreConversation(id: string) {
@@ -48,9 +50,10 @@ export function MissionControl() {
   }
 
   useEffect(() => {
+    if (!hydrated) return
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ turns, specification, readiness, conversationId, specificationVersion, jobId, jobState, artifactUrl }))
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight, behavior: 'smooth' })
-  }, [turns, specification, readiness, conversationId, specificationVersion, jobId, jobState, artifactUrl])
+  }, [hydrated, turns, specification, readiness, conversationId, specificationVersion, jobId, jobState, artifactUrl])
 
   useEffect(() => {
     if (!jobId || ['delivered', 'failed', 'blocked', 'cancelled'].includes(jobState ?? '')) return

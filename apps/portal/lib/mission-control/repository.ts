@@ -12,9 +12,13 @@ export async function persistMissionTurn(input: {
   message: string
   conversationId?: string | null
   prior?: DeliverableSpecification
+  brandProfileId?: string | null
+  aura?: Partial<DeliverableSpecification['aura']>
 }): Promise<MissionTurnResult> {
   const db = await createClient()
   const result = await interpretMissionWithClaude(input.message, input.prior)
+  if (input.brandProfileId !== undefined) result.specification.presentation.brand_profile_id = input.brandProfileId
+  if (input.aura) result.specification.aura = { ...result.specification.aura, ...input.aura }
   const apolloContent = [result.acknowledgement, result.question].filter(Boolean).join('\n\n')
   const contentHash = createHash('sha256').update(JSON.stringify(result.specification)).digest('hex')
   const state = result.readiness >= 75 ? 'brief_ready' : result.readiness >= 50 ? 'calibrating' : 'discovery'

@@ -7,7 +7,7 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 
 const NAV_MISSION = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Mission Control' },
-  { href: '/dashboard?new=1', icon: Plus, label: 'New Mission', badge: 'NEW' },
+  { href: '/new-mission', icon: Plus, label: 'New Mission', badge: 'NEW' },
   { href: '/telemetry', icon: Gauge, label: 'Telemetry' },
   { href: '/archive', icon: Archive, label: 'Archive' },
 ]
