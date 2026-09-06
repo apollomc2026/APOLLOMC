@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { modelFor, type TaskRole } from '../lib/ai/models'
 
 const roles: TaskRole[] = [
+  'mission_interpretation',
   'draft_compile',
   'structured_fill',
   'repair',

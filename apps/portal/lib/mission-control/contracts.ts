@@ -13,5 +13,5 @@ export interface DeliverableSpecification {
   presentation: { brand_profile_id: string | null; design_profile_id: string; layout_genre: string; logo_policy: string; signature_policy: string; watermark_policy: string }
   approval: { status: 'draft' | 'ready' | 'approved' | 'superseded'; approved_by: string | null; approved_at: string | null }
 }
-export interface MissionTurnResult { acknowledgement: string; question: string | null; question_reason: string | null; readiness: number; readiness_state: ReadinessState; changed_facts: MissionFact[]; specification: DeliverableSpecification }
+export interface MissionTurnResult { conversation_id?: string; specification_version?: number; acknowledgement: string; question: string | null; question_reason: string | null; readiness: number; readiness_state: ReadinessState; changed_facts: MissionFact[]; specification: DeliverableSpecification }
 export interface ConversationTurn { id: string; role: 'user' | 'apollo'; content: string; reason?: string | null; createdAt: string }
