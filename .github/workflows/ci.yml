@@ -14,3 +14,9 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      - name: Install Chromium for browser acceptance tests
+        run: npx playwright install --with-deps chromium
+        working-directory: apps/portal
+      - name: Run APOLLO browser acceptance tests
+        run: npx playwright test --project=chromium
+        working-directory: apps/portal
