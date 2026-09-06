@@ -1806,7 +1806,10 @@ export async function buildPdf(args: BuildPdfArgs): Promise<Buffer> {
       }
       return route.abort()
     })
-    await page.setContent(html, { waitUntil: 'networkidle' })
+    // The document is fully assembled HTML with inline assets. Waiting for
+    // network-idle makes serverless Chromium depend on optional font requests
+    // and can outlive the browser process under constrained runtimes.
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 15_000 })
     const headerFooterColor = resolvePaletteForBuild(args).metadata
     // Playwright's header/footer templates run in an isolated context that
     // doesn't see our main-document CSS vars, so we inject the preset's
