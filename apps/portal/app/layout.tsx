@@ -94,8 +94,11 @@ export default function RootLayout({
         {/* Ambient background (renders behind everything) */}
         <div className="apollo-bg" aria-hidden="true">
           <div className="apollo-bg-grid" />
+          <div className="apollo-bg-sunburst" />
           <div className="apollo-bg-nebula-1" />
           <div className="apollo-bg-nebula-2" />
+          <div className="apollo-bg-stars apollo-bg-stars-far" />
+          <div className="apollo-bg-stars apollo-bg-stars-near" />
           <div className="apollo-bg-scan" />
         </div>
 

@@ -38,6 +38,30 @@ test('light theme keeps sidebar readable and persists across pages', async ({ pa
   await expect(page.getByRole('link', { name:'Evidence Vault' })).toBeVisible()
 })
 
+test('atmospheric sunburst and starfield respect theme and reduced motion', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('apollo:theme', 'dark'))
+  await page.goto('/dashboard')
+  const atmosphere = await page.locator('.apollo-bg').evaluate(element => {
+    const sunburst = getComputedStyle(element.querySelector('.apollo-bg-sunburst')!)
+    const farStars = getComputedStyle(element.querySelector('.apollo-bg-stars-far')!)
+    const nearStars = getComputedStyle(element.querySelector('.apollo-bg-stars-near')!)
+    return {
+      sunburst: sunburst.backgroundImage,
+      sunburstAnimation: sunburst.animationName,
+      farAnimation: farStars.animationName,
+      nearAnimation: nearStars.animationName,
+    }
+  })
+  expect(atmosphere.sunburst).toContain('repeating-conic-gradient')
+  expect(atmosphere.sunburstAnimation).toBe('sunburstBreathe')
+  expect(atmosphere.farAnimation).toBe('starsFlickerFar')
+  expect(atmosphere.nearAnimation).toBe('starsFlickerNear')
+
+  await page.emulateMedia({ reducedMotion:'reduce' })
+  const reducedDuration = await page.locator('.apollo-bg-stars-near').evaluate(element => parseFloat(getComputedStyle(element).animationDuration))
+  expect(reducedDuration).toBeLessThanOrEqual(.001)
+})
+
 test('archive, telemetry, and settings are operational surfaces', async ({ page }) => {
   await page.goto('/archive')
   await expect(page.getByRole('heading', { name:'Mission Archive' })).toBeVisible()

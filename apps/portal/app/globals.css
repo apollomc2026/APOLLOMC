@@ -131,6 +131,9 @@ html[data-theme='light'] {
 }
 
 html[data-theme='light'] .apollo-bg::before { opacity:.12; filter:invert(1); }
+html[data-theme='light'] .apollo-bg-sunburst { opacity:.2; }
+html[data-theme='light'] .apollo-bg-nebula-2 { opacity:.28; }
+html[data-theme='light'] .apollo-bg-stars { opacity:.16; filter:sepia(.35); }
 html[data-theme='light'] .apollo-bg-scan { opacity:.22; }
 html[data-theme='light'] .mc-console,
 html[data-theme='light'] .mc-brief { background:rgba(255,255,255,.76); box-shadow:0 24px 64px rgba(20,48,64,.1); }
@@ -237,6 +240,28 @@ button, [role="button"] { -webkit-tap-highlight-color: transparent; user-select:
   background-size: 52px 52px;
 }
 
+.apollo-bg-sunburst {
+  position: absolute;
+  width: min(1120px, 92vw); height: min(1120px, 92vw);
+  right: -360px; top: -430px;
+  border-radius: 50%;
+  opacity: .62;
+  background:
+    radial-gradient(circle at center,
+      rgba(255,226,170,.32) 0 1.5%,
+      rgba(255,154,54,.22) 4%,
+      rgba(255,111,24,.10) 16%,
+      rgba(255,92,16,.035) 38%,
+      transparent 67%),
+    repeating-conic-gradient(from 8deg at 50% 50%,
+      rgba(255,174,79,.065) 0deg 1.1deg,
+      transparent 1.1deg 8deg);
+  filter: blur(.2px);
+  transform-origin: center;
+  animation: sunburstBreathe 22s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
 .apollo-bg-nebula-1 {
   position: absolute;
   width: 900px; height: 900px;
@@ -252,9 +277,38 @@ button, [role="button"] { -webkit-tap-highlight-color: transparent; user-select:
   width: 700px; height: 700px;
   bottom: -200px; left: -150px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,140,26,0.045) 0%, rgba(255,69,0,0.018) 40%, transparent 70%);
+  background:
+    radial-gradient(ellipse at 34% 42%, rgba(255,194,113,.12) 0%, rgba(255,129,35,.07) 22%, transparent 58%),
+    radial-gradient(ellipse at 66% 60%, rgba(255,85,20,.075) 0%, rgba(255,69,0,.026) 42%, transparent 72%);
+  filter: blur(10px);
   animation: nebulaDrift2 38s ease-in-out infinite;
   will-change: transform;
+}
+
+.apollo-bg-stars {
+  position:absolute; inset:0;
+  background-repeat:repeat;
+  will-change:opacity;
+}
+.apollo-bg-stars-far {
+  opacity:.42;
+  background-size:263px 211px;
+  background-image:
+    radial-gradient(circle at 13px 29px, rgba(255,255,255,.62) 0 .55px, transparent .9px),
+    radial-gradient(circle at 91px 167px, rgba(166,225,255,.5) 0 .5px, transparent .9px),
+    radial-gradient(circle at 182px 74px, rgba(255,222,184,.48) 0 .45px, transparent .85px),
+    radial-gradient(circle at 239px 192px, rgba(255,255,255,.4) 0 .55px, transparent .9px);
+  animation: starsFlickerFar 9s ease-in-out infinite alternate;
+}
+.apollo-bg-stars-near {
+  opacity:.28;
+  background-size:487px 347px;
+  background-image:
+    radial-gradient(circle at 47px 81px, rgba(255,255,255,.9) 0 .8px, transparent 1.35px),
+    radial-gradient(circle at 229px 38px, rgba(94,231,255,.82) 0 .75px, transparent 1.3px),
+    radial-gradient(circle at 398px 263px, rgba(255,157,62,.82) 0 .85px, transparent 1.45px),
+    radial-gradient(circle at 321px 174px, rgba(255,255,255,.72) 0 .7px, transparent 1.25px);
+  animation: starsFlickerNear 13s ease-in-out 2.7s infinite alternate;
 }
 
 .apollo-bg-scan {
@@ -274,6 +328,10 @@ button, [role="button"] { -webkit-tap-highlight-color: transparent; user-select:
   0%, 100% { transform: translate(0,0) scale(1); }
   33%       { transform: translate(-50px,40px) scale(1.08); }
   66%       { transform: translate(30px,-30px) scale(0.96); }
+}
+@keyframes sunburstBreathe {
+  0%, 100% { transform:rotate(-1deg) scale(.98); opacity:.48; }
+  50% { transform:rotate(2deg) scale(1.035); opacity:.67; }
 }
 @keyframes nebulaDrift2 {
   0%, 100% { transform: translate(0,0) scale(1); }
@@ -368,6 +426,18 @@ button, [role="button"] { -webkit-tap-highlight-color: transparent; user-select:
   font-family: var(--font-mono); font-size: 9px; font-weight: 600;
   letter-spacing: 2.5px; color: rgba(240,244,255,.48); text-transform: uppercase;
   padding: 0 var(--sp-2); margin: var(--sp-5) 0 var(--sp-2);
+}
+@keyframes starsFlickerFar {
+  0%, 18%, 100% { opacity:.29; }
+  38% { opacity:.48; }
+  62% { opacity:.34; }
+  79% { opacity:.44; }
+}
+@keyframes starsFlickerNear {
+  0%, 23%, 100% { opacity:.18; }
+  41% { opacity:.34; }
+  58% { opacity:.22; }
+  83% { opacity:.31; }
 }
 
 .sidebar-nav-item {

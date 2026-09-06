@@ -29,11 +29,11 @@
     "lucide-react": "^0.577.0",
     "mammoth": "^1.12.0",
     "marked": "^18.0.2",
-    "next": "^15.5.25",
+    "next": "16.3.4",
     "pdf-parse": "^2.4.5",
     "playwright-core": "^1.58.2",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "sanitize-html": "^2.17.7",
     "sharp": "0.35.3",
     "stripe": "^20.4.1",
@@ -46,14 +46,18 @@
     "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
     "@types/sanitize-html": "^2.16.1",
-    "eslint": "^9",
-    "eslint-config-next": "15.5.20",
+    "eslint": "10.10.0",
+    "eslint-config-next": "16.3.4",
     "playwright": "^1.58.2",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7"
   }
 }
