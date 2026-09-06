@@ -24,6 +24,12 @@ describe('mission interpreter', () => {
     expect(interpretMission('Create a cash flow forecast with variance analysis.').specification.specialist.playbook_id).toBe('financial-package')
   })
 
+  it('keeps an explicitly requested proposal ahead of incidental financial caution language', () => {
+    const result = interpretMission('Create an internal project proposal and do not invent financial claims.')
+    expect(result.specification.artifact.recommended_type).toBe('proposal')
+    expect(result.specification.specialist.playbook_id).toBe('field-service-proposal')
+  })
+
   it('merges Claude extraction while preserving stated and inferred provenance', () => {
     const base = interpretMission('I need a proposal.')
     const result = applyClaudeInterpretation(base, {

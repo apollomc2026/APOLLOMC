@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { modelFor } from '@/lib/ai/models'
-import { interpretMission, recommendMissionArtifact } from './interpreter'
+import { explicitMissionArtifact, interpretMission, recommendMissionArtifact } from './interpreter'
 import type { DeliverableSpecification, MissionFact, MissionTurnResult } from './contracts'
 import { executionGaps } from './work-order'
 import { getModule } from '@/lib/apollo/packages-loader'
@@ -80,7 +80,10 @@ export async function interpretMissionWithClaude(text: string, prior?: Deliverab
     if (!raw || raw.type !== 'text') return base
     const json = raw.text.match(/\{[\s\S]*\}/)?.[0]
     if (!json) return base
-    return applyClaudeInterpretation(base, JSON.parse(json) as ClaudeInterpretation)
+    const patch = JSON.parse(json) as ClaudeInterpretation
+    const explicit = explicitMissionArtifact(text)
+    if (explicit) patch.recommendation = explicit
+    return applyClaudeInterpretation(base, patch)
   } catch {
     return base
   }

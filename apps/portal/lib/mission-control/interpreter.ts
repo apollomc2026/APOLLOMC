@@ -9,12 +9,31 @@ const GOVERNMENT = /rfp|solicitation|government|federal|compliance/i
 const FINANCIAL = /cash flow|budget|financial|forecast|variance/i
 const EXPLICIT_PROPOSAL = /\b(?:proposal|estimate|quote)\b/i
 
+export type SupportedMissionArtifact = 'proposal' | 'sow' | 'contract-package' | 'daily-construction-report' | 'capability-statement' | 'cash-flow-budget-package' | 'federal-proposal'
+
+/**
+ * Preserve a deliverable the user named directly. Broad domain vocabulary is
+ * useful only after this check; a caution such as "do not invent financial
+ * claims" must never turn an explicitly requested proposal into a budget.
+ */
+export function explicitMissionArtifact(text: string): SupportedMissionArtifact | null {
+  if (/\b(?:rfp|solicitation|federal proposal|government proposal)\b/i.test(text)) return 'federal-proposal'
+  if (/\b(?:cash[ -]?flow (?:forecast|budget)|budget(?: vs\.? actual)?|financial forecast|variance analysis)\b/i.test(text)) return 'cash-flow-budget-package'
+  if (/\b(?:capability statement|qualifications statement)\b/i.test(text)) return 'capability-statement'
+  if (/\b(?:service agreement|contract package|contract|nda|non-disclosure agreement)\b/i.test(text)) return 'contract-package'
+  if (/\b(?:daily (?:construction|site) report|incident report|field service report)\b/i.test(text)) return 'daily-construction-report'
+  if (/\bstatement of work\b|\bsow\b/i.test(text)) return 'sow'
+  if (EXPLICIT_PROPOSAL.test(text)) return 'proposal'
+  return null
+}
+
 export function recommendMissionArtifact(text: string) {
+  if (explicitMissionArtifact(text) === 'proposal') return { family: 'Client decision package', type: 'proposal', playbook: 'field-service-proposal', rationale: 'A proposal with a clear scope and attached terms gives the recipient an easy decision while keeping execution precise.', sections: ['Executive overview', 'Understanding of need', 'Proposed scope', 'Approach and schedule', 'Investment and terms', 'Assumptions and exclusions', 'Acceptance'], checks: ['scope-completeness', 'commercial-terms', 'assumption-disclosure'] }
   if (GOVERNMENT.test(text)) return { family: 'Government response', type: 'federal-proposal', playbook: 'government-response', rationale: 'The mission appears governed by explicit requirements that need traceable compliance coverage.', sections: ['Executive response', 'Compliance matrix', 'Technical approach', 'Management approach', 'Past performance', 'Required representations'], checks: ['requirement-coverage', 'page-limits', 'unmet-requirements'] }
-  if (FINANCIAL.test(text)) return { family: 'Financial package', type: 'cash-flow-budget-package', playbook: 'financial-package', rationale: 'The outcome depends on reconciled numerical evidence and decision-ready financial explanation.', sections: ['Executive summary', 'Assumptions', 'Cash-flow analysis', 'Variance analysis', 'Risks and sensitivities', 'Recommended actions'], checks: ['arithmetic-reconciliation', 'period-consistency', 'source-traceability'] }
   if (EXECUTIVE.test(text)) return { family: 'Executive communication', type: 'capability-statement', playbook: 'executive-capability', rationale: 'The audience needs a concise statement of credibility, differentiation, and next action.', sections: ['Positioning statement', 'Core capabilities', 'Proof and past performance', 'Differentiators', 'Contact and next action'], checks: ['claim-provenance', 'audience-fit', 'brevity'] }
   if (AGREEMENT.test(text)) return { family: 'Legal agreement', type: 'contract-package', playbook: 'balanced-agreement', rationale: 'The mission centers on mutual obligations and terms that should remain explicit and balanced.', sections: ['Purpose and parties', 'Scope and responsibilities', 'Commercial terms', 'Term and termination', 'Risk allocation', 'Signatures'], checks: ['party-and-authority', 'obligation-balance', 'termination-terms'] }
   if (EXPLICIT_PROPOSAL.test(text)) return { family: 'Client decision package', type: 'proposal', playbook: 'field-service-proposal', rationale: 'A proposal with a clear scope and attached terms gives the recipient an easy decision while keeping execution precise.', sections: ['Executive overview', 'Understanding of need', 'Proposed scope', 'Approach and schedule', 'Investment and terms', 'Assumptions and exclusions', 'Acceptance'], checks: ['scope-completeness', 'commercial-terms', 'assumption-disclosure'] }
+  if (FINANCIAL.test(text)) return { family: 'Financial package', type: 'cash-flow-budget-package', playbook: 'financial-package', rationale: 'The outcome depends on reconciled numerical evidence and decision-ready financial explanation.', sections: ['Executive summary', 'Assumptions', 'Cash-flow analysis', 'Variance analysis', 'Risks and sensitivities', 'Recommended actions'], checks: ['arithmetic-reconciliation', 'period-consistency', 'source-traceability'] }
   if (REPORT.test(text)) return { family: 'Operational report', type: 'daily-construction-report', playbook: 'field-service-report', rationale: 'The request is evidence-led and needs a chronological, defensible record.', sections: ['Report summary', 'Conditions and observations', 'Work completed', 'Evidence log', 'Issues and actions', 'Attestation'], checks: ['timeline-consistency', 'evidence-custody', 'unverified-claims'] }
   if (FIELD_SERVICE.test(text)) return { family: 'Client decision package', type: 'proposal', playbook: 'field-service-proposal', rationale: 'A proposal with a clear scope and attached terms gives the recipient an easy decision while keeping execution precise.', sections: ['Executive overview', 'Understanding of need', 'Proposed scope', 'Approach and schedule', 'Investment and terms', 'Assumptions and exclusions', 'Acceptance'], checks: ['scope-completeness', 'commercial-terms', 'assumption-disclosure'] }
   return { family: 'Client decision package', type: 'proposal', playbook: 'field-service-proposal', rationale: 'A proposal with a clear scope and attached terms gives the recipient an easy decision while keeping execution precise.', sections: ['Executive overview', 'Understanding of need', 'Proposed scope', 'Approach and schedule', 'Investment and terms', 'Assumptions and exclusions', 'Acceptance'], checks: ['scope-completeness', 'commercial-terms', 'assumption-disclosure'] }
