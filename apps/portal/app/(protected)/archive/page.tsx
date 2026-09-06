@@ -1,25 +1,6 @@
-'use client'
-
-import Link from 'next/link'
 import { Sidebar } from '@/components/Sidebar'
+import { MissionLedger } from '@/components/operations/MissionLedger'
 
 export default function ArchivePage() {
-  return (
-    <div className="app-shell">
-      <Sidebar />
-      <main className="main-content">
-        <div className="coming-soon-page">
-          <div className="coming-soon-icon">🗄️</div>
-          <div className="coming-soon-title">Mission Archive</div>
-          <div className="coming-soon-desc">
-            Browse, search, and re-download completed mission deliverables.
-            Full archive with version history coming soon.
-          </div>
-          <Link href="/dashboard" className="coming-soon-back">
-            ← Back to Mission Control
-          </Link>
-        </div>
-      </main>
-    </div>
-  )
+  return <div className="app-shell"><Sidebar/><main className="main-content vault-page"><header className="page-heading"><span>DURABLE RECORD · VERSIONED</span><h1>Mission Archive</h1><p>Resume prior missions, inspect locked brief versions, and reopen controlled deliverables.</p></header><MissionLedger view="archive"/></main></div>
 }

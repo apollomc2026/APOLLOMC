@@ -17,7 +17,7 @@ export function BrandKitManager() {
   async function create(event:FormEvent<HTMLFormElement>) {
     event.preventDefault(); setSaving(true); setMessage('')
     const formElement = event.currentTarget; const form = new FormData(formElement); const body = Object.fromEntries(form)
-    try { const response = await fetch('/api/mission-control/brand-kits', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(body) }); const result = await response.json(); if (!response.ok) throw new Error(result.error); setKits(current => [result.brand_kit, ...current]); setMessage('Brand kit created and ready for mission use.'); formElement.reset() } catch (e) { setMessage(e instanceof Error ? e.message : 'Brand kit could not be created') } finally { setSaving(false) }
+    try { const response = await fetch('/api/mission-control/brand-kits', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(body) }); const result = await response.json(); if (!response.ok) throw new Error(result.error); setKits(current => [result.brand_kit, ...current]); setMessage('Brand kit created and secured in the library.'); formElement.reset() } catch (e) { setMessage(e instanceof Error ? e.message : 'Brand kit could not be created') } finally { setSaving(false) }
   }
 
   async function upload(event:FormEvent<HTMLFormElement>) {

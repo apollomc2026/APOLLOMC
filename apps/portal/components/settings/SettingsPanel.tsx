@@ -1,0 +1,11 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { Bell, Check, Database, HardDrive, LockKeyhole } from 'lucide-react'
+
+export function SettingsPanel() {
+  const [notifications,setNotifications] = useState(true); const [compact,setCompact] = useState(false); const [saved,setSaved] = useState(false)
+  useEffect(() => { setNotifications(localStorage.getItem('apollo:notifications') !== 'off'); setCompact(localStorage.getItem('apollo:compact') === 'on') },[])
+  function persist(){localStorage.setItem('apollo:notifications',notifications?'on':'off');localStorage.setItem('apollo:compact',compact?'on':'off');document.documentElement.dataset.density=compact?'compact':'standard';setSaved(true);setTimeout(()=>setSaved(false),1800)}
+  return <div className="settings-grid"><section className="ops-panel settings-panel"><header><span>WORKSPACE PREFERENCES</span><b>LOCAL DEVICE</b></header><label><div><Bell/><span><strong>Mission notifications</strong><small>Surface completed or blocked execution states.</small></span></div><input type="checkbox" checked={notifications} onChange={e=>setNotifications(e.target.checked)}/></label><label><div><Database/><span><strong>Compact mission density</strong><small>Reduce vertical spacing in operational lists.</small></span></div><input type="checkbox" checked={compact} onChange={e=>setCompact(e.target.checked)}/></label><button onClick={persist}>{saved?<><Check/>Saved</>:<>Save preferences</>}</button></section><section className="ops-panel settings-panel"><header><span>RELEASE BOUNDARIES</span><b>INTERNAL</b></header><div className="boundary-row"><LockKeyhole/><div><strong>Billing isolated</strong><small>No payment processor connected; internal-mode boundary enforced.</small></div></div><div className="boundary-row"><HardDrive/><div><strong>Evidence custody</strong><small>Private object storage, hashes, expiring retrieval, and user ownership.</small></div></div><div className="boundary-row"><Database/><div><strong>Durable specifications</strong><small>Every accepted change creates an immutable numbered version.</small></div></div></section></div>
+}

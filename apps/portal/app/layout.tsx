@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import { GlobalThemeAccess } from '@/components/GlobalThemeAccess'
 
 // ── PWA Metadata ─────────────────────────────────────────
 export const metadata: Metadata = {
@@ -99,6 +100,7 @@ export default function RootLayout({
         </div>
 
         {children}
+        <GlobalThemeAccess />
 
         {/* Service worker registration */}
         <script

@@ -25,6 +25,10 @@ Authoritative product direction: `guiding light/Apollo guiding light.docx` in th
 | Aerospace-industrial interface | Mission Control component and global design system | desktop/mobile browser tests |
 | Billing dormant | internal-only billing configuration | billing scaffold tests |
 | Browser privacy | service worker caches only immutable public assets | `tests/pwa-privacy.test.ts` |
+| Evidence Vault | authenticated current-model evidence ledger with extraction status, fact counts and expiring downloads | `tests/system-surfaces.spec.ts` |
+| Brand custody | create or import a user-owned brand kit; uploaded guides are hash-bound in private storage | `tests/system-surfaces.spec.ts` |
+| Light and dark UI | persisted theme selection across public and protected surfaces; navigation-specific contrast tokens | `tests/system-surfaces.spec.ts` |
+| Operational navigation | Archive, Telemetry, and Settings read current mission/executor state; no release-facing placeholder pages | `tests/system-surfaces.spec.ts` |
 
 ## Release commands
 
@@ -42,4 +46,4 @@ The first four gates can run locally. The environment check must run inside the 
 
 ## Hosted activation
 
-Apply `supabase/migrations/20260906125055_apollo_mission_control.sql` only to APOLLO project `yarbyhyomuimetsppsrz`, then run `supabase/tests/apollo_mission_control_rls_test.sql`. Never substitute another project. Deploy the tested commit with `BILLING_MODE=internal`, run the hosted environment check, and execute one real internal golden mission through Google Drive custody before promoting the branch.
+Apply `supabase/migrations/20260906125055_apollo_mission_control.sql` and `supabase/migrations/20260906183000_apollo_brand_kits.sql` only to APOLLO project `yarbyhyomuimetsppsrz`, then run `supabase/tests/apollo_mission_control_rls_test.sql`. Never substitute another project. Deploy the tested commit with `BILLING_MODE=internal`, run the hosted environment check, and execute one real internal golden mission through Google Drive custody before promoting the branch.

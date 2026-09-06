@@ -24,6 +24,12 @@ export function MissionControl() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
+    const requestedMission = new URLSearchParams(window.location.search).get('mission')
+    if (requestedMission) {
+      setConversationId(requestedMission)
+      void restoreConversation(requestedMission)
+      return
+    }
     const saved = window.localStorage.getItem(STORAGE_KEY)
     if (!saved) return
     try {
