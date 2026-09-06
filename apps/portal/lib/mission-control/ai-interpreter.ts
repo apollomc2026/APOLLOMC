@@ -75,7 +75,10 @@ export async function interpretMissionWithClaude(text: string, prior?: Deliverab
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const fieldGuide = getModule(base.specification.artifact.recommended_type)?.required_fields.map(field => `${field.key}: ${field.label}`).join(', ') ?? ''
-    const response = await client.messages.create({ model: modelFor('mission_interpretation'), max_tokens: 1800, system: SYSTEM, messages: [{ role: 'user', content: `Existing specification:\n${JSON.stringify(prior ?? null)}\n\nNew user turn:\n${text}\n\nFor the recommended specialist module, use these exact fact keys when directly stated: ${fieldGuide}` }] })
+    // Sonnet 5 can spend part of the output allowance on adaptive thinking.
+    // Leave enough room for both that reasoning and the complete JSON contract;
+    // a truncated object must never silently discard a multi-fact user answer.
+    const response = await client.messages.create({ model: modelFor('mission_interpretation'), max_tokens: 6000, system: SYSTEM, messages: [{ role: 'user', content: `Existing specification:\n${JSON.stringify(prior ?? null)}\n\nNew user turn:\n${text}\n\nFor the recommended specialist module, use these exact fact keys when directly stated: ${fieldGuide}` }] })
     const raw = response.content.find(block => block.type === 'text')
     if (!raw || raw.type !== 'text') return base
     const json = raw.text.match(/\{[\s\S]*\}/)?.[0]
@@ -84,7 +87,8 @@ export async function interpretMissionWithClaude(text: string, prior?: Deliverab
     const explicit = explicitMissionArtifact(text)
     if (explicit) patch.recommendation = explicit
     return applyClaudeInterpretation(base, patch)
-  } catch {
+  } catch (error) {
+    console.warn('[mission-control] Claude interpretation fallback:', error instanceof Error ? error.message : 'unknown error')
     return base
   }
 }
