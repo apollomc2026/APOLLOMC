@@ -36,15 +36,22 @@ export async function postCallback(urlRaw: string, event: JobCallback): Promise<
   const body = JSON.stringify(event)
   const timestamp = new Date().toISOString()
   const signature = createHmac('sha256', callbackSecret()).update(`${timestamp}\n${body}`).digest('hex')
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-apollo-timestamp': timestamp,
-      'x-apollo-signature': signature,
-    },
-    body,
-    signal: AbortSignal.timeout(15_000),
-  })
-  if (!response.ok) throw new Error(`METIS callback failed with ${response.status}`)
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-apollo-timestamp': timestamp,
+        'x-apollo-signature': signature,
+      },
+      body,
+      signal: AbortSignal.timeout(15_000),
+    })
+    if (!response.ok) throw new Error(`METIS callback failed with ${response.status}`)
+  } catch (error) {
+    // The durable APOLLO ledger is authoritative. A downstream observer being
+    // unavailable must not destroy an otherwise valid document run.
+    if (process.env.METIS_CALLBACK_STRICT === 'true') throw error
+    console.warn('[apollo-document] callback delivery deferred:', error instanceof Error ? error.message : 'unknown error')
+  }
 }

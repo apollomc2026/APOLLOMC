@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { assertAllowedCallbackUrl } from '../lib/executor/callback'
+import { assertAllowedCallbackUrl, postCallback } from '../lib/executor/callback'
 import { parseWorkOrder, workOrderDigest } from '../lib/executor/contracts'
 import { signExecutorRequest, verifyExecutorRequest } from '../lib/executor/auth'
 
@@ -24,7 +24,10 @@ describe('METIS executor boundary', () => {
     process.env.METIS_EXECUTOR_SHARED_SECRET = 's'.repeat(64)
     process.env.METIS_CALLBACK_ORIGINS = 'https://metis-sage.vercel.app'
   })
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => {
+    delete process.env.METIS_CALLBACK_STRICT
+    vi.restoreAllMocks()
+  })
 
   it('accepts the locked work-order contract and produces a stable digest', () => {
     const parsed = parseWorkOrder(order)
@@ -56,5 +59,26 @@ describe('METIS executor boundary', () => {
     const request = new Request('https://portal.apollomc.ai/api/v1/document-jobs', { method: 'POST', headers: { 'x-metis-timestamp': timestamp, 'x-metis-signature': signature } })
     expect(verifyExecutorRequest(request, body).ok).toBe(true)
     expect(verifyExecutorRequest(request, body + ' ').ok).toBe(false)
+  })
+
+  it('does not discard durable work when a downstream callback is unavailable', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 404 })))
+    const event = {
+      protocol_version: '1.0' as const,
+      event_id: '00000000-0000-4000-8000-000000000304',
+      work_order_id: order.work_order_id,
+      executor_id: 'apollo-documents' as const,
+      sequence: 10,
+      state: 'gathering-input' as const,
+      progress_percent: 10,
+      message: 'Gathering input',
+      retry_count: 0,
+      missing_inputs: [],
+      artifacts: [],
+      occurred_at: '2026-07-20T12:00:00.000Z',
+    }
+    await expect(postCallback(order.callback_url, event)).resolves.toBeUndefined()
+    process.env.METIS_CALLBACK_STRICT = 'true'
+    await expect(postCallback(order.callback_url, event)).rejects.toThrow(/404/)
   })
 })
