@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Task, Mission, Output } from '@/lib/types/database'
 import {
@@ -9,7 +8,7 @@ import {
   RefreshCw,
   Save,
   Loader2,
-  DollarSign,
+  CheckCircle2,
   Eye,
 } from 'lucide-react'
 
@@ -29,7 +28,6 @@ export default function ReviewWindow({ missionId }: Props) {
   const [saving, setSaving] = useState(false)
   const [rebuilding, setRebuilding] = useState(false)
   const [loading, setLoading] = useState(true)
-  const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
@@ -131,10 +129,6 @@ export default function ReviewWindow({ missionId }: Props) {
     }
   }
 
-  function proceedToPayment() {
-    router.push(`/api/stripe/checkout?mission=${missionId}`)
-  }
-
   if (loading) {
     return <div className="animate-pulse h-96 bg-[var(--apollo-navy)] rounded-xl" />
   }
@@ -168,11 +162,12 @@ export default function ReviewWindow({ missionId }: Props) {
         <div className="flex items-center justify-between">
           <p className="label-caps">Sections</p>
           <button
-            onClick={proceedToPayment}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[var(--apollo-blue)] hover:bg-[var(--apollo-blue-hover)] text-white font-semibold rounded-lg transition-all glow-blue"
+            disabled
+            title="External billing activates only after internal system acceptance"
+            className="flex items-center gap-2 px-5 py-2.5 bg-[var(--apollo-surface)] text-[var(--apollo-text-muted)] font-semibold rounded-lg border border-[var(--apollo-border)] cursor-not-allowed"
           >
-            <DollarSign className="w-4 h-4" />
-            Deploy & Download
+            <CheckCircle2 className="w-4 h-4" />
+            Internal review mode
           </button>
         </div>
 

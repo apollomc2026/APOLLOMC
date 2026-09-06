@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Mission, DeliverableType } from '@/lib/types/database'
-import { FileText, Download, Clock, Filter } from 'lucide-react'
+import { FileText, Clock, Filter } from 'lucide-react'
 
 interface MissionWithDeliverable extends Mission {
   deliverable_types: DeliverableType | null
@@ -13,7 +13,6 @@ export default function FileSystem() {
   const [missions, setMissions] = useState<MissionWithDeliverable[]>([])
   const [filter, setFilter] = useState<string>('all')
   const [loading, setLoading] = useState(true)
-  const [downloading, setDownloading] = useState<string | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -33,21 +32,6 @@ export default function FileSystem() {
     }
     load()
   }, [])
-
-  async function handleRedownload(missionId: string) {
-    setDownloading(missionId)
-    try {
-      const res = await fetch(`/api/stripe/checkout?mission=${missionId}&redownload=true`)
-      if (res.ok) {
-        const data = await res.json()
-        if (data.downloadUrl) {
-          window.open(data.downloadUrl, '_blank')
-        }
-      }
-    } finally {
-      setDownloading(null)
-    }
-  }
 
   const filtered = filter === 'all'
     ? missions
@@ -115,14 +99,9 @@ export default function FileSystem() {
                   </div>
                 </div>
                 {mission.status === 'delivered' && (
-                  <button
-                    onClick={() => handleRedownload(mission.id)}
-                    disabled={downloading === mission.id}
-                    className="flex items-center gap-2 px-3 py-2 bg-[var(--apollo-surface)] hover:bg-[var(--apollo-border)] rounded-lg text-sm transition-colors border border-[var(--apollo-border)]"
-                  >
-                    <Download className="w-4 h-4" />
-                    {downloading === mission.id ? 'Preparing...' : 'Re-download'}
-                  </button>
+                  <span className="px-3 py-2 bg-[var(--apollo-surface)] rounded-lg text-sm text-[var(--apollo-text-muted)] border border-[var(--apollo-border)]">
+                    Internal custody active
+                  </span>
                 )}
               </div>
             </div>

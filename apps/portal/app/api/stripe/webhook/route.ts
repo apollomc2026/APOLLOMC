@@ -3,8 +3,13 @@ import { getStripe } from '@/lib/stripe/client'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendEmail, deliveryEmail } from '@/lib/email/ses'
 import crypto from 'crypto'
+import { isBillingLive } from '@/lib/billing/config'
 
 export async function POST(request: NextRequest) {
+  if (!isBillingLive()) {
+    return NextResponse.json({ error: 'Billing is not enabled' }, { status: 503 })
+  }
+
   const body = await request.text()
   const sig = request.headers.get('stripe-signature')
 

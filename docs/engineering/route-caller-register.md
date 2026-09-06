@@ -11,8 +11,9 @@ This is the Phase 1 control register. A route may be retired only when code, dep
 | `/api/apollo/submit` | Legacy intake | Older synchronous generation | Time-bounded adapter only. |
 | `/api/intake/module` | Taxonomy-first LaunchPad | Catalog module lookup; production 404 observed | Replace with resolver/playbook registry contract. |
 | `/api/delivery/preview?key=` | Review UI | Raw storage-key preview | Replace in Phase 2 with artifact-ID authorization. |
-| `/api/stripe/checkout` | File/review UI | Checkout and redownload | Convert mutating operation to POST with idempotency. |
-| `/api/stripe/webhook` | Stripe | Payment state/delivery | Preserve after idempotent event ledger remediation. |
+| `/api/billing/checkout` | Future commercial UI | Provider-neutral checkout boundary | Dormant in internal mode; provider adapter requires a later acceptance gate. |
+| `/api/stripe/checkout` | No active UI caller | Legacy compatibility adapter | GET is disabled; POST delegates to dormant billing boundary. Retire after caller proof. |
+| `/api/stripe/webhook` | Future Stripe configuration | Historical payment state/delivery | Returns unavailable before provider initialization in internal mode. Implement idempotent ledger only when billing is activated. |
 | `/api/apollo/keepalive` | Vercel cron `0 9 * * *` | Supabase keepalive | Revalidate need, secret and ownership; do not silently recreate on Hostinger. |
 | `apollomc.ai` assets | Portal shell, auth and landing pages | Cross-host logos/rocket | Internalize into portal-owned versioned assets before cPanel retirement. |
 | `/apollo/` | Public users/search/direct links | Legacy taxonomy-first intake | Compatibility surface during transition; redirect only after canonical entry proof. |
