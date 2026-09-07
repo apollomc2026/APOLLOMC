@@ -116,6 +116,25 @@ test('durable mission URLs restore the server record without browser cache', asy
   expect(stored).toMatchObject({ conversationId: 'mission-demo', readiness: 100, specificationVersion: 3 })
 })
 
+test('an approved brief can start execution after a blocked dependency is resolved', async ({ page }) => {
+  await page.route('**/api/mission-control/conversation?id=mission-demo', async route => {
+    const response = await route.fetch()
+    const body = await response.json()
+    await route.fulfill({ response, json: { ...body, job: null, jobs: [] } })
+  })
+  let approvalBody: Record<string, unknown> | null = null
+  await page.route('**/api/mission-control/approve', async route => {
+    approvalBody = route.request().postDataJSON()
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ execution: { state: 'queued', job_id: 'job-retry' } }) })
+  })
+  await page.goto('/dashboard?mission=mission-demo')
+  const retry = page.getByRole('button', { name: 'Start approved execution' })
+  await expect(retry).toBeEnabled()
+  await retry.click()
+  await expect(page.getByText('queued', { exact: true })).toBeVisible()
+  expect(approvalBody).toMatchObject({ conversation_id: 'mission-demo', version: 3, unresolved_items_accepted: [] })
+})
+
 test('legacy launch pad converges on the authoritative mission intake', async ({ page }) => {
   await page.goto('/launch-pad?industry=legal&payloads=proposal')
   await expect(page).toHaveURL(/\/new-mission$/)

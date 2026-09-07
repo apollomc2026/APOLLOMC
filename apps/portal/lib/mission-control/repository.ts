@@ -35,6 +35,14 @@ export async function persistMissionTurn(input: {
 
 export async function approveSpecification(input: { userId: string; conversationId: string; version: number; unresolvedItemsAccepted: string[] }) {
   const db = await createClient()
+  const existing = await db.from('apollo_specification_versions').select('id,specification,content_hash,approved_at,apollo_conversations!inner(user_id,current_spec_version)').eq('conversation_id', input.conversationId).eq('version', input.version).eq('status', 'approved').eq('apollo_conversations.user_id', input.userId).eq('apollo_conversations.current_spec_version', input.version).maybeSingle()
+  if (existing.error) throw new MissionPersistenceError('Specification approval state could not be read')
+  if (existing.data) {
+    const specification = existing.data.specification as DeliverableSpecification
+    const accepted = specification.approval.unresolved_items_accepted ?? []
+    if (JSON.stringify([...accepted].sort()) !== JSON.stringify([...input.unresolvedItemsAccepted].sort())) throw new MissionPersistenceError('Approved unresolved-item acceptance does not match the locked specification')
+    return { approved: true, approved_at: String(existing.data.approved_at), specification_id: String(existing.data.id), specification, content_hash: String(existing.data.content_hash) }
+  }
   const { data, error } = await db.rpc('apollo_approve_specification', { p_conversation_id: input.conversationId, p_version: input.version, p_unresolved_items_accepted: input.unresolvedItemsAccepted }).single()
   if (error || !data) throw new MissionPersistenceError('Specification approval failed')
   const row = data as { specification_id: string; specification: DeliverableSpecification; content_hash: string; approved_at: string }
