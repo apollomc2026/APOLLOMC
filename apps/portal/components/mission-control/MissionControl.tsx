@@ -124,22 +124,32 @@ export function MissionControl() {
     if (!files?.length) return
     if (!conversationId || !specification) { setError('Describe the mission first, then attach evidence to its durable record.'); return }
     setWorking(true); setError(null)
+    const additions: Array<{ id: string; name: string; status: 'pending' | 'verified' | 'conflict' | 'failed' }> = []
+    const rejected: string[] = []
+    let finalSpecification = specification
+    let finalVersion = specificationVersion
+    let finalReadiness = readiness
     try {
-      const additions: Array<{ id: string; name: string; status: 'pending' | 'verified' | 'conflict' | 'failed' }> = []
       for (const file of [...files]) {
+        try {
         const form = new FormData(); form.set('conversation_id', conversationId); form.set('file', file)
         const response = await fetch('/api/mission-control/evidence', { method: 'POST', body: form })
-        if (!response.ok) throw new Error(`Unable to secure ${file.name} in the evidence record.`)
-        const uploaded = await response.json() as { id: string; name: string; status: 'pending' | 'verified' | 'conflict' | 'failed'; facts?: DeliverableSpecification['content']['facts']; specification?: DeliverableSpecification; specification_version?: number; readiness?: number }
-        additions.push(uploaded)
-        if (uploaded.specification) setSpecification(uploaded.specification)
-        if (uploaded.specification_version) setSpecificationVersion(uploaded.specification_version)
-        if (typeof uploaded.readiness === 'number') setReadiness(uploaded.readiness)
+        const uploaded = await response.json() as { id?: string; name?: string; status?: 'pending' | 'verified' | 'conflict' | 'failed'; facts?: DeliverableSpecification['content']['facts']; specification?: DeliverableSpecification; specification_version?: number; readiness?: number; error?: string }
+        if (!response.ok || !uploaded.id || !uploaded.name || !uploaded.status) throw new Error(uploaded.error ?? 'upload rejected')
+        additions.push({ id: uploaded.id, name: uploaded.name, status: uploaded.status })
+        if (uploaded.specification) finalSpecification = uploaded.specification
+        if (uploaded.specification_version) finalVersion = uploaded.specification_version
+        if (typeof uploaded.readiness === 'number') finalReadiness = uploaded.readiness
+        } catch (cause) { rejected.push(`${file.name}: ${cause instanceof Error ? cause.message : 'upload rejected'}`) }
       }
-      setSpecification(current => current ? { ...current, sources: [...current.sources, ...additions] } : current)
-      const failures = additions.filter(item => item.status === 'failed')
-      setTurns(current => [...current, { id: crypto.randomUUID(), role: 'apollo', content: failures.length ? `${additions.length - failures.length} evidence files verified; ${failures.length} could not be safely extracted and will not enter execution.` : `${additions.length} evidence file${additions.length === 1 ? '' : 's'} secured, integrity-checked, and ready for source-grounded execution.`, createdAt: new Date().toISOString() }])
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Evidence upload failed.') } finally { setWorking(false); if (fileRef.current) fileRef.current.value = '' }
+      if (additions.length) { setSpecification(finalSpecification); setSpecificationVersion(finalVersion); setReadiness(finalReadiness) }
+      const nonExecutable = additions.filter(item => item.status !== 'verified')
+      const summary = [`${additions.length} evidence file${additions.length === 1 ? '' : 's'} secured in the durable record.`]
+      if (nonExecutable.length) summary.push(`${nonExecutable.length} require resolution before execution.`)
+      if (rejected.length) summary.push(`${rejected.length} rejected: ${rejected.join('; ')}.`)
+      setTurns(current => [...current, { id: crypto.randomUUID(), role: 'apollo', content: summary.join(' '), createdAt: new Date().toISOString() }])
+      if (rejected.length) setError('Some files were rejected. Secured evidence and specification progress were preserved.')
+    } finally { setWorking(false); if (fileRef.current) fileRef.current.value = '' }
   }
 
   async function approveBrief() {

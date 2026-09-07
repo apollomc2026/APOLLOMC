@@ -168,6 +168,7 @@ test('New Mission opens advanced branded intake and hands off to Mission Control
 
 test('advanced intake hands evidence-derived readiness and specification version to Mission Control', async ({ page }) => {
   let interpretedSpecification: Record<string, unknown> | null = null
+  let uploadCount = 0
   await page.route('**/api/mission-control/interpret', async route => {
     const response = await route.fetch()
     const body = await response.json()
@@ -175,6 +176,11 @@ test('advanced intake hands evidence-derived readiness and specification version
     await route.fulfill({ response, json: { ...body, conversation_id: 'mission-evidence', specification_version: 1, readiness: 58 } })
   })
   await page.route('**/api/mission-control/evidence', async route => {
+    uploadCount += 1
+    if (uploadCount === 2) {
+      await route.fulfill({ status: 415, contentType: 'application/json', body: JSON.stringify({ error: 'File content does not match its declared type' }) })
+      return
+    }
     expect(interpretedSpecification).not.toBeNull()
     await route.fulfill({
       status: 201,
@@ -192,17 +198,17 @@ test('advanced intake hands evidence-derived readiness and specification version
 
   await page.goto('/new-mission')
   await page.getByLabel('What must be accomplished?').fill('Prepare a field operations proposal grounded in the attached verified site notes.')
-  await page.getByLabel('Add available evidence').setInputFiles({
-    name: 'site-notes.txt',
-    mimeType: 'text/plain',
-    buffer: Buffer.from('Verified site access and inspection scope.'),
-  })
+  await page.getByLabel('Add available evidence').setInputFiles([
+    { name: 'site-notes.txt', mimeType: 'text/plain', buffer: Buffer.from('Verified site access and inspection scope.') },
+    { name: 'mislabeled.pdf', mimeType: 'application/pdf', buffer: Buffer.from('not a pdf') },
+  ])
   await page.getByRole('button', { name:/Initialize controlled mission/ }).click()
 
   await expect(page).toHaveURL(/\/dashboard\?mission=mission-evidence$/)
   await expect(page.getByText('82%')).toBeVisible()
   await expect(page.getByRole('heading', { name:/Evidence record/ })).toContainText('1')
   await expect(page.getByText('site-notes.txt')).toBeVisible()
+  await expect(page.getByText(/1 rejected without discarding the mission: mislabeled.pdf/)).toBeVisible()
   const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('apollo:mission-control:v1') ?? '{}'))
   expect(stored).toMatchObject({ readiness: 82, specificationVersion: 2, conversationId: 'mission-evidence' })
 })
