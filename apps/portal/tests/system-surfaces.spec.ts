@@ -106,6 +106,16 @@ test('delivered work opens a controlled review and accepts scoped revision direc
   await expect(page.getByLabel('Describe the required change')).toHaveValue('')
 })
 
+test('durable mission URLs restore the server record without browser cache', async ({ page }) => {
+  await page.goto('/dashboard?mission=mission-demo')
+  await expect(page).toHaveURL(/\/dashboard\?mission=mission-demo$/)
+  await expect(page.locator('.mc-panel-heading h2')).toHaveText('field service proposal')
+  await expect(page.getByText('100%')).toBeVisible()
+  await expect(page.getByText('site-survey.pdf')).toBeVisible()
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('apollo:mission-control:v1') ?? '{}'))
+  expect(stored).toMatchObject({ conversationId: 'mission-demo', readiness: 100, specificationVersion: 3 })
+})
+
 test('legacy launch pad converges on the authoritative mission intake', async ({ page }) => {
   await page.goto('/launch-pad?industry=legal&payloads=proposal')
   await expect(page).toHaveURL(/\/new-mission$/)
@@ -170,7 +180,7 @@ test('advanced intake hands evidence-derived readiness and specification version
   })
   await page.getByRole('button', { name:/Initialize controlled mission/ }).click()
 
-  await expect(page).toHaveURL(/\/dashboard$/)
+  await expect(page).toHaveURL(/\/dashboard\?mission=mission-evidence$/)
   await expect(page.getByText('82%')).toBeVisible()
   await expect(page.getByRole('heading', { name:/Evidence record/ })).toContainText('1')
   await expect(page.getByText('site-notes.txt')).toBeVisible()

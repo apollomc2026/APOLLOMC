@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowUp, Check, FilePlus2, Orbit, Paperclip, ShieldCheck, Sparkles } from 'lucide-react'
 import type { ConversationTurn, DeliverableSpecification, MissionTurnResult } from '@/lib/mission-control/contracts'
 import { VoiceControl } from './VoiceControl'
@@ -26,33 +26,51 @@ export function MissionControl() {
   const transcriptRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  async function restoreConversation(id: string) {
+  const restoreConversation = useCallback(async (id: string) => {
     const response = await fetch(`/api/mission-control/conversation?id=${encodeURIComponent(id)}`)
-    if (!response.ok) return
+    if (!response.ok) {
+      const body = await response.json().catch(() => null) as { error?: string } | null
+      throw new Error(body?.error ?? 'The durable mission record could not be restored.')
+    }
     const restored = await response.json() as { turns: ConversationTurn[]; specification: DeliverableSpecification; readiness: number; specification_version: number; job?: { id: string; state: string; artifact_url: string | null } | null }
-    setTurns(restored.turns.length ? restored.turns : [opening]); setSpecification(restored.specification); setReadiness(restored.readiness); setSpecificationVersion(restored.specification_version)
-    if (restored.job) { setJobId(restored.job.id); setJobState(restored.job.state); setArtifactUrl(restored.job.artifact_url) }
-  }
+    setConversationId(id); setTurns(restored.turns.length ? restored.turns : [opening]); setSpecification(restored.specification); setReadiness(restored.readiness); setSpecificationVersion(restored.specification_version)
+    setJobId(restored.job?.id ?? null); setJobState(restored.job?.state ?? null); setArtifactUrl(restored.job?.artifact_url ?? null)
+  }, [])
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const requestedMission = new URLSearchParams(window.location.search).get('mission')
+      const saved = window.localStorage.getItem(STORAGE_KEY)
+      let cached: { turns: ConversationTurn[]; specification: DeliverableSpecification | null; readiness: number; conversationId?: string | null; specificationVersion?: number; jobId?: string | null; jobState?: string | null; artifactUrl?: string | null } | null = null
+      if (saved) {
+        try { cached = JSON.parse(saved) } catch { window.localStorage.removeItem(STORAGE_KEY) }
+      }
+      const applyCached = () => {
+        if (!cached) return
+        setTurns(cached.turns.length ? cached.turns : [opening]); setSpecification(cached.specification); setReadiness(cached.readiness); setConversationId(cached.conversationId ?? null); setSpecificationVersion(cached.specificationVersion ?? 0); setJobId(cached.jobId ?? null); setJobState(cached.jobState ?? null); setArtifactUrl(cached.artifactUrl ?? null)
+      }
       if (requestedMission) {
-        setConversationId(requestedMission)
-        void restoreConversation(requestedMission).finally(() => setHydrated(true))
+        void restoreConversation(requestedMission).catch(cause => {
+          applyCached()
+          setError(cause instanceof Error ? `${cause.message} ${cached ? 'Your locally cached mission remains available.' : ''}`.trim() : 'The durable mission record could not be restored.')
+        }).finally(() => setHydrated(true))
         return
       }
-      const saved = window.localStorage.getItem(STORAGE_KEY)
-      if (!saved) { setHydrated(true); return }
-      try {
-        const state = JSON.parse(saved) as { turns: ConversationTurn[]; specification: DeliverableSpecification | null; readiness: number; conversationId?: string | null; specificationVersion?: number; jobId?: string | null; jobState?: string | null; artifactUrl?: string | null }
-        setTurns(state.turns.length ? state.turns : [opening]); setSpecification(state.specification); setReadiness(state.readiness); setConversationId(state.conversationId ?? null); setSpecificationVersion(state.specificationVersion ?? 0); setJobId(state.jobId ?? null); setJobState(state.jobState ?? null); setArtifactUrl(state.artifactUrl ?? null)
-        if (state.conversationId) void restoreConversation(state.conversationId)
-      } catch { window.localStorage.removeItem(STORAGE_KEY) }
-      setHydrated(true)
+      applyCached()
+      if (cached?.conversationId) {
+        void restoreConversation(cached.conversationId).catch(() => setError('APOLLO could not refresh the durable record. The locally cached mission remains available.')).finally(() => setHydrated(true))
+      } else setHydrated(true)
     }, 0)
     return () => window.clearTimeout(timer)
-  }, [])
+  }, [restoreConversation])
+
+  useEffect(() => {
+    if (!hydrated || !conversationId) return
+    const url = new URL(window.location.href)
+    if (url.searchParams.get('mission') === conversationId) return
+    url.searchParams.set('mission', conversationId)
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`)
+  }, [hydrated, conversationId])
 
   useEffect(() => {
     if (!hydrated) return
@@ -99,7 +117,7 @@ export function MissionControl() {
   }
 
   function resetMission() {
-    setTurns([opening]); setSpecification(null); setReadiness(0); setConversationId(null); setSpecificationVersion(0); setJobId(null); setJobState(null); setArtifactUrl(null); setDraft(''); setAcceptUnresolved(false); setError(null); window.localStorage.removeItem(STORAGE_KEY)
+    setTurns([opening]); setSpecification(null); setReadiness(0); setConversationId(null); setSpecificationVersion(0); setJobId(null); setJobState(null); setArtifactUrl(null); setDraft(''); setAcceptUnresolved(false); setError(null); window.localStorage.removeItem(STORAGE_KEY); window.history.replaceState(window.history.state, '', '/dashboard')
   }
 
   async function attachEvidence(files: FileList | null) {
