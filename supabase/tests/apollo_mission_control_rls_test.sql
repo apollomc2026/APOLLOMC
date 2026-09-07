@@ -1,5 +1,5 @@
 begin;
-select plan(31);
+select plan(33);
 
 select ok(relrowsecurity, 'conversations has RLS enabled') from pg_class where oid = 'public.apollo_conversations'::regclass;
 select ok(relrowsecurity, 'turns has RLS enabled') from pg_class where oid = 'public.apollo_conversation_turns'::regclass;
@@ -19,7 +19,9 @@ select ok(has_table_privilege('authenticated', 'public.apollo_specification_vers
 select ok(not has_function_privilege('anon', 'public.apollo_commit_mission_turn(uuid,text,text,text,jsonb,text,text,text,smallint,text,text)', 'EXECUTE'), 'anonymous role cannot commit mission turns');
 select ok(has_function_privilege('authenticated', 'public.apollo_commit_mission_turn(uuid,text,text,text,jsonb,text,text,text,smallint,text,text)', 'EXECUTE'), 'authenticated role can atomically commit mission turns');
 select ok(not has_function_privilege('anon', 'public.apollo_approve_specification(uuid,integer)', 'EXECUTE'), 'anonymous role cannot approve specifications');
-select ok(has_function_privilege('authenticated', 'public.apollo_approve_specification(uuid,integer)', 'EXECUTE'), 'authenticated role can atomically approve owned specifications');
+select ok(has_function_privilege('authenticated', 'public.apollo_approve_specification(uuid,integer,jsonb)', 'EXECUTE'), 'authenticated role can approve with explicit unresolved-item acceptance');
+select ok(not has_function_privilege('authenticated', 'public.apollo_approve_specification(uuid,integer)', 'EXECUTE'), 'legacy approval signature cannot bypass unresolved-item acceptance');
+select like(pg_get_functiondef('public.apollo_approve_specification(uuid,integer,jsonb)'::regprocedure), '%every current open decision must be explicitly accepted%', 'approval enforces an exact current open-decision set');
 select ok(not has_function_privilege('anon', 'public.apollo_commit_evidence_specification(uuid,jsonb,text,smallint,text)', 'EXECUTE'), 'anonymous role cannot commit evidence specifications');
 select ok(has_function_privilege('authenticated', 'public.apollo_commit_evidence_specification(uuid,jsonb,text,smallint,text)', 'EXECUTE'), 'authenticated role can commit evidence-derived versions');
 

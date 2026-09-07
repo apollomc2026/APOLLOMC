@@ -33,9 +33,9 @@ export async function persistMissionTurn(input: {
   return { ...result, conversation_id: String(row.conversation_id), specification_version: Number(row.specification_version) }
 }
 
-export async function approveSpecification(input: { userId: string; conversationId: string; version: number }) {
+export async function approveSpecification(input: { userId: string; conversationId: string; version: number; unresolvedItemsAccepted: string[] }) {
   const db = await createClient()
-  const { data, error } = await db.rpc('apollo_approve_specification', { p_conversation_id: input.conversationId, p_version: input.version }).single()
+  const { data, error } = await db.rpc('apollo_approve_specification', { p_conversation_id: input.conversationId, p_version: input.version, p_unresolved_items_accepted: input.unresolvedItemsAccepted }).single()
   if (error || !data) throw new MissionPersistenceError('Specification approval failed')
   const row = data as { specification_id: string; specification: DeliverableSpecification; content_hash: string; approved_at: string }
   return { approved: true, approved_at: row.approved_at, specification_id: String(row.specification_id), specification: row.specification, content_hash: String(row.content_hash) }

@@ -55,4 +55,30 @@ test.describe('APOLLO 3 mission control', () => {
     await expect(page.getByPlaceholder('Describe what must be accomplished, who it is for, and what you already have…')).toHaveValue('Prepare the proposal for $18,500 by 10/15/2026')
     await expect(page.getByText(/Review names, dates, amounts, addresses, and obligations before sending/)).toContainText('71% confidence')
   })
+
+  test('requires explicit acceptance before approving a brief with open decisions', async ({ page }) => {
+    await page.route('**/api/mission-control/interpret', async route => route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        acknowledgement: 'The decision brief is assembled.', question: 'Should the draft use the APOLLO brand?', question_reason: 'Brand custody remains consequential.', readiness: 88, readiness_state: 'ready', changed_facts: [],
+        specification: {
+          schema_version: '1.0', mission: { title: 'Decision brief', objective: 'Authorize field work', desired_decision_or_action: 'Approve mobilization', stakes: 'medium', deadline: null },
+          audience: { primary: ['Operations leadership'], secondary: [], knowledge_level: 'expert', relationship: 'internal', sensitivities: [] },
+          artifact: { recommended_family: 'Decision brief', recommended_type: 'proposal', alternatives_considered: [], rationale: 'A proposal supports the decision.', required_formats: ['pdf'] },
+          aura: { authority: 80, warmth: 30, technicality: 60, restraint: 70, urgency: 50, prestige: 75, visual_density: 40, keywords: [], avoid: [] },
+          content: { facts: [], claims: [], requirements: [], sections: ['Decision'], commercial_terms: {}, obligations: [], assumptions: [], exclusions: [], open_questions: ['Should the draft use the APOLLO brand?'] },
+          sources: [], specialist: { playbook_id: 'field-service-proposal', playbook_version: '1.0', risk_flags: [], required_checks: ['source-grounding'] },
+          presentation: { brand_profile_id: null, design_profile_id: 'apollo-aerospace-industrial', layout_genre: 'client-decision', logo_policy: 'approved-brand-only', signature_policy: 'optional', watermark_policy: 'none-internal' },
+          approval: { status: 'ready', approved_by: null, approved_at: null, unresolved_items_accepted: [] },
+          provenance: { fact_origins: [], inferences: [], defaults: [], model_versions: ['test'], created_at: '2026-09-07T00:00:00.000Z' },
+        },
+      }),
+    }))
+    await page.goto('/dashboard')
+    await page.getByPlaceholder('Describe what must be accomplished, who it is for, and what you already have…').fill('Build the decision brief')
+    await page.getByRole('button', { name: 'Send to APOLLO' }).click()
+    await expect(page.getByRole('button', { name: 'Accept open decisions to approve' })).toBeDisabled()
+    await page.getByRole('checkbox', { name: /explicitly accept them as unresolved/ }).check()
+    await expect(page.getByRole('button', { name: 'Review and approve brief' })).toBeEnabled()
+  })
 })
