@@ -30,6 +30,7 @@ Authoritative product direction: `guiding light/Apollo guiding light.docx` in th
 | Aerospace-industrial interface | Mission Control component and global design system | desktop/mobile browser tests |
 | Billing dormant | internal-only billing configuration | billing scaffold tests |
 | Browser privacy | service worker caches only immutable public assets | `tests/pwa-privacy.test.ts` |
+| Authorized legacy previews | Preview URLs are minted only after a session-scoped output-ID lookup protected by mission ownership RLS; raw storage keys and cross-user output IDs are rejected | `tests/preview-authorization.test.ts` |
 | Evidence Vault | authenticated current-model evidence ledger with extraction status, fact counts and expiring downloads | `tests/system-surfaces.spec.ts` |
 | Brand custody | create or import a user-owned brand kit; uploaded guides are hash-bound in private storage | `tests/system-surfaces.spec.ts` |
 | Light and dark UI | persisted theme selection across public and protected surfaces; navigation-specific contrast tokens | `tests/system-surfaces.spec.ts` |
@@ -66,6 +67,7 @@ Authoritative product direction: `guiding light/Apollo guiding light.docx` in th
 - Live database verification on 2026-09-07 found zero persisted Drive connections. Final hosted delivery and revision verification therefore remain open until an APOLLO user completes Settings → Connect Google Drive on the stable preview. No connection from THEMIS or another product may be substituted.
 - Commits `9bebae6`, `6ec59b9`, `1e3dd70` and `15a8e39` add complete semantic provenance, a guarded execution lifecycle, non-destructive isolation of 14 legacy non-APOLLO tables, and exact unresolved-item consent. The matching migrations are applied to APOLLO Supabase.
 - Vercel deployment `dpl_5mM2roQXazHmuEk6WNLGF8F993UT` reached `READY` for exact commit `15a8e390e958cd6682c2603a86fb82afebd5b9ea`; the stable branch alias reported that same service version and a 30-minute runtime scan returned no errors.
+- Vercel deployment `dpl_AZFHLAzqrAwyAJ98Fr3YdbNHC4Y9` reached `READY` for exact commit `18973781ef47d0a9c9f5577b8c165e019c4a1c9a`; the stable branch alias reported the same deployment and the one-hour runtime error scan was empty. Commits through this point converge all mission-entry URLs, remove the unreferenced taxonomy-first React tree, align the browser fixture with production provenance, internalize the APOLLO logo, stabilize legacy realtime subscriptions and tighten current evidence/session typing.
 
 ## Release commands
 

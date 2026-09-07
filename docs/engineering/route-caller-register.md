@@ -10,7 +10,7 @@ This is the Phase 1 control register. A route may be retired only when code, dep
 | `/api/jobs` | Portal job board/rebuild flow; worker secret | Older executor | Adapt into canonical executor, then retire with telemetry. |
 | `/api/apollo/submit` | Legacy intake | Older synchronous generation | Time-bounded adapter only. |
 | `/api/intake/module` | Taxonomy-first LaunchPad | Catalog module lookup; production 404 observed | Replace with resolver/playbook registry contract. |
-| `/api/delivery/preview?key=` | Review UI | Raw storage-key preview | Replace in Phase 2 with artifact-ID authorization. |
+| `/api/delivery/preview?output=` | Authenticated legacy review clients | RLS-bound output lookup with five-minute signed preview URL | Preserve as a compatibility adapter; the retired raw-key contract is rejected and cross-user output IDs resolve as not found. |
 | `/api/billing/checkout` | Future commercial UI | Provider-neutral checkout boundary | Dormant in internal mode; provider adapter requires a later acceptance gate. |
 | `/api/stripe/checkout` | No active UI caller | Legacy compatibility adapter | GET is disabled; POST delegates to dormant billing boundary. Retire after caller proof. |
 | `/api/stripe/webhook` | Future Stripe configuration | Historical payment state/delivery | Returns unavailable before provider initialization in internal mode. Implement idempotent ledger only when billing is activated. |
