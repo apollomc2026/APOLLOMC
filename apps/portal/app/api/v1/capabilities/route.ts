@@ -5,7 +5,7 @@ import { googleDriveConfigured } from '@/lib/executor/google-drive'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  const driveReady = googleDriveConfigured()
+  const drivePlatformConfigured = googleDriveConfigured()
   const deliverables = getCatalog().industries
     .filter((industry) => industry.status === 'active')
     .flatMap((industry) => industry.deliverables.map((deliverable) => deliverable.slug))
@@ -14,7 +14,7 @@ export async function GET() {
     executor_id: 'apollo-documents',
     contract_version: '1.0',
     service_version: process.env.VERCEL_GIT_COMMIT_SHA ?? 'development',
-    health: driveReady ? 'healthy' : 'degraded',
+    health: drivePlatformConfigured ? 'healthy' : 'degraded',
     asynchronous: true,
     supports_callbacks: false,
     supports_cancellation: true,
@@ -24,7 +24,9 @@ export async function GET() {
     commercial_mode_separate: true,
     artifact_custody: {
       provider: 'google-drive',
-      ready: driveReady,
+      platform_configured: drivePlatformConfigured,
+      ready: false,
+      readiness: drivePlatformConfigured ? 'user_connection_required' : 'platform_configuration_required',
       lifecycle: 'draft',
       exact_folder_required: true,
       per_user_connection_required: true,
