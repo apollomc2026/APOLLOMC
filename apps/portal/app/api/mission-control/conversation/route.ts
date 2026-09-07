@@ -18,7 +18,7 @@ const reviewFixture = {
       deadline: '2026-10-15',
     },
     audience: { primary: ['Facilities director'], secondary: ['Procurement'], knowledge_level: 'expert', relationship: 'prospective client', sensitivities: ['Operational continuity'] },
-    artifact: { recommended_family: 'Commercial proposal', recommended_type: 'field-service-proposal', alternatives_considered: ['Statement of work'], rationale: 'A decision-ready proposal best supports authorization.', required_formats: ['Google Docs', 'PDF'] },
+    artifact: { recommended_family: 'Commercial proposal', recommended_type: 'field-service-proposal', alternatives_considered: ['Statement of work'], rationale: 'A decision-ready proposal best supports authorization.', required_formats: ['pdf'] },
     aura: { authority: 90, warmth: 42, technicality: 74, restraint: 82, urgency: 55, prestige: 86, visual_density: 48, keywords: ['decisive', 'evidence-led'], avoid: ['generic claims'] },
     content: {
       facts: [{ key: 'value', label: 'Program value', value: '$18,500', source: 'user', confidence: 1 }],
