@@ -93,8 +93,6 @@ const packagesBanner = `// AUTO-GENERATED — do not edit by hand.
 // outputFileTracingIncludes is unreliable with the --turbopack production build.
 //
 // Counts at generation time: ${moduleCount} modules, ${schemaCount} schemas, ${styleCount} styles.
-
-/* eslint-disable */
 `
 
 const packagesBody = `
@@ -129,8 +127,6 @@ const templatesBanner = `// AUTO-GENERATED — do not edit by hand.
 // as packages-data.generated.ts.
 //
 // Count at generation time: ${templatesCount} templates.
-
-/* eslint-disable */
 `
 
 const templatesBody = `

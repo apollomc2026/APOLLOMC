@@ -8,8 +8,6 @@
 //
 // Counts at generation time: 37 modules, 37 schemas, 17 styles.
 
-/* eslint-disable */
-
 export const CATALOG_RAW = {
   "industries": [
     {

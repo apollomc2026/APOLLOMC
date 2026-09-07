@@ -8,8 +8,6 @@
 //
 // Count at generation time: 15 templates.
 
-/* eslint-disable */
-
 export const TEMPLATES_RAW: Record<string, unknown> = {
   "budget-vs-actual": {
     "slug": "budget-vs-actual",

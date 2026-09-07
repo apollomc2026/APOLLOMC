@@ -10,6 +10,19 @@ import { createMissionFact, mergeMissionFacts, specificationProvenance, type Del
 const ALLOWED = new Set(['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv', 'text/plain', 'image/png', 'image/jpeg'])
 const MAX_BYTES = 20 * 1024 * 1024
 
+interface EvidenceLedgerRow {
+  id: string
+  conversation_id: string
+  original_name: string
+  mime_type: string
+  size_bytes: number
+  extraction_status: string
+  extracted_facts: unknown
+  storage_key: string | null
+  created_at: string
+  apollo_conversations: { title?: string | null } | null
+}
+
 export async function GET() {
   if (process.env.PLAYWRIGHT_TESTING === 'true') return NextResponse.json({ evidence: [{ id: 'ev-demo', conversation_id: 'mission-demo', mission: 'Field Operations Proposal', name: 'site-survey.pdf', mime_type: 'application/pdf', size_bytes: 482300, status: 'verified', fact_count: 7, created_at: '2026-09-06T12:00:00.000Z', download_url: null }] })
   const allowed = await requireAllowedUser()
@@ -17,7 +30,8 @@ export async function GET() {
   const db = await createClient()
   const result = await db.from('apollo_conversation_evidence').select('id, conversation_id, original_name, mime_type, size_bytes, extraction_status, extracted_facts, storage_key, created_at, apollo_conversations!inner(title)').eq('user_id', allowed.user.userId).order('created_at', { ascending: false })
   if (result.error) return NextResponse.json({ error: result.error.message }, { status: 500 })
-  const evidence = await Promise.all((result.data ?? []).map(async (row: any) => ({ id: row.id, conversation_id: row.conversation_id, mission: row.apollo_conversations?.title ?? 'Untitled mission', name: row.original_name, mime_type: row.mime_type, size_bytes: row.size_bytes, status: row.extraction_status, fact_count: Array.isArray(row.extracted_facts) ? row.extracted_facts.length : 0, created_at: row.created_at, download_url: row.storage_key ? await getPresignedUrl(row.storage_key, 300).catch(() => null) : null })))
+  const evidenceRows = (result.data ?? []) as unknown as EvidenceLedgerRow[]
+  const evidence = await Promise.all(evidenceRows.map(async row => ({ id: row.id, conversation_id: row.conversation_id, mission: row.apollo_conversations?.title ?? 'Untitled mission', name: row.original_name, mime_type: row.mime_type, size_bytes: row.size_bytes, status: row.extraction_status, fact_count: Array.isArray(row.extracted_facts) ? row.extracted_facts.length : 0, created_at: row.created_at, download_url: row.storage_key ? await getPresignedUrl(row.storage_key, 300).catch(() => null) : null })))
   return NextResponse.json({ evidence })
 }
 
