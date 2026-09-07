@@ -60,3 +60,20 @@ export async function loadExecutionEvidence(input: { userId: string; conversatio
     return { source_id: String(row.id), name: String(row.original_name), media_type: String(row.retrieval_mime_type), retrieval_url: await getPresignedUrl(String(row.retrieval_storage_key), expiresIn), content_sha256: String(row.retrieval_sha256), sensitivity: 'confidential' as const, expires_at: expiresAt }
   }))
 }
+
+export async function refreshExecutionEvidence(input: { userId: string; conversationId: string; expectedSources: DocumentSource[] }): Promise<DocumentSource[]> {
+  if (!input.expectedSources.length) return []
+  const db = await createClient()
+  const ids = input.expectedSources.map(source => source.source_id)
+  const result = await db.from('apollo_conversation_evidence').select('id, original_name, retrieval_storage_key, retrieval_mime_type, retrieval_sha256').eq('conversation_id', input.conversationId).eq('user_id', input.userId).eq('extraction_status', 'verified').in('id', ids)
+  if (result.error) throw new MissionPersistenceError(result.error.message)
+  const rows = new Map((result.data ?? []).map(row => [String(row.id), row]))
+  const expiresIn = 3600
+  const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString()
+  return Promise.all(input.expectedSources.map(async expected => {
+    const row = rows.get(expected.source_id)
+    if (!row || !row.retrieval_storage_key || !row.retrieval_mime_type || !row.retrieval_sha256) throw new MissionPersistenceError(`Approved evidence ${expected.name} is no longer available`)
+    if (String(row.retrieval_sha256) !== expected.content_sha256 || String(row.retrieval_mime_type) !== expected.media_type) throw new MissionPersistenceError(`Approved evidence ${expected.name} failed manifest verification`)
+    return { ...expected, name: String(row.original_name), retrieval_url: await getPresignedUrl(String(row.retrieval_storage_key), expiresIn), expires_at: expiresAt }
+  }))
+}
