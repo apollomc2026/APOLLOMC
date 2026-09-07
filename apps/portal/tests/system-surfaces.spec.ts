@@ -135,6 +135,24 @@ test('an approved brief can start execution after a blocked dependency is resolv
   expect(approvalBody).toMatchObject({ conversation_id: 'mission-demo', version: 3, unresolved_items_accepted: [] })
 })
 
+test('a blocked workflow retries as a new auditable execution job', async ({ page }) => {
+  await page.route('**/api/mission-control/conversation?id=mission-demo', async route => {
+    const response = await route.fetch()
+    const body = await response.json()
+    await route.fulfill({ response, json: { ...body, job: { ...body.job, id: 'job-blocked', state: 'blocked', artifact_url: null } } })
+  })
+  let retryBody: Record<string, unknown> | null = null
+  await page.route('**/api/mission-control/retry', async route => {
+    retryBody = route.request().postDataJSON()
+    await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ job_id: 'job-retry-demo', state: 'queued' }) })
+  })
+  await page.goto('/dashboard?mission=mission-demo')
+  await page.getByRole('button', { name: 'Retry resolved execution' }).click()
+  await expect(page.getByText('queued', { exact: true })).toBeVisible()
+  await expect(page.getByText(/preserved the blocked run for audit/)).toBeVisible()
+  expect(retryBody).toEqual({ job_id: 'job-blocked' })
+})
+
 test('legacy launch pad converges on the authoritative mission intake', async ({ page }) => {
   await page.goto('/launch-pad?industry=legal&payloads=proposal')
   await expect(page).toHaveURL(/\/new-mission$/)

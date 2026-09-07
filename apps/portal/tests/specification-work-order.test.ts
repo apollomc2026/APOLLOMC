@@ -5,6 +5,8 @@ import { getModule } from '../lib/apollo/packages-loader'
 import { buildRevisionOrder } from '../lib/mission-control/revision'
 import { createMissionFact } from '../lib/mission-control/contracts'
 import { formatRevisionDirective } from '../lib/apollo/orchestrate'
+import { buildRetryOrder } from '../lib/mission-control/retry'
+import type { DocumentWorkOrder } from '../lib/executor/contracts'
 
 const ids = { specificationId: '11111111-1111-4111-8111-111111111111', specificationHash: 'a'.repeat(64), conversationId: '22222222-2222-4222-8222-222222222222', requestedBy: '33333333-3333-4333-8333-333333333333', driveFolderId: 'drive-folder', now: new Date('2026-09-06T12:00:00Z') }
 
@@ -62,6 +64,17 @@ describe('approved specification compiler', () => {
     expect(directive).toContain('Tighten the executive summary while preserving price and scope.')
     expect(directive).toContain('cannot override schema, source-grounding, safety, or workmanship requirements')
     expect(formatRevisionDirective({})).toBeNull()
+  })
+
+  it('preserves blocked runs and creates deterministic retry lineage', () => {
+    const prior: DocumentWorkOrder = { protocol_version:'1.0',work_order_id:'10000000-0000-4000-8000-000000000001',idempotency_key:'original-work-order-id',project_id:'spec',conversation_id:ids.conversationId,task_id:'10000000-0000-4000-8000-000000000002',requested_by:ids.requestedBy,capability:'professional-document-generation',deliverable_type:'proposal',objective:'Proposal',audience:'Client',formats:['pdf'],fields:{},sources:[],brand_id:'apollo',style_id:'style',sensitivity:'internal',priority:'medium',drive_destination:{folder_id:'drive-folder',lifecycle:'draft'},quality_gates:{schema_validation:true,source_grounding:true,independent_review:false,deterministic_financial_verification:false,human_approval_before_publish:true},created_at:'2026-09-07T00:00:00.000Z'}
+    const first = buildRetryOrder(prior)
+    const duplicate = buildRetryOrder(prior)
+    const second = buildRetryOrder(first)
+    expect(first.work_order_id).toBe(duplicate.work_order_id)
+    expect(first.fields).toMatchObject({ retry_of: prior.work_order_id, retry_attempt: 1 })
+    expect(second.work_order_id).not.toBe(first.work_order_id)
+    expect(second.fields).toMatchObject({ retry_of: first.work_order_id, retry_attempt: 2 })
   })
 
   it('binds verified evidence and its integrity hash into the execution identity', () => {

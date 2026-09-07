@@ -23,6 +23,7 @@ Authoritative product direction: `guiding light/Apollo guiding light.docx` in th
 | Specialist recommendation | deterministic router plus Claude Sonnet 5 interpretation | `tests/mission-interpreter.test.ts`, `tests/golden-missions.test.ts` |
 | Truthful approval gate | `executionGaps`, atomic approval RPC, immutable content hash | `tests/specification-work-order.test.ts` |
 | Recoverable approved execution | An already-locked specification can idempotently retry execution after an external dependency such as Drive is restored, without reopening or mutating approval | `tests/system-surfaces.spec.ts` |
+| Recoverable blocked workflow | A mid-workflow dependency failure remains immutable while a resolved dependency starts a deterministic child retry with explicit `retry_of` and attempt lineage | `tests/specification-work-order.test.ts`, `tests/system-surfaces.spec.ts` |
 | Canonical durable execution | `lib/executor/accept.ts`, `workflows/document-job.ts` | executor contract and financial verification tests |
 | Enforced execution lifecycle | Application and Postgres guards reject skipped, backward and post-terminal document-job transitions while retaining retry-safe idempotent checkpoints | `tests/job-state-machine.test.ts` plus live trigger verification |
 | Reconnectable Drive delivery | Per-user OAuth connection in Settings; refresh credentials encrypted with AES-256-GCM and readable only through the service role; revoked grants stop at a truthful `blocked` checkpoint | `tests/google-drive-auth.test.ts`, `tests/google-drive-custody.test.ts` |
@@ -49,8 +50,8 @@ Authoritative product direction: `guiding light/Apollo guiding light.docx` in th
 
 - Framework: Next.js 16.3.4 and React 19.2.8; the version-16 proxy convention is in use.
 - TypeScript: passed (`npm run typecheck --workspace apps/portal`).
-- Unit/contract suite: 66 passed across 18 files.
-- Chromium journeys: 16 passed, including desktop/mobile mission intake, editable voice capture with critical-value review, explicit unresolved-item consent, recoverable approved execution, evidence-aware advanced launch handoff, durable mission restore without browser cache, legacy-route convergence, Evidence Vault, brand custody, operational surfaces, both themes, atmospheric rendering, reduced motion and controlled review/revision.
+- Unit/contract suite: 67 passed across 18 files.
+- Chromium journeys: 17 passed, including desktop/mobile mission intake, editable voice capture with critical-value review, explicit unresolved-item consent, recoverable approved and blocked execution, evidence-aware advanced launch handoff, durable mission restore without browser cache, legacy-route convergence, Evidence Vault, brand custody, operational surfaces, both themes, atmospheric rendering, reduced motion and controlled review/revision.
 - Production build: passed with all portal, executor and Workflow routes emitted.
 - Dependency audit: 0 critical, 0 low, 2 moderate and 14 high. All 16 remaining advisories originate in `workflow@4.8.5` and its pinned `nanoid`/`undici` graph. npm's proposed forced remediation is a breaking downgrade to Workflow 2.0.6, so it is not an acceptable automatic release change. Track the upstream 4.x remediation before public release.
 - Billing remains scaffold-only. `BILLING_MODE=internal` is a release invariant and no payment provider is activated.
