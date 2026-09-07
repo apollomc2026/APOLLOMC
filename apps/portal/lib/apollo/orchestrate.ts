@@ -35,6 +35,7 @@ import type {
   StyleOption,
 } from './packages-loader'
 import type { LoadedBrand } from './brands'
+import { APOLLO_WORKMANSHIP_STANDARD, auditDeliverableQuality, type DeliverableQualityReport } from './deliverable-quality'
 
 const MAX_TOKENS_PRIMARY = 8192
 const MAX_TOKENS_RETRY = 6144
@@ -67,6 +68,7 @@ export interface OrchestrateResult {
   output: Record<string, unknown>
   contentHtml: string
   warnings: string[]
+  quality: DeliverableQualityReport
 }
 
 export class OrchestrateError extends Error {
@@ -77,6 +79,7 @@ export class OrchestrateError extends Error {
       | 'claude_invocation'
       | 'no_output'
       | 'schema_invalid'
+      | 'quality_invalid'
       | 'render',
     public readonly details?: unknown
   ) {
@@ -168,6 +171,8 @@ function buildSystemPrompt(args: OrchestrateArgs): string {
 
   return [
     MASTER_RULES,
+    '',
+    APOLLO_WORKMANSHIP_STANDARD,
     '',
     brandBlock,
     '',
@@ -542,7 +547,32 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
     )
   }
 
-  return { output, contentHtml, warnings }
+  let quality = auditDeliverableQuality(args.slug, contentHtml, args.module.sections.filter(section => section.required !== false).length)
+  if (!quality.passed) {
+    warnings.push(`First-pass workmanship audit scored ${quality.score}; running focused quality repair.`)
+    const repairBlocks: AnthropicContentBlock[] = [{
+      type: 'text',
+      text: [
+        'Your structured output passed its JSON schema but failed APOLLO workmanship review:',
+        ...quality.violations.map(item => `- ${item}`),
+        '',
+        'Rebuild the content so every violation is resolved while preserving all supplied facts, section keys, section order, and the schema. Do not invent claims or values.',
+        'Previous structured output:',
+        '```json', JSON.stringify(output).slice(0, 20000), '```',
+      ].join('\n'),
+    }]
+    try {
+      output = await callClaudeWithTool(client, args, systemPrompt, repairBlocks, MAX_TOKENS_RETRY, modelFor('repair'))
+    } catch (err) {
+      throw new OrchestrateError('Workmanship repair pass failed: ' + (err instanceof Error ? err.message : String(err)), 'claude_invocation', err)
+    }
+    if (!validator(output)) throw new OrchestrateError('Workmanship repair broke the deliverable schema', 'schema_invalid', validator.errors)
+    contentHtml = renderContentHtml(output, args.module, args.deliverableLabel)
+    quality = auditDeliverableQuality(args.slug, contentHtml, args.module.sections.filter(section => section.required !== false).length)
+    if (!quality.passed) throw new OrchestrateError('Deliverable remained below the APOLLO workmanship floor after repair', 'quality_invalid', quality)
+  }
+
+  return { output, contentHtml, warnings, quality }
 }
 
 // Layout heuristic for the unified catalog. The PDF pipeline supports

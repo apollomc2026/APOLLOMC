@@ -95,7 +95,7 @@ export async function generateStructuredDocument(order: DocumentWorkOrder) {
     fields: order.fields,
     uploads,
   })
-  return { output: generated.output, contentHtml: generated.contentHtml, warnings: generated.warnings }
+  return { output: generated.output, contentHtml: generated.contentHtml, warnings: generated.warnings, quality: generated.quality }
 }
 
 export async function renderAndStorePdf(order: DocumentWorkOrder, contentHtml: string, output: Record<string, unknown>): Promise<ArtifactManifest> {

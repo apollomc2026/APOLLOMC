@@ -36,9 +36,9 @@ function sanitizeContentHtml(html: string): string {
     allowedTags: [
       'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'ul', 'ol', 'li',
       'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'caption', 'col', 'colgroup',
-      'strong', 'em', 'b', 'i', 'u', 's', 'br', 'hr', 'blockquote', 'code', 'pre', 'span', 'div', 'a',
+      'strong', 'em', 'b', 'i', 'u', 's', 'br', 'hr', 'blockquote', 'code', 'pre', 'span', 'div', 'a', 'input',
     ],
-    allowedAttributes: { '*': ['class', 'colspan', 'rowspan', 'align'], a: ['href', 'title'] },
+    allowedAttributes: { '*': ['class', 'colspan', 'rowspan', 'align'], a: ['href', 'title'], input: ['type', 'checked', 'disabled'] },
     allowedSchemes: ['http', 'https', 'mailto', 'tel'],
     disallowedTagsMode: 'discard',
   })
@@ -528,6 +528,20 @@ function buildFullHtml(args: BuildPdfArgs): string {
   }
 }
 
+function decorateOperationalStatuses(html: string): string {
+  return html.replace(/<td\b([^>]*)>([\s\S]*?)<\/td>/gi, (whole, attrs: string, inner: string) => {
+    const value = inner.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim()
+    const status = /^(?:pass|passed|complete|completed|verified|accepted|closed)$/i.test(value)
+      ? 'status-pass'
+      : /^(?:pending|open|in progress|staged|hold|not started)$/i.test(value)
+        ? 'status-pending'
+        : /^(?:fail|failed|rejected|blocked|exception|nonconforming)$/i.test(value)
+          ? 'status-fail'
+          : null
+    return status ? `<td${addHtmlClass(attrs, status)}>${inner}</td>` : whole
+  })
+}
+
 // contractor_form genre primitive (WS2). Dense, tabular field-documentation
 // layout: a compact masthead (typeset wordmark + title + meta), then the
 // section body rendered tight — ALL-CAPS ruled headings, markdown tables and
@@ -541,12 +555,14 @@ function buildContractorFormHtml(args: BuildPdfArgs): string {
   // Strip the leading <h1> (title lives in the masthead) and any mid-body
   // wordmark banner. Do NOT numberSections — contractor forms have no
   // numbered section openers; headings render as ALL-CAPS ruled labels.
-  const body = stripPreH2Banner(stripAllH1(stripLeadingTitle(args.contentHtml)))
+  const body = decorateOperationalStatuses(stripPreH2Banner(stripAllH1(stripLeadingTitle(args.contentHtml))))
   const meta = [args.documentId, args.preparedDate]
     .filter((s) => s && String(s).trim())
     .map((s) => escapeHtml(String(s)))
     .join(' &middot; ')
   const brandLine = wordmark ? `<div class="cf-brand">${escapeHtml(wordmark)}</div>` : ''
+  const logoDataUri = resolveLogoDataUri(args.brand)
+  const brandMark = logoDataUri ? `<img class="cf-logo" src="${logoDataUri}" alt="" />` : ''
 
   return `<!doctype html>
 <html lang="en">${sharedHead(palette, preset, docTitle)}
@@ -558,6 +574,8 @@ body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.42; color
   display: flex; justify-content: space-between; align-items: flex-end;
   border-bottom: 1.5pt solid var(--accent); padding-bottom: 7pt; margin-bottom: 14pt;
 }
+.cf-identity { display: flex; align-items: center; gap: 12pt; }
+.cf-logo { width: 44pt; height: 30pt; object-fit: contain; object-position: left center; }
 .cf-brand { font-family: var(--font-body); font-size: 8pt; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--ink); }
 .cf-title { font-family: var(--font-display); font-size: 17pt; font-weight: 600; margin: 3pt 0 0 0; color: var(--ink); }
 .cf-meta { text-align: right; font-size: 7.5pt; letter-spacing: 0.14em; text-transform: uppercase; color: var(--metadata); white-space: nowrap; padding-left: 18pt; }
@@ -571,6 +589,11 @@ body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.42; color
 .cf-body th { background: var(--ink); color: #fff; text-align: left; font-weight: 600; padding: 4pt 6pt; font-size: 8pt; letter-spacing: 0.04em; }
 .cf-body td { border: 0.5pt solid var(--hairline); padding: 3.5pt 6pt; vertical-align: top; }
 .cf-body tbody tr:nth-child(even) td { background: #fafafa; }
+.cf-body td { font-variant-numeric: tabular-nums; }
+.cf-body input[type="checkbox"] { width: 9pt; height: 9pt; margin: 0 4pt 0 0; vertical-align: -1pt; accent-color: var(--accent); }
+.cf-body td.status-pass { background: #e1f2d7 !important; color: #25491f; font-weight: 700; text-align: center; }
+.cf-body td.status-pending { background: #fff1cf !important; color: #6a4b00; font-weight: 700; text-align: center; }
+.cf-body td.status-fail { background: #f8d7d5 !important; color: #772622; font-weight: 700; text-align: center; }
 .cf-body ul { margin: 3pt 0 9pt 0; padding-left: 15pt; }
 .cf-body li { margin: 1.5pt 0; }
 .cf-body p { margin: 0 0 6pt 0; }
@@ -579,7 +602,7 @@ body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.42; color
 </head>
 <body>
   <div class="cf-masthead">
-    <div>${brandLine}<div class="cf-title">${escapeHtml(docTitle)}</div></div>
+    <div class="cf-identity">${brandMark}<div>${brandLine}<div class="cf-title">${escapeHtml(docTitle)}</div></div></div>
     <div class="cf-meta">${meta}</div>
   </div>
   <div class="cf-body">
@@ -1826,7 +1849,9 @@ export async function buildPdf(args: BuildPdfArgs): Promise<Buffer> {
     // demoted to a single discreet fine-print attribution line in the smallest
     // metadata type, never competing with the firm's identity. Other genres keep
     // the standard wordmark · document-title footer.
-    const isLedger = genreForSlug(args.template.slug) === 'ledger'
+    const genre = genreForSlug(args.template.slug)
+    const isLedger = genre === 'ledger'
+    const isContractorForm = genre === 'contractor_form'
     let footerTemplate: string
     if (isLedger) {
       const entity = readString(args.inputs, 'entity_name')
@@ -1859,7 +1884,7 @@ export async function buildPdf(args: BuildPdfArgs): Promise<Buffer> {
     // A5 branding: the ledger genre carries no Apollo header logo mark either —
     // the firm leads, Apollo survives only as the footer fine-print line.
     const headerTemplate =
-      !isLedger && flags.hasHeaderMark && logoDataUri
+      !isLedger && !isContractorForm && flags.hasHeaderMark && logoDataUri
         ? `<div style="width:100%;padding:0 1.25in;display:flex;justify-content:flex-end;"><img src="${logoDataUri}" style="height:0.38in;opacity:0.6;" /></div>`
         : '<div></div>'
     const pdf = await page.pdf({

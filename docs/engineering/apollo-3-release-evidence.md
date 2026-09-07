@@ -23,6 +23,7 @@ Authoritative product direction: `guiding light/Apollo guiding light.docx` in th
 | Truthful approval gate | `executionGaps`, atomic approval RPC, immutable content hash | `tests/specification-work-order.test.ts` |
 | Canonical durable execution | `lib/executor/accept.ts`, `workflows/document-job.ts` | executor contract and financial verification tests |
 | Reconnectable Drive delivery | Per-user OAuth connection in Settings; refresh credentials encrypted with AES-256-GCM and readable only through the service role; revoked grants stop at a truthful `blocked` checkpoint | `tests/google-drive-auth.test.ts`, `tests/google-drive-custody.test.ts` |
+| Content-first workmanship floor | Nine user-supplied field, commercial, QC, and contract-review PDFs were visually inspected across all 51 pages and distilled into `docs/engineering/apollo-deliverable-quality-bar.md`; generation performs a deterministic archetype audit and one fact-preserving repair before decoration | `tests/deliverable-quality.test.ts` plus rendered field-record QA fixture |
 | Review by instruction | `/api/mission-control/revise`, revision panel in Mission Control | idempotent revision test |
 | Aerospace-industrial interface | Mission Control component and global design system | desktop/mobile browser tests |
 | Billing dormant | internal-only billing configuration | billing scaffold tests |
@@ -38,7 +39,7 @@ Authoritative product direction: `guiding light/Apollo guiding light.docx` in th
 
 - Framework: Next.js 16.3.4 and React 19.2.8; the version-16 proxy convention is in use.
 - TypeScript: passed (`npm run typecheck --workspace apps/portal`).
-- Unit/contract suite: 53 passed across 14 files.
+- Unit/contract suite: 56 passed across 15 files.
 - Chromium journeys: 9 passed, including desktop/mobile mission intake, editable voice capture with critical-value review, advanced launch handoff, Evidence Vault, brand custody, operational surfaces, both themes, atmospheric rendering, and reduced motion.
 - Production build: passed with all portal, executor and Workflow routes emitted.
 - Dependency audit: 0 critical, 0 low, 2 moderate and 14 high. All 16 remaining advisories originate in `workflow@4.8.5` and its pinned `nanoid`/`undici` graph. npm's proposed forced remediation is a breaking downgrade to Workflow 2.0.6, so it is not an acceptable automatic release change. Track the upstream 4.x remediation before public release.

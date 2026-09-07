@@ -12,7 +12,7 @@ export async function documentJobWorkflow(order: DocumentWorkOrder): Promise<{ a
   try {
     await checkpoint(order, 'gathering-input', 10, 'Validating inputs and retrieving sources')
     const generated = await generateStep(order)
-    await verifyStep(order, generated.contentHtml)
+    await verifyStep(order, generated.contentHtml, generated.quality)
     const artifact = await renderStep(order, generated.contentHtml, generated.output)
     await checkpoint(order, 'reviewing', 90, 'Rendered artifact passed file-integrity checks')
     await finishStep(order, [artifact])
@@ -72,15 +72,15 @@ async function renderStep(order: DocumentWorkOrder, contentHtml: string, output:
   }
 }
 
-async function verifyStep(order: DocumentWorkOrder, contentHtml: string): Promise<void> {
+async function verifyStep(order: DocumentWorkOrder, contentHtml: string, quality: { score:number; archetype:string; metrics:Record<string,number>; warnings:string[] }): Promise<void> {
   'use step'
   console.log(`[apollo-document] validating START job=${order.work_order_id}`)
   await assertNotCancelled(order.work_order_id)
   const financial = verifyFinancialDocument(order, contentHtml)
   const message = financial.required
-    ? `Schema and deterministic financial verification passed (${financial.verified_values} values/checks)`
-    : 'Structured document passed schema validation'
-  await updateJob(order.work_order_id, 'validating', 60, message, { checkpoint_ref: `${order.work_order_id}:validating`, financial_verification: financial })
+    ? `Schema, workmanship, and deterministic financial verification passed (${financial.verified_values} values/checks)`
+    : `Structured document passed schema and workmanship validation (${quality.score}/100)`
+  await updateJob(order.work_order_id, 'validating', 60, message, { checkpoint_ref: `${order.work_order_id}:validating`, financial_verification: financial, workmanship: quality })
   await callback(order, 'validating', 60, message, [])
   console.log(`[apollo-document] validating DONE job=${order.work_order_id}`)
 }
