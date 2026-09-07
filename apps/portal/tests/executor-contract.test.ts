@@ -39,6 +39,10 @@ describe('METIS executor boundary', () => {
     expect(() => parseWorkOrder({ ...order, quality_gates: { ...order.quality_gates, human_approval_before_publish: false } })).toThrow(/mandatory quality gates/)
   })
 
+  it('requires an explicit customer-owned Drive destination', () => {
+    expect(() => parseWorkOrder({ ...order, drive_destination: { folder_id: ' ', lifecycle: 'draft' } })).toThrow(/drive_destination/)
+  })
+
   it('rejects callback exfiltration to an unapproved origin', () => {
     expect(() => assertAllowedCallbackUrl('https://attacker.example/callback')).toThrow(/not allowed/)
   })

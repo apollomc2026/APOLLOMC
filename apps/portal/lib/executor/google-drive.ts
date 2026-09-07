@@ -30,7 +30,7 @@ export interface DriveDraft {
 }
 
 export function googleDriveConfigured(): boolean {
-  return ['GOOGLE_DRIVE_CLIENT_ID', 'GOOGLE_DRIVE_CLIENT_SECRET', 'GOOGLE_DRIVE_REFRESH_TOKEN']
+  return ['GOOGLE_DRIVE_CLIENT_ID', 'GOOGLE_DRIVE_CLIENT_SECRET', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY']
     .every((name) => Boolean(process.env[name]?.trim()))
 }
 
@@ -79,7 +79,7 @@ async function assertWritableFolder(folderId: string, token: string): Promise<vo
 }
 
 async function findExisting(folderId: string, workOrderId: string, token: string): Promise<DriveFile | undefined> {
-  const query = `'${escapeQuery(folderId)}' in parents and trashed = false and appProperties has { key='metisWorkOrderId' and value='${escapeQuery(workOrderId)}' }`
+  const query = `'${escapeQuery(folderId)}' in parents and trashed = false and appProperties has { key='apolloWorkOrderId' and value='${escapeQuery(workOrderId)}' }`
   const params = new URLSearchParams({
     q: query,
     spaces: 'drive',
@@ -102,7 +102,7 @@ async function upload(
   pdf: Buffer,
   token: string,
 ): Promise<DriveFile> {
-  const boundary = `metis_${crypto.randomUUID().replace(/-/g, '')}`
+  const boundary = `apollo_${crypto.randomUUID().replace(/-/g, '')}`
   const prefix = Buffer.from(
     `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
     `--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`,
@@ -121,21 +121,21 @@ async function upload(
 }
 
 export async function uploadDriveDraft(input: {
-  userId?: string
+  userId: string
   folderId: string
   workOrderId: string
   filename: string
   contentSha256: string
   pdf: Buffer
 }): Promise<DriveDraft> {
-  const token = await accessToken(input.userId ?? '')
+  const token = await accessToken(input.userId)
   await assertWritableFolder(input.folderId, token)
   const existing = await findExisting(input.folderId, input.workOrderId, token)
   const metadata = {
     name: input.filename,
     mimeType: 'application/pdf',
     appProperties: {
-      metisWorkOrderId: input.workOrderId,
+      apolloWorkOrderId: input.workOrderId,
       contentSha256: input.contentSha256,
       lifecycle: 'draft',
     },

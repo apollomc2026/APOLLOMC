@@ -3,6 +3,7 @@ import { requireAllowedUser } from '@/lib/apollo/auth'
 import { approveSpecification, loadExecutionEvidence, MissionPersistenceError } from '@/lib/mission-control/repository'
 import { compileApprovedSpecification } from '@/lib/mission-control/work-order'
 import { acceptWorkOrder, WorkOrderAcceptanceError } from '@/lib/executor/accept'
+import { driveConnectionStatus } from '@/lib/integrations/google-drive-auth'
 
 export async function POST(request: Request) {
   const allowed = await requireAllowedUser()
@@ -13,10 +14,11 @@ export async function POST(request: Request) {
   try {
     const approval = await approveSpecification({ userId: allowed.user.userId, conversationId: body.conversation_id, version: Number(body.version) })
     const callbackUrl = process.env.APOLLO_EXECUTOR_CALLBACK_URL
-    const driveFolderId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID
-    if (!callbackUrl || !driveFolderId) return NextResponse.json({ ...approval, execution: { state: 'blocked', missing: ['APOLLO_EXECUTOR_CALLBACK_URL', 'GOOGLE_DRIVE_ROOT_FOLDER_ID'] } })
+    if (!callbackUrl) return NextResponse.json({ ...approval, execution: { state: 'blocked', missing: ['APOLLO_EXECUTOR_CALLBACK_URL'] } })
+    const drive = await driveConnectionStatus(allowed.user.userId)
+    if (!drive.connected || !drive.folderId) return NextResponse.json({ ...approval, execution: { state: 'blocked', missing: [{ key: 'google_drive', label: 'Customer-owned Google Drive', reason: 'Connect Google Drive before executing this mission.' }] } })
     const sources = await loadExecutionEvidence({ userId: allowed.user.userId, conversationId: body.conversation_id })
-    const compiled = compileApprovedSpecification({ specification: approval.specification, specificationId: approval.specification_id, specificationHash: approval.content_hash, conversationId: body.conversation_id, requestedBy: allowed.user.userId, callbackUrl, driveFolderId, sources })
+    const compiled = compileApprovedSpecification({ specification: approval.specification, specificationId: approval.specification_id, specificationHash: approval.content_hash, conversationId: body.conversation_id, requestedBy: allowed.user.userId, callbackUrl, driveFolderId: drive.folderId, sources })
     if (!compiled.ok) return NextResponse.json({ ...approval, execution: { state: 'blocked', missing: compiled.missing } })
     return NextResponse.json({ ...approval, execution: await acceptWorkOrder(compiled.order) })
   } catch (error) {

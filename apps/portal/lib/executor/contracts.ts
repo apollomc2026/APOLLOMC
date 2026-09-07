@@ -107,7 +107,7 @@ export function parseWorkOrder(value: unknown): DocumentWorkOrder {
     if (sourceUrl.protocol !== 'https:') throw new Error('source retrieval_url must use HTTPS')
     if (!Number.isFinite(Date.parse(source.expires_at as string))) throw new Error('source expires_at must be an ISO timestamp')
   }
-  if (!isRecord(value.drive_destination) || value.drive_destination.lifecycle !== 'draft') {
+  if (!isRecord(value.drive_destination) || value.drive_destination.lifecycle !== 'draft' || typeof value.drive_destination.folder_id !== 'string' || !value.drive_destination.folder_id.trim()) {
     throw new Error('drive_destination must target draft lifecycle')
   }
   if (!isRecord(value.quality_gates) || value.quality_gates.schema_validation !== true || value.quality_gates.source_grounding !== true || value.quality_gates.human_approval_before_publish !== true) {

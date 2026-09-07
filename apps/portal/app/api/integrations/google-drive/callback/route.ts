@@ -13,7 +13,8 @@ export async function GET(request: Request) {
     if (!code || !state) throw new Error('Google did not return authorization')
     verifyDriveOAuthState(state, auth.user.userId)
     const token = await exchangeDriveAuthorizationCode(code)
-    await saveDriveConnection(auth.user.userId, { refresh_token: token.refresh_token!, scope: token.scope, id_token: token.id_token })
+    if (!token.access_token) throw new Error('Google did not return a usable access token')
+    await saveDriveConnection(auth.user.userId, { refresh_token: token.refresh_token!, access_token: token.access_token, scope: token.scope })
     settings.searchParams.set('drive', 'connected')
   } catch (error) {
     settings.searchParams.set('drive', 'error')

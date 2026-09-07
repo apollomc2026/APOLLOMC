@@ -2,6 +2,9 @@ import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, 
 import { createServiceClient } from '@/lib/supabase/server'
 
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file'
+const DRIVE_API = 'https://www.googleapis.com/drive/v3'
+const DRIVE_UPLOAD_API = 'https://www.googleapis.com/drive/v3/files'
+const CUSTODY_FOLDER_NAME = 'APOLLO Mission Control'
 
 function required(name: string): string {
   const value = process.env[name]?.trim()
@@ -83,22 +86,59 @@ export async function exchangeDriveAuthorizationCode(code: string) {
   return body
 }
 
-function emailFromIdToken(idToken?: string) {
-  if (!idToken) return null
-  try {
-    const payload = JSON.parse(Buffer.from(idToken.split('.')[1], 'base64url').toString('utf8')) as { email?: string }
-    return payload.email ?? null
-  } catch { return null }
+async function googleIdentity(accessToken: string) {
+  const response = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
+    headers: { authorization: `Bearer ${accessToken}` },
+    signal: AbortSignal.timeout(15_000),
+  })
+  const body = await response.json() as { sub?: string; email?: string }
+  if (!response.ok || !body.sub) throw new Error('Google account identity could not be verified')
+  return { subject: body.sub, email: body.email ?? null }
 }
 
-export async function saveDriveConnection(userId: string, token: { refresh_token: string; scope?: string; id_token?: string }) {
+async function ensureCustodyFolder(accessToken: string) {
+  const query = encodeURIComponent("mimeType='application/vnd.google-apps.folder' and trashed=false and appProperties has { key='apolloCustodyRoot' and value='true' }")
+  const fields = encodeURIComponent('files(id,name,trashed)')
+  const list = await fetch(`${DRIVE_API}/files?q=${query}&spaces=drive&pageSize=2&fields=${fields}`, {
+    headers: { authorization: `Bearer ${accessToken}` },
+    signal: AbortSignal.timeout(15_000),
+  })
+  const listed = await list.json() as { files?: Array<{ id: string; name: string }> }
+  if (!list.ok) throw new Error(`Google Drive custody lookup failed (${list.status})`)
+  if ((listed.files?.length ?? 0) > 1) throw new Error('Google Drive contains duplicate APOLLO custody folders')
+  if (listed.files?.[0]) return listed.files[0]
+
+  const create = await fetch(`${DRIVE_UPLOAD_API}?fields=id,name`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      name: CUSTODY_FOLDER_NAME,
+      mimeType: 'application/vnd.google-apps.folder',
+      appProperties: { apolloCustodyRoot: 'true' },
+    }),
+    signal: AbortSignal.timeout(15_000),
+  })
+  const created = await create.json() as { id?: string; name?: string }
+  if (!create.ok || !created.id) throw new Error(`Google Drive custody folder creation failed (${create.status})`)
+  return { id: created.id, name: created.name ?? CUSTODY_FOLDER_NAME }
+}
+
+export async function saveDriveConnection(userId: string, token: { refresh_token: string; access_token: string; scope?: string }) {
   const db = await createServiceClient()
   const encrypted = encryptDriveToken(token.refresh_token)
+  const [identity, folder] = await Promise.all([
+    googleIdentity(token.access_token),
+    ensureCustodyFolder(token.access_token),
+  ])
   const result = await db.from('apollo_google_drive_connections').upsert({
     user_id: userId,
     ...encrypted,
-    google_email: emailFromIdToken(token.id_token),
+    provider_subject: identity.subject,
+    google_email: identity.email,
     scope: token.scope ?? null,
+    custody_folder_id: folder.id,
+    custody_folder_name: folder.name,
+    revoked_at: null,
     connected_at: new Date().toISOString(),
   }, { onConflict: 'user_id' })
   if (result.error) throw new Error(`Could not save Google Drive connection: ${result.error.message}`)
@@ -106,25 +146,34 @@ export async function saveDriveConnection(userId: string, token: { refresh_token
 
 export async function driveConnectionStatus(userId: string) {
   const db = await createServiceClient()
-  const result = await db.from('apollo_google_drive_connections').select('google_email,connected_at,updated_at').eq('user_id', userId).maybeSingle()
+  const result = await db.from('apollo_google_drive_connections').select('google_email,custody_folder_id,custody_folder_name,connected_at,updated_at').eq('user_id', userId).is('revoked_at', null).maybeSingle()
   if (result.error) return { connected: false as const, email: null, connectedAt: null }
-  return { connected: Boolean(result.data), email: result.data?.google_email ?? null, connectedAt: result.data?.connected_at ?? null }
+  return { connected: Boolean(result.data?.custody_folder_id), email: result.data?.google_email ?? null, folderId: result.data?.custody_folder_id ?? null, folderName: result.data?.custody_folder_name ?? null, connectedAt: result.data?.connected_at ?? null }
 }
 
 export async function driveRefreshToken(userId: string) {
-  // Keep the deployment credential as a bootstrap/fallback path. This also lets
-  // isolated executor tests run without constructing an unrelated database.
-  if (!userId || !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return required('GOOGLE_DRIVE_REFRESH_TOKEN')
-  }
+  if (!userId) throw new Error('An authenticated APOLLO user is required for Google Drive custody')
   const db = await createServiceClient()
-  const result = await db.from('apollo_google_drive_connections').select('encrypted_refresh_token,token_iv,token_tag').eq('user_id', userId).maybeSingle()
+  const result = await db.from('apollo_google_drive_connections').select('encrypted_refresh_token,token_iv,token_tag').eq('user_id', userId).is('revoked_at', null).maybeSingle()
   if (result.data) return decryptDriveToken(result.data)
-  return required('GOOGLE_DRIVE_REFRESH_TOKEN')
+  throw new Error('Google Drive must be connected for this APOLLO user')
 }
 
 export async function deleteDriveConnection(userId: string) {
   const db = await createServiceClient()
+  const lookup = await db.from('apollo_google_drive_connections').select('encrypted_refresh_token,token_iv,token_tag').eq('user_id', userId).maybeSingle()
+  if (lookup.error) throw new Error(lookup.error.message)
+  if (!lookup.data) return
+  const token = decryptDriveToken(lookup.data)
+  const revoke = await fetch('https://oauth2.googleapis.com/revoke', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ token }),
+    signal: AbortSignal.timeout(15_000),
+  })
+  // Google returns 400 when a token is already invalid; either response means it
+  // cannot remain an active APOLLO credential.
+  if (!revoke.ok && revoke.status !== 400) throw new Error(`Google authorization revocation failed (${revoke.status})`)
   const result = await db.from('apollo_google_drive_connections').delete().eq('user_id', userId)
   if (result.error) throw new Error(result.error.message)
 }

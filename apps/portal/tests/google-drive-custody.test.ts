@@ -1,4 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('@/lib/integrations/google-drive-auth', () => ({
+  driveRefreshToken: vi.fn(async (userId: string) => {
+    if (!userId) throw new Error('An authenticated APOLLO user is required for Google Drive custody')
+    return 'refresh'
+  }),
+}))
+
 import { uploadDriveDraft } from '../lib/executor/google-drive'
 
 const folderId = 'drive-folder-123'
@@ -12,14 +20,16 @@ describe('Google Drive draft custody', () => {
   beforeEach(() => {
     process.env.GOOGLE_DRIVE_CLIENT_ID = 'client'
     process.env.GOOGLE_DRIVE_CLIENT_SECRET = 'secret'
-    process.env.GOOGLE_DRIVE_REFRESH_TOKEN = 'refresh'
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co'
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role'
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
     delete process.env.GOOGLE_DRIVE_CLIENT_ID
     delete process.env.GOOGLE_DRIVE_CLIENT_SECRET
-    delete process.env.GOOGLE_DRIVE_REFRESH_TOKEN
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY
   })
 
   it('uploads to the exact writable folder and returns a resolvable Drive link', async () => {
@@ -30,11 +40,11 @@ describe('Google Drive draft custody', () => {
       .mockResolvedValueOnce(json({
         id: 'drive-file-1', name: 'report.pdf', mimeType: 'application/pdf',
         parents: [folderId], webViewLink: 'https://drive.google.com/file/d/drive-file-1/view',
-        appProperties: { metisWorkOrderId: workOrderId, contentSha256: 'a'.repeat(64) },
+        appProperties: { apolloWorkOrderId: workOrderId, contentSha256: 'a'.repeat(64) },
       }))
 
     const result = await uploadDriveDraft({
-      folderId, workOrderId, filename: 'report.pdf', contentSha256: 'a'.repeat(64), pdf: Buffer.from('pdf'),
+      userId: 'user-1', folderId, workOrderId, filename: 'report.pdf', contentSha256: 'a'.repeat(64), pdf: Buffer.from('pdf'),
     })
 
     expect(result).toEqual({
@@ -52,7 +62,7 @@ describe('Google Drive draft custody', () => {
     const existing = {
       id: 'drive-file-1', name: 'report.pdf', mimeType: 'application/pdf',
       parents: [folderId], webViewLink: 'https://drive.google.com/file/d/drive-file-1/view',
-      appProperties: { metisWorkOrderId: workOrderId, contentSha256: 'a'.repeat(64) },
+      appProperties: { apolloWorkOrderId: workOrderId, contentSha256: 'a'.repeat(64) },
     }
     const fetchMock = vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(json({ access_token: 'token' }))
@@ -60,7 +70,7 @@ describe('Google Drive draft custody', () => {
       .mockResolvedValueOnce(json({ files: [existing] }))
 
     expect((await uploadDriveDraft({
-      folderId, workOrderId, filename: 'report.pdf', contentSha256: 'a'.repeat(64), pdf: Buffer.from('pdf'),
+      userId: 'user-1', folderId, workOrderId, filename: 'report.pdf', contentSha256: 'a'.repeat(64), pdf: Buffer.from('pdf'),
     })).fileId).toBe('drive-file-1')
     expect(fetchMock).toHaveBeenCalledTimes(3)
   })
@@ -71,14 +81,13 @@ describe('Google Drive draft custody', () => {
       .mockResolvedValueOnce(json({ id: folderId, mimeType: 'application/vnd.google-apps.folder', trashed: false, capabilities: { canAddChildren: false } }))
 
     await expect(uploadDriveDraft({
-      folderId, workOrderId, filename: 'report.pdf', contentSha256: 'a'.repeat(64), pdf: Buffer.from('pdf'),
+      userId: 'user-1', folderId, workOrderId, filename: 'report.pdf', contentSha256: 'a'.repeat(64), pdf: Buffer.from('pdf'),
     })).rejects.toThrow(/not writable/)
   })
 
-  it('fails closed when OAuth credentials are absent', async () => {
-    delete process.env.GOOGLE_DRIVE_REFRESH_TOKEN
+  it('fails closed when an authenticated APOLLO user is absent', async () => {
     await expect(uploadDriveDraft({
-      folderId, workOrderId, filename: 'report.pdf', contentSha256: 'a'.repeat(64), pdf: Buffer.from('pdf'),
-    })).rejects.toThrow(/GOOGLE_DRIVE_REFRESH_TOKEN is not configured/)
+      userId: '', folderId, workOrderId, filename: 'report.pdf', contentSha256: 'a'.repeat(64), pdf: Buffer.from('pdf'),
+    })).rejects.toThrow(/authenticated APOLLO user/)
   })
 })
