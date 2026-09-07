@@ -12,7 +12,7 @@ export function AuthShell({ eyebrow, title, description, children, footer }: {
   return (
     <main className="auth-stage">
       <Link href="/" className="auth-wordmark" aria-label="APOLLO home">
-        <Image src="https://apollomc.ai/assets/apollo_logo_transparent.png" alt="APOLLO" width={180} height={76} priority unoptimized />
+        <Image src="/apollo-logo.png" alt="APOLLO" width={180} height={76} priority />
         <span>Mission Control</span>
       </Link>
       <section className="auth-story" aria-label="APOLLO introduction">

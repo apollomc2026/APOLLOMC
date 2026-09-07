@@ -5,7 +5,7 @@ export default function HomePage() {
   return (
     <main className="lux-home">
       <nav className="lux-nav">
-        <a href="#mission" className="lux-brand"><Image src="https://apollomc.ai/assets/apollo_logo_transparent.png" alt="APOLLO" width={184} height={76} priority unoptimized /><span>Mission Control</span></a>
+        <a href="#mission" className="lux-brand"><Image src="/apollo-logo.png" alt="APOLLO" width={184} height={76} priority /><span>Mission Control</span></a>
         <div><a href="#system">System</a><Link href="/login">Commander access</Link></div>
       </nav>
       <section className="lux-hero" id="mission">

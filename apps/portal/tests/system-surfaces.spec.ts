@@ -72,7 +72,7 @@ test('archive, telemetry, and settings are operational surfaces', async ({ page 
   await expect(page.getByText('Average readiness')).toBeVisible()
   await page.goto('/settings')
   await expect(page.getByRole('heading', { name:'Settings' })).toBeVisible()
-  await expect(page.getByRole('button', { name:'Connect Google Drive' })).toBeVisible()
+  await expect(page.getByRole('link', { name:'Connect Google Drive' })).toBeVisible()
   await page.getByRole('button', { name:'Save preferences' }).click()
   await expect(page.getByRole('button', { name:'Saved' })).toBeVisible()
 })

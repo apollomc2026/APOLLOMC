@@ -15,7 +15,7 @@ This is the Phase 1 control register. A route may be retired only when code, dep
 | `/api/stripe/checkout` | No active UI caller | Legacy compatibility adapter | GET is disabled; POST delegates to dormant billing boundary. Retire after caller proof. |
 | `/api/stripe/webhook` | Future Stripe configuration | Historical payment state/delivery | Returns unavailable before provider initialization in internal mode. Implement idempotent ledger only when billing is activated. |
 | `/api/apollo/keepalive` | Vercel cron `0 9 * * *` | Supabase keepalive | Revalidate need, secret and ownership; do not silently recreate on Hostinger. |
-| `apollomc.ai` assets | Portal shell, auth and landing pages | Cross-host logos/rocket | Internalize into portal-owned versioned assets before cPanel retirement. |
+| `apollomc.ai` assets | No active portal caller | Former cross-host logo dependency | APOLLO logo is now portal-owned at `/apollo-logo.png`; retain legacy hosting only for external callers until cPanel retirement evidence is complete. |
 | `/apollo/` | Public users/search/direct links | Legacy taxonomy-first intake | Compatibility surface during transition; redirect only after canonical entry proof. |
 | `/devdepot/` | Unknown historical callers | Portal-control notice | Prove callers, then explicit redirect or removal. |
 | Render Orbit endpoints | Historical Zapier tasks | Historical media proxy | Treat as unretired until dashboard and Zapier evidence closes. |
