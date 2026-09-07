@@ -5,6 +5,32 @@ export const JOB_STATES = [
   'rendering', 'reviewing', 'blocked', 'delivered', 'failed', 'cancelled',
 ] as const
 export type JobState = (typeof JOB_STATES)[number]
+
+const JOB_TRANSITIONS: Record<JobState, readonly JobState[]> = {
+  accepted: ['queued', 'failed', 'cancelled'],
+  queued: ['gathering-input', 'failed', 'cancelled'],
+  'gathering-input': ['generating', 'blocked', 'failed', 'cancelled'],
+  generating: ['validating', 'blocked', 'failed', 'cancelled'],
+  validating: ['rendering', 'blocked', 'failed', 'cancelled'],
+  rendering: ['reviewing', 'blocked', 'failed', 'cancelled'],
+  reviewing: ['delivered', 'failed', 'cancelled'],
+  blocked: ['cancelled'],
+  delivered: [],
+  failed: [],
+  cancelled: [],
+}
+
+export function isJobState(value: unknown): value is JobState {
+  return typeof value === 'string' && (JOB_STATES as readonly string[]).includes(value)
+}
+
+export function isJobTransitionAllowed(from: JobState, to: JobState): boolean {
+  return from === to || JOB_TRANSITIONS[from].includes(to)
+}
+
+export function assertJobTransition(from: JobState, to: JobState): void {
+  if (!isJobTransitionAllowed(from, to)) throw new Error(`invalid document job transition: ${from} -> ${to}`)
+}
 export type DocumentFormat = 'pdf' | 'docx' | 'xlsx'
 
 export interface DocumentSource {

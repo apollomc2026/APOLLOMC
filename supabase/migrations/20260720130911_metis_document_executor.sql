@@ -53,6 +53,6 @@ revoke all on table public.apollo_document_jobs from anon, authenticated;
 revoke all on table public.apollo_document_job_events from anon, authenticated;
 
 comment on table public.apollo_document_jobs is
-  'Server-only durable ledger for METIS document work orders. Workflow execution is owned by APOLLO.';
+  'Server-only durable ledger for APOLLO document work orders. Workflow execution is owned by APOLLO.';
 comment on table public.apollo_document_job_events is
   'Ordered, append-only lifecycle events for APOLLO document jobs.';

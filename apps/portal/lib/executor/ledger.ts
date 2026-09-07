@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { createServiceClient } from '@/lib/supabase/server'
-import type { ArtifactManifest, DocumentWorkOrder, JobState } from './contracts'
+import { assertJobTransition, isJobState, type ArtifactManifest, type DocumentWorkOrder, type JobState } from './contracts'
 
 export async function createJob(order: DocumentWorkOrder) {
   const db = await createServiceClient()
@@ -44,16 +44,17 @@ export async function getJob(jobId: string) {
 }
 
 export async function setWorkflowRun(jobId: string, runId: string) {
-  const db = await createServiceClient()
-  const result = await db.from('apollo_document_jobs').update({ workflow_run_id: runId, state: 'queued', status_message: 'Queued', updated_at: new Date().toISOString() }).eq('id', jobId)
-  if (result.error) throw new Error(result.error.message)
-  await appendEvent(jobId, 'queued', 1, 'Queued')
+  await updateJob(jobId, 'queued', 1, 'Queued', { workflow_run_id: runId })
 }
 
 export async function requestCancellation(jobId: string) {
   const db = await createServiceClient()
   const result = await db.from('apollo_document_jobs').update({ cancel_requested_at: new Date().toISOString(), status_message: 'Cancellation requested', updated_at: new Date().toISOString() }).eq('id', jobId).select('*').single()
   if (result.error) throw new Error(result.error.message)
+  if (result.data.state === 'blocked') {
+    await updateJob(jobId, 'cancelled', Number(result.data.progress_percent ?? 0), 'Cancelled while blocked')
+    return { ...result.data, state: 'cancelled', status_message: 'Cancelled while blocked' }
+  }
   return result.data
 }
 
@@ -68,9 +69,14 @@ export async function assertNotCancelled(jobId: string) {
 
 export async function updateJob(jobId: string, state: JobState, progress: number, message: string, extra: Record<string, unknown> = {}) {
   const db = await createServiceClient()
+  const current = await db.from('apollo_document_jobs').select('state').eq('id', jobId).single()
+  if (current.error || !current.data) throw new Error(current.error?.message ?? 'job not found')
+  if (!isJobState(current.data.state)) throw new Error(`document job has unknown state: ${String(current.data.state)}`)
+  assertJobTransition(current.data.state, state)
   const terminal = ['delivered', 'failed', 'cancelled'].includes(state)
-  const result = await db.from('apollo_document_jobs').update({ state, progress_percent: progress, status_message: message, updated_at: new Date().toISOString(), ...(terminal ? { completed_at: new Date().toISOString() } : {}), ...extra }).eq('id', jobId)
+  const result = await db.from('apollo_document_jobs').update({ state, progress_percent: progress, status_message: message, updated_at: new Date().toISOString(), ...(terminal ? { completed_at: new Date().toISOString() } : {}), ...extra }).eq('id', jobId).eq('state', current.data.state).select('id').maybeSingle()
   if (result.error) throw new Error(result.error.message)
+  if (!result.data) throw new Error('document job state changed concurrently; transition was not applied')
   await appendEvent(jobId, state, progress, message, extra)
 }
 
