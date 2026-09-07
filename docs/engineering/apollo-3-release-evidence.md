@@ -45,12 +45,13 @@ Authoritative product direction: `guiding light/Apollo guiding light.docx` in th
 | Stellar atmosphere | Theme-aware orange sunburst, drifting nebula and staggered star flicker; reduced-motion users receive a static background | `tests/system-surfaces.spec.ts` |
 | Explicit unresolved-item consent | Mission Control disables approval while open decisions remain unless the operator explicitly accepts the exact current set; the database rejects stale, partial or additional acceptance lists and disables the legacy bypass signature | `tests/mission-control.spec.ts` plus RPC privilege verification |
 | Product infrastructure separation | Legacy THEMIS/CMD rows are retained for controlled extraction, but all browser-role privileges are revoked inside APOLLO's Supabase project; no APOLLO runtime code references those tables | live catalog privilege verification |
+| APOLLO operator access | The exact `support@apollomc.ai` bootstrap identity remains authorized even if hosted environment configuration drifts; configured access remains exact-email only and grants neither domain-wide nor cross-product access | `tests/auth-allowlist.test.ts` |
 
 ## Verification snapshot — 2026-09-07
 
 - Framework: Next.js 16.3.4 and React 19.2.8; the version-16 proxy convention is in use.
 - TypeScript: passed (`npm run typecheck --workspace apps/portal`).
-- Unit/contract suite: 69 passed across 19 files.
+- Unit/contract suite: 71 passed across 20 files.
 - Chromium journeys: 17 passed, including desktop/mobile mission intake, editable voice capture with critical-value review, explicit unresolved-item consent, recoverable approved and blocked execution, evidence-aware advanced launch handoff, durable mission restore without browser cache, legacy-route convergence, Evidence Vault, brand custody, operational surfaces, both themes, atmospheric rendering, reduced motion and controlled review/revision.
 - Production build: passed with all portal, executor and Workflow routes emitted.
 - Dependency audit: 0 critical, 0 low, 2 moderate and 14 high. All 16 remaining advisories originate in `workflow@4.8.5` and its pinned `nanoid`/`undici` graph. npm's proposed forced remediation is a breaking downgrade to Workflow 2.0.6, so it is not an acceptable automatic release change. Track the upstream 4.x remediation before public release.

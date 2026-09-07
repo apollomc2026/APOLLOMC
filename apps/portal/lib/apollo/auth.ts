@@ -11,11 +11,17 @@ export type AuthResult =
   | { ok: true; user: AuthedUser }
   | { ok: false; status: 401 | 403; error: string }
 
-function allowlist(): string[] {
-  return (process.env.APOLLO_ALLOWED_EMAILS || '')
+const APOLLO_BOOTSTRAP_EMAILS = ['support@apollomc.ai'] as const
+
+function allowlist(configured = process.env.APOLLO_ALLOWED_EMAILS || ''): string[] {
+  return [...new Set([...APOLLO_BOOTSTRAP_EMAILS, ...configured
     .split(',')
     .map((s) => s.trim().toLowerCase())
-    .filter(Boolean)
+    .filter(Boolean)])]
+}
+
+export function isAllowedApolloEmail(email: string, configured?: string): boolean {
+  return allowlist(configured).includes(email.trim().toLowerCase())
 }
 
 export async function requireAllowedUser(): Promise<AuthResult> {
@@ -29,8 +35,7 @@ export async function requireAllowedUser(): Promise<AuthResult> {
     return { ok: false, status: 401, error: 'Not authenticated' }
   }
 
-  const allowed = allowlist()
-  if (!allowed.includes(user.email.toLowerCase())) {
+  if (!isAllowedApolloEmail(user.email)) {
     return { ok: false, status: 403, error: 'Not authorized — email not on allowlist' }
   }
 
@@ -61,8 +66,7 @@ export async function getCurrentUser(): Promise<{
     return { authenticated: false, authorized: false, email: null, name: null, avatar: null }
   }
 
-  const allowed = allowlist()
-  const authorized = allowed.includes(user.email.toLowerCase())
+  const authorized = isAllowedApolloEmail(user.email)
 
   return {
     authenticated: true,
