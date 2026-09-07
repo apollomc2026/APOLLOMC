@@ -2,7 +2,7 @@ export interface EvidenceExtraction { text?: string; safeForDirectRetrieval: boo
 import Anthropic from '@anthropic-ai/sdk'
 import { modelFor } from '@/lib/ai/models'
 import { getModule } from '@/lib/apollo/packages-loader'
-import type { MissionFact } from './contracts'
+import { createMissionFact, type MissionFact } from './contracts'
 
 export function evidenceMagicMatches(bytes: Buffer, mime: string): boolean {
   const at = (signature: number[], offset = 0) => signature.every((value, index) => bytes[offset + index] === value)
@@ -64,5 +64,5 @@ export async function extractEvidenceFacts(text: string | undefined, moduleSlug:
   const block = response.content.find(item => item.type === 'tool_use' && item.name === 'extract_evidence')
   if (!block || block.type !== 'tool_use') return []
   const labels = new Map(fields.map(field => [field.key, field.label]))
-  return Object.entries(block.input as Record<string, unknown>).flatMap(([key, value]) => typeof value === 'string' && value.trim() && labels.has(key) ? [{ key, label: labels.get(key)!, value: value.trim().slice(0, 2000), source: 'evidence' as const, confidence: 1 }] : [])
+  return Object.entries(block.input as Record<string, unknown>).flatMap(([key, value]) => typeof value === 'string' && value.trim() && labels.has(key) ? [createMissionFact({ key, label: labels.get(key)!, value: value.trim().slice(0, 2000), source: 'evidence', confidence: 1, sensitivity: 'confidential' })] : [])
 }

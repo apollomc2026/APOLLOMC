@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { interpretMissionWithClaude } from './ai-interpreter'
-import type { DeliverableSpecification, MissionTurnResult } from './contracts'
+import { specificationProvenance, type DeliverableSpecification, type MissionTurnResult } from './contracts'
 import type { DocumentSource } from '@/lib/executor/contracts'
 import { getPresignedUrl } from '@/lib/s3/client'
 
@@ -17,6 +17,11 @@ export async function persistMissionTurn(input: {
 }): Promise<MissionTurnResult> {
   const db = await createClient()
   const result = await interpretMissionWithClaude(input.message, input.prior)
+  const updatedAt = new Date().toISOString()
+  const changedKeys = new Set(result.changed_facts.map(fact => fact.key))
+  result.specification.content.facts = result.specification.content.facts.map(fact => changedKeys.has(fact.key) && fact.source === 'user' ? { ...fact, last_editor: input.userId, updated_at: updatedAt } : fact)
+  result.changed_facts = result.changed_facts.map(fact => fact.source === 'user' ? { ...fact, last_editor: input.userId, updated_at: updatedAt } : fact)
+  result.specification.provenance = specificationProvenance(result.specification.content.facts, result.specification.provenance.created_at, result.specification.provenance.model_versions)
   if (input.brandProfileId !== undefined) result.specification.presentation.brand_profile_id = input.brandProfileId
   if (input.aura) result.specification.aura = { ...result.specification.aura, ...input.aura }
   const apolloContent = [result.acknowledgement, result.question].filter(Boolean).join('\n\n')

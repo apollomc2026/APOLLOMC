@@ -11,11 +11,23 @@ describe('mission interpreter', () => {
   })
 
   it('extracts multiple consequential facts from one answer', () => {
-    const result = interpretMission('Send it to Acme Facilities for $18,500 before October 15, 2026. This is a proposal for the site work.')
+    const result = interpretMission('Send it to Acme Facilities for $18,500 before October 15, 2026. This is a proposal for the site work.', undefined, new Date('2026-09-07T12:00:00.000Z'))
     expect(result.specification.content.facts.map(fact => fact.key)).toEqual(expect.arrayContaining(['primary_audience', 'commercial_value', 'deadline', 'mission_domain']))
     expect(result.readiness).toBeLessThan(75)
     expect(result.specification.approval.status).toBe('draft')
+    expect(result.specification.approval.unresolved_items_accepted).toEqual([])
+    expect(result.specification.content.facts.find(fact => fact.key === 'commercial_value')).toEqual(expect.objectContaining({ normalized_value: '$18,500', capture_method: 'user', verification_state: 'stated', sensitivity: 'confidential', updated_at: '2026-09-07T12:00:00.000Z' }))
+    expect(result.specification.provenance.fact_origins).toEqual(expect.arrayContaining([expect.objectContaining({ key: 'commercial_value', source: 'user' })]))
+    expect(result.specification.provenance.inferences).toEqual(expect.arrayContaining([expect.objectContaining({ key: 'mission_domain', confidence: .78 })]))
+    expect(result.specification.provenance.model_versions).toContain('apollo-deterministic-interpreter@1.0')
     expect(result.question).toContain('prospect contact')
+  })
+
+  it('upgrades legacy facts into the complete provenance contract on the next turn', () => {
+    const prior = interpretMission('I need a proposal.').specification
+    prior.content.facts = [{ key: 'legacy_fact', label: 'Legacy fact', value: 'Preserved', source: 'user', confidence: 1 } as unknown as typeof prior.content.facts[number]]
+    const result = interpretMission('The recipient is Acme Facilities.', prior, new Date('2026-09-07T13:00:00.000Z'))
+    expect(result.specification.content.facts.find(fact => fact.key === 'legacy_fact')).toEqual(expect.objectContaining({ normalized_value: 'Preserved', source_reference: null, verification_state: 'stated', last_editor: 'user' }))
   })
 
   it('selects specialist playbooks from intent rather than a taxonomy gate', () => {

@@ -1,4 +1,4 @@
-import type { DeliverableSpecification, MissionFact, MissionTurnResult } from './contracts'
+import { createMissionFact, specificationProvenance, type DeliverableSpecification, type MissionFact, type MissionTurnResult } from './contracts'
 import { executionGaps } from './work-order'
 
 const FIELD_SERVICE = /proposal|estimate|quote|scope|client|job|project|work discussed|service/i
@@ -39,23 +39,26 @@ export function recommendMissionArtifact(text: string) {
   return { family: 'Client decision package', type: 'proposal', playbook: 'field-service-proposal', rationale: 'A proposal with a clear scope and attached terms gives the recipient an easy decision while keeping execution precise.', sections: ['Executive overview', 'Understanding of need', 'Proposed scope', 'Approach and schedule', 'Investment and terms', 'Assumptions and exclusions', 'Acceptance'], checks: ['scope-completeness', 'commercial-terms', 'assumption-disclosure'] }
 }
 
-function extractFacts(text: string): MissionFact[] {
+function extractFacts(text: string, now: Date): MissionFact[] {
   const facts: MissionFact[] = []
   const money = text.match(/\$[\d,]+(?:\.\d{2})?/)
   const date = text.match(/(?:by|before|due)\s+([A-Z][a-z]+\s+\d{1,2}(?:,\s*\d{4})?|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/i)
   const audience = text.match(/(?:send|give|present|submit)(?:\s+it)?\s+to\s+(?:the\s+)?([^,.]+)/i)
     ?? text.match(/\bfor\s+(?:the\s+)?([^,.$]+?)(?=\s+for\s+\$|\s+(?:due|by|before)\b|[,.]|$)/i)
-  if (money) facts.push({ key: 'commercial_value', label: 'Commercial value', value: money[0], source: 'user', confidence: 1 })
-  if (date) facts.push({ key: 'deadline', label: 'Deadline', value: date[1], source: 'user', confidence: .92 })
-  if (audience) facts.push({ key: 'primary_audience', label: 'Primary audience', value: audience[1].trim(), source: 'user', confidence: .88 })
-  if (FIELD_SERVICE.test(text)) facts.push({ key: 'mission_domain', label: 'Mission domain', value: 'Professional or field services', source: 'inferred', confidence: .78 })
+  if (money) facts.push(createMissionFact({ key: 'commercial_value', label: 'Commercial value', value: money[0], source: 'user', confidence: 1, sensitivity: 'confidential' }, now))
+  if (date) facts.push(createMissionFact({ key: 'deadline', label: 'Deadline', value: date[1], source: 'user', confidence: .92 }, now))
+  if (audience) facts.push(createMissionFact({ key: 'primary_audience', label: 'Primary audience', value: audience[1].trim(), source: 'user', confidence: .88, sensitivity: 'confidential' }, now))
+  if (FIELD_SERVICE.test(text)) facts.push(createMissionFact({ key: 'mission_domain', label: 'Mission domain', value: 'Professional or field services', source: 'inferred', confidence: .78 }, now))
   return facts
 }
 
-export function interpretMission(text: string, prior?: DeliverableSpecification): MissionTurnResult {
+export function interpretMission(text: string, prior?: DeliverableSpecification, now = new Date()): MissionTurnResult {
   const choice = recommendMissionArtifact(`${prior?.mission.objective ?? ''} ${text}`)
-  const changed = extractFacts(text)
-  const factMap = new Map((prior?.content.facts ?? []).map(fact => [fact.key, fact]))
+  const changed = extractFacts(text, now)
+  const factMap = new Map((prior?.content.facts ?? []).map(fact => {
+    const normalized = createMissionFact(fact, now)
+    return [normalized.key, normalized]
+  }))
   for (const fact of changed) factMap.set(fact.key, fact)
   const facts = [...factMap.values()]
   const audience = facts.find(fact => fact.key === 'primary_audience')?.value
@@ -69,7 +72,7 @@ export function interpretMission(text: string, prior?: DeliverableSpecification)
     artifact: { recommended_family: choice.family, recommended_type: choice.type, alternatives_considered: choice.type === 'proposal' ? ['sow', 'quote'] : [], rationale: choice.rationale, required_formats: ['pdf'] },
     aura: { authority: 78, warmth: 45, technicality: 62, restraint: 84, urgency: deadline ? 72 : 48, prestige: 76, visual_density: 46, keywords: ['precise', 'credible', 'controlled'], avoid: ['ornamental', 'generic', 'overstated'] },
     content: { facts, claims: [], requirements: [], sections: choice.sections, commercial_terms: value ? { value } : {}, obligations: [], assumptions: missing.map(item => item.replace(/\?$/, ' remains unresolved')), exclusions: [], open_questions: missing }, sources: prior?.sources ?? [],
-    specialist: { playbook_id: choice.playbook, playbook_version: '1.0', risk_flags: value ? ['commercial-commitment'] : [], required_checks: choice.checks }, presentation: { brand_profile_id: null, design_profile_id: 'apollo-aerospace-industrial', layout_genre: choice.type === 'proposal' ? 'client-decision' : 'professional-report', logo_policy: 'approved-brand-only', signature_policy: choice.type.includes('contract') ? 'required' : 'optional', watermark_policy: 'none-internal' }, approval: { status: readiness >= 75 ? 'ready' : 'draft', approved_by: null, approved_at: null },
+    specialist: { playbook_id: choice.playbook, playbook_version: '1.0', risk_flags: value ? ['commercial-commitment'] : [], required_checks: choice.checks }, presentation: { brand_profile_id: null, design_profile_id: 'apollo-aerospace-industrial', layout_genre: choice.type === 'proposal' ? 'client-decision' : 'professional-report', logo_policy: 'approved-brand-only', signature_policy: choice.type.includes('contract') ? 'required' : 'optional', watermark_policy: 'none-internal' }, approval: { status: readiness >= 75 ? 'ready' : 'draft', approved_by: null, approved_at: null, unresolved_items_accepted: [] }, provenance: specificationProvenance(facts, now.toISOString()),
   }
   const specialistGaps = executionGaps(spec)
   if (specialistGaps.length) {

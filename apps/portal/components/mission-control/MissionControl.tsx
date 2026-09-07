@@ -141,7 +141,7 @@ export function MissionControl() {
       } else {
         setTurns(current => [...current, { id: crypto.randomUUID(), role: 'apollo', content: 'Preview brief approved. Sign in to persist and execute this mission.', createdAt: new Date().toISOString() }])
       }
-      setSpecification({ ...specification, approval: { status: 'approved', approved_by: 'current-user', approved_at: new Date().toISOString() } })
+      setSpecification({ ...specification, approval: { ...specification.approval, status: 'approved', approved_by: 'current-user', approved_at: new Date().toISOString() } })
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Specification approval failed.') } finally { setWorking(false) }
   }
 

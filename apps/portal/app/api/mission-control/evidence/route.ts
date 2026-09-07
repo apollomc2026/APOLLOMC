@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { deleteFromS3, getPresignedUrl, uploadToS3 } from '@/lib/s3/client'
 import { evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractEvidenceFacts } from '@/lib/mission-control/evidence'
 import { executionGaps } from '@/lib/mission-control/work-order'
-import type { DeliverableSpecification } from '@/lib/mission-control/contracts'
+import { createMissionFact, specificationProvenance, type DeliverableSpecification } from '@/lib/mission-control/contracts'
 
 const ALLOWED = new Set(['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv', 'text/plain', 'image/png', 'image/jpeg'])
 const MAX_BYTES = 20 * 1024 * 1024
@@ -60,6 +60,7 @@ export async function POST(request: Request) {
   } catch { extractionStatus = 'failed' }
   if (extractionStatus === 'verified') {
     try { extractedFacts = await extractEvidenceFacts(extractedText, moduleSlug) } catch { extractedFacts = [] }
+    extractedFacts = extractedFacts.map(fact => ({ ...fact, source_reference: id, last_editor: allowed.user.userId }))
   }
   const inserted = await db.from('apollo_conversation_evidence').insert({ id, conversation_id: conversationId, user_id: allowed.user.userId, original_name: file.name, storage_key: storageKey, content_sha256: originalHash, retrieval_storage_key: retrievalKey, retrieval_mime_type: retrievalMime, retrieval_sha256: retrievalHash, mime_type: file.type, size_bytes: file.size, extraction_status: extractionStatus, extracted_facts: extractedFacts }).select('id, original_name, extraction_status').single()
   if (inserted.error) {
@@ -68,8 +69,10 @@ export async function POST(request: Request) {
   }
   let specificationVersion: number | null = null; let readiness: number | null = null
   if (prior?.schema_version === '1.0') {
-    const mergedFacts = [...new Map([...prior.content.facts, ...extractedFacts].map(fact => [fact.key, fact])).values()]
-    const specification: DeliverableSpecification = { ...prior, sources: [...prior.sources.filter(source => source.id !== id), { id, name: file.name, status: extractionStatus }], content: { ...prior.content, facts: mergedFacts }, approval: { status: 'draft', approved_by: null, approved_at: null } }
+    const normalizedPriorFacts = prior.content.facts.map(fact => createMissionFact(fact))
+    const mergedFacts = [...new Map([...normalizedPriorFacts, ...extractedFacts].map(fact => [fact.key, fact])).values()]
+    const priorProvenance = prior.provenance ?? specificationProvenance(prior.content.facts, new Date().toISOString())
+    const specification: DeliverableSpecification = { ...prior, sources: [...prior.sources.filter(source => source.id !== id), { id, name: file.name, status: extractionStatus }], content: { ...prior.content, facts: mergedFacts }, approval: { status: 'draft', approved_by: null, approved_at: null, unresolved_items_accepted: [] }, provenance: specificationProvenance(mergedFacts, priorProvenance.created_at, priorProvenance.model_versions) }
     const gaps = executionGaps(specification)
     readiness = gaps.length ? Math.min(70, Math.max(50, mergedFacts.length * 8)) : 82
     specification.approval.status = readiness >= 75 ? 'ready' : 'draft'

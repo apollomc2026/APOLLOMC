@@ -45,6 +45,16 @@ export interface DocumentWorkOrder {
     deterministic_financial_verification: boolean
     human_approval_before_publish: true
   }
+  trace?: {
+    specification_id: string
+    specification_hash: string
+    specification_schema_version: string
+    playbook_id: string
+    playbook_version: string
+    model_versions: string[]
+    required_checks: string[]
+    accepted_unresolved_items: string[]
+  }
   created_at: string
 }
 
@@ -111,6 +121,13 @@ export function parseWorkOrder(value: unknown): DocumentWorkOrder {
   }
   if (!isRecord(value.quality_gates) || value.quality_gates.schema_validation !== true || value.quality_gates.source_grounding !== true || value.quality_gates.human_approval_before_publish !== true) {
     throw new Error('mandatory quality gates cannot be disabled')
+  }
+  if (value.trace !== undefined) {
+    if (!isRecord(value.trace)) throw new Error('trace must be an object')
+    for (const key of ['specification_id', 'specification_hash', 'specification_schema_version', 'playbook_id', 'playbook_version']) {
+      if (typeof value.trace[key] !== 'string' || !(value.trace[key] as string).trim()) throw new Error(`trace ${key} is required`)
+    }
+    for (const key of ['model_versions', 'required_checks', 'accepted_unresolved_items']) if (!Array.isArray(value.trace[key])) throw new Error(`trace ${key} must be an array`)
   }
   if (!Number.isFinite(Date.parse(value.created_at as string))) throw new Error('created_at must be an ISO timestamp')
   return value as unknown as DocumentWorkOrder

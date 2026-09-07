@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { modelFor } from '@/lib/ai/models'
 import { explicitMissionArtifact, interpretMission, recommendMissionArtifact } from './interpreter'
-import type { DeliverableSpecification, MissionFact, MissionTurnResult } from './contracts'
+import { createMissionFact, specificationProvenance, type DeliverableSpecification, type MissionFact, type MissionTurnResult } from './contracts'
 import { executionGaps } from './work-order'
 import { getModule } from '@/lib/apollo/packages-loader'
 
@@ -28,7 +28,7 @@ function safeText(value: unknown, max = 2000): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : undefined
 }
 
-function safeFacts(items: unknown, source: MissionFact['source']): MissionFact[] {
+function safeFacts(items: unknown, source: MissionFact['source'], now = new Date()): MissionFact[] {
   if (!Array.isArray(items)) return []
   return items.slice(0, 20).flatMap(item => {
     if (!item || typeof item !== 'object') return []
@@ -36,7 +36,7 @@ function safeFacts(items: unknown, source: MissionFact['source']): MissionFact[]
     const key = safeText(row.key, 80); const label = safeText(row.label, 120); const value = safeText(row.value, 2000)
     if (!key || !label || !value) return []
     const confidence = source === 'user' ? 1 : Math.max(0, Math.min(1, Number(row.confidence) || .6))
-    return [{ key: key.replace(/[^a-z0-9_]/gi, '_').toLowerCase(), label, value, source, confidence }]
+    return [createMissionFact({ key: key.replace(/[^a-z0-9_]/gi, '_').toLowerCase(), label, value, source, confidence }, now)]
   })
 }
 
@@ -68,6 +68,7 @@ export function applyClaudeInterpretation(base: MissionTurnResult, patch: Claude
   const openQuestions = [...new Set([...gapQuestions, ...(modelQuestion && !gapQuestions.includes(modelQuestion) ? [modelQuestion] : [])])]
   specification.content.open_questions = openQuestions
   specification.content.assumptions = openQuestions.map(item => item.replace(/\?$/, ' remains unresolved'))
+  specification.provenance = specificationProvenance([...merged.values()], specification.provenance.created_at, specification.provenance.model_versions)
   if (!gaps.length) question = modelQuestion ?? null
   specification.approval.status = readiness >= 75 ? 'ready' : 'draft'
   return { ...base, acknowledgement: safeText(patch.acknowledgement, 1200) ?? base.acknowledgement, question, question_reason: safeText(patch.question_reason, 500) ?? base.question_reason, readiness, readiness_state: readiness >= 75 ? 'ready' : readiness >= 50 ? 'calibrating' : 'discovery', specification }
@@ -109,7 +110,9 @@ export async function interpretMissionWithClaude(text: string, prior?: Deliverab
     const patch = JSON.parse(json) as ClaudeInterpretation
     const explicit = explicitMissionArtifact(text)
     if (explicit) patch.recommendation = explicit
-    return applyExplicitMissionDirectives(applyClaudeInterpretation(base, patch), text)
+    const result = applyExplicitMissionDirectives(applyClaudeInterpretation(base, patch), text)
+    result.specification.provenance = specificationProvenance(result.specification.content.facts, result.specification.provenance.created_at, [...result.specification.provenance.model_versions, `anthropic:${modelFor('mission_interpretation')}`])
+    return result
   } catch (error) {
     console.warn('[mission-control] Claude interpretation fallback:', error instanceof Error ? error.message : 'unknown error')
     return base

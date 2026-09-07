@@ -3,6 +3,7 @@ import { compileApprovedSpecification } from '../lib/mission-control/work-order'
 import { interpretMission } from '../lib/mission-control/interpreter'
 import { getModule } from '../lib/apollo/packages-loader'
 import { buildRevisionOrder } from '../lib/mission-control/revision'
+import { createMissionFact } from '../lib/mission-control/contracts'
 
 const ids = { specificationId: '11111111-1111-4111-8111-111111111111', specificationHash: 'a'.repeat(64), conversationId: '22222222-2222-4222-8222-222222222222', requestedBy: '33333333-3333-4333-8333-333333333333', driveFolderId: 'drive-folder', now: new Date('2026-09-06T12:00:00Z') }
 
@@ -23,20 +24,22 @@ describe('approved specification compiler', () => {
   it('uses stable job identities when an approved version is submitted again', () => {
     const specification = interpretMission('Send a proposal to Acme Facilities for $18,500 before October 15, 2026.').specification
     specification.approval.status = 'approved'
-    for (const field of getModule('proposal')!.required_fields) specification.content.facts.push({ key: field.key, label: field.label, value: `Confirmed ${field.label}`, source: 'user', confidence: 1 })
+    for (const field of getModule('proposal')!.required_fields) specification.content.facts.push(createMissionFact({ key: field.key, label: field.label, value: `Confirmed ${field.label}`, source: 'user', confidence: 1 }))
     const first = compileApprovedSpecification({ specification, ...ids })
     const second = compileApprovedSpecification({ specification, ...ids })
     expect(first.ok).toBe(true); expect(second.ok).toBe(true)
     if (first.ok && second.ok) {
       expect(first.order.work_order_id).toBe(second.order.work_order_id)
       expect(first.order.task_id).toBe(second.order.task_id)
+      expect(first.order.trace).toEqual(expect.objectContaining({ specification_id: ids.specificationId, specification_hash: ids.specificationHash, playbook_id: 'field-service-proposal' }))
+      expect(first.order.trace?.model_versions).toContain('apollo-deterministic-interpreter@1.0')
     }
   })
 
   it('preserves the prior draft and makes identical revision instructions idempotent', () => {
     const specification = interpretMission('Send a proposal to Acme Facilities for $18,500 before October 15, 2026.').specification
     specification.approval.status = 'approved'
-    for (const field of getModule('proposal')!.required_fields) specification.content.facts.push({ key: field.key, label: field.label, value: `Confirmed ${field.label}`, source: 'user', confidence: 1 })
+    for (const field of getModule('proposal')!.required_fields) specification.content.facts.push(createMissionFact({ key: field.key, label: field.label, value: `Confirmed ${field.label}`, source: 'user', confidence: 1 }))
     const compiled = compileApprovedSpecification({ specification, ...ids })
     expect(compiled.ok).toBe(true)
     if (compiled.ok) {
@@ -51,7 +54,7 @@ describe('approved specification compiler', () => {
   it('binds verified evidence and its integrity hash into the execution identity', () => {
     const specification = interpretMission('Send a proposal to Acme Facilities for $18,500 before October 15, 2026.').specification
     specification.approval.status = 'approved'
-    for (const field of getModule('proposal')!.required_fields) specification.content.facts.push({ key: field.key, label: field.label, value: `Confirmed ${field.label}`, source: 'user', confidence: 1 })
+    for (const field of getModule('proposal')!.required_fields) specification.content.facts.push(createMissionFact({ key: field.key, label: field.label, value: `Confirmed ${field.label}`, source: 'user', confidence: 1 }))
     const source = { source_id: 'evidence-1', name: 'scope.txt', media_type: 'text/plain', retrieval_url: 'https://evidence.example/signed', content_sha256: 'c'.repeat(64), sensitivity: 'confidential' as const, expires_at: '2026-09-06T13:00:00Z' }
     const without = compileApprovedSpecification({ specification, ...ids })
     const withEvidence = compileApprovedSpecification({ specification, ...ids, sources: [source] })
