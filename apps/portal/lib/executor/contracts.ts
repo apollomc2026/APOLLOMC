@@ -45,7 +45,6 @@ export interface DocumentWorkOrder {
     deterministic_financial_verification: boolean
     human_approval_before_publish: true
   }
-  callback_url: string
   created_at: string
 }
 
@@ -82,7 +81,7 @@ export function parseWorkOrder(value: unknown): DocumentWorkOrder {
   const requiredStrings = [
     'work_order_id', 'idempotency_key', 'project_id', 'conversation_id', 'task_id',
     'requested_by', 'capability', 'deliverable_type', 'objective', 'audience',
-    'brand_id', 'style_id', 'sensitivity', 'priority', 'callback_url', 'created_at',
+    'brand_id', 'style_id', 'sensitivity', 'priority', 'created_at',
   ]
   for (const key of requiredStrings) {
     if (typeof value[key] !== 'string' || !(value[key] as string).trim()) throw new Error(`${key} is required`)
@@ -113,8 +112,6 @@ export function parseWorkOrder(value: unknown): DocumentWorkOrder {
   if (!isRecord(value.quality_gates) || value.quality_gates.schema_validation !== true || value.quality_gates.source_grounding !== true || value.quality_gates.human_approval_before_publish !== true) {
     throw new Error('mandatory quality gates cannot be disabled')
   }
-  const callbackUrl = new URL(value.callback_url as string)
-  if (callbackUrl.protocol !== 'https:') throw new Error('callback_url must use HTTPS')
   if (!Number.isFinite(Date.parse(value.created_at as string))) throw new Error('created_at must be an ISO timestamp')
   return value as unknown as DocumentWorkOrder
 }

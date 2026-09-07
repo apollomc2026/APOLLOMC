@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { assertAllowedCallbackUrl, postCallback } from '../lib/executor/callback'
 import { parseWorkOrder, workOrderDigest } from '../lib/executor/contracts'
 import { signExecutorRequest, verifyExecutorRequest } from '../lib/executor/auth'
 
@@ -15,17 +14,15 @@ const order = {
   brand_id: 'atlas', style_id: 'consulting-executive', sensitivity: 'confidential', priority: 'high',
   drive_destination: { folder_id: 'draft-folder', lifecycle: 'draft' },
   quality_gates: { schema_validation: true, source_grounding: true, independent_review: true, deterministic_financial_verification: false, human_approval_before_publish: true },
-  callback_url: 'https://metis-sage.vercel.app/api/executor-events',
   created_at: '2026-07-20T12:00:00.000Z',
 }
 
-describe('METIS executor boundary', () => {
+describe('APOLLO executor boundary', () => {
   beforeEach(() => {
-    process.env.METIS_EXECUTOR_SHARED_SECRET = 's'.repeat(64)
-    process.env.METIS_CALLBACK_ORIGINS = 'https://metis-sage.vercel.app'
+    process.env.APOLLO_EXECUTOR_SHARED_SECRET = 's'.repeat(64)
   })
   afterEach(() => {
-    delete process.env.METIS_CALLBACK_STRICT
+    delete process.env.APOLLO_EXECUTOR_SHARED_SECRET
     vi.restoreAllMocks()
   })
 
@@ -43,12 +40,7 @@ describe('METIS executor boundary', () => {
     expect(() => parseWorkOrder({ ...order, drive_destination: { folder_id: ' ', lifecycle: 'draft' } })).toThrow(/drive_destination/)
   })
 
-  it('rejects callback exfiltration to an unapproved origin', () => {
-    expect(() => assertAllowedCallbackUrl('https://attacker.example/callback')).toThrow(/not allowed/)
-  })
-
-  it('rejects non-HTTPS source and callback URLs', () => {
-    expect(() => parseWorkOrder({ ...order, callback_url: 'http://metis.example/api/executor-events' })).toThrow(/HTTPS/)
+  it('rejects non-HTTPS source URLs', () => {
     expect(() => parseWorkOrder({
       ...order,
       sources: [{ source_id: 'source-1', name: 'input.txt', media_type: 'text/plain', retrieval_url: 'http://files.example/input.txt', content_sha256: 'a'.repeat(64), sensitivity: 'internal', expires_at: '2026-07-21T00:00:00.000Z' }],
@@ -60,29 +52,15 @@ describe('METIS executor boundary', () => {
     const timestamp = '2026-07-20T12:00:00.000Z'
     const body = JSON.stringify(order)
     const signature = signExecutorRequest(timestamp, 'POST', '/api/v1/document-jobs', body)
-    const request = new Request('https://portal.apollomc.ai/api/v1/document-jobs', { method: 'POST', headers: { 'x-metis-timestamp': timestamp, 'x-metis-signature': signature } })
+    const request = new Request('https://portal.apollomc.ai/api/v1/document-jobs', { method: 'POST', headers: { 'x-apollo-timestamp': timestamp, 'x-apollo-signature': signature } })
     expect(verifyExecutorRequest(request, body).ok).toBe(true)
     expect(verifyExecutorRequest(request, body + ' ').ok).toBe(false)
   })
 
-  it('does not discard durable work when a downstream callback is unavailable', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 404 })))
-    const event = {
-      protocol_version: '1.0' as const,
-      event_id: '00000000-0000-4000-8000-000000000304',
-      work_order_id: order.work_order_id,
-      executor_id: 'apollo-documents' as const,
-      sequence: 10,
-      state: 'gathering-input' as const,
-      progress_percent: 10,
-      message: 'Gathering input',
-      retry_count: 0,
-      missing_inputs: [],
-      artifacts: [],
-      occurred_at: '2026-07-20T12:00:00.000Z',
-    }
-    await expect(postCallback(order.callback_url, event)).resolves.toBeUndefined()
-    process.env.METIS_CALLBACK_STRICT = 'true'
-    await expect(postCallback(order.callback_url, event)).rejects.toThrow(/404/)
+  it('rejects the legacy METIS header contract', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-07-20T12:00:00.000Z'))
+    const body = JSON.stringify(order)
+    const request = new Request('https://portal.apollomc.ai/api/v1/document-jobs', { method: 'POST', headers: { 'x-metis-timestamp': '2026-07-20T12:00:00.000Z', 'x-metis-signature': 'a'.repeat(64) } })
+    expect(verifyExecutorRequest(request, body).ok).toBe(false)
   })
 })

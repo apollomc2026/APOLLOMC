@@ -4,7 +4,7 @@ import { interpretMission } from '../lib/mission-control/interpreter'
 import { getModule } from '../lib/apollo/packages-loader'
 import { buildRevisionOrder } from '../lib/mission-control/revision'
 
-const ids = { specificationId: '11111111-1111-4111-8111-111111111111', specificationHash: 'a'.repeat(64), conversationId: '22222222-2222-4222-8222-222222222222', requestedBy: '33333333-3333-4333-8333-333333333333', callbackUrl: 'https://metis-sage.vercel.app/api/apollo/callback', driveFolderId: 'drive-folder', now: new Date('2026-09-06T12:00:00Z') }
+const ids = { specificationId: '11111111-1111-4111-8111-111111111111', specificationHash: 'a'.repeat(64), conversationId: '22222222-2222-4222-8222-222222222222', requestedBy: '33333333-3333-4333-8333-333333333333', driveFolderId: 'drive-folder', now: new Date('2026-09-06T12:00:00Z') }
 
 describe('approved specification compiler', () => {
   it('refuses an unapproved specification', () => {

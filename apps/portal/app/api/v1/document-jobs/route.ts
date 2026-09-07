@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { assertAllowedCallbackUrl } from '@/lib/executor/callback'
 import { parseWorkOrder } from '@/lib/executor/contracts'
 import { verifyExecutorRequest } from '@/lib/executor/auth'
 import { acceptWorkOrder, WorkOrderAcceptanceError } from '@/lib/executor/accept'
@@ -15,7 +14,6 @@ export async function POST(request: Request) {
   let order
   try {
     order = parseWorkOrder(JSON.parse(raw))
-    assertAllowedCallbackUrl(order.callback_url)
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'invalid work order' }, { status: 400 })
   }

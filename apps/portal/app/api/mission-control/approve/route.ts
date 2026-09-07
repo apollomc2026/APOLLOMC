@@ -13,12 +13,10 @@ export async function POST(request: Request) {
   if (!body.conversation_id || !Number.isInteger(body.version) || Number(body.version) < 1) return NextResponse.json({ error: 'A conversation and positive specification version are required' }, { status: 400 })
   try {
     const approval = await approveSpecification({ userId: allowed.user.userId, conversationId: body.conversation_id, version: Number(body.version) })
-    const callbackUrl = process.env.APOLLO_EXECUTOR_CALLBACK_URL
-    if (!callbackUrl) return NextResponse.json({ ...approval, execution: { state: 'blocked', missing: ['APOLLO_EXECUTOR_CALLBACK_URL'] } })
     const drive = await driveConnectionStatus(allowed.user.userId)
     if (!drive.connected || !drive.folderId) return NextResponse.json({ ...approval, execution: { state: 'blocked', missing: [{ key: 'google_drive', label: 'Customer-owned Google Drive', reason: 'Connect Google Drive before executing this mission.' }] } })
     const sources = await loadExecutionEvidence({ userId: allowed.user.userId, conversationId: body.conversation_id })
-    const compiled = compileApprovedSpecification({ specification: approval.specification, specificationId: approval.specification_id, specificationHash: approval.content_hash, conversationId: body.conversation_id, requestedBy: allowed.user.userId, callbackUrl, driveFolderId: drive.folderId, sources })
+    const compiled = compileApprovedSpecification({ specification: approval.specification, specificationId: approval.specification_id, specificationHash: approval.content_hash, conversationId: body.conversation_id, requestedBy: allowed.user.userId, driveFolderId: drive.folderId, sources })
     if (!compiled.ok) return NextResponse.json({ ...approval, execution: { state: 'blocked', missing: compiled.missing } })
     return NextResponse.json({ ...approval, execution: await acceptWorkOrder(compiled.order) })
   } catch (error) {

@@ -8,7 +8,7 @@ const base = {
   requested_by: 'jon', capability: 'financial-package', objective: 'verify', audience: 'leadership', formats: ['pdf'], sources: [],
   brand_id: 'atlas', style_id: 'ledger', sensitivity: 'confidential', priority: 'critical', drive_destination: { folder_id: 'draft', lifecycle: 'draft' },
   quality_gates: { schema_validation: true, source_grounding: true, independent_review: true, deterministic_financial_verification: true, human_approval_before_publish: true },
-  callback_url: 'https://metis-sage.vercel.app/api/executor-events', created_at: '2026-07-20T12:00:00.000Z',
+  created_at: '2026-07-20T12:00:00.000Z',
 } as const
 
 describe('deterministic financial verification', () => {

@@ -43,7 +43,6 @@ export function compileApprovedSpecification(input: {
   specificationHash: string
   conversationId: string
   requestedBy: string
-  callbackUrl: string
   driveFolderId: string
   sources?: DocumentSource[]
   now?: Date
@@ -64,6 +63,6 @@ export function compileApprovedSpecification(input: {
   const sourceIdentity = (input.sources ?? []).map(source => `${source.source_id}:${source.content_sha256}`).sort().join('|')
   const digest = createHash('sha256').update(`${input.specificationId}:${input.specificationHash}:${sourceIdentity}`).digest('hex')
   return { ok: true, order: {
-    protocol_version: '1.0', work_order_id: uuidFromDigest(digest), idempotency_key: `spec-${digest}`, project_id: input.specificationId, conversation_id: input.conversationId, task_id: uuidFromDigest(digest, 32), requested_by: input.requestedBy, capability: 'professional-document-generation', deliverable_type: spec.artifact.recommended_type, objective: spec.mission.objective, audience: spec.audience.primary.join(', '), formats: ['pdf'], fields, sources: input.sources ?? [], brand_id: spec.presentation.brand_profile_id ?? 'apollo', style_id: style.id, sensitivity: spec.mission.stakes === 'high' ? 'confidential' : 'internal', priority: spec.mission.deadline ? 'high' : 'medium', deadline: spec.mission.deadline ?? undefined, drive_destination: { folder_id: input.driveFolderId, lifecycle: 'draft' }, quality_gates: { schema_validation: true, source_grounding: true, independent_review: spec.mission.stakes === 'high', deterministic_financial_verification: spec.specialist.playbook_id === 'financial-package', human_approval_before_publish: true }, callback_url: input.callbackUrl, created_at: now.toISOString(),
+    protocol_version: '1.0', work_order_id: uuidFromDigest(digest), idempotency_key: `spec-${digest}`, project_id: input.specificationId, conversation_id: input.conversationId, task_id: uuidFromDigest(digest, 32), requested_by: input.requestedBy, capability: 'professional-document-generation', deliverable_type: spec.artifact.recommended_type, objective: spec.mission.objective, audience: spec.audience.primary.join(', '), formats: ['pdf'], fields, sources: input.sources ?? [], brand_id: spec.presentation.brand_profile_id ?? 'apollo', style_id: style.id, sensitivity: spec.mission.stakes === 'high' ? 'confidential' : 'internal', priority: spec.mission.deadline ? 'high' : 'medium', deadline: spec.mission.deadline ?? undefined, drive_destination: { folder_id: input.driveFolderId, lifecycle: 'draft' }, quality_gates: { schema_validation: true, source_grounding: true, independent_review: spec.mission.stakes === 'high', deterministic_financial_verification: spec.specialist.playbook_id === 'financial-package', human_approval_before_publish: true }, created_at: now.toISOString(),
   } }
 }

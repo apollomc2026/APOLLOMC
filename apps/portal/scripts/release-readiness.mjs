@@ -1,15 +1,14 @@
 const required = [
   'NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'APOLLO_ALLOWED_EMAILS',
   'AWS_REGION', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'S3_BUCKET_PRIVATE',
-  'ANTHROPIC_API_KEY', 'NEXT_PUBLIC_APP_URL', 'WORKER_SECRET_KEY', 'METIS_EXECUTOR_SHARED_SECRET',
-  'METIS_EXECUTOR_CALLBACK_SECRET', 'METIS_CALLBACK_ORIGINS', 'APOLLO_EXECUTOR_CALLBACK_URL',
+  'ANTHROPIC_API_KEY', 'NEXT_PUBLIC_APP_URL', 'WORKER_SECRET_KEY',
   'GOOGLE_DRIVE_CLIENT_ID', 'GOOGLE_DRIVE_CLIENT_SECRET',
 ]
 
 const missing = required.filter(name => !process.env[name]?.trim())
 const invalid = []
 if (process.env.BILLING_MODE !== 'internal') invalid.push('BILLING_MODE must remain internal until post-acceptance payment activation')
-for (const name of ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_APP_URL', 'METIS_CALLBACK_ORIGINS', 'APOLLO_EXECUTOR_CALLBACK_URL']) {
+for (const name of ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_APP_URL']) {
   const value = process.env[name]
   if (value) { try { if (new URL(value).protocol !== 'https:') invalid.push(`${name} must use HTTPS`) } catch { invalid.push(`${name} must be a valid URL`) } }
 }
