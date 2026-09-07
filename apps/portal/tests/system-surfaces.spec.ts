@@ -98,6 +98,14 @@ test('legacy launch pad converges on the authoritative mission intake', async ({
   await expect(page.getByRole('heading', { name:'Engineer the launch brief.' })).toBeVisible()
 })
 
+test('taxonomy-first mission URLs converge on conversational intake', async ({ page }) => {
+  for (const legacyPath of ['/new-mission/industry', '/new-mission/deliverable?mission=legacy', '/new-mission/style?mission=legacy', '/new-mission/intake?mission=legacy', '/new-mission/brief?mission=legacy']) {
+    await page.goto(legacyPath)
+    await expect(page).toHaveURL(/\/new-mission$/)
+    await expect(page.getByRole('heading', { name: 'Engineer the launch brief.' })).toBeVisible()
+  }
+})
+
 test('New Mission opens advanced branded intake and hands off to Mission Control', async ({ page }) => {
   await page.goto('/dashboard')
   await page.getByRole('link', { name:/New Mission/ }).click()

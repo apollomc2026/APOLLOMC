@@ -17,7 +17,7 @@ import {
 
 const navItems = [
   { href: '/dashboard', label: 'Missions', icon: LayoutDashboard },
-  { href: '/new-mission/industry', label: 'Launch New', icon: Plus },
+  { href: '/new-mission', label: 'Launch New', icon: Plus },
   { href: '/files', label: 'Files', icon: FolderOpen },
 ]
 
