@@ -136,3 +136,44 @@ test('New Mission opens advanced branded intake and hands off to Mission Control
   await expect(page.locator('.mc-panel-heading h2')).not.toHaveText('Mission strategy pending')
   await expect(page.locator('.mc-aura').filter({ hasText:'authority' }).getByText('75')).toBeVisible()
 })
+
+test('advanced intake hands evidence-derived readiness and specification version to Mission Control', async ({ page }) => {
+  let interpretedSpecification: Record<string, unknown> | null = null
+  await page.route('**/api/mission-control/interpret', async route => {
+    const response = await route.fetch()
+    const body = await response.json()
+    interpretedSpecification = body.specification
+    await route.fulfill({ response, json: { ...body, conversation_id: 'mission-evidence', specification_version: 1, readiness: 58 } })
+  })
+  await page.route('**/api/mission-control/evidence', async route => {
+    expect(interpretedSpecification).not.toBeNull()
+    await route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        specification: {
+          ...interpretedSpecification,
+          sources: [{ id: 'evidence-1', name: 'site-notes.txt', status: 'verified' }],
+        },
+        specification_version: 2,
+        readiness: 82,
+      }),
+    })
+  })
+
+  await page.goto('/new-mission')
+  await page.getByLabel('What must be accomplished?').fill('Prepare a field operations proposal grounded in the attached verified site notes.')
+  await page.getByLabel('Add available evidence').setInputFiles({
+    name: 'site-notes.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('Verified site access and inspection scope.'),
+  })
+  await page.getByRole('button', { name:/Initialize controlled mission/ }).click()
+
+  await expect(page).toHaveURL(/\/dashboard$/)
+  await expect(page.getByText('82%')).toBeVisible()
+  await expect(page.getByRole('heading', { name:/Evidence record/ })).toContainText('1')
+  await expect(page.getByText('site-notes.txt')).toBeVisible()
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('apollo:mission-control:v1') ?? '{}'))
+  expect(stored).toMatchObject({ readiness: 82, specificationVersion: 2, conversationId: 'mission-evidence' })
+})

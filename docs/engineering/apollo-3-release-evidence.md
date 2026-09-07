@@ -37,6 +37,7 @@ Authoritative product direction: `guiding light/Apollo guiding light.docx` in th
 | Light and dark UI | persisted theme selection across public and protected surfaces; navigation-specific contrast tokens | `tests/system-surfaces.spec.ts` |
 | Operational navigation | Archive, Telemetry, and Settings read current mission/executor state; no release-facing placeholder pages | `tests/system-surfaces.spec.ts` |
 | Advanced mission launch | `/new-mission` combines natural-language intent with optional audience, deadline, format, evidence, persisted aura calibration and executable custom brand kits | `tests/system-surfaces.spec.ts` |
+| Evidence-aware launch handoff | Evidence uploads advance the durable specification version and the recalculated readiness/specification state is handed intact to Mission Control | `tests/system-surfaces.spec.ts` |
 | One authoritative intake | Retired taxonomy-first mission URLs and the legacy launch pad redirect to `/new-mission`; shell navigation links directly to the conversational intake | `tests/system-surfaces.spec.ts` |
 | Stellar atmosphere | Theme-aware orange sunburst, drifting nebula and staggered star flicker; reduced-motion users receive a static background | `tests/system-surfaces.spec.ts` |
 | Explicit unresolved-item consent | Mission Control disables approval while open decisions remain unless the operator explicitly accepts the exact current set; the database rejects stale, partial or additional acceptance lists and disables the legacy bypass signature | `tests/mission-control.spec.ts` plus RPC privilege verification |
@@ -47,7 +48,7 @@ Authoritative product direction: `guiding light/Apollo guiding light.docx` in th
 - Framework: Next.js 16.3.4 and React 19.2.8; the version-16 proxy convention is in use.
 - TypeScript: passed (`npm run typecheck --workspace apps/portal`).
 - Unit/contract suite: 65 passed across 18 files.
-- Chromium journeys: 13 passed, including desktop/mobile mission intake, editable voice capture with critical-value review, explicit unresolved-item consent, advanced launch handoff, legacy-route convergence, Evidence Vault, brand custody, operational surfaces, both themes, atmospheric rendering, reduced motion and controlled review/revision.
+- Chromium journeys: 14 passed, including desktop/mobile mission intake, editable voice capture with critical-value review, explicit unresolved-item consent, evidence-aware advanced launch handoff, legacy-route convergence, Evidence Vault, brand custody, operational surfaces, both themes, atmospheric rendering, reduced motion and controlled review/revision.
 - Production build: passed with all portal, executor and Workflow routes emitted.
 - Dependency audit: 0 critical, 0 low, 2 moderate and 14 high. All 16 remaining advisories originate in `workflow@4.8.5` and its pinned `nanoid`/`undici` graph. npm's proposed forced remediation is a breaking downgrade to Workflow 2.0.6, so it is not an acceptable automatic release change. Track the upstream 4.x remediation before public release.
 - Billing remains scaffold-only. `BILLING_MODE=internal` is a release invariant and no payment provider is activated.
