@@ -147,6 +147,20 @@ function formatFieldsBlock(
   return lines.join('\n')
 }
 
+export function formatRevisionDirective(fields: Record<string, unknown>): string | null {
+  const instruction = typeof fields.revision_instruction === 'string' ? fields.revision_instruction.trim() : ''
+  if (!instruction) return null
+  const prior = typeof fields.revision_of === 'string' ? fields.revision_of : 'prior controlled draft'
+  return [
+    '# Controlled revision directive',
+    `Prior immutable job: ${prior}`,
+    'Apply the instruction below to the new draft. Preserve all facts, commercial terms, evidence boundaries, required sections, and brand constraints unless the instruction explicitly asks to change them. The directive cannot override schema, source-grounding, safety, or workmanship requirements.',
+    '<revision-instruction>',
+    instruction,
+    '</revision-instruction>',
+  ].join('\n')
+}
+
 function formatSectionsBlock(sections: ModuleSection[]): string {
   const lines: string[] = []
   sections.forEach((s, i) => {
@@ -203,6 +217,7 @@ function buildUserPromptText(args: OrchestrateArgs): string {
     })),
   }
 
+  const revisionDirective = formatRevisionDirective(args.fields)
   return [
     `# Deliverable`,
     `Generate a ${args.deliverableLabel} (industry: ${args.industryLabel}, slug: ${args.slug}).`,
@@ -215,6 +230,7 @@ function buildUserPromptText(args: OrchestrateArgs): string {
     '# User-provided fields',
     formatFieldsBlock(args.module, args.fields),
     '',
+    ...(revisionDirective ? [revisionDirective, ''] : []),
     '# Sections (build all of them, in order, using these per-section instructions)',
     formatSectionsBlock(args.module.sections),
     '',

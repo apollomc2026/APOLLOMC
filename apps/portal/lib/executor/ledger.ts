@@ -33,7 +33,7 @@ export async function createJob(order: DocumentWorkOrder) {
 }
 
 function canonicalOrder(order: DocumentWorkOrder) {
-  return JSON.stringify({ ...order, sources: order.sources.map(source => ({ source_id: source.source_id, name: source.name, media_type: source.media_type, content_sha256: source.content_sha256, sensitivity: source.sensitivity })) })
+  return JSON.stringify({ ...order, created_at: undefined, sources: order.sources.map(source => ({ source_id: source.source_id, name: source.name, media_type: source.media_type, content_sha256: source.content_sha256, sensitivity: source.sensitivity })) })
 }
 
 export async function getJob(jobId: string) {

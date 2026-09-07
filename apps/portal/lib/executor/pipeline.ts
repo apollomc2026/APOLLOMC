@@ -117,6 +117,8 @@ export async function renderAndStorePdf(order: DocumentWorkOrder, contentHtml: s
     generation_notes: '',
   }
   const now = new Date()
+  const requestedVersion = Number(order.fields.artifact_version ?? 1)
+  const artifactVersion = Number.isSafeInteger(requestedVersion) && requestedVersion > 0 ? requestedVersion : 1
   const stamp = now.toISOString().slice(0, 10)
   const pdf = await buildPdf({
     template,
@@ -157,7 +159,7 @@ export async function renderAndStorePdf(order: DocumentWorkOrder, contentHtml: s
     storage_file_id: drive.fileId,
     storage_parent_id: drive.parentId,
     web_view_url: drive.webViewLink,
-    version: 1,
+    version: artifactVersion,
     content_sha256: digest,
     mime_type: 'application/pdf',
     source_engine_id: 'apollo-documents',

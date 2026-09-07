@@ -4,6 +4,7 @@ import { interpretMission } from '../lib/mission-control/interpreter'
 import { getModule } from '../lib/apollo/packages-loader'
 import { buildRevisionOrder } from '../lib/mission-control/revision'
 import { createMissionFact } from '../lib/mission-control/contracts'
+import { formatRevisionDirective } from '../lib/apollo/orchestrate'
 
 const ids = { specificationId: '11111111-1111-4111-8111-111111111111', specificationHash: 'a'.repeat(64), conversationId: '22222222-2222-4222-8222-222222222222', requestedBy: '33333333-3333-4333-8333-333333333333', driveFolderId: 'drive-folder', now: new Date('2026-09-06T12:00:00Z') }
 
@@ -48,7 +49,19 @@ describe('approved specification compiler', () => {
       expect(first.work_order_id).toBe(second.work_order_id)
       expect(first.work_order_id).not.toBe(compiled.order.work_order_id)
       expect(first.fields.revision_of).toBe(compiled.order.work_order_id)
+      expect(first.fields.artifact_version).toBe(2)
+      const next = buildRevisionOrder(first, 'Restore the commercial table and retain the concise summary.')
+      expect(next.fields.artifact_version).toBe(3)
+      expect(next.fields.revision_of).toBe(first.work_order_id)
     }
+  })
+
+  it('places review instructions inside the constrained generation context', () => {
+    const directive = formatRevisionDirective({ revision_of: 'job-v1', revision_instruction: 'Tighten the executive summary while preserving price and scope.' })
+    expect(directive).toContain('Prior immutable job: job-v1')
+    expect(directive).toContain('Tighten the executive summary while preserving price and scope.')
+    expect(directive).toContain('cannot override schema, source-grounding, safety, or workmanship requirements')
+    expect(formatRevisionDirective({})).toBeNull()
   })
 
   it('binds verified evidence and its integrity hash into the execution identity', () => {
