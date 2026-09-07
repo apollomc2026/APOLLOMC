@@ -64,4 +64,14 @@ describe('approved specification compiler', () => {
       expect(withEvidence.order.work_order_id).not.toBe(without.order.work_order_id)
     }
   })
+
+  it('blocks execution when user and evidence values conflict', () => {
+    const specification = interpretMission('Send a proposal to Acme Facilities for $18,500 before October 15, 2026.').specification
+    specification.approval.status = 'approved'
+    for (const field of getModule('proposal')!.required_fields) specification.content.facts.push(createMissionFact({ key: field.key, label: field.label, value: `Confirmed ${field.label}`, source: 'user', confidence: 1 }))
+    specification.content.facts = specification.content.facts.map(fact => fact.key === 'pricing_detail' ? { ...fact, verification_state: 'conflict', conflicts: [{ value: fact.value, normalized_value: fact.normalized_value, source: fact.source, source_reference: fact.source_reference }, { value: '$19,250', normalized_value: '$19,250', source: 'evidence', source_reference: 'evidence-3' }] } : fact)
+    const result = compileApprovedSpecification({ specification, ...ids })
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.missing).toContainEqual(expect.objectContaining({ key: 'pricing_detail', reason: expect.stringMatching(/Conflicting values/) }))
+  })
 })

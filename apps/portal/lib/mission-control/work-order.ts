@@ -14,7 +14,7 @@ export function uuidFromDigest(digest: string, offset = 0) {
 }
 
 function factMap(specification: DeliverableSpecification): Record<string, string> {
-  return Object.fromEntries(specification.content.facts.filter(fact => fact.source === 'user' || fact.source === 'evidence' || fact.confidence >= .75).map(fact => [fact.key, fact.value]))
+  return Object.fromEntries(specification.content.facts.filter(fact => fact.verification_state !== 'conflict' && (fact.source === 'user' || fact.source === 'evidence' || fact.confidence >= .75)).map(fact => [fact.key, fact.value]))
 }
 
 export function executionFields(spec: DeliverableSpecification, now = new Date()): Record<string, unknown> {
@@ -33,8 +33,10 @@ export function executionFields(spec: DeliverableSpecification, now = new Date()
 export function executionGaps(spec: DeliverableSpecification, now = new Date()) {
   const documentModule = getModule(spec.artifact.recommended_type)
   if (!documentModule) return [{ key: 'deliverable', label: 'Supported deliverable', reason: 'The recommendation is not mapped to an active document module.' }]
+  const conflicts = spec.content.facts.filter(fact => fact.verification_state === 'conflict').map(fact => ({ key: fact.key, label: fact.label, reason: 'Conflicting values must be resolved before controlled execution.' }))
   const fields = executionFields(spec, now)
-  return documentModule.required_fields.filter(field => fields[field.key] === undefined || fields[field.key] === null || String(fields[field.key]).trim() === '').map(field => ({ key: field.key, label: field.label, reason: 'Required by the selected specialist document module.' }))
+  const missing = documentModule.required_fields.filter(field => fields[field.key] === undefined || fields[field.key] === null || String(fields[field.key]).trim() === '').map(field => ({ key: field.key, label: field.label, reason: 'Required by the selected specialist document module.' }))
+  return [...conflicts, ...missing.filter(gap => !conflicts.some(conflict => conflict.key === gap.key))]
 }
 
 export function compileApprovedSpecification(input: {

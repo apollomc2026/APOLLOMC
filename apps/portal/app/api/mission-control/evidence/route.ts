@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { deleteFromS3, getPresignedUrl, uploadToS3 } from '@/lib/s3/client'
 import { evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractEvidenceFacts } from '@/lib/mission-control/evidence'
 import { executionGaps } from '@/lib/mission-control/work-order'
-import { createMissionFact, specificationProvenance, type DeliverableSpecification } from '@/lib/mission-control/contracts'
+import { createMissionFact, mergeMissionFacts, specificationProvenance, type DeliverableSpecification } from '@/lib/mission-control/contracts'
 
 const ALLOWED = new Set(['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv', 'text/plain', 'image/png', 'image/jpeg'])
 const MAX_BYTES = 20 * 1024 * 1024
@@ -70,16 +70,22 @@ export async function POST(request: Request) {
   let specificationVersion: number | null = null; let readiness: number | null = null
   if (prior?.schema_version === '1.0') {
     const normalizedPriorFacts = prior.content.facts.map(fact => createMissionFact(fact))
-    const mergedFacts = [...new Map([...normalizedPriorFacts, ...extractedFacts].map(fact => [fact.key, fact])).values()]
+    const mergedFacts = mergeMissionFacts(normalizedPriorFacts, extractedFacts)
+    const hasConflict = mergedFacts.some(fact => fact.verification_state === 'conflict' && extractedFacts.some(extracted => extracted.key === fact.key))
+    const effectiveStatus = hasConflict ? 'conflict' as const : extractionStatus
+    if (hasConflict) {
+      const conflictUpdate = await db.from('apollo_conversation_evidence').update({ extraction_status: effectiveStatus }).eq('id', id).eq('user_id', allowed.user.userId)
+      if (conflictUpdate.error) return NextResponse.json({ error: conflictUpdate.error.message }, { status: 500 })
+    }
     const priorProvenance = prior.provenance ?? specificationProvenance(prior.content.facts, new Date().toISOString())
-    const specification: DeliverableSpecification = { ...prior, sources: [...prior.sources.filter(source => source.id !== id), { id, name: file.name, status: extractionStatus }], content: { ...prior.content, facts: mergedFacts }, approval: { status: 'draft', approved_by: null, approved_at: null, unresolved_items_accepted: [] }, provenance: specificationProvenance(mergedFacts, priorProvenance.created_at, priorProvenance.model_versions) }
+    const specification: DeliverableSpecification = { ...prior, sources: [...prior.sources.filter(source => source.id !== id), { id, name: file.name, status: effectiveStatus }], content: { ...prior.content, facts: mergedFacts }, approval: { status: 'draft', approved_by: null, approved_at: null, unresolved_items_accepted: [] }, provenance: specificationProvenance(mergedFacts, priorProvenance.created_at, priorProvenance.model_versions) }
     const gaps = executionGaps(specification)
     readiness = gaps.length ? Math.min(70, Math.max(50, mergedFacts.length * 8)) : 82
     specification.approval.status = readiness >= 75 ? 'ready' : 'draft'
     const committed = await db.rpc('apollo_commit_evidence_specification', { p_conversation_id: conversationId, p_specification: specification, p_content_hash: createHash('sha256').update(JSON.stringify(specification)).digest('hex'), p_readiness: readiness, p_status: specification.approval.status })
     if (committed.error) return NextResponse.json({ error: committed.error.message }, { status: 500 })
     specificationVersion = Number(committed.data)
-    return NextResponse.json({ id, name: file.name, status: inserted.data.extraction_status, facts: extractedFacts, specification, specification_version: specificationVersion, readiness }, { status: 201 })
+    return NextResponse.json({ id, name: file.name, status: effectiveStatus, facts: extractedFacts, specification, specification_version: specificationVersion, readiness }, { status: 201 })
   }
   return NextResponse.json({ id, name: file.name, status: inserted.data.extraction_status, facts: extractedFacts, specification_version: specificationVersion, readiness }, { status: 201 })
 }

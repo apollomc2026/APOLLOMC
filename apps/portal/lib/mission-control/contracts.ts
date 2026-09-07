@@ -18,6 +18,36 @@ export interface MissionFact {
   sensitivity: Sensitivity
   last_editor: string
   updated_at: string
+  conflicts?: Array<{ value: string; normalized_value: string | null; source: FactSource; source_reference: string | null }>
+}
+
+function comparableFactValue(fact: MissionFact): string {
+  return (fact.normalized_value ?? fact.value).normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase()
+}
+
+export function mergeMissionFacts(priorFacts: MissionFact[], incomingFacts: MissionFact[], now = new Date()): MissionFact[] {
+  const merged = new Map(priorFacts.map(fact => [fact.key, createMissionFact(fact, now)]))
+  for (const incomingValue of incomingFacts) {
+    const incoming = createMissionFact(incomingValue, now)
+    const prior = merged.get(incoming.key)
+    if (!prior || comparableFactValue(prior) === comparableFactValue(incoming)) {
+      merged.set(incoming.key, incoming)
+      continue
+    }
+    const candidates = [
+      ...(prior.conflicts ?? [{ value: prior.value, normalized_value: prior.normalized_value, source: prior.source, source_reference: prior.source_reference }]),
+      { value: incoming.value, normalized_value: incoming.normalized_value, source: incoming.source, source_reference: incoming.source_reference },
+    ]
+    merged.set(incoming.key, {
+      ...prior,
+      verification_state: 'conflict',
+      confidence: Math.min(prior.confidence, incoming.confidence),
+      last_editor: 'apollo',
+      updated_at: now.toISOString(),
+      conflicts: [...new Map(candidates.map(candidate => [`${candidate.source}:${candidate.source_reference ?? ''}:${candidate.normalized_value ?? candidate.value}`, candidate])).values()],
+    })
+  }
+  return [...merged.values()]
 }
 
 export interface SpecificationProvenance {
