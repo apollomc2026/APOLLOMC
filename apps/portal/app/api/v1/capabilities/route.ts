@@ -16,7 +16,7 @@ export async function GET() {
     service_version: process.env.VERCEL_GIT_COMMIT_SHA ?? 'development',
     health: driveReady ? 'healthy' : 'degraded',
     asynchronous: true,
-    supports_callbacks: true,
+    supports_callbacks: false,
     supports_cancellation: true,
     formats: ['pdf'],
     maximum_sensitivity: 'confidential',
@@ -27,6 +27,7 @@ export async function GET() {
       ready: driveReady,
       lifecycle: 'draft',
       exact_folder_required: true,
+      per_user_connection_required: true,
     },
   })
 }
