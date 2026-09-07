@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Task, Mission } from '@/lib/types/database'
 import { CheckCircle, Loader2, Clock, AlertCircle, ArrowRight } from 'lucide-react'
@@ -22,7 +22,7 @@ export default function MissionStatus({ missionId }: Props) {
   const [mission, setMission] = useState<Mission | null>(null)
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     async function load() {
@@ -88,7 +88,7 @@ export default function MissionStatus({ missionId }: Props) {
       supabase.removeChannel(taskChannel)
       supabase.removeChannel(missionChannel)
     }
-  }, [missionId])
+  }, [missionId, supabase])
 
   if (loading) {
     return <div className="animate-pulse h-96 bg-[var(--apollo-navy)] rounded-xl" />
