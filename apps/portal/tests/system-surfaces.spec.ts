@@ -153,6 +153,25 @@ test('a blocked workflow retries as a new auditable execution job', async ({ pag
   expect(retryBody).toEqual({ job_id: 'job-blocked' })
 })
 
+test('the review workbench recovers a blocked run without labeling it as a draft', async ({ page }) => {
+  let conversationLoads = 0
+  await page.route('**/api/mission-control/conversation?id=mission-demo', async route => {
+    conversationLoads += 1
+    const response = await route.fetch()
+    const body = await response.json()
+    const blocked = { ...body.job, id:'job-blocked-review', state:conversationLoads > 1?'queued':'blocked', artifacts:[], artifact_url:null, missing_inputs:['google_drive_connection'] }
+    await route.fulfill({ response, json: { ...body, job:blocked, jobs:[blocked,...body.jobs] } })
+  })
+  await page.route('**/api/mission-control/retry', async route => {
+    await route.fulfill({ status:202, contentType:'application/json', body:JSON.stringify({ job_id:'job-review-retry', state:'queued' }) })
+  })
+  await page.goto('/review/mission-demo')
+  await expect(page.getByText('EXECUTION 3')).toBeVisible()
+  const retryRequest = page.waitForRequest(request => request.url().endsWith('/api/mission-control/retry') && request.method() === 'POST')
+  await page.getByRole('button', { name:'Retry resolved execution' }).click()
+  expect((await retryRequest).postDataJSON()).toEqual({ job_id:'job-blocked-review' })
+})
+
 test('legacy launch pad converges on the authoritative mission intake', async ({ page }) => {
   await page.goto('/launch-pad?industry=legal&payloads=proposal')
   await expect(page).toHaveURL(/\/new-mission$/)
