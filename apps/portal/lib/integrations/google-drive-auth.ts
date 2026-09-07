@@ -36,8 +36,23 @@ export function decryptDriveToken(input: { encrypted_refresh_token: string; toke
   ]).toString('utf8')
 }
 
-export function createDriveOAuthState(userId: string) {
-  const payload = Buffer.from(JSON.stringify({ userId, nonce: randomBytes(16).toString('base64url'), exp: Date.now() + 10 * 60_000 })).toString('base64url')
+export function normalizeDriveReturnTo(value?: string | null) {
+  if (!value) return '/settings'
+  try {
+    const candidate = new URL(value, 'https://apollo.invalid')
+    if (candidate.origin !== 'https://apollo.invalid') return '/settings'
+    if (candidate.pathname === '/settings') return '/settings'
+    if (candidate.pathname !== '/dashboard') return '/settings'
+    const mission = candidate.searchParams.get('mission')
+    if (!mission || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(mission)) return '/dashboard'
+    return `/dashboard?mission=${encodeURIComponent(mission)}`
+  } catch {
+    return '/settings'
+  }
+}
+
+export function createDriveOAuthState(userId: string, returnTo?: string | null) {
+  const payload = Buffer.from(JSON.stringify({ userId, returnTo: normalizeDriveReturnTo(returnTo), nonce: randomBytes(16).toString('base64url'), exp: Date.now() + 10 * 60_000 })).toString('base64url')
   const signature = createHmac('sha256', key()).update(payload).digest('base64url')
   return `${payload}.${signature}`
 }
@@ -48,11 +63,12 @@ export function verifyDriveOAuthState(state: string, expectedUserId: string) {
   const expected = createHmac('sha256', key()).update(payload).digest()
   const actual = Buffer.from(supplied, 'base64url')
   if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) throw new Error('Invalid Google Drive connection state')
-  const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as { userId?: string; exp?: number }
+  const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as { userId?: string; returnTo?: string; exp?: number }
   if (decoded.userId !== expectedUserId || !decoded.exp || decoded.exp < Date.now()) throw new Error('Expired Google Drive connection state')
+  return { returnTo: normalizeDriveReturnTo(decoded.returnTo) }
 }
 
-export function googleDriveAuthorizationUrl(userId: string) {
+export function googleDriveAuthorizationUrl(userId: string, returnTo?: string | null) {
   const redirectUri = `${required('NEXT_PUBLIC_APP_URL').replace(/\/$/, '')}/api/integrations/google-drive/callback`
   const params = new URLSearchParams({
     client_id: required('GOOGLE_DRIVE_CLIENT_ID'),
@@ -62,7 +78,7 @@ export function googleDriveAuthorizationUrl(userId: string) {
     access_type: 'offline',
     prompt: 'consent',
     include_granted_scopes: 'true',
-    state: createDriveOAuthState(userId),
+    state: createDriveOAuthState(userId, returnTo),
   })
   return `https://accounts.google.com/o/oauth2/v2/auth?${params}`
 }

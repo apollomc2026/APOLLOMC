@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   const auth = await requireAllowedUser()
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
   const url = new URL(request.url)
-  if (url.searchParams.get('action') === 'connect') return NextResponse.redirect(googleDriveAuthorizationUrl(auth.user.userId))
+  if (url.searchParams.get('action') === 'connect') return NextResponse.redirect(googleDriveAuthorizationUrl(auth.user.userId, url.searchParams.get('returnTo')))
   return NextResponse.json(await driveConnectionStatus(auth.user.userId))
 }
 
