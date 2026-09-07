@@ -66,7 +66,7 @@ test('archive, telemetry, and settings are operational surfaces', async ({ page 
   await page.goto('/archive')
   await expect(page.getByRole('heading', { name:'Mission Archive' })).toBeVisible()
   await expect(page.getByRole('heading', { name:'Field Operations Proposal' })).toBeVisible()
-  await expect(page.getByRole('link', { name:'Review and revise' })).toHaveAttribute('href', '/dashboard?mission=mission-demo')
+  await expect(page.getByRole('link', { name:'Review and revise' })).toHaveAttribute('href', '/review/mission-demo')
   await page.goto('/telemetry')
   await expect(page.getByRole('heading', { name:'Telemetry' })).toBeVisible()
   await expect(page.getByText('Average readiness')).toBeVisible()
@@ -75,6 +75,21 @@ test('archive, telemetry, and settings are operational surfaces', async ({ page 
   await expect(page.getByRole('button', { name:'Connect Google Drive' })).toBeVisible()
   await page.getByRole('button', { name:'Save preferences' }).click()
   await expect(page.getByRole('button', { name:'Saved' })).toBeVisible()
+})
+
+test('delivered work opens a controlled review and accepts scoped revision directives', async ({ page }) => {
+  await page.goto('/review/mission-demo')
+  await expect(page.getByRole('heading', { level:1, name:'Field Operations Proposal' })).toBeVisible()
+  await expect(page.getByText('SHA-256 · 9df2632a3b61…')).toBeVisible()
+  await expect(page.getByRole('heading', { name:'Nothing overwritten.' })).toBeVisible()
+  await expect(page.getByText('DRAFT 2')).toBeVisible()
+  await expect(page.getByText('DRAFT 1')).toBeVisible()
+  await page.getByLabel('Revision target').selectOption('Executive decision brief')
+  await page.getByLabel('Describe the required change').fill('Make the approval request more decisive while preserving every commercial term.')
+  const revision = page.waitForResponse(response => response.url().endsWith('/api/mission-control/revise') && response.status() === 202)
+  await page.getByRole('button', { name:'Create new draft version' }).click()
+  await revision
+  await expect(page.getByLabel('Describe the required change')).toHaveValue('')
 })
 
 test('legacy launch pad converges on the authoritative mission intake', async ({ page }) => {

@@ -1,299 +1,70 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import type { Task, Mission, Output } from '@/lib/types/database'
-import {
-  Edit3,
-  RefreshCw,
-  Save,
-  Loader2,
-  CheckCircle2,
-  Eye,
-} from 'lucide-react'
+import Link from 'next/link'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ArrowLeft, CheckCircle2, ExternalLink, FileClock, LoaderCircle, RefreshCw, ShieldCheck, TriangleAlert } from 'lucide-react'
+import type { DeliverableSpecification } from '@/lib/mission-control/contracts'
 
-interface Props {
-  missionId: string
-}
+type Artifact = { title?:string; web_view_url?:string; version?:number; content_sha256?:string }
+type Job = { id:string; state:string; progress_percent:number; message:string; artifacts:Artifact[]; revision_of:string|null; revision_instruction:string|null; missing_inputs:string[]; error_code:string|null; created_at:string; completed_at:string|null }
+type ReviewRecord = { conversation_id:string; specification_version:number; specification:DeliverableSpecification; job:Job|null; jobs:Job[] }
 
-export default function ReviewWindow({ missionId }: Props) {
-  const [mission, setMission] = useState<Mission | null>(null)
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [output, setOutput] = useState<Output | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [editingSection, setEditingSection] = useState<string | null>(null)
-  const [editContent, setEditContent] = useState('')
-  const [rebuildSection, setRebuildSection] = useState<string | null>(null)
-  const [rebuildFeedback, setRebuildFeedback] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [rebuilding, setRebuilding] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const supabase = createClient()
+const terminal = new Set(['delivered','failed','blocked','cancelled'])
+
+export default function ReviewWindow({ missionId }:{ missionId:string }) {
+  const [record,setRecord] = useState<ReviewRecord|null>(null)
+  const [loading,setLoading] = useState(true)
+  const [working,setWorking] = useState(false)
+  const [error,setError] = useState('')
+  const [section,setSection] = useState('Entire document')
+  const [instruction,setInstruction] = useState('')
+
+  const load = useCallback(async () => {
+    const response = await fetch(`/api/mission-control/conversation?id=${encodeURIComponent(missionId)}`, { cache:'no-store' })
+    const body = await response.json()
+    if (!response.ok) throw new Error(body.error ?? 'Review record could not be loaded')
+    setRecord(body)
+  },[missionId])
 
   useEffect(() => {
-    async function load() {
-      const { data: m } = await supabase
-        .from('missions')
-        .select('*')
-        .eq('id', missionId)
-        .single()
-      setMission(m)
+    const timer = window.setTimeout(() => { void load().catch(cause => setError(cause instanceof Error?cause.message:'Review record could not be loaded')).finally(()=>setLoading(false)) },0)
+    return () => window.clearTimeout(timer)
+  },[load])
+  const jobState = record?.job?.state
+  useEffect(() => {
+    if (!jobState || terminal.has(jobState)) return
+    const timer = window.setInterval(() => void load().catch(()=>undefined),3000)
+    return () => window.clearInterval(timer)
+  },[jobState,load])
 
-      const { data: t } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('mission_id', missionId)
-        .order('section_index', { ascending: true })
-      setTasks(t || [])
+  const specification = record?.specification
+  const latest = record?.job
+  const artifact = latest?.artifacts?.[0]
+  const sections = useMemo(() => ['Entire document',...(specification?.content.sections ?? [])],[specification])
 
-      const { data: o } = await supabase
-        .from('outputs')
-        .select('*')
-        .eq('mission_id', missionId)
-        .order('version', { ascending: false })
-        .limit(1)
-        .single()
-      setOutput(o)
-
-      if (o?.id && o.s3_key_preview) {
-        const res = await fetch(`/api/delivery/preview?output=${encodeURIComponent(o.id)}`)
-        if (res.ok) {
-          const data = await res.json()
-          setPreviewUrl(data.url)
-        }
-      }
-
-      setLoading(false)
-    }
-    load()
-  }, [missionId])
-
-  async function handleSaveEdit(taskId: string) {
-    setSaving(true)
+  async function revise() {
+    if (!latest || latest.state !== 'delivered' || !instruction.trim() || working) return
+    setWorking(true); setError('')
     try {
-      const task = tasks.find((t) => t.id === taskId)
-      if (!task) return
-
-      const updatedJson = {
-        ...(task.output_json || {}),
-        content: editContent,
-      }
-
-      await supabase
-        .from('tasks')
-        .update({ output_json: updatedJson })
-        .eq('id', taskId)
-
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.id === taskId ? { ...t, output_json: updatedJson } : t
-        )
-      )
-      setEditingSection(null)
-    } finally {
-      setSaving(false)
-    }
+      const scoped = section === 'Entire document' ? instruction.trim() : `Revise only the “${section}” section: ${instruction.trim()}`
+      const response = await fetch('/api/mission-control/revise',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({job_id:latest.id,instruction:scoped})})
+      const body = await response.json()
+      if (!response.ok || !body.job_id) throw new Error(body.error ?? 'Revision could not be accepted')
+      setInstruction(''); setSection('Entire document')
+      await load()
+    } catch(cause) { setError(cause instanceof Error?cause.message:'Revision could not be accepted') }
+    finally { setWorking(false) }
   }
 
-  async function handleRebuild(taskId: string) {
-    if (!rebuildFeedback.trim()) return
-    setRebuilding(true)
+  if (loading) return <div className="review-loading"><LoaderCircle/><span>Opening controlled review record…</span></div>
+  if (!record || !specification) return <div className="review-empty"><TriangleAlert/><h1>Review unavailable</h1><p>{error || 'This mission record could not be found.'}</p><Link href="/archive">Return to archive</Link></div>
 
-    try {
-      await supabase
-        .from('tasks')
-        .update({
-          status: 'queued',
-          error_message: null,
-          output_raw: null,
-          output_json: null,
-          checkpoint_s3_key: null,
-        })
-        .eq('id', taskId)
-
-      await supabase.from('events').insert({
-        mission_id: missionId,
-        event_type: 'section_rebuild_requested',
-        event_data: {
-          task_id: taskId,
-          feedback: rebuildFeedback,
-        },
-      })
-
-      setRebuildSection(null)
-      setRebuildFeedback('')
-
-      fetch('/api/jobs', { method: 'POST' })
-    } finally {
-      setRebuilding(false)
-    }
-  }
-
-  if (loading) {
-    return <div className="animate-pulse h-96 bg-[var(--apollo-navy)] rounded-xl" />
-  }
-
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Left panel — Preview */}
-      <div className="bg-[var(--apollo-navy)] border border-[var(--apollo-border)] rounded-xl p-6">
-        <h3 className="font-semibold mb-4 flex items-center gap-2">
-          <Eye className="w-4 h-4 text-[var(--apollo-text-muted)]" />
-          Preview
-        </h3>
-        {previewUrl ? (
-          <img
-            src={previewUrl}
-            alt="Document preview"
-            className="w-full rounded-lg border border-[var(--apollo-border)]"
-          />
-        ) : (
-          <div className="aspect-[8.5/11] bg-[var(--apollo-surface)] rounded-lg flex items-center justify-center text-[var(--apollo-text-faint)]">
-            <p className="text-center text-sm px-8">
-              Preview will be available once the document is compiled.
-              Review individual sections below.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Right panel — Sections */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <p className="label-caps">Sections</p>
-          <button
-            disabled
-            title="External billing activates only after internal system acceptance"
-            className="flex items-center gap-2 px-5 py-2.5 bg-[var(--apollo-surface)] text-[var(--apollo-text-muted)] font-semibold rounded-lg border border-[var(--apollo-border)] cursor-not-allowed"
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            Internal review mode
-          </button>
-        </div>
-
-        {tasks.map((task) => {
-          const content =
-            typeof task.output_json === 'object' && task.output_json
-              ? (task.output_json as Record<string, unknown>).content as string || JSON.stringify(task.output_json)
-              : ''
-          const isEditing = editingSection === task.id
-          const isRebuilding = rebuildSection === task.id
-
-          return (
-            <div
-              key={task.id}
-              className="bg-[var(--apollo-navy)] border border-[var(--apollo-border)] rounded-xl p-5"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium text-sm">
-                  {task.section_key?.replace(/_/g, ' ')}
-                </h4>
-                <div className="flex items-center gap-2">
-                  {task.status === 'running' && (
-                    <Loader2 className="w-4 h-4 text-[var(--apollo-warning)] animate-spin" />
-                  )}
-                  {task.status === 'complete' && (
-                    <>
-                      <button
-                        onClick={() => {
-                          setEditingSection(task.id)
-                          setEditContent(content)
-                          setRebuildSection(null)
-                        }}
-                        className="text-xs px-2 py-1 bg-[var(--apollo-surface)] hover:bg-[var(--apollo-border)] rounded transition-colors flex items-center gap-1"
-                      >
-                        <Edit3 className="w-3 h-3" />
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => {
-                          setRebuildSection(task.id)
-                          setEditingSection(null)
-                        }}
-                        className="text-xs px-2 py-1 bg-[var(--apollo-surface)] hover:bg-[var(--apollo-border)] rounded transition-colors flex items-center gap-1"
-                      >
-                        <RefreshCw className="w-3 h-3" />
-                        Rebuild
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {!isEditing && !isRebuilding && task.status === 'complete' && (
-                <p className="text-sm text-[var(--apollo-text-muted)] whitespace-pre-wrap line-clamp-6">
-                  {content}
-                </p>
-              )}
-
-              {isEditing && (
-                <div className="space-y-3">
-                  <textarea
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    rows={8}
-                    className="w-full px-3 py-2 bg-[var(--apollo-surface)] border border-[var(--apollo-border)] rounded-lg text-sm text-white resize-none focus:outline-none focus:ring-2 focus:ring-[var(--apollo-blue)]"
-                  />
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleSaveEdit(task.id)}
-                      disabled={saving}
-                      className="text-xs px-3 py-1.5 bg-[var(--apollo-success)] hover:bg-[var(--apollo-success)]/80 rounded transition-colors flex items-center gap-1"
-                    >
-                      <Save className="w-3 h-3" />
-                      {saving ? 'Saving...' : 'Save'}
-                    </button>
-                    <button
-                      onClick={() => setEditingSection(null)}
-                      className="text-xs px-3 py-1.5 bg-[var(--apollo-surface)] hover:bg-[var(--apollo-border)] rounded transition-colors"
-                    >
-                      Abort
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {isRebuilding && (
-                <div className="space-y-3">
-                  <p className="text-xs text-[var(--apollo-text-muted)]">
-                    Describe what should change about this section:
-                  </p>
-                  <textarea
-                    value={rebuildFeedback}
-                    onChange={(e) => setRebuildFeedback(e.target.value)}
-                    rows={3}
-                    placeholder="e.g., Make the tone more formal, add specific metrics..."
-                    className="w-full px-3 py-2 bg-[var(--apollo-surface)] border border-[var(--apollo-border)] rounded-lg text-sm text-white resize-none focus:outline-none focus:ring-2 focus:ring-[var(--apollo-blue)]"
-                  />
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleRebuild(task.id)}
-                      disabled={rebuilding || !rebuildFeedback.trim()}
-                      className="text-xs px-3 py-1.5 bg-[var(--apollo-warning)] hover:bg-[var(--apollo-warning)]/80 disabled:opacity-50 rounded transition-colors flex items-center gap-1 text-black"
-                    >
-                      <RefreshCw className={`w-3 h-3 ${rebuilding ? 'animate-spin' : ''}`} />
-                      {rebuilding ? 'Rebuilding...' : 'Rebuild Section'}
-                    </button>
-                    <button
-                      onClick={() => setRebuildSection(null)}
-                      className="text-xs px-3 py-1.5 bg-[var(--apollo-surface)] hover:bg-[var(--apollo-border)] rounded transition-colors"
-                    >
-                      Abort
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {task.status === 'queued' && (
-                <p className="text-sm text-[var(--apollo-text-faint)] italic">Waiting to build...</p>
-              )}
-              {task.status === 'running' && (
-                <p className="text-sm text-[var(--apollo-warning)] italic">Building this section...</p>
-              )}
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
+  return <main className="review-workbench">
+    <header className="review-header"><div><Link href="/archive"><ArrowLeft/> Mission ledger</Link><span>CONTROLLED REVIEW · SPECIFICATION V{record.specification_version}</span><h1>{specification.mission.title || specification.artifact.recommended_family}</h1><p>{specification.mission.objective}</p></div><div className={`review-state ${latest?.state ?? 'pending'}`}><i/><span>Execution state</span><strong>{latest?.state?.replace(/-/g,' ') ?? 'not started'}</strong></div></header>
+    <section className="review-grid">
+      <article className="review-artifact"><div className="review-panel-title"><span>01 / CONTROLLED DRAFT</span>{artifact?.content_sha256?<small>SHA-256 · {artifact.content_sha256.slice(0,12)}…</small>:null}</div><div className="review-document"><FileClock/><h2>{artifact?.title ?? specification.artifact.recommended_type.replace(/-/g,' ')}</h2><p>{latest?.message ?? 'No document run has been started for this specification.'}</p>{latest && !terminal.has(latest.state)?<div className="review-progress"><i style={{width:`${latest.progress_percent}%`}}/><span>{latest.progress_percent}%</span></div>:null}{artifact?.web_view_url?<a href={artifact.web_view_url} target="_blank" rel="noreferrer"><ExternalLink/> Open draft in customer Drive</a>:null}{latest?.state==='blocked'?<div className="review-warning"><TriangleAlert/> Resolve in Settings: {latest.missing_inputs.join(', ') || latest.error_code || 'execution dependency'}</div>:null}</div><div className="review-boundary"><ShieldCheck/><p><strong>Draft boundary enforced.</strong> Review instructions create a new immutable job and preserve every prior artifact.</p></div></article>
+      <article className="review-controls"><div className="review-panel-title"><span>02 / REVISION DIRECTIVE</span><small>{specification.content.sections.length} planned sections</small></div><label><span>Revision target</span><select value={section} onChange={event=>setSection(event.target.value)}>{sections.map(item=><option key={item}>{item}</option>)}</select></label><label><span>Describe the required change</span><textarea value={instruction} onChange={event=>setInstruction(event.target.value)} rows={8} placeholder="State what must change, what must remain intact, and the evidence or outcome the revision must satisfy…"/></label><button onClick={()=>void revise()} disabled={latest?.state!=='delivered'||!instruction.trim()||working}>{working?<LoaderCircle className="spin"/>:<RefreshCw/>}{working?'Starting controlled revision':'Create new draft version'}</button>{latest?.state!=='delivered'?<p className="review-hint">Revision controls unlock after the current draft reaches delivered status.</p>:null}{error?<p className="review-error">{error}</p>:null}</article>
+    </section>
+    <section className="review-history"><header><div><span>03 / VERSION LINEAGE</span><h2>Nothing overwritten.</h2></div><p>Every revision remains attributable to its source job and instruction.</p></header>{record.jobs.length?<div>{record.jobs.map((job,index)=><article key={job.id}><div className="review-version-icon">{job.state==='delivered'?<CheckCircle2/>:<FileClock/>}</div><div><span>DRAFT {record.jobs.length-index}</span><strong>{job.revision_instruction || 'Approved specification execution'}</strong><small>{new Date(job.created_at).toLocaleString()} · {job.id.slice(0,8)}</small></div><em>{job.state.replace(/-/g,' ')}</em>{job.artifacts[0]?.web_view_url?<a href={job.artifacts[0].web_view_url} target="_blank" rel="noreferrer"><ExternalLink/> Open</a>:null}</article>)}</div>:<div className="review-no-history">No execution versions exist yet.</div>}</section>
+  </main>
 }

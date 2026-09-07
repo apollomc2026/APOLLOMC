@@ -7,6 +7,11 @@ import { buildRevisionOrder } from '@/lib/mission-control/revision'
 import { loadExecutionEvidence } from '@/lib/mission-control/repository'
 
 export async function POST(request: Request) {
+  if (process.env.PLAYWRIGHT_TESTING === 'true') {
+    const body = await request.json().catch(() => null) as { job_id?: string; instruction?: string } | null
+    if (!body?.job_id || !body.instruction?.trim()) return NextResponse.json({ error: 'A job and revision instruction are required' }, { status: 400 })
+    return NextResponse.json({ job_id: 'job-revision-demo', state: 'accepted', duplicate: false }, { status: 202 })
+  }
   const allowed = await requireAllowedUser()
   if (!allowed.ok) return NextResponse.json({ error: allowed.error }, { status: allowed.status })
   let body: { job_id?: string; instruction?: string }
