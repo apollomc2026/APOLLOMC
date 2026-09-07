@@ -1,6 +1,53 @@
 import { NextResponse } from 'next/server'
 import { requireAllowedUser } from '@/lib/apollo/auth'
+import { createMissionFact, specificationProvenance, type DeliverableSpecification } from '@/lib/mission-control/contracts'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+
+const fixtureTimestamp = '2026-09-06T11:45:00.000Z'
+const reviewFacts = [createMissionFact({
+  key: 'value',
+  label: 'Program value',
+  value: '$18,500',
+  normalized_value: '18500 USD',
+  source: 'user',
+  source_reference: 'conversation:mission-demo',
+  capture_method: 'user',
+  confidence: 1,
+  verification_state: 'stated',
+  sensitivity: 'confidential',
+  last_editor: 'test-user',
+  updated_at: fixtureTimestamp,
+}, new Date(fixtureTimestamp))]
+
+const reviewSpecification = {
+  schema_version: '1.0',
+  mission: {
+    title: 'Field Operations Proposal',
+    objective: 'Secure approval for a controlled inspection, remediation, and verification program.',
+    desired_decision_or_action: 'Authorize the proposed field operations program.',
+    stakes: 'high',
+    deadline: '2026-10-15',
+  },
+  audience: { primary: ['Facilities director'], secondary: ['Procurement'], knowledge_level: 'expert', relationship: 'prospective client', sensitivities: ['Operational continuity'] },
+  artifact: { recommended_family: 'Commercial proposal', recommended_type: 'field-service-proposal', alternatives_considered: ['Statement of work'], rationale: 'A decision-ready proposal best supports authorization.', required_formats: ['pdf'] },
+  aura: { authority: 90, warmth: 42, technicality: 74, restraint: 82, urgency: 55, prestige: 86, visual_density: 48, keywords: ['decisive', 'evidence-led'], avoid: ['generic claims'] },
+  content: {
+    facts: reviewFacts,
+    claims: ['The proposed program reduces operational uncertainty.'],
+    requirements: ['Define inspection, remediation, and verification phases.'],
+    sections: ['Executive decision brief', 'Existing conditions', 'Execution methodology', 'Commercial terms', 'Authorization'],
+    commercial_terms: { investment: '$18,500' },
+    obligations: ['Maintain site access'],
+    assumptions: ['Work occurs during approved windows'],
+    exclusions: ['Unidentified concealed conditions'],
+    open_questions: [],
+  },
+  sources: [{ id: 'ev-demo', name: 'site-survey.pdf', status: 'verified' }],
+  specialist: { playbook_id: 'field-service-proposal', playbook_version: '1.0', risk_flags: [], required_checks: ['Commercial reconciliation', 'Evidence traceability'] },
+  presentation: { brand_profile_id: null, design_profile_id: 'apollo-executive', layout_genre: 'aerospace-industrial', logo_policy: 'cover-and-footer', signature_policy: 'authorization-block', watermark_policy: 'none' },
+  approval: { status: 'approved', approved_by: 'test-user', approved_at: fixtureTimestamp, unresolved_items_accepted: [] },
+  provenance: specificationProvenance(reviewFacts, fixtureTimestamp),
+} satisfies DeliverableSpecification
 
 const reviewFixture = {
   conversation_id: 'mission-demo',
@@ -8,30 +55,7 @@ const reviewFixture = {
   specification_version: 3,
   status: 'submitted',
   turns: [],
-  specification: {
-    schema_version: '1.0',
-    mission: {
-      title: 'Field Operations Proposal',
-      objective: 'Secure approval for a controlled inspection, remediation, and verification program.',
-      desired_decision_or_action: 'Authorize the proposed field operations program.',
-      stakes: 'high',
-      deadline: '2026-10-15',
-    },
-    audience: { primary: ['Facilities director'], secondary: ['Procurement'], knowledge_level: 'expert', relationship: 'prospective client', sensitivities: ['Operational continuity'] },
-    artifact: { recommended_family: 'Commercial proposal', recommended_type: 'field-service-proposal', alternatives_considered: ['Statement of work'], rationale: 'A decision-ready proposal best supports authorization.', required_formats: ['pdf'] },
-    aura: { authority: 90, warmth: 42, technicality: 74, restraint: 82, urgency: 55, prestige: 86, visual_density: 48, keywords: ['decisive', 'evidence-led'], avoid: ['generic claims'] },
-    content: {
-      facts: [{ key: 'value', label: 'Program value', value: '$18,500', source: 'user', confidence: 1 }],
-      claims: ['The proposed program reduces operational uncertainty.'],
-      requirements: ['Define inspection, remediation, and verification phases.'],
-      sections: ['Executive decision brief', 'Existing conditions', 'Execution methodology', 'Commercial terms', 'Authorization'],
-      commercial_terms: { investment: '$18,500' }, obligations: ['Maintain site access'], assumptions: ['Work occurs during approved windows'], exclusions: ['Unidentified concealed conditions'], open_questions: [],
-    },
-    sources: [{ id: 'ev-demo', name: 'site-survey.pdf', status: 'verified' }],
-    specialist: { playbook_id: 'field-service-proposal', playbook_version: '1.0', risk_flags: [], required_checks: ['Commercial reconciliation', 'Evidence traceability'] },
-    presentation: { brand_profile_id: null, design_profile_id: 'apollo-executive', layout_genre: 'aerospace-industrial', logo_policy: 'cover-and-footer', signature_policy: 'authorization-block', watermark_policy: 'none' },
-    approval: { status: 'approved', approved_by: 'test-user', approved_at: '2026-09-06T11:45:00.000Z' },
-  },
+  specification: reviewSpecification,
   job: {
     id: 'job-demo', state: 'delivered', progress_percent: 100, message: 'Document deliverables are ready',
     artifacts: [{ title: 'Field Operations Proposal', web_view_url: 'https://drive.google.com/', version: 2, content_sha256: '9df2632a3b613339110db848462d2994f751818317a42b282e97057381d11c45' }],

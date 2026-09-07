@@ -78,6 +78,20 @@ test('archive, telemetry, and settings are operational surfaces', async ({ page 
 })
 
 test('delivered work opens a controlled review and accepts scoped revision directives', async ({ page }) => {
+  const conversationResponse = await page.request.get('/api/mission-control/conversation?id=mission-demo')
+  expect(conversationResponse.ok()).toBe(true)
+  const conversation = await conversationResponse.json()
+  expect(conversation.specification.content.facts[0]).toMatchObject({
+    normalized_value: '18500 USD',
+    source_reference: 'conversation:mission-demo',
+    capture_method: 'user',
+    verification_state: 'stated',
+    sensitivity: 'confidential',
+  })
+  expect(conversation.specification.approval.unresolved_items_accepted).toEqual([])
+  expect(conversation.specification.provenance.fact_origins).toEqual([
+    { key: 'value', source: 'user', source_reference: 'conversation:mission-demo' },
+  ])
   await page.goto('/review/mission-demo')
   await expect(page.getByRole('heading', { level:1, name:'Field Operations Proposal' })).toBeVisible()
   await expect(page.getByText('SHA-256 · 9df2632a3b61…')).toBeVisible()
