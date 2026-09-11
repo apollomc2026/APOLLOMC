@@ -5,6 +5,7 @@ describe('APOLLO operator allowlist', () => {
   it('always admits the exact APOLLO bootstrap operator identity', () => {
     expect(isAllowedApolloEmail('support@apollomc.ai', '')).toBe(true)
     expect(isAllowedApolloEmail(' SUPPORT@APOLLOMC.AI ', '')).toBe(true)
+    expect(isAllowedApolloEmail('jsargent124@gmail.com', '')).toBe(true)
   })
 
   it('admits configured exact identities without granting domain-wide access', () => {

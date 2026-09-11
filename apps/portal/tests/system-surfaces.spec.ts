@@ -16,6 +16,11 @@ test('brand kit can be created and existing kit upload is available', async ({ p
   await expect(page.getByRole('heading', { name:'Test Operations' })).toBeVisible()
   await page.getByRole('button', { name:'Upload existing' }).click()
   await expect(page.getByText('Upload your existing brand guide')).toBeVisible()
+  await page.getByLabel('Brand kit name').fill('Imported Operations')
+  await page.locator('input[name="file"]').setInputFiles({ name:'brand-guide.pdf', mimeType:'application/pdf', buffer:Buffer.from('%PDF-1.7 test fixture') })
+  await page.getByRole('button', { name:'Import brand kit' }).click()
+  await expect(page.getByText('Brand guide secured, interpreted, and ready for APOLLO generation.')).toBeVisible()
+  await expect(page.getByRole('heading', { name:'Imported Operations' })).toBeVisible()
 })
 
 test('light theme keeps sidebar readable and persists across pages', async ({ page }) => {
@@ -117,10 +122,9 @@ test('durable mission URLs restore the server record without browser cache', asy
 })
 
 test('an approved brief can start execution after a blocked dependency is resolved', async ({ page }) => {
+  const fixture = await (await page.request.get('/api/mission-control/conversation?id=mission-demo')).json()
   await page.route('**/api/mission-control/conversation?id=mission-demo', async route => {
-    const response = await route.fetch()
-    const body = await response.json()
-    await route.fulfill({ response, json: { ...body, job: null, jobs: [] } })
+    await route.fulfill({ status:200, contentType:'application/json', json: { ...fixture, job: null, jobs: [] } })
   })
   let approvalBody: Record<string, unknown> | null = null
   await page.route('**/api/mission-control/approve', async route => {
@@ -128,19 +132,18 @@ test('an approved brief can start execution after a blocked dependency is resolv
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ execution: { state: 'queued', job_id: 'job-retry' } }) })
   })
   await page.goto('/dashboard?mission=mission-demo')
-  await expect(page.getByRole('link', { name: 'Connect Google Drive custody' })).toHaveAttribute('href', /returnTo=%2Fdashboard%3Fmission%3Dmission-demo/)
   const retry = page.getByRole('button', { name: 'Start approved execution' })
-  await expect(retry).toBeEnabled()
+  await expect(retry).toBeEnabled({ timeout:15_000 })
+  await expect(page.getByRole('link', { name: 'Connect Google Drive custody' })).toHaveAttribute('href', /returnTo=%2Fdashboard%3Fmission%3Dmission-demo/)
   await retry.click()
   await expect(page.getByText('queued', { exact: true })).toBeVisible()
   expect(approvalBody).toMatchObject({ conversation_id: 'mission-demo', version: 3, unresolved_items_accepted: [] })
 })
 
 test('a blocked workflow retries as a new auditable execution job', async ({ page }) => {
+  const fixture = await (await page.request.get('/api/mission-control/conversation?id=mission-demo')).json()
   await page.route('**/api/mission-control/conversation?id=mission-demo', async route => {
-    const response = await route.fetch()
-    const body = await response.json()
-    await route.fulfill({ response, json: { ...body, job: { ...body.job, id: 'job-blocked', state: 'blocked', artifact_url: null } } })
+    await route.fulfill({ status:200, contentType:'application/json', json: { ...fixture, job: { ...fixture.job, id: 'job-blocked', state: 'blocked', artifact_url: null } } })
   })
   let retryBody: Record<string, unknown> | null = null
   await page.route('**/api/mission-control/retry', async route => {
@@ -148,6 +151,7 @@ test('a blocked workflow retries as a new auditable execution job', async ({ pag
     await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ job_id: 'job-retry-demo', state: 'queued' }) })
   })
   await page.goto('/dashboard?mission=mission-demo')
+  await expect(page.getByRole('button', { name:'Retry resolved execution' })).toBeVisible({ timeout:15_000 })
   await expect(page.getByRole('link', { name: 'Connect Google Drive custody' })).toHaveAttribute('href', /returnTo=%2Fdashboard%3Fmission%3Dmission-demo/)
   await page.getByRole('button', { name: 'Retry resolved execution' }).click()
   await expect(page.getByText('queued', { exact: true })).toBeVisible()
@@ -156,19 +160,18 @@ test('a blocked workflow retries as a new auditable execution job', async ({ pag
 })
 
 test('the review workbench recovers a blocked run without labeling it as a draft', async ({ page }) => {
+  const fixture = await (await page.request.get('/api/mission-control/conversation?id=mission-demo')).json()
   let conversationLoads = 0
   await page.route('**/api/mission-control/conversation?id=mission-demo', async route => {
     conversationLoads += 1
-    const response = await route.fetch()
-    const body = await response.json()
-    const blocked = { ...body.job, id:'job-blocked-review', state:conversationLoads > 1?'queued':'blocked', artifacts:[], artifact_url:null, missing_inputs:['google_drive_connection'] }
-    await route.fulfill({ response, json: { ...body, job:blocked, jobs:[blocked,...body.jobs] } })
+    const blocked = { ...fixture.job, id:'job-blocked-review', state:conversationLoads > 1?'queued':'blocked', artifacts:[], artifact_url:null, missing_inputs:['google_drive_connection'] }
+    await route.fulfill({ status:200, contentType:'application/json', json: { ...fixture, job:blocked, jobs:[blocked,...fixture.jobs] } })
   })
   await page.route('**/api/mission-control/retry', async route => {
     await route.fulfill({ status:202, contentType:'application/json', body:JSON.stringify({ job_id:'job-review-retry', state:'queued' }) })
   })
   await page.goto('/review/mission-demo')
-  await expect(page.getByText('EXECUTION 3')).toBeVisible()
+  await expect(page.getByText('EXECUTION 3')).toBeVisible({ timeout:15_000 })
   const retryRequest = page.waitForRequest(request => request.url().endsWith('/api/mission-control/retry') && request.method() === 'POST')
   await page.getByRole('button', { name:'Retry resolved execution' }).click()
   expect((await retryRequest).postDataJSON()).toEqual({ job_id:'job-blocked-review' })

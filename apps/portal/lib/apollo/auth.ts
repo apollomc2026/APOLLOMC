@@ -11,7 +11,7 @@ export type AuthResult =
   | { ok: true; user: AuthedUser }
   | { ok: false; status: 401 | 403; error: string }
 
-const APOLLO_BOOTSTRAP_EMAILS = ['support@apollomc.ai'] as const
+const APOLLO_BOOTSTRAP_EMAILS = ['support@apollomc.ai', 'jsargent124@gmail.com'] as const
 
 function allowlist(configured = process.env.APOLLO_ALLOWED_EMAILS || ''): string[] {
   return [...new Set([...APOLLO_BOOTSTRAP_EMAILS, ...configured
@@ -36,7 +36,7 @@ export async function requireAllowedUser(): Promise<AuthResult> {
   }
 
   if (!isAllowedApolloEmail(user.email)) {
-    return { ok: false, status: 403, error: 'Not authorized — email not on allowlist' }
+    return { ok: false, status: 403, error: `Signed in as ${user.email}, but this exact identity is not authorized for APOLLO` }
   }
 
   return {

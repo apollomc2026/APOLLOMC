@@ -3,6 +3,10 @@ import { NextResponse } from 'next/server'
 import { requireAllowedUser } from '@/lib/apollo/auth'
 import { createClient } from '@/lib/supabase/server'
 import { deleteFromS3, uploadToS3 } from '@/lib/s3/client'
+import { evidenceMagicMatches } from '@/lib/mission-control/evidence'
+import { interpretBrandGuide } from '@/lib/mission-control/brand-guide'
+
+export const maxDuration = 60
 
 const HEX = /^#[0-9a-f]{6}$/i
 const UPLOAD_TYPES = new Set(['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/png','image/jpeg'])
@@ -28,9 +32,14 @@ export async function POST(request:Request) {
     if (!(file instanceof File) || name.length < 2) return NextResponse.json({ error:'A kit name and source file are required' }, { status:400 })
     if (!UPLOAD_TYPES.has(file.type) || file.size > 20 * 1024 * 1024) return NextResponse.json({ error:'Upload a PDF, DOCX, PNG, or JPG up to 20 MB' }, { status:415 })
     if (test) return NextResponse.json({ brand_kit:{ id:'brand-upload', name, source:'uploaded', source_file_name:file.name, created_at:new Date().toISOString() } }, { status:201 })
-    const bytes = Buffer.from(await file.arrayBuffer()); const id = randomUUID(); const safe = file.name.replace(/[^a-zA-Z0-9._-]/g,'_'); const key = `brand-kits/${auth.user.userId}/${id}-${safe}`
+    const bytes = Buffer.from(await file.arrayBuffer())
+    if (!evidenceMagicMatches(bytes, file.type)) return NextResponse.json({ error:'The file contents do not match the declared format' }, { status:415 })
+    const id = randomUUID(); const safe = file.name.replace(/[^a-zA-Z0-9._-]/g,'_'); const key = `brand-kits/${auth.user.userId}/${id}-${safe}`
     await uploadToS3(key, bytes, file.type)
-    const db = await createClient(); const result = await db.from('apollo_brand_kits').insert({ id, user_id:auth.user.userId, name, source:'uploaded', source_file_name:file.name, source_storage_key:key, source_sha256:createHash('sha256').update(bytes).digest('hex'), source_mime_type:file.type }).select().single()
+    let profile
+    try { profile = await interpretBrandGuide(bytes, file.type, file.name) }
+    catch (error) { await deleteFromS3(key).catch(() => undefined); return NextResponse.json({ error:error instanceof Error ? error.message : 'Brand guide could not be interpreted' }, { status:422 }) }
+    const db = await createClient(); const result = await db.from('apollo_brand_kits').insert({ id, user_id:auth.user.userId, name, source:'uploaded', source_file_name:file.name, source_storage_key:key, source_sha256:createHash('sha256').update(bytes).digest('hex'), source_mime_type:file.type, ...profile }).select().single()
     if (result.error) { await deleteFromS3(key).catch(() => undefined); return NextResponse.json({ error:result.error.message }, { status:500 }) }
     return NextResponse.json({ brand_kit:result.data }, { status:201 })
   }

@@ -12,6 +12,8 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
+    // Route-interception tests must not be bypassed by the app's service worker.
+    serviceWorkers: 'block',
   },
   projects: [
     {

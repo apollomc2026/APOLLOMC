@@ -23,7 +23,7 @@ export function BrandKitManager() {
   async function upload(event:FormEvent<HTMLFormElement>) {
     event.preventDefault(); setSaving(true); setMessage('')
     const formElement = event.currentTarget; const form = new FormData(formElement)
-    try { const response = await fetch('/api/mission-control/brand-kits', { method:'POST', body:form }); const result = await response.json(); if (!response.ok) throw new Error(result.error); setKits(current => [result.brand_kit, ...current]); setMessage('Existing brand kit secured in Apollo custody.'); formElement.reset() } catch (e) { setMessage(e instanceof Error ? e.message : 'Brand kit could not be uploaded') } finally { setSaving(false) }
+    try { const response = await fetch('/api/mission-control/brand-kits', { method:'POST', body:form }); const result = await response.json(); if (!response.ok) throw new Error(result.error); setKits(current => [result.brand_kit, ...current]); setMessage('Brand guide secured, interpreted, and ready for APOLLO generation.'); formElement.reset() } catch (e) { setMessage(e instanceof Error ? e.message : 'Brand kit could not be uploaded') } finally { setSaving(false) }
   }
 
   return <div className="brand-layout">
@@ -38,7 +38,7 @@ export function BrandKitManager() {
       </form> : <form className="brand-form brand-upload" onSubmit={upload}>
         <label>Brand kit name<input required minLength={2} name="name" placeholder="Name this kit" /></label>
         <label className="brand-drop"><FileUp/><strong>Upload your existing brand guide</strong><span>PDF, DOCX, PNG, or JPG · 20 MB maximum</span><input required name="file" type="file" accept=".pdf,.docx,.png,.jpg,.jpeg" /></label>
-        <button className="brand-submit" disabled={saving}><ShieldCheck/>{saving ? 'Securing kit…':'Import brand kit'}</button>
+        <button className="brand-submit" disabled={saving}><ShieldCheck/>{saving ? 'Securing and interpreting…':'Import brand kit'}</button>
       </form>}
       {message && <p className="brand-message" role="status">{message}</p>}
     </section>
