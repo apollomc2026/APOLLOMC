@@ -7,7 +7,7 @@ const fixture = {
     { id:'mission-demo', title:'Field Operations Proposal', status:'submitted', readiness:100, current_spec_version:3, updated_at:'2026-09-06T12:00:00.000Z', job:{ id:'job-demo', state:'delivered', progress_percent:100, message:'Document deliverables are ready', artifacts:[{ title:'Field Operations Proposal', web_view_url:'#', version:1 }] } },
     { id:'mission-active', title:'Site Inspection Report', status:'calibrating', readiness:62, current_spec_version:2, updated_at:'2026-09-06T11:00:00.000Z', job:null },
   ],
-  metrics:{ total:2, active:1, delivered:1, failed:0, average_readiness:81 },
+  metrics:{ total:2, active:1, delivered:1, failed:0, average_progress:81 },
 }
 
 export async function GET() {
@@ -23,7 +23,9 @@ export async function GET() {
   const latestJobs = new Map<string, typeof jobs.data[number]>()
   for (const job of jobs.data ?? []) if (!latestJobs.has(job.conversation_id)) latestJobs.set(job.conversation_id, job)
   const missions = (conversations.data ?? []).map(mission => { const job = latestJobs.get(mission.id); return { ...mission, job:job ? { id:job.id, state:job.state, progress_percent:job.progress_percent, message:job.status_message, artifacts:job.artifacts ?? [] } : null } })
-  const delivered = (jobs.data ?? []).filter(job => job.state === 'delivered').length
-  const failed = (jobs.data ?? []).filter(job => ['failed','blocked','cancelled'].includes(job.state)).length
-  return NextResponse.json({ missions, metrics:{ total:missions.length, active:missions.filter(m => !['archived','submitted'].includes(m.status)).length, delivered, failed, average_readiness:missions.length ? Math.round(missions.reduce((sum,m) => sum + m.readiness, 0) / missions.length) : 0 } })
+  const delivered = missions.filter(mission => mission.job?.state === 'delivered').length
+  const failed = missions.filter(mission => mission.job && ['failed','blocked','cancelled'].includes(mission.job.state)).length
+  const active = missions.filter(mission => mission.status !== 'archived' && mission.job?.state !== 'delivered' && !['failed','blocked','cancelled'].includes(mission.job?.state ?? '')).length
+  const averageProgress = missions.length ? Math.round(missions.reduce((sum,mission) => sum + (mission.job?.progress_percent ?? mission.readiness), 0) / missions.length) : 0
+  return NextResponse.json({ missions, metrics:{ total:missions.length, active, delivered, failed, average_progress:averageProgress } })
 }
