@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { interpretMission } from '../lib/mission-control/interpreter'
-import { applyClaudeInterpretation, applyExplicitMissionDirectives } from '../lib/mission-control/ai-interpreter'
+import { applyClaudeInterpretation, applyExplicitMissionDirectives, promoteAcknowledgedGap } from '../lib/mission-control/ai-interpreter'
+import { executionGaps } from '../lib/mission-control/work-order'
 
 describe('mission interpreter', () => {
   it('starts from natural language and recommends a field-service proposal', () => {
@@ -73,5 +74,15 @@ describe('mission interpreter', () => {
     const result = applyExplicitMissionDirectives(interpreted, 'Use the approved APOLLO Mission Control brand and logo.')
     expect(result.specification.presentation.brand_profile_id).toBe('apollo')
     expect(result.specification.content.open_questions).not.toContain('What exact brand_profile_id should be applied?')
+  })
+
+  it('promotes an acknowledged answer to the active specialist gap', () => {
+    const prior = interpretMission('Create a fixed-fee proposal for Acme Facilities at $18,750.').specification
+    const activeQuestion = prior.content.open_questions[0]
+    const activeGap = executionGaps(prior)[0]
+    const patch = promoteAcknowledgedGap({ acknowledgement: 'Received and resolved the requested methodology.' }, 'Phase 1: Inspect. Phase 2: Report.', prior)
+    const result = applyClaudeInterpretation({ ...interpretMission('Create a fixed-fee proposal for Acme Facilities at $18,750.'), specification: prior, question: activeQuestion }, patch)
+    expect(result.specification.content.facts).toEqual(expect.arrayContaining([expect.objectContaining({ key: activeGap.key, source: 'user', confidence: 1 })]))
+    expect(result.question).not.toBe(activeQuestion)
   })
 })

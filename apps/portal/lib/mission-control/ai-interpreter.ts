@@ -18,6 +18,19 @@ interface ClaudeInterpretation {
   question_reason?: string
 }
 
+export function promoteAcknowledgedGap(patch: ClaudeInterpretation, text: string, prior?: DeliverableSpecification): ClaudeInterpretation {
+  const activeGap = prior ? executionGaps(prior)[0] : null
+  const acknowledgement = safeText(patch.acknowledgement, 1200)
+  if (!activeGap || !acknowledgement || !/\b(?:received|resolved|confirmed|provided|captured)\b/i.test(acknowledgement)) return patch
+  return {
+    ...patch,
+    stated_facts: [
+      ...(patch.stated_facts ?? []).filter(fact => fact.key !== activeGap.key),
+      { key: activeGap.key, label: activeGap.label, value: text.trim() },
+    ],
+  }
+}
+
 const SYSTEM = `You are APOLLO's mission interpreter. Convert a natural professional request into evidence-aware mission state.
 Return one JSON object only. Never invent names, dates, prices, obligations, qualifications, or evidence.
 Put directly stated information in stated_facts. Put interpretations only in inferred_facts with confidence from 0 to 1.
@@ -109,7 +122,7 @@ export async function interpretMissionWithClaude(text: string, prior?: Deliverab
     if (!raw || raw.type !== 'text') return base
     const json = raw.text.match(/\{[\s\S]*\}/)?.[0]
     if (!json) return base
-    const patch = JSON.parse(json) as ClaudeInterpretation
+    const patch = promoteAcknowledgedGap(JSON.parse(json) as ClaudeInterpretation, text, prior)
     const explicit = explicitMissionArtifact(text)
     if (explicit) patch.recommendation = explicit
     const result = applyExplicitMissionDirectives(applyClaudeInterpretation(base, patch), text)
