@@ -5,7 +5,7 @@ test.describe('APOLLO 3 mission control', () => {
     await page.goto('/dashboard')
     const composer = page.getByPlaceholder('Describe what must be accomplished, who it is for, and what you already have…')
     await composer.fill('Prepare a proposal for Acme Facilities for $18,500, due October 15, 2026. The contact is Jordan Lee and our methodology is inspect, remediate, and verify.')
-    await page.getByRole('button', { name: 'Send to APOLLO' }).click()
+    await page.getByRole('button', { name: 'Answer all and continue' }).click()
     await expect(page.getByRole('heading', { name: 'proposal' })).toBeVisible()
     await expect(page.getByText('field service proposal · v1.0')).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Mission definition' })).toBeVisible()
@@ -23,7 +23,7 @@ test.describe('APOLLO 3 mission control', () => {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
     expect(overflow).toBe(false)
     await expect(page.getByRole('heading', { name: 'What are we building?' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Send to APOLLO' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Answer all and continue' })).toBeVisible()
   })
 
   test('voice intake streams into the editable mission draft and flags critical values', async ({ page }) => {
@@ -76,7 +76,7 @@ test.describe('APOLLO 3 mission control', () => {
     }))
     await page.goto('/dashboard')
     await page.getByPlaceholder('Describe what must be accomplished, who it is for, and what you already have…').fill('Build the decision brief')
-    await page.getByRole('button', { name: 'Send to APOLLO' }).click()
+    await page.getByRole('button', { name: 'Answer all and continue' }).click()
     await expect(page.getByRole('button', { name: 'Accept open decisions to approve' })).toBeDisabled()
     await page.getByRole('checkbox', { name: /explicitly accept them as unresolved/ }).check()
     await expect(page.getByRole('button', { name: 'Review and approve brief' })).toBeEnabled()
