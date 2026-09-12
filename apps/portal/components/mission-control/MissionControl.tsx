@@ -47,6 +47,7 @@ export function MissionControl() {
   >({});
   const [operatorInvolvement, setOperatorInvolvement] = useState(50);
   const [launchCountdown, setLaunchCountdown] = useState<number | "LIFTOFF" | null>(null);
+  const [launchPromptDismissed, setLaunchPromptDismissed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
@@ -329,6 +330,8 @@ export function MissionControl() {
         },
       ]);
       setSpecification(result.specification);
+      if (result.readiness >= 75 && result.specification.content.open_questions.length === 0)
+        setLaunchPromptDismissed(false);
       setOperatorInvolvement(
         result.specification.aura.operator_involvement ?? 50,
       );
@@ -375,6 +378,7 @@ export function MissionControl() {
     setAcceptUnresolved(false);
     setDecisionAnswers({});
     setOperatorInvolvement(50);
+    setLaunchPromptDismissed(false);
     setError(null);
     window.localStorage.removeItem(STORAGE_KEY);
     window.history.replaceState(window.history.state, "", "/dashboard");
@@ -801,6 +805,21 @@ export function MissionControl() {
 
   return (
     <div className="mc-workspace">
+      {specification && readiness >= 75 && questions.length === 0 && !jobId && !launchPromptDismissed ? (
+        <div className="mc-launch-ready-overlay" role="dialog" aria-modal="true" aria-labelledby="launch-ready-title">
+          <section>
+            <div className="mc-launch-ready-orbit"><Rocket size={32} /></div>
+            <span>MISSION CALIBRATION COMPLETE</span>
+            <h2 id="launch-ready-title">Ready for launch.</h2>
+            <p>Houston resolved the required intake and prepared the controlled mission brief. One action locks the brief and begins execution.</p>
+            <button className={`mc-approve mc-launch-control${launchCountdown !== null ? " launching" : ""}`} onClick={launchApprovedExecution} disabled={working || launchCountdown !== null}>
+              <Rocket size={18} />
+              <strong aria-live="polite">{launchCountdown !== null ? launchCountdown : "INITIATE LAUNCH"}</strong>
+            </button>
+            <button className="mc-launch-review" type="button" onClick={() => setLaunchPromptDismissed(true)} disabled={working || launchCountdown !== null}>Review mission brief first</button>
+          </section>
+        </div>
+      ) : null}
       <header className="mc-header">
         <div>
           <div className="mc-kicker">
@@ -1238,8 +1257,8 @@ export function MissionControl() {
                 </label>
               ) : null}
               <button
-                className={`mc-approve${specification.approval.status === "approved" && !jobId ? " mc-launch-control" : ""}${launchCountdown !== null ? " launching" : ""}`}
-                onClick={specification.approval.status === "approved" && !jobId ? launchApprovedExecution : approveBrief}
+                className={`mc-approve${readiness >= 75 && questions.length === 0 && !jobId ? " mc-launch-control" : ""}${launchCountdown !== null ? " launching" : ""}`}
+                onClick={readiness >= 75 && questions.length === 0 && !jobId ? launchApprovedExecution : approveBrief}
                 disabled={
                   launchCountdown !== null ||
                   readiness < 75 ||
@@ -1251,6 +1270,8 @@ export function MissionControl() {
                 {specification.approval.status === "approved" && !jobId ? <Rocket size={17} /> : <ShieldCheck size={17} />}
                 <span aria-live="polite">{launchCountdown !== null
                   ? launchCountdown
+                  : readiness >= 75 && questions.length === 0 && !jobId
+                    ? "Initiate Launch"
                   : specification.approval.status === "approved"
                   ? jobId
                     ? `Brief approved · v${specificationVersion || 1} locked`

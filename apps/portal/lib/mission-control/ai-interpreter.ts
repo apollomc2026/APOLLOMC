@@ -42,7 +42,8 @@ export function applyExpertRecommendationMode(patch: ClaudeInterpretation, text:
     { key: 'next_steps_call_to_action', label: 'Next steps / call to action', value: 'Confirm acceptance of scope and commercial terms, execute the controlling agreement, satisfy mobilization requirements, designate the client coordinator, and schedule kickoff.', confidence: .84 },
   ]
   if (Object.keys(specification.content.commercial_terms).length || /fixed[- ]fee/i.test(specification.mission.objective)) recommendations.push({ key: 'pricing_model', label: 'Pricing model', value: 'fixed-fee', confidence: .95 })
-  return { ...patch, acknowledgement: 'Expert recommendation mode applied. I resolved every professional default supported by the mission and preserved genuinely client-specific facts for explicit confirmation.', inferred_facts: [...(patch.inferred_facts ?? []), ...recommendations.filter(fact => !existing.has(fact.key))] }
+  const inferredFacts = Array.isArray(patch.inferred_facts) ? patch.inferred_facts : []
+  return { ...patch, acknowledgement: 'Expert recommendation mode applied. I resolved every professional default supported by the mission and preserved genuinely client-specific facts for explicit confirmation.', inferred_facts: [...inferredFacts, ...recommendations.filter(fact => !existing.has(fact.key))] }
 }
 
 const SYSTEM = `You are APOLLO's mission interpreter. Convert a natural professional request into evidence-aware mission state.

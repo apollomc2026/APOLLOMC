@@ -112,6 +112,16 @@ describe('mission interpreter', () => {
     expect(result.specification.content.open_questions).not.toEqual(expect.arrayContaining([expect.stringContaining('proposed methodology'), expect.stringContaining('risks and mitigations')]))
   })
 
+  it('does not fail expert mode when the model returns malformed inferred facts', () => {
+    const base = interpretMission('Create a fixed-fee proposal for Acme Facilities at $18,750.')
+    const malformed = { inferred_facts: { key: 'unexpected-object' } } as unknown as Parameters<typeof applyExpertRecommendationMode>[0]
+    const patch = applyExpertRecommendationMode(malformed, 'Use your expert recommendations for every unresolved decision.', base.specification)
+    expect(patch.inferred_facts).toEqual(expect.arrayContaining([
+      expect.objectContaining({ key: 'proposed_methodology' }),
+      expect.objectContaining({ key: 'risks_and_mitigations' }),
+    ]))
+  })
+
   it('applies safe defaults automatically when operator involvement is autonomous', () => {
     const base = interpretMission('Create a fixed-fee proposal for Acme Facilities at $18,750.')
     const patch = applyExpertRecommendationMode({}, base.specification.mission.objective, base.specification, true)
