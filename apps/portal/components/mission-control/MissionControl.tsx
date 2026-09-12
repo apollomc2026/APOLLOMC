@@ -73,6 +73,9 @@ export function MissionControl() {
     setConversationId(id);
     setTurns(restored.turns.length ? restored.turns : [opening]);
     setSpecification(restored.specification);
+    setOperatorInvolvement(
+      restored.specification.aura.operator_involvement ?? 50,
+    );
     setReadiness(restored.readiness);
     setSpecificationVersion(restored.specification_version);
     setJobId(restored.job?.id ?? null);
@@ -108,6 +111,9 @@ export function MissionControl() {
         if (!cached) return;
         setTurns(cached.turns.length ? cached.turns : [opening]);
         setSpecification(cached.specification);
+        setOperatorInvolvement(
+          cached.specification?.aura.operator_involvement ?? 50,
+        );
         setReadiness(cached.readiness);
         setConversationId(cached.conversationId ?? null);
         setSpecificationVersion(cached.specificationVersion ?? 0);
@@ -187,11 +193,6 @@ export function MissionControl() {
     artifactUrl,
     decisionAnswers,
   ]);
-
-  useEffect(() => {
-    if (specification)
-      setOperatorInvolvement(specification.aura.operator_involvement ?? 50);
-  }, [specification]);
 
   useEffect(() => {
     if (
@@ -290,6 +291,9 @@ export function MissionControl() {
         },
       ]);
       setSpecification(result.specification);
+      setOperatorInvolvement(
+        result.specification.aura.operator_involvement ?? 50,
+      );
       setReadiness(result.readiness);
       setConversationId(result.conversation_id ?? conversationId);
       setSpecificationVersion(
@@ -331,6 +335,7 @@ export function MissionControl() {
     setDraft("");
     setAcceptUnresolved(false);
     setDecisionAnswers({});
+    setOperatorInvolvement(50);
     setError(null);
     window.localStorage.removeItem(STORAGE_KEY);
     window.history.replaceState(window.history.state, "", "/dashboard");
@@ -419,6 +424,9 @@ export function MissionControl() {
         },
       ]);
       setSpecification(result.specification);
+      setOperatorInvolvement(
+        result.specification.aura.operator_involvement ?? 50,
+      );
       setReadiness(result.readiness);
       setConversationId(result.conversation_id ?? conversationId);
       setSpecificationVersion(
@@ -508,6 +516,9 @@ export function MissionControl() {
       }
       if (additions.length) {
         setSpecification(finalSpecification);
+        setOperatorInvolvement(
+          finalSpecification.aura.operator_involvement ?? 50,
+        );
         setSpecificationVersion(finalVersion);
         setReadiness(finalReadiness);
       }
