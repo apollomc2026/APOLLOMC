@@ -48,6 +48,7 @@ export function applyClaudeInterpretation(base: MissionTurnResult, patch: Claude
   const objective = safeText(patch.objective, 2000)
   const desiredAction = safeText(patch.desired_action, 1000)
   let question = safeText(patch.next_question, 500) ?? base.question
+  let questionReason = safeText(patch.question_reason, 500) ?? base.question_reason
   const recommendation = patch.recommendation ? recommendMissionArtifact(`Create a ${patch.recommendation}`) : null
   const specification: DeliverableSpecification = {
     ...base.specification,
@@ -63,6 +64,7 @@ export function applyClaudeInterpretation(base: MissionTurnResult, patch: Claude
   if (gaps.length) {
     readiness = Math.min(readiness, 70)
     question = gapQuestions[0]
+    questionReason = `${gaps[0].label} is required by the selected document module and cannot be invented.`
   }
   const modelQuestion = safeText(patch.next_question, 500)
   const openQuestions = [...new Set([...gapQuestions, ...(modelQuestion && !gapQuestions.includes(modelQuestion) ? [modelQuestion] : [])])]
@@ -71,7 +73,7 @@ export function applyClaudeInterpretation(base: MissionTurnResult, patch: Claude
   specification.provenance = specificationProvenance([...merged.values()], specification.provenance.created_at, specification.provenance.model_versions)
   if (!gaps.length) question = modelQuestion ?? null
   specification.approval.status = readiness >= 75 ? 'ready' : 'draft'
-  return { ...base, acknowledgement: safeText(patch.acknowledgement, 1200) ?? base.acknowledgement, question, question_reason: safeText(patch.question_reason, 500) ?? base.question_reason, readiness, readiness_state: readiness >= 75 ? 'ready' : readiness >= 50 ? 'calibrating' : 'discovery', specification }
+  return { ...base, acknowledgement: safeText(patch.acknowledgement, 1200) ?? base.acknowledgement, question, question_reason: questionReason, readiness, readiness_state: readiness >= 75 ? 'ready' : readiness >= 50 ? 'calibrating' : 'discovery', specification }
 }
 
 export function applyExplicitMissionDirectives(result: MissionTurnResult, text: string): MissionTurnResult {
