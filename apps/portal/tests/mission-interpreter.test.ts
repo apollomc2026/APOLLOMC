@@ -97,4 +97,15 @@ describe('mission interpreter', () => {
     ]))
     expect(result.specification.content.open_questions).not.toEqual(expect.arrayContaining([expect.stringContaining('proposed methodology'), expect.stringContaining('risks and mitigations')]))
   })
+
+  it('applies safe defaults automatically when operator involvement is autonomous', () => {
+    const base = interpretMission('Create a fixed-fee proposal for Acme Facilities at $18,750.')
+    const patch = applyExpertRecommendationMode({}, base.specification.mission.objective, base.specification, true)
+    const result = applyClaudeInterpretation(base, patch)
+    expect(result.specification.content.facts).toEqual(expect.arrayContaining([
+      expect.objectContaining({ key: 'win_themes', source: 'inferred' }),
+      expect.objectContaining({ key: 'proposed_methodology', source: 'inferred' }),
+    ]))
+    expect(result.specification.content.open_questions).not.toEqual(expect.arrayContaining([expect.stringContaining('win themes'), expect.stringContaining('proposed methodology')]))
+  })
 })

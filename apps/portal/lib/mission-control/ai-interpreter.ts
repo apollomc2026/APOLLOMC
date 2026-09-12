@@ -31,8 +31,8 @@ export function promoteAcknowledgedGap(patch: ClaudeInterpretation, text: string
   }
 }
 
-export function applyExpertRecommendationMode(patch: ClaudeInterpretation, text: string, specification: DeliverableSpecification): ClaudeInterpretation {
-  if (!/^Use your expert recommendations\b/i.test(text.trim())) return patch
+export function applyExpertRecommendationMode(patch: ClaudeInterpretation, text: string, specification: DeliverableSpecification, force = false): ClaudeInterpretation {
+  if (!force && !/^Use your expert recommendations\b/i.test(text.trim())) return patch
   const existing = new Set(specification.content.facts.filter(fact => fact.source === 'user' || fact.source === 'evidence' || fact.confidence >= .75).map(fact => fact.key))
   const recommendations = [
     { key: 'win_themes', label: 'Win themes (3–4)', value: 'Operational clarity; safety-controlled execution; decision-ready prioritization; commercial certainty', confidence: .86 },
@@ -123,9 +123,11 @@ export function applyExplicitMissionDirectives(result: MissionTurnResult, text: 
   }
 }
 
-export async function interpretMissionWithClaude(text: string, prior?: DeliverableSpecification): Promise<MissionTurnResult> {
+export async function interpretMissionWithClaude(text: string, prior?: DeliverableSpecification, operatorInvolvement = prior?.aura.operator_involvement ?? 50): Promise<MissionTurnResult> {
   const base = interpretMission(text, prior)
-  const safeFallback = () => applyExplicitMissionDirectives(applyClaudeInterpretation(base, applyExpertRecommendationMode({}, text, base.specification)), text)
+  base.specification.aura.operator_involvement = operatorInvolvement
+  const autonomous = operatorInvolvement <= 33
+  const safeFallback = () => applyExplicitMissionDirectives(applyClaudeInterpretation(base, applyExpertRecommendationMode({}, text, base.specification, autonomous)), text)
   if (!process.env.ANTHROPIC_API_KEY) return safeFallback()
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -139,7 +141,7 @@ export async function interpretMissionWithClaude(text: string, prior?: Deliverab
     const json = raw.text.match(/\{[\s\S]*\}/)?.[0]
     if (!json) return base
     const parsed = JSON.parse(json) as ClaudeInterpretation
-    const patch = promoteAcknowledgedGap(applyExpertRecommendationMode(parsed, text, base.specification), text, prior)
+    const patch = promoteAcknowledgedGap(applyExpertRecommendationMode(parsed, text, base.specification, autonomous), text, prior)
     const explicit = explicitMissionArtifact(text)
     if (explicit) patch.recommendation = explicit
     const result = applyExplicitMissionDirectives(applyClaudeInterpretation(base, patch), text)

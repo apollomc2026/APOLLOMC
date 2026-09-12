@@ -96,7 +96,7 @@ export function MissionControl() {
   const title = specification?.artifact.recommended_type.replace(/-/g, ' ') ?? 'Mission strategy pending'
   const audience = specification?.audience.primary.join(', ') || 'Not yet confirmed'
   const formats = specification?.artifact.required_formats.join(', ').toUpperCase() || 'Not yet confirmed'
-  const aura = useMemo(() => specification ? Object.entries(specification.aura).filter(([, value]) => typeof value === 'number') as Array<[string, number]> : [], [specification])
+  const aura = useMemo(() => specification ? Object.entries(specification.aura).filter(([key, value]) => key !== 'operator_involvement' && typeof value === 'number') as Array<[string, number]> : [], [specification])
   const driveConnectHref = `/api/integrations/google-drive?action=connect&returnTo=${encodeURIComponent(conversationId ? `/dashboard?mission=${conversationId}` : '/dashboard')}`
 
   async function submit(override?: string) {

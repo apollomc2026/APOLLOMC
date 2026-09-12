@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   const message = body.message?.trim()
   if (!message || message.length > 12_000) return NextResponse.json({ error: 'Message must contain 1 to 12,000 characters' }, { status: 400 })
   if (body.brand_profile_id && !/^(apollo|atlas|on-spot-solutions|habi|metis|themis|kit:[0-9a-f-]{36})$/.test(body.brand_profile_id)) return NextResponse.json({ error:'Brand profile is invalid' }, { status:400 })
-  const auraKeys = ['authority','warmth','technicality','restraint','urgency','prestige','visual_density'] as const
+  const auraKeys = ['authority','warmth','technicality','restraint','urgency','prestige','visual_density','operator_involvement'] as const
   const aura = body.aura ? Object.fromEntries(auraKeys.flatMap(key => Number.isFinite(body.aura?.[key]) ? [[key,Math.max(0,Math.min(100,Number(body.aura![key])))]] : [])) : undefined
   if (process.env.PLAYWRIGHT_TESTING === 'true') {
     const result = interpretMission(message, body.specification ?? undefined)

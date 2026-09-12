@@ -16,7 +16,8 @@ export async function persistMissionTurn(input: {
   aura?: Partial<DeliverableSpecification['aura']>
 }): Promise<MissionTurnResult> {
   const db = await createClient()
-  const result = await interpretMissionWithClaude(input.message, input.prior)
+  const involvement = input.aura?.operator_involvement ?? input.prior?.aura.operator_involvement
+  const result = await interpretMissionWithClaude(input.message, input.prior, involvement)
   const updatedAt = new Date().toISOString()
   const changedKeys = new Set(result.changed_facts.map(fact => fact.key))
   result.specification.content.facts = result.specification.content.facts.map(fact => changedKeys.has(fact.key) && fact.source === 'user' ? { ...fact, last_editor: input.userId, updated_at: updatedAt } : fact)
