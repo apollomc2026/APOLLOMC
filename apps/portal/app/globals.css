@@ -972,6 +972,10 @@ html[data-theme='light'] .lux-home,html[data-theme='light'] .auth-stage{backgrou
   background: var(--glass-md); color: var(--text-primary);
   border-color: var(--glass-border-bright); transform: translateY(-1px);
 }
+.sidebar-telemetry-notices { margin-left:auto; display:flex; align-items:center; gap:5px; }
+.sidebar-telemetry-notices b { min-width:20px; height:20px; padding:0 5px; border-radius:999px; display:grid; place-items:center; color:#fff; font:800 9px var(--font-mono); box-shadow:0 0 14px currentColor; }
+.sidebar-telemetry-notices .failed { background:#d3172f; color:#fff; border:1px solid rgba(255,132,145,.9); box-shadow:0 0 13px rgba(211,23,47,.55); }
+.sidebar-telemetry-notices .ready { background:#128b50; color:#fff; border:1px solid rgba(113,255,181,.8); box-shadow:0 0 13px rgba(18,139,80,.48); }
 
 @media (max-width: 900px) {
   .sidebar { display: none; }
@@ -985,16 +989,18 @@ html[data-theme='light'] .lux-home,html[data-theme='light'] .auth-stage{backgrou
 .mc-job textarea { width: 100%; resize: vertical; border: 1px solid rgba(141, 166, 180, .28); background: rgba(2, 13, 20, .72); color: #edfaff; padding: 10px; font: inherit; }
 .mc-job button { border: 1px solid rgba(112, 212, 255, .45); background: rgba(31, 123, 164, .2); color: #d7f2ff; padding: 9px 12px; cursor: pointer; }
 .mc-job button:disabled { opacity: .45; cursor: not-allowed; }
-.mc-failure-banner { margin: 0 0 18px; padding: 18px 20px; border: 1px solid rgba(255, 139, 43, .62); border-left: 4px solid #ff8b2b; background: linear-gradient(110deg, rgba(105, 27, 13, .92), rgba(32, 20, 20, .94) 64%, rgba(16, 47, 68, .9)); box-shadow: 0 14px 44px rgba(117, 38, 12, .24), inset 0 1px rgba(255,255,255,.08); display: flex; align-items: center; justify-content: space-between; gap: 22px; }
+.mc-failure-banner { margin: 0 0 18px; padding: 18px 20px; border: 1px solid rgba(255, 71, 91, .72); border-left: 5px solid #f51f3f; border-radius:14px; background:linear-gradient(112deg, rgba(121, 6, 24, .72), rgba(69, 6, 18, .58) 58%, rgba(25, 2, 9, .48)); backdrop-filter:blur(18px) saturate(145%); -webkit-backdrop-filter:blur(18px) saturate(145%); box-shadow:0 16px 48px rgba(145, 0, 25, .3), inset 0 1px rgba(255,255,255,.12), inset 0 0 28px rgba(255,24,58,.08); display:flex; align-items:center; justify-content:space-between; gap:22px; position:relative; overflow:hidden; }
+.mc-failure-banner::before { content:''; position:absolute; inset:-60% 35% -60% -10%; background:radial-gradient(circle, rgba(255,64,89,.22), transparent 64%); pointer-events:none; }
 .mc-failure-banner div { display: grid; gap: 5px; }
-.mc-failure-banner span { color: #ffb36b; font: 700 10px var(--font-mono); letter-spacing: .18em; }
-.mc-failure-banner strong { color: #fff; font-size: 18px; }
-.mc-failure-banner p { margin: 0; color: #f5d8c7; font-size: 12px; }
+.mc-failure-banner span { color:#ff8798; font:800 13px var(--font-mono); letter-spacing:.2em; text-shadow:0 0 16px rgba(255,44,73,.75); }
+.mc-failure-banner strong { color:#fff; font-size:18px; line-height:1.25; }
+.mc-failure-banner p { margin:0; color:#f5ced4; font-size:13px; line-height:1.5; }
 .mc-failure-banner button { flex: 0 0 auto; border: 1px solid rgba(123, 219, 255, .62); border-radius: 999px; background: linear-gradient(110deg, #0b8fbd, #1761a7 58%, #f17b23); color: #fff; padding: 11px 17px; font-weight: 750; cursor: pointer; box-shadow: 0 0 22px rgba(20, 153, 209, .24); }
 .mc-failure-banner button:disabled { opacity: .55; cursor: not-allowed; }
-html[data-theme="light"] .mc-failure-banner { background: linear-gradient(110deg, #fff2e7, #fff 64%, #eaf8ff); box-shadow: 0 12px 34px rgba(117, 38, 12, .12); }
-html[data-theme="light"] .mc-failure-banner strong { color: #6f1d0b; }
-html[data-theme="light"] .mc-failure-banner p { color: #704537; }
+html[data-theme="light"] .mc-failure-banner { background:linear-gradient(112deg, rgba(255,224,229,.78), rgba(255,244,246,.65) 58%, rgba(255,255,255,.52)); border-color:rgba(190,18,60,.48); box-shadow:0 14px 38px rgba(159,18,57,.16), inset 0 1px rgba(255,255,255,.7); }
+html[data-theme="light"] .mc-failure-banner span { color:#b70f2c; text-shadow:none; }
+html[data-theme="light"] .mc-failure-banner strong { color:#65091a; }
+html[data-theme="light"] .mc-failure-banner p { color:#71313d; }
 @media (max-width: 720px) { .mc-failure-banner { align-items: stretch; flex-direction: column; } .mc-failure-banner button { width: 100%; } }
 
 /* Controlled review workbench */

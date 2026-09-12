@@ -84,6 +84,26 @@ test('archive, telemetry, and settings are operational surfaces', async ({ page 
   await expect(page.getByRole('button', { name:'Saved' })).toBeVisible()
 })
 
+test('telemetry navigation surfaces failed and newly delivered mission notices', async ({ page }) => {
+  const fixture = await (await page.request.get('/api/mission-control/overview')).json()
+  await page.route('**/api/mission-control/overview', route => route.fulfill({
+    status:200,
+    contentType:'application/json',
+    json:{ ...fixture, missions:[
+      { ...fixture.missions[0], id:'ready-mission', job:{ ...fixture.missions[0].job, id:'ready-job', state:'delivered' } },
+      { ...fixture.missions[1], id:'failed-mission', job:{ id:'failed-job', state:'failed', progress_percent:25, message:'Document workflow failed safely', artifacts:[] } },
+    ] },
+  }))
+  await page.goto('/dashboard')
+  const telemetry = page.getByRole('link', { name:/Telemetry/ })
+  await expect(telemetry.locator('.sidebar-telemetry-notices .failed')).toHaveText('1')
+  await expect(telemetry.locator('.sidebar-telemetry-notices .ready')).toHaveText('1')
+  await telemetry.click()
+  await expect(page).toHaveURL(/\/telemetry$/)
+  await expect(page.getByRole('link', { name:/Telemetry/ }).locator('.sidebar-telemetry-notices .ready')).toHaveCount(0)
+  await expect(page.getByRole('link', { name:/Telemetry/ }).locator('.sidebar-telemetry-notices .failed')).toHaveText('1')
+})
+
 test('delivered work opens a controlled review and accepts scoped revision directives', async ({ page }) => {
   const conversationResponse = await page.request.get('/api/mission-control/conversation?id=mission-demo')
   expect(conversationResponse.ok()).toBe(true)
