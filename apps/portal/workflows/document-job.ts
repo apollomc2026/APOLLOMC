@@ -3,6 +3,7 @@ import { assertNotCancelled, completeJob, getJob, updateJob } from '@/lib/execut
 import { generateStructuredDocument, renderAndStorePdf } from '@/lib/executor/pipeline'
 import { verifyFinancialDocument } from '@/lib/executor/financial-verification'
 import { GoogleDriveAuthorizationError } from '@/lib/executor/google-drive'
+import { sendCompletionNotification } from '@/lib/executor/completion-notification'
 
 export async function documentJobWorkflow(order: DocumentWorkOrder): Promise<{ artifacts: ArtifactManifest[] }> {
   'use workflow'
@@ -82,6 +83,8 @@ async function finishStep(order: DocumentWorkOrder, artifacts: ArtifactManifest[
   'use step'
   await assertNotCancelled(order.work_order_id)
   await completeJob(order.work_order_id, artifacts)
+  const notification = await sendCompletionNotification(order.work_order_id)
+  console.log(`[apollo-document] completion notification job=${order.work_order_id} sent=${notification.sent}${notification.reason ? ` reason=${notification.reason}` : ''}`)
 }
 
 async function failureStep(order: DocumentWorkOrder, errorMessage: string): Promise<void> {

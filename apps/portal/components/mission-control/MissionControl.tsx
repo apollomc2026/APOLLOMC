@@ -38,6 +38,7 @@ export function MissionControl() {
   const [working, setWorking] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobState, setJobState] = useState<string | null>(null);
+  const [jobProgress, setJobProgress] = useState<number | null>(null);
   const [artifactUrl, setArtifactUrl] = useState<string | null>(null);
   const [revision, setRevision] = useState("");
   const [acceptUnresolved, setAcceptUnresolved] = useState(false);
@@ -50,6 +51,7 @@ export function MissionControl() {
   const [hydrated, setHydrated] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const notificationRequestedRef = useRef<string | null>(null);
 
   const restoreConversation = useCallback(async (id: string) => {
     const response = await fetch(
@@ -68,7 +70,12 @@ export function MissionControl() {
       specification: DeliverableSpecification;
       readiness: number;
       specification_version: number;
-      job?: { id: string; state: string; artifact_url: string | null } | null;
+      job?: {
+        id: string;
+        state: string;
+        progress_percent?: number;
+        artifact_url: string | null;
+      } | null;
     };
     setConversationId(id);
     setTurns(restored.turns.length ? restored.turns : [opening]);
@@ -80,6 +87,7 @@ export function MissionControl() {
     setSpecificationVersion(restored.specification_version);
     setJobId(restored.job?.id ?? null);
     setJobState(restored.job?.state ?? null);
+    setJobProgress(restored.job?.progress_percent ?? null);
     setArtifactUrl(restored.job?.artifact_url ?? null);
   }, []);
 
@@ -97,6 +105,7 @@ export function MissionControl() {
         specificationVersion?: number;
         jobId?: string | null;
         jobState?: string | null;
+        jobProgress?: number | null;
         artifactUrl?: string | null;
         decisionAnswers?: Record<string, string>;
       } | null = null;
@@ -119,6 +128,7 @@ export function MissionControl() {
         setSpecificationVersion(cached.specificationVersion ?? 0);
         setJobId(cached.jobId ?? null);
         setJobState(cached.jobState ?? null);
+        setJobProgress(cached.jobProgress ?? null);
         setArtifactUrl(cached.artifactUrl ?? null);
         setDecisionAnswers(cached.decisionAnswers ?? {});
       };
@@ -173,6 +183,7 @@ export function MissionControl() {
         specificationVersion,
         jobId,
         jobState,
+        jobProgress,
         artifactUrl,
         decisionAnswers,
       }),
@@ -190,6 +201,7 @@ export function MissionControl() {
     specificationVersion,
     jobId,
     jobState,
+    jobProgress,
     artifactUrl,
     decisionAnswers,
   ]);
@@ -207,22 +219,43 @@ export function MissionControl() {
       if (!response.ok) return;
       const result = (await response.json()) as {
         state?: string;
+        progress_percent?: number;
         artifacts?: Array<{ web_view_url?: string }>;
       };
       setJobState(result.state ?? null);
+      setJobProgress(result.progress_percent ?? null);
       setArtifactUrl(result.artifacts?.[0]?.web_view_url ?? null);
     }, 3000);
     return () => window.clearInterval(timer);
   }, [jobId, jobState]);
 
-  const readinessLabel =
-    readiness >= 75
+  useEffect(() => {
+    if (!jobId || jobState !== "delivered") return;
+    if (notificationRequestedRef.current === jobId) return;
+    notificationRequestedRef.current = jobId;
+    void fetch("/api/mission-control/notify", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ job_id: jobId }),
+    });
+  }, [jobId, jobState]);
+
+  const readinessLabel = jobState === "delivered"
+    ? "Mission complete"
+    : jobState && !["failed", "blocked", "cancelled"].includes(jobState)
+      ? "Mission executing"
+      : readiness >= 75
       ? "Brief ready"
       : readiness >= 50
         ? "Calibrating"
         : readiness
           ? "Discovery"
           : "Awaiting intent";
+  const displayedProgress = jobState === "delivered"
+    ? 100
+    : jobState && !["failed", "blocked", "cancelled"].includes(jobState)
+      ? (jobProgress ?? readiness)
+      : readiness;
   const facts = specification?.content.facts ?? [];
   const questions = specification?.content.open_questions ?? [];
   const title =
@@ -331,6 +364,7 @@ export function MissionControl() {
     setSpecificationVersion(0);
     setJobId(null);
     setJobState(null);
+    setJobProgress(null);
     setArtifactUrl(null);
     setDraft("");
     setAcceptUnresolved(false);
@@ -703,6 +737,7 @@ export function MissionControl() {
       ]);
       setJobId(result.job_id);
       setJobState(result.state ?? "queued");
+      setJobProgress(1);
       setArtifactUrl(null);
       setRevision("");
     } catch (cause) {
@@ -738,6 +773,7 @@ export function MissionControl() {
         );
       setJobId(result.job_id);
       setJobState(result.state ?? "queued");
+      setJobProgress(1);
       setArtifactUrl(null);
       setTurns((current) => [
         ...current,
@@ -778,9 +814,9 @@ export function MissionControl() {
           <strong>{readinessLabel}</strong>
         </div>
         <div className="mc-progress">
-          <i style={{ width: `${readiness}%` }} />
+          <i style={{ width: `${displayedProgress}%` }} />
         </div>
-        <b>{readiness}%</b>
+        <b>{displayedProgress}%</b>
       </section>
       <div className="mc-grid">
         <section className="mc-console" aria-label="Mission conversation">

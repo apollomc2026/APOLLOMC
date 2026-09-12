@@ -115,6 +115,7 @@ test('durable mission URLs restore the server record without browser cache', asy
   await page.goto('/dashboard?mission=mission-demo')
   await expect(page).toHaveURL(/\/dashboard\?mission=mission-demo$/)
   await expect(page.locator('.mc-panel-heading h2')).toHaveText('field service proposal')
+  await expect(page.getByText('Mission complete')).toBeVisible()
   await expect(page.getByText('100%')).toBeVisible()
   await expect(page.getByText('site-survey.pdf')).toBeVisible()
   const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('apollo:mission-control:v1') ?? '{}'))

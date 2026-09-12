@@ -88,6 +88,28 @@ export function reviewReadyEmail(deliverableName: string, missionId: string) {
   }
 }
 
+export function missionCompleteEmail(
+  deliverableName: string,
+  missionId: string,
+  artifactUrl: string,
+) {
+  const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?mission=${encodeURIComponent(missionId)}`
+  return {
+    subject: `Mission complete: ${deliverableName} is ready`,
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; color: #111827;">
+        <p style="color: #0b7285; font-size: 12px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;">Apollo Mission Control</p>
+        <h1 style="color: #111827;">Mission complete</h1>
+        <p>Your <strong>${deliverableName}</strong> has passed APOLLO's workmanship checks and is ready for pickup.</p>
+        <p><a href="${artifactUrl}" style="display: inline-block; padding: 12px 24px; background: #0b7285; color: white; text-decoration: none; border-radius: 999px;">Open deliverable</a></p>
+        <p><a href="${dashboardUrl}" style="color: #0b7285;">View mission record</a></p>
+        <p style="color: #6b7280; font-size: 13px;">Mission ${missionId}</p>
+      </div>
+    `,
+    text: `Mission complete. ${deliverableName} is ready: ${artifactUrl}\nMission record: ${dashboardUrl}`,
+  }
+}
+
 export function deliveryEmail(deliverableName: string, downloadUrl: string) {
   return {
     subject: `Your ${deliverableName} is ready for download`,
