@@ -209,7 +209,7 @@ test('a safely failed workflow can be retried after its dependency is repaired',
   let retryBody: Record<string, unknown> | null = null
   await page.route('**/api/mission-control/retry', async route => { retryBody = route.request().postDataJSON(); await route.fulfill({ status: 202, contentType: 'application/json', json: { job_id: 'job-recovered', state: 'queued' } }) })
   await page.goto('/dashboard?mission=mission-demo')
-  const failureBanner = page.getByRole('alert')
+  const failureBanner = page.locator('.mc-failure-banner')
   await expect(failureBanner).toContainText('MISSION LAUNCH FAILED')
   await expect(failureBanner).toContainText('A failure alert has also been sent by email.')
   await expect(failureBanner.getByRole('button', { name: 'Check calibration & retry' })).toBeVisible()
