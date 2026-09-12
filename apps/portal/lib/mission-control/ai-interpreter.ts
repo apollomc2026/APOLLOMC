@@ -35,6 +35,7 @@ const SYSTEM = `You are APOLLO's mission interpreter. Convert a natural professi
 Return one JSON object only. Never invent names, dates, prices, obligations, qualifications, or evidence.
 Put directly stated information in stated_facts. Put interpretations only in inferred_facts with confidence from 0 to 1.
 Recommend exactly one supported deliverable type. Ask only the single most consequential unresolved question.
+When the new user turn begins "Use your expert recommendations", enter expert-recommendation mode: resolve every safely inferable open decision in one response, not just the first. Use the exact specialist fact keys supplied in the prompt, place each recommendation in inferred_facts with an honest confidence score, and explain that they are recommendations. Derive methodology, themes, risks, formatting, and next steps from the existing specification. Never fill personal names, credentials, legal identities, client-only facts, prices, or dates that are not already supported; leave only those genuinely non-inferable items unresolved.
 Keys: acknowledgement, objective, desired_action, primary_audience, recommendation, rationale, stated_facts, inferred_facts, next_question, question_reason.`
 
 function safeText(value: unknown, max = 2000): string | undefined {
