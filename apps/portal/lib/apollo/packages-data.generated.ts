@@ -7036,16 +7036,6 @@ export const MODULES_RAW: Record<string, unknown> = {
         "type": "text"
       },
       {
-        "key": "prospect_contact_name",
-        "label": "Prospect contact — name",
-        "type": "text"
-      },
-      {
-        "key": "prospect_contact_title",
-        "label": "Prospect contact — title",
-        "type": "text"
-      },
-      {
         "key": "proposal_date",
         "label": "Proposal date",
         "type": "date"
@@ -7072,23 +7062,6 @@ export const MODULES_RAW: Record<string, unknown> = {
         "label": "Proposed methodology / phases",
         "type": "textarea",
         "help": "Each phase: name | activities | deliverables | duration. One per line or one per paragraph."
-      },
-      {
-        "key": "team_lead_name",
-        "label": "Team lead — name",
-        "type": "text"
-      },
-      {
-        "key": "team_lead_qualifications",
-        "label": "Team lead — qualifications",
-        "type": "textarea",
-        "help": "2–4 sentences of relevant experience."
-      },
-      {
-        "key": "team_members",
-        "label": "Team members (one per line)",
-        "type": "textarea",
-        "help": "Format: name | role | relevant experience."
       },
       {
         "key": "risks_and_mitigations",
@@ -7144,6 +7117,33 @@ export const MODULES_RAW: Record<string, unknown> = {
       }
     ],
     "optional_fields": [
+      {
+        "key": "prospect_contact_name",
+        "label": "Prospect contact — name (optional)",
+        "type": "text"
+      },
+      {
+        "key": "prospect_contact_title",
+        "label": "Prospect contact — title (optional)",
+        "type": "text"
+      },
+      {
+        "key": "team_lead_name",
+        "label": "Team lead — name (optional)",
+        "type": "text"
+      },
+      {
+        "key": "team_lead_qualifications",
+        "label": "Team lead — qualifications (optional)",
+        "type": "textarea",
+        "help": "Include only verified qualifications."
+      },
+      {
+        "key": "team_members",
+        "label": "Team members (optional, one per line)",
+        "type": "textarea",
+        "help": "Format: name | role | verified relevant experience."
+      },
       {
         "key": "rfp_reference",
         "label": "RFP reference / number (optional)",
@@ -7248,10 +7248,10 @@ export const MODULES_RAW: Record<string, unknown> = {
       {
         "key": "team_organization",
         "label": "Team and Organization",
-        "required": true,
+        "required": false,
         "min_words": 100,
         "max_words": 600,
-        "instructions": "TEAM AND ORGANIZATION: Lead with the team_lead callout: <h3>[team_lead_name]</h3> followed by team_lead_qualifications as a 2–4 sentence credential summary. Then a team table parsed from team_members input with columns Name | Role | Relevant Experience. After the table, one paragraph on reporting structure and engagement governance: who Client interfaces with, escalation paths, frequency of status updates. Avoid org chart graphics unless absolutely necessary."
+        "instructions": "TEAM AND ORGANIZATION: ONLY emit if verified team information is supplied. Never invent names, qualifications, credentials, or experience. If supplied, lead with the team_lead callout: <h3>[team_lead_name]</h3> followed by team_lead_qualifications as a 2–4 sentence credential summary. Then a team table parsed from team_members input with columns Name | Role | Relevant Experience. After the table, one paragraph on reporting structure and engagement governance: who Client interfaces with, escalation paths, frequency of status updates. Avoid org chart graphics unless absolutely necessary."
       },
       {
         "key": "past_performance",

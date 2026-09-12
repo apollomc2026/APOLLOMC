@@ -21,7 +21,10 @@ describe('approved specification compiler', () => {
     specification.approval.status = 'approved'
     const result = compileApprovedSpecification({ specification, ...ids })
     expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.missing.map(item => item.key)).toEqual(expect.arrayContaining(['prospect_contact_name', 'proposed_methodology']))
+    if (!result.ok) {
+      expect(result.missing.map(item => item.key)).toEqual(expect.arrayContaining(['proposed_methodology']))
+      expect(result.missing.map(item => item.key)).not.toEqual(expect.arrayContaining(['prospect_contact_name', 'prospect_contact_title', 'team_lead_name', 'team_lead_qualifications', 'team_members']))
+    }
   })
 
   it('uses stable job identities when an approved version is submitted again', () => {

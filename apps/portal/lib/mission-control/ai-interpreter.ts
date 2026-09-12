@@ -31,6 +31,20 @@ export function promoteAcknowledgedGap(patch: ClaudeInterpretation, text: string
   }
 }
 
+export function applyExpertRecommendationMode(patch: ClaudeInterpretation, text: string, specification: DeliverableSpecification): ClaudeInterpretation {
+  if (!/^Use your expert recommendations\b/i.test(text.trim())) return patch
+  const existing = new Set(specification.content.facts.filter(fact => fact.source === 'user' || fact.source === 'evidence' || fact.confidence >= .75).map(fact => fact.key))
+  const recommendations = [
+    { key: 'win_themes', label: 'Win themes (3–4)', value: 'Operational clarity; safety-controlled execution; decision-ready prioritization; commercial certainty', confidence: .86 },
+    { key: 'proposed_methodology', label: 'Proposed methodology / phases', value: `Mobilize and confirm controls; inspect and document the defined scope; perform permitted functional assessment; analyze and prioritize verified findings; review and deliver the controlled final artifact. Tailor each phase to: ${specification.mission.objective}`, confidence: .84 },
+    { key: 'risks_and_mitigations', label: 'Risks and mitigations', value: 'Restricted access or operating windows | coordinate access and sequencing before mobilization\nUnsafe or unavailable equipment | limit work to safe, permitted observation and document constraints\nIncomplete records | identify evidence gaps and qualify affected conclusions\nOperational disruption | coordinate controls and preserve site operations', confidence: .82 },
+    { key: 'validity_period_days', label: 'Proposal validity (days)', value: '30', confidence: .8 },
+    { key: 'next_steps_call_to_action', label: 'Next steps / call to action', value: 'Confirm acceptance of scope and commercial terms, execute the controlling agreement, satisfy mobilization requirements, designate the client coordinator, and schedule kickoff.', confidence: .84 },
+  ]
+  if (Object.keys(specification.content.commercial_terms).length || /fixed[- ]fee/i.test(specification.mission.objective)) recommendations.push({ key: 'pricing_model', label: 'Pricing model', value: 'fixed-fee', confidence: .95 })
+  return { ...patch, acknowledgement: 'Expert recommendation mode applied. I resolved every professional default supported by the mission and preserved genuinely client-specific facts for explicit confirmation.', inferred_facts: [...(patch.inferred_facts ?? []), ...recommendations.filter(fact => !existing.has(fact.key))] }
+}
+
 const SYSTEM = `You are APOLLO's mission interpreter. Convert a natural professional request into evidence-aware mission state.
 Return one JSON object only. Never invent names, dates, prices, obligations, qualifications, or evidence.
 Put directly stated information in stated_facts. Put interpretations only in inferred_facts with confidence from 0 to 1.
@@ -111,7 +125,8 @@ export function applyExplicitMissionDirectives(result: MissionTurnResult, text: 
 
 export async function interpretMissionWithClaude(text: string, prior?: DeliverableSpecification): Promise<MissionTurnResult> {
   const base = interpretMission(text, prior)
-  if (!process.env.ANTHROPIC_API_KEY) return base
+  const safeFallback = () => applyExplicitMissionDirectives(applyClaudeInterpretation(base, applyExpertRecommendationMode({}, text, base.specification)), text)
+  if (!process.env.ANTHROPIC_API_KEY) return safeFallback()
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const fieldGuide = getModule(base.specification.artifact.recommended_type)?.required_fields.map(field => `${field.key}: ${field.label}`).join(', ') ?? ''
@@ -123,7 +138,8 @@ export async function interpretMissionWithClaude(text: string, prior?: Deliverab
     if (!raw || raw.type !== 'text') return base
     const json = raw.text.match(/\{[\s\S]*\}/)?.[0]
     if (!json) return base
-    const patch = promoteAcknowledgedGap(JSON.parse(json) as ClaudeInterpretation, text, prior)
+    const parsed = JSON.parse(json) as ClaudeInterpretation
+    const patch = promoteAcknowledgedGap(applyExpertRecommendationMode(parsed, text, base.specification), text, prior)
     const explicit = explicitMissionArtifact(text)
     if (explicit) patch.recommendation = explicit
     const result = applyExplicitMissionDirectives(applyClaudeInterpretation(base, patch), text)
@@ -131,6 +147,6 @@ export async function interpretMissionWithClaude(text: string, prior?: Deliverab
     return result
   } catch (error) {
     console.warn('[mission-control] Claude interpretation fallback:', error instanceof Error ? error.message : 'unknown error')
-    return base
+    return safeFallback()
   }
 }

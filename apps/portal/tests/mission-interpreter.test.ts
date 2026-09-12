@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { interpretMission } from '../lib/mission-control/interpreter'
-import { applyClaudeInterpretation, applyExplicitMissionDirectives, promoteAcknowledgedGap } from '../lib/mission-control/ai-interpreter'
+import { applyClaudeInterpretation, applyExpertRecommendationMode, applyExplicitMissionDirectives, promoteAcknowledgedGap } from '../lib/mission-control/ai-interpreter'
 import { executionGaps } from '../lib/mission-control/work-order'
 
 describe('mission interpreter', () => {
@@ -21,7 +21,7 @@ describe('mission interpreter', () => {
     expect(result.specification.provenance.fact_origins).toEqual(expect.arrayContaining([expect.objectContaining({ key: 'commercial_value', source: 'user' })]))
     expect(result.specification.provenance.inferences).toEqual(expect.arrayContaining([expect.objectContaining({ key: 'mission_domain', confidence: .78 })]))
     expect(result.specification.provenance.model_versions).toContain('apollo-deterministic-interpreter@1.0')
-    expect(result.question).toContain('prospect contact')
+    expect(result.question).toContain('win themes')
   })
 
   it('upgrades legacy facts into the complete provenance contract on the next turn', () => {
@@ -57,7 +57,7 @@ describe('mission interpreter', () => {
       expect.objectContaining({ key: 'tone', source: 'inferred', confidence: .64 }),
     ]))
     expect(result.specification.audience.primary).toEqual(['Acme Facilities'])
-    expect(result.question).toContain('prospect contact')
+    expect(result.question).toContain('win themes')
     expect(result.specification.content.open_questions).not.toContain('What price or pricing structure should the recipient see?')
   })
 
@@ -84,5 +84,17 @@ describe('mission interpreter', () => {
     const result = applyClaudeInterpretation({ ...interpretMission('Create a fixed-fee proposal for Acme Facilities at $18,750.'), specification: prior, question: activeQuestion }, patch)
     expect(result.specification.content.facts).toEqual(expect.arrayContaining([expect.objectContaining({ key: activeGap.key, source: 'user', confidence: 1 })]))
     expect(result.question).not.toBe(activeQuestion)
+  })
+
+  it('fills safely inferable proposal defaults in expert recommendation mode', () => {
+    const base = interpretMission('Create a fixed-fee proposal for Acme Facilities at $18,750.')
+    const patch = applyExpertRecommendationMode({}, 'Use your expert recommendations for every unresolved decision.', base.specification)
+    const result = applyClaudeInterpretation(base, patch)
+    expect(result.specification.content.facts).toEqual(expect.arrayContaining([
+      expect.objectContaining({ key: 'proposed_methodology', source: 'inferred', confidence: .84 }),
+      expect.objectContaining({ key: 'risks_and_mitigations', source: 'inferred' }),
+      expect.objectContaining({ key: 'pricing_model', value: 'fixed-fee' }),
+    ]))
+    expect(result.specification.content.open_questions).not.toEqual(expect.arrayContaining([expect.stringContaining('proposed methodology'), expect.stringContaining('risks and mitigations')]))
   })
 })

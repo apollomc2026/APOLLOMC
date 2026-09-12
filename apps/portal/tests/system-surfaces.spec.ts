@@ -121,6 +121,26 @@ test('durable mission URLs restore the server record without browser cache', asy
   expect(stored).toMatchObject({ conversationId: 'mission-demo', readiness: 100, specificationVersion: 3 })
 })
 
+test('open-decision workbench accepts text in each field', async ({ page }) => {
+  const fixture = await (await page.request.get('/api/mission-control/conversation?id=mission-demo')).json()
+  const questions = ['Who leads the work?', 'What risks should be highlighted?']
+  await page.route('**/api/mission-control/conversation?id=mission-demo', async route => {
+    await route.fulfill({ status: 200, contentType: 'application/json', json: {
+      ...fixture,
+      readiness: 70,
+      specification: { ...fixture.specification, approval: { ...fixture.specification.approval, status: 'draft' }, content: { ...fixture.specification.content, open_questions: questions, assumptions: [] } },
+      job: null,
+      jobs: [],
+    } })
+  })
+  await page.goto('/dashboard?mission=mission-demo')
+  const answer = page.getByPlaceholder('Your answer (optional)').first()
+  await answer.fill('Operations Manager')
+  await expect(answer).toHaveValue('Operations Manager')
+  await page.getByPlaceholder('Your answer (optional)').nth(1).fill('Lane availability and safe traffic control')
+  await expect(page.getByRole('button', { name: 'Submit answered fields' })).toBeEnabled()
+})
+
 test('an approved brief can start execution after a blocked dependency is resolved', async ({ page }) => {
   const fixture = await (await page.request.get('/api/mission-control/conversation?id=mission-demo')).json()
   await page.route('**/api/mission-control/conversation?id=mission-demo', async route => {

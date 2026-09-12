@@ -42,13 +42,13 @@ export function MissionControl() {
     const timer = window.setTimeout(() => {
       const requestedMission = new URLSearchParams(window.location.search).get('mission')
       const saved = window.localStorage.getItem(STORAGE_KEY)
-      let cached: { turns: ConversationTurn[]; specification: DeliverableSpecification | null; readiness: number; conversationId?: string | null; specificationVersion?: number; jobId?: string | null; jobState?: string | null; artifactUrl?: string | null } | null = null
+      let cached: { turns: ConversationTurn[]; specification: DeliverableSpecification | null; readiness: number; conversationId?: string | null; specificationVersion?: number; jobId?: string | null; jobState?: string | null; artifactUrl?: string | null; decisionAnswers?: Record<string, string> } | null = null
       if (saved) {
         try { cached = JSON.parse(saved) } catch { window.localStorage.removeItem(STORAGE_KEY) }
       }
       const applyCached = () => {
         if (!cached) return
-        setTurns(cached.turns.length ? cached.turns : [opening]); setSpecification(cached.specification); setReadiness(cached.readiness); setConversationId(cached.conversationId ?? null); setSpecificationVersion(cached.specificationVersion ?? 0); setJobId(cached.jobId ?? null); setJobState(cached.jobState ?? null); setArtifactUrl(cached.artifactUrl ?? null)
+        setTurns(cached.turns.length ? cached.turns : [opening]); setSpecification(cached.specification); setReadiness(cached.readiness); setConversationId(cached.conversationId ?? null); setSpecificationVersion(cached.specificationVersion ?? 0); setJobId(cached.jobId ?? null); setJobState(cached.jobState ?? null); setArtifactUrl(cached.artifactUrl ?? null); setDecisionAnswers(cached.decisionAnswers ?? {})
       }
       if (requestedMission) {
         void restoreConversation(requestedMission).catch(cause => {
@@ -75,9 +75,9 @@ export function MissionControl() {
 
   useEffect(() => {
     if (!hydrated) return
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ turns, specification, readiness, conversationId, specificationVersion, jobId, jobState, artifactUrl }))
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ turns, specification, readiness, conversationId, specificationVersion, jobId, jobState, artifactUrl, decisionAnswers }))
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight, behavior: 'smooth' })
-  }, [hydrated, turns, specification, readiness, conversationId, specificationVersion, jobId, jobState, artifactUrl])
+  }, [hydrated, turns, specification, readiness, conversationId, specificationVersion, jobId, jobState, artifactUrl, decisionAnswers])
 
   useEffect(() => {
     if (!jobId || ['delivered', 'failed', 'blocked', 'cancelled'].includes(jobState ?? '')) return
@@ -111,7 +111,7 @@ export function MissionControl() {
       const content = [result.acknowledgement, result.question].filter(Boolean).join('\n\n')
       setTurns(current => [...current, { id: crypto.randomUUID(), role: 'apollo', content, reason: result.question_reason, createdAt: new Date().toISOString() }])
       setSpecification(result.specification); setReadiness(result.readiness); setConversationId(result.conversation_id ?? conversationId); setSpecificationVersion(result.specification_version ?? specificationVersion + 1); setAcceptUnresolved(false)
-      setDecisionAnswers({})
+      setDecisionAnswers(current => Object.fromEntries(Object.entries(current).filter(([question]) => result.specification.content.open_questions.includes(question))))
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to continue the mission.'); setDraft(message) } finally { setWorking(false) }
   }
 
