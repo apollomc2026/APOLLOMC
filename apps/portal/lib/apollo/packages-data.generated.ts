@@ -7200,7 +7200,7 @@ export const MODULES_RAW: Record<string, unknown> = {
       {
         "key": "cover",
         "label": "Cover Page",
-        "required": true,
+        "required": false,
         "min_words": 30,
         "max_words": 200,
         "instructions": "Voice: Confident, specific, grounded in the prospect's stated problem. Demonstrates capability through evidence (specific outcomes, named clients, quantified results) rather than assertion (adjectives, superlatives). Avoid: \"world-class\", \"best-in-class\", \"innovative\", \"cutting-edge\", \"industry-leading\", \"passionate\", \"thrilled\", \"excited\" — these are weak signals because they substitute for evidence. Replace with specifics: numbers, durations, named outcomes, named clients (sanitized as needed), named methodologies. Win themes thread through every section subtly — not as marketing copy but as recurring substantive emphasis.\n\n=== CRITICAL OUTPUT RULES ===\n\nRULE 1: DO NOT emit the document title as <h1> or in any form. The pipeline adds the title on the cover or masthead. Any title in your body HTML creates a duplicate.\n\nRULE 2: DO NOT emit decorative banners, spaced-out letter wordmarks, document IDs, brand names above the first section, or any content before the first <h2> heading. Start directly with the first section heading.\n\nRULE 3: Every section MUST have an <h2> heading with the exact title from the 'sections' array. No section may appear without a heading. Do not let content drift into unlabeled prose.\n\nRULE 4: Emit sections in the exact order listed. Do not skip required sections. Conditional sections (those gated on user input flags) may be omitted only when the input does not include them.\n\n=== LENGTH ===\n2500–4500 words. Comprehensive but disciplined. Length should follow content — proposals for simple engagements should be shorter; complex government RFPs longer. Never pad to hit length.\n\nCOVER PAGE: write this section per the document type's standard structure."
@@ -7256,7 +7256,7 @@ export const MODULES_RAW: Record<string, unknown> = {
       {
         "key": "past_performance",
         "label": "Past Performance",
-        "required": true,
+        "required": false,
         "min_words": 100,
         "max_words": 600,
         "instructions": "PAST PERFORMANCE: ONLY emit if past_performance input is non-empty. For each entry parsed from input as \"client | scope | outcome | duration\":\n  <h3>[Client name, sanitized if needed]</h3>\n  <strong>Scope:</strong> [scope description, 2–3 sentences]\n  <strong>Outcome:</strong> [measurable result, with numbers]\n  <strong>Duration:</strong> [duration]\nThree to five entries is ideal — too many dilutes signal. Quality of detail matters more than quantity."
@@ -7264,7 +7264,7 @@ export const MODULES_RAW: Record<string, unknown> = {
       {
         "key": "references",
         "label": "References",
-        "required": true,
+        "required": false,
         "min_words": 100,
         "max_words": 600,
         "instructions": "REFERENCES: ONLY emit if references input is non-empty. Brief list of references with the format: Name | Title | Organization | Contact (email or phone). One reference per line. End with: \"References available for direct contact upon mutual agreement to proceed; please coordinate timing through [proposer contact].\""
@@ -7312,7 +7312,7 @@ export const MODULES_RAW: Record<string, unknown> = {
       {
         "key": "appendix_compliance",
         "label": "Appendix: Compliance Matrix",
-        "required": true,
+        "required": false,
         "min_words": 100,
         "max_words": 600,
         "instructions": "APPENDIX: COMPLIANCE MATRIX: ONLY emit if evaluation_criteria input is non-empty. Render as a table with columns: Evaluation Criterion | Proposal Section | Page (if known). Map each criterion from evaluation_criteria input to the section(s) of this proposal that address it. This is critical for RFP responses; reviewers use it to verify completeness."

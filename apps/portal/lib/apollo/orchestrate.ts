@@ -176,6 +176,23 @@ function formatSectionsBlock(sections: ModuleSection[]): string {
   return lines.join('\n')
 }
 
+function fieldIsPresent(fields: Record<string, unknown>, key: string): boolean {
+  const value = fields[key]
+  return value !== undefined && value !== null && String(value).trim() !== ''
+}
+
+function activeSections(args: OrchestrateArgs): ModuleSection[] {
+  return args.module.sections.filter((section) => {
+    if (section.key === 'cover') return false
+    if (args.slug !== 'proposal') return true
+    if (section.key === 'team_organization') return ['team_lead_name','team_lead_qualifications','team_members'].some((key) => fieldIsPresent(args.fields, key))
+    if (section.key === 'past_performance') return fieldIsPresent(args.fields, 'past_performance')
+    if (section.key === 'references') return fieldIsPresent(args.fields, 'references')
+    if (section.key === 'appendix_compliance') return fieldIsPresent(args.fields, 'evaluation_criteria')
+    return true
+  })
+}
+
 function buildSystemPrompt(args: OrchestrateArgs): string {
   const brandBlock =
     args.brand.slug === 'other'
@@ -195,6 +212,7 @@ function buildSystemPrompt(args: OrchestrateArgs): string {
 }
 
 function buildUserPromptText(args: OrchestrateArgs): string {
+  const sections = activeSections(args)
   const moduleSummary = {
     deliverable_slug: args.module.deliverable_slug,
     required_fields: args.module.required_fields.map((f) => ({
@@ -208,7 +226,7 @@ function buildUserPromptText(args: OrchestrateArgs): string {
       type: f.type,
     })),
     file_upload_prompts: args.module.file_upload_prompts,
-    sections: args.module.sections.map((s) => ({
+    sections: sections.map((s) => ({
       key: s.key,
       label: s.label,
       required: s.required,
@@ -231,8 +249,8 @@ function buildUserPromptText(args: OrchestrateArgs): string {
     formatFieldsBlock(args.module, args.fields),
     '',
     ...(revisionDirective ? [revisionDirective, ''] : []),
-    '# Sections (build all of them, in order, using these per-section instructions)',
-    formatSectionsBlock(args.module.sections),
+    '# Sections (build exactly these client-relevant sections, in order)',
+    formatSectionsBlock(sections),
     '',
     '# Uploaded reference materials',
     args.uploads.length === 0
@@ -240,7 +258,7 @@ function buildUserPromptText(args: OrchestrateArgs): string {
       : `${args.uploads.length} file(s) attached as additional content blocks. Use them as factual, visual, and tonal references.`,
     '',
     '# Output',
-    'Invoke the `emit_deliverable` tool with structured JSON matching the schema. Every section in the module must appear in the output. Do not respond with prose outside the tool call.',
+    'Invoke the `emit_deliverable` tool with structured JSON matching the schema. Every section listed above must appear; do not add omitted or unsupported sections. Do not respond with prose outside the tool call.',
   ].join('\n')
 }
 
@@ -563,7 +581,8 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
     )
   }
 
-  let quality = auditDeliverableQuality(args.slug, contentHtml, args.module.sections.filter(section => section.required !== false).length)
+  const expectedSections = activeSections(args).filter(section => section.required !== false).length
+  let quality = auditDeliverableQuality(args.slug, contentHtml, expectedSections)
   if (!quality.passed) {
     warnings.push(`First-pass workmanship audit scored ${quality.score}; running focused quality repair.`)
     const repairBlocks: AnthropicContentBlock[] = [{
@@ -584,7 +603,7 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
     }
     if (!validator(output)) throw new OrchestrateError('Workmanship repair broke the deliverable schema', 'schema_invalid', validator.errors)
     contentHtml = renderContentHtml(output, args.module, args.deliverableLabel)
-    quality = auditDeliverableQuality(args.slug, contentHtml, args.module.sections.filter(section => section.required !== false).length)
+    quality = auditDeliverableQuality(args.slug, contentHtml, expectedSections)
     if (!quality.passed) throw new OrchestrateError('Deliverable remained below the APOLLO workmanship floor after repair', 'quality_invalid', quality)
   }
 
