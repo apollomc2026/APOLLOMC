@@ -978,7 +978,7 @@ hr.hairline, .hairline {
 }
 .cover-top {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: flex-start;
 }
 .cover-wordmark {
@@ -988,7 +988,23 @@ hr.hairline, .hairline {
   letter-spacing: 0.38em;
   color: var(--ink);
 }
-.cover-logo { max-width: 1.45in; max-height: 0.58in; object-fit: contain; }
+.cover-brand {
+  min-height: 1.05in;
+  margin: 0 auto 38pt;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cover-logo {
+  width: auto;
+  max-width: 2.35in;
+  max-height: 1.05in;
+  object-fit: contain;
+}
+.cover-brand .cover-wordmark {
+  font-size: 13pt;
+  letter-spacing: .42em;
+}
 .cover-docid {
   font-family: var(--font-body);
   font-size: 8pt;
@@ -998,7 +1014,7 @@ hr.hairline, .hairline {
   text-align: right;
 }
 .cover-center {
-  margin-top: 2.1in;
+  margin-top: 1.35in;
   text-align: center;
 }
 .cover-kicker {
@@ -1271,10 +1287,10 @@ ${sigMarkCss()}
 <!-- COVER -->
 <div class="cover">
   <div class="cover-top">
-    <div class="cover-wordmark">${logoDataUri ? `<img class="cover-logo" src="${logoDataUri}" alt="${escapeHtml(args.brand.label)}" />` : escapeHtml(wordmark || args.brand.label)}</div>
     <div class="cover-docid">Confidential &middot; Version ${escapeHtml(String(args.inputs.artifact_version ?? 1))}</div>
   </div>
   <div class="cover-center">
+    <div class="cover-brand">${logoDataUri ? `<img class="cover-logo" src="${logoDataUri}" alt="${escapeHtml(args.brand.label)}" />` : `<div class="cover-wordmark">${escapeHtml(wordmark || args.brand.label)}</div>`}</div>
     <h1 class="cover-title">${escapeHtml(docTitle)}</h1>
     ${
       partyA || partyB
