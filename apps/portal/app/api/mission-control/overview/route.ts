@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { requireAllowedUser } from '@/lib/apollo/auth'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 const fixture = {
   missions: [
     { id:'mission-demo', title:'Field Operations Proposal', status:'submitted', readiness:100, current_spec_version:3, updated_at:'2026-09-06T12:00:00.000Z', job:{ id:'job-demo', state:'delivered', progress_percent:100, message:'Document deliverables are ready', artifacts:[{ title:'Field Operations Proposal', web_view_url:'#', version:1 }] } },
@@ -27,5 +29,8 @@ export async function GET() {
   const failed = missions.filter(mission => mission.job && ['failed','blocked','cancelled'].includes(mission.job.state)).length
   const active = missions.filter(mission => mission.status !== 'archived' && mission.job?.state !== 'delivered' && !['failed','blocked','cancelled'].includes(mission.job?.state ?? '')).length
   const averageProgress = missions.length ? Math.round(missions.reduce((sum,mission) => sum + (mission.job?.progress_percent ?? mission.readiness), 0) / missions.length) : 0
-  return NextResponse.json({ missions, metrics:{ total:missions.length, active, delivered, failed, average_progress:averageProgress } })
+  return NextResponse.json(
+    { missions, metrics:{ total:missions.length, active, delivered, failed, average_progress:averageProgress } },
+    { headers:{ 'Cache-Control':'private, no-store, max-age=0' } },
+  )
 }

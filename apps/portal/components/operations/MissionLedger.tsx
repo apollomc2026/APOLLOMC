@@ -10,7 +10,25 @@ type Overview = { missions:Mission[]; metrics:{ total:number; active:number; del
 
 export function MissionLedger({ view }:{ view:'archive'|'telemetry' }) {
   const [data,setData] = useState<Overview|null>(null); const [error,setError] = useState(''); const [query,setQuery] = useState('')
-  useEffect(() => { fetch('/api/mission-control/overview').then(async r => { const body=await r.json(); if(!r.ok) throw new Error(body.error); return body }).then(setData).catch(e => setError(e.message || 'Mission ledger could not be loaded')) }, [])
+  useEffect(() => {
+    let active = true
+    async function refresh() {
+      try {
+        const response = await fetch('/api/mission-control/overview', { cache:'no-store' })
+        const body = await response.json()
+        if (!response.ok) throw new Error(body.error)
+        if (active) { setData(body); setError('') }
+      } catch (cause) {
+        if (active) setError(cause instanceof Error ? cause.message : 'Mission ledger could not be loaded')
+      }
+    }
+    void refresh()
+    const timer = window.setInterval(refresh, 5000)
+    const onVisible = () => { if (document.visibilityState === 'visible') void refresh() }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', refresh)
+    return () => { active=false; window.clearInterval(timer); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('focus', refresh) }
+  }, [])
   const missions = useMemo(() => (data?.missions ?? []).filter(m => m.title.toLowerCase().includes(query.toLowerCase())),[data,query])
   if (error) return <div className="ops-empty"><ShieldAlert/><h2>Ledger connection interrupted</h2><p>{error}</p></div>
   if (!data) return <div className="ops-empty"><Activity className="ops-pulse"/><p>Reading durable mission ledger…</p></div>

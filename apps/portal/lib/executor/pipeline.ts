@@ -21,7 +21,15 @@ async function loadExecutionBrand(order: DocumentWorkOrder): Promise<{ brand:Loa
   const result = await db.from('apollo_brand_kits').select('id,name,primary_color,secondary_color,accent_color,heading_font,body_font,voice,source_storage_key,source_mime_type').eq('id',id).eq('user_id',order.requested_by).single()
   if (result.error || !result.data) return { brand:null, palette:DEFAULT_BRAND_PALETTE }
   const kit = result.data
-  const palette = { ...DEFAULT_BRAND_PALETTE, ink:kit.primary_color || DEFAULT_BRAND_PALETTE.ink, accent:kit.accent_color || DEFAULT_BRAND_PALETTE.accent, metadata:kit.secondary_color || DEFAULT_BRAND_PALETTE.metadata }
+  // Uploaded brand colors are identity accents, not reading colors. A bright
+  // primary (On Spot green, safety yellow, etc.) must never become body ink.
+  // Keep the neutral, high-contrast document ink and reserve the uploaded
+  // palette for controlled rules, markers, and logo furniture.
+  const palette = {
+    ...DEFAULT_BRAND_PALETTE,
+    accent:kit.accent_color || kit.primary_color || DEFAULT_BRAND_PALETTE.accent,
+    metadata:kit.secondary_color || DEFAULT_BRAND_PALETTE.metadata,
+  }
   const logoMime = kit.source_mime_type?.startsWith('image/') ? kit.source_mime_type : null
   const logoBytes = logoMime && kit.source_storage_key ? await getFromS3(kit.source_storage_key) : null
   const brand:LoadedBrand = { slug:order.brand_id, label:kit.name, logo_file:logoBytes ? kit.source_storage_key : null, logo_path:null, logo_bytes:logoBytes, logo_mime:logoMime, brand_md:[`# ${kit.name}`,kit.voice&&`Voice: ${kit.voice}`,kit.heading_font&&`Heading typeface: ${kit.heading_font}`,kit.body_font&&`Body typeface: ${kit.body_font}`,`Primary: ${palette.ink}`,`Accent: ${palette.accent}`].filter(Boolean).join('\n') }

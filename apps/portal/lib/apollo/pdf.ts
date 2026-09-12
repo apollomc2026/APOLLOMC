@@ -163,6 +163,56 @@ function stripAllH1(html: string): string {
   return html.replace(/<h1\b[^>]*>[\s\S]*?<\/h1>/gi, '')
 }
 
+function stripSection(html: string, title: RegExp): string {
+  return html.replace(/<h2\b[^>]*>([\s\S]*?)<\/h2>[\s\S]*?(?=<h2\b|$)/gi, (section, heading) =>
+    title.test(cleanSectionTitle(stripTags(heading))) ? '' : section,
+  )
+}
+
+function hasInput(inputs: Record<string, unknown>, keys: string[]): boolean {
+  return keys.some((key) => {
+    const value = inputs[key]
+    return value !== undefined && value !== null && String(value).trim() !== ''
+  })
+}
+
+// The cover and optional-section contract is owned by the renderer. Models
+// may still emit a synthetic Cover Page or prose explaining why an optional
+// section is empty; neither belongs in a client-facing artifact.
+function pruneNonContentSections(args: BuildPdfArgs, html: string): string {
+  let result = stripSection(html, /^cover page$/i)
+  if (args.template.slug === 'proposal') {
+    if (!hasInput(args.inputs, ['past_performance', 'past_performance_highlights', 'past_performance_summary'])) {
+      result = stripSection(result, /^past performance$/i)
+    }
+    if (!hasInput(args.inputs, ['references', 'reference_documents'])) {
+      result = stripSection(result, /^references?$/i)
+    }
+    if (!hasInput(args.inputs, ['evaluation_criteria', 'rfp_reference'])) {
+      result = stripSection(result, /^(?:appendix:\s*)?compliance matrix$/i)
+    }
+  }
+  return result
+}
+
+// Models occasionally repeat an h2 title as the first h3 or paragraph. The
+// numbered section opener already carries that label, so remove the echo.
+function stripDuplicateSectionLeadings(html: string): string {
+  return html.replace(
+    /(<h2\b[^>]*>([\s\S]*?)<\/h2>)\s*<(h3|p)\b[^>]*>([\s\S]*?)<\/\3>/gi,
+    (match, h2, heading, _tag, following) =>
+      cleanSectionTitle(stripTags(heading)).toLowerCase() === cleanSectionTitle(stripTags(following)).toLowerCase()
+        ? h2
+        : match,
+  )
+}
+
+function displayDate(value: string): string {
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return value
+  return new Intl.DateTimeFormat('en-US', { year:'numeric', month:'long', day:'numeric', timeZone:'UTC' }).format(parsed)
+}
+
 // Strip decorative content that appears before the first <h2>. Claude
 // sometimes opens with a spaced-letter banner ("N O N - D I S C L O S U R E"),
 // a document ID row, or brand-name filler — visual noise we don't want.
@@ -287,7 +337,7 @@ function renderSignatureBlock(args: BuildPdfArgs): string {
   ]
   const cells = parties
     .map((p) => {
-      const name = readString(args.inputs, p.nameField)
+      const name = readString(args.inputs, p.nameField) || (p.label === 'Provider' ? args.brand.label : '')
       const nameLine = name
         ? `<p class="sig-name">${escapeHtml(name)}</p>`
         : `<p class="sig-name sig-name-placeholder">&nbsp;</p>`
@@ -830,7 +880,7 @@ function buildContractHtml(args: BuildPdfArgs): string {
   const logoDataUri = resolveLogoDataUri(args.brand)
   const watermarkHtml = flags.hasWatermark ? renderWatermarkHtml(logoDataUri) : ''
   const sigMarkHtml = flags.hasSigMark ? renderSigMarkHtml(logoDataUri) : ''
-  const bodySource = stripPreH2Banner(stripAllH1(stripLeadingTitle(args.contentHtml)))
+  const bodySource = stripDuplicateSectionLeadings(pruneNonContentSections(args, stripPreH2Banner(stripAllH1(stripLeadingTitle(args.contentHtml)))))
   const { preamble, body: bodyAfterPreamble } = extractPreamble(bodySource)
   const { html: numberedBody, sections } = numberSections(bodyAfterPreamble)
   const tocHtml = args.template.has_toc === false ? '' : renderTocHtml(sections)
@@ -938,6 +988,7 @@ hr.hairline, .hairline {
   letter-spacing: 0.38em;
   color: var(--ink);
 }
+.cover-logo { max-width: 1.45in; max-height: 0.58in; object-fit: contain; }
 .cover-docid {
   font-family: var(--font-body);
   font-size: 8pt;
@@ -1080,15 +1131,43 @@ hr.hairline, .hairline {
 }
 .body-content li { margin-bottom: 6pt; }
 .body-content strong {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 500;
-  font-size: 11pt;
+  font-family: var(--font-body);
+  font-style: normal;
+  font-weight: var(--weight-body-bold);
+  font-size: inherit;
   color: var(--ink);
 }
+.body-content table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  margin: 16pt 0 22pt;
+  font-size: 8.7pt;
+  line-height: 1.4;
+}
+.body-content thead { display: table-header-group; }
+.body-content tr { break-inside: avoid; }
+.body-content th {
+  padding: 8pt 7pt;
+  background: var(--ink);
+  color: var(--paper);
+  text-align: left;
+  font-size: 7.5pt;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.body-content td {
+  padding: 8pt 7pt;
+  border-bottom: .5pt solid var(--hairline);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.body-content tbody tr:nth-child(even) td { background: rgba(10, 20, 28, .025); }
 
 .section-opener {
   break-inside: avoid;
+  break-after: avoid;
+  page-break-after: avoid;
   margin-top: 54pt;
   margin-bottom: 6pt;
 }
@@ -1192,8 +1271,8 @@ ${sigMarkCss()}
 <!-- COVER -->
 <div class="cover">
   <div class="cover-top">
-    <div class="cover-wordmark">${escapeHtml(wordmark)}</div>
-    <div class="cover-docid">${escapeHtml(args.documentId)}</div>
+    <div class="cover-wordmark">${logoDataUri ? `<img class="cover-logo" src="${logoDataUri}" alt="${escapeHtml(args.brand.label)}" />` : escapeHtml(wordmark || args.brand.label)}</div>
+    <div class="cover-docid">Confidential &middot; Version ${escapeHtml(String(args.inputs.artifact_version ?? 1))}</div>
   </div>
   <div class="cover-center">
     <h1 class="cover-title">${escapeHtml(docTitle)}</h1>
@@ -1210,7 +1289,7 @@ ${sigMarkCss()}
     }
   </div>
   <div class="cover-bottom">
-    <div>Prepared ${escapeHtml(args.preparedDate)}</div>
+    <div>Prepared ${escapeHtml(displayDate(args.preparedDate))}</div>
     ${preparedFor ? `<div>For ${escapeHtml(preparedFor)}</div>` : '<div></div>'}
   </div>
 </div>
@@ -1883,10 +1962,10 @@ export async function buildPdf(args: BuildPdfArgs): Promise<Buffer> {
     // right-aligned logo at 60% opacity.
     // A5 branding: the ledger genre carries no Apollo header logo mark either —
     // the firm leads, Apollo survives only as the footer fine-print line.
-    const headerTemplate =
-      !isLedger && !isContractorForm && flags.hasHeaderMark && logoDataUri
-        ? `<div style="width:100%;padding:0 1.25in;display:flex;justify-content:flex-end;"><img src="${logoDataUri}" style="height:0.38in;opacity:0.6;" /></div>`
-        : '<div></div>'
+    // The cover owns the primary logo and the running footer owns document
+    // identity. Chromium cannot suppress a header template on page one, so a
+    // repeated header mark creates a visibly duplicated cover logo.
+    const headerTemplate = '<div></div>'
     const pdf = await page.pdf({
       format: 'Letter',
       printBackground: true,

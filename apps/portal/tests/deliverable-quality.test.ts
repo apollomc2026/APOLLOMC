@@ -27,4 +27,14 @@ describe('APOLLO deliverable workmanship floor', () => {
     expect(narrative.passed).toBe(false)
     expect(narrative.violations.join(' ')).toMatch(/decision-useful tables/i)
   })
+
+  it('rejects client proposals with duplicated headings or excessive unresolved placeholders', () => {
+    const table = '<table><tr><th>Item</th><th>Status</th></tr>' + Array.from({ length: 6 }, () => '<tr><td>Scope</td><td>Defined</td></tr>').join('') + '</table>'
+    const html = section('Executive Summary', words) + '<h2>Methodology</h2><p>Methodology</p>' +
+      section('Commercial Terms', `${words} TBD to be confirmed not provided TBD`) + table + table + '<ul><li>Proceed</li></ul><ul><li>Approve</li></ul>'
+    const report = auditDeliverableQuality('proposal', html, 3)
+    expect(report.passed).toBe(false)
+    expect(report.violations.join(' ')).toMatch(/unresolved placeholders/i)
+    expect(report.violations.join(' ')).toMatch(/duplicated/i)
+  })
 })

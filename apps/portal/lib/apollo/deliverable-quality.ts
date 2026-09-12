@@ -63,6 +63,7 @@ export function auditDeliverableQuality(slug: string, html: string, expectedSect
   const listItems = countMatches(html, /<li\b/gi)
   const words = text ? text.split(/\s+/).length : 0
   const unresolvedMarkers = countMatches(text, /\b(?:TBD|to be confirmed|not provided)\b/gi)
+  const duplicateSectionLeadings = countMatches(html, /<h2\b[^>]*>([\s\S]*?)<\/h2>\s*<(?:h3|p)\b[^>]*>\1<\/(?:h3|p)>/gi)
   const violations: string[] = []
   const warnings: string[] = []
 
@@ -77,11 +78,13 @@ export function auditDeliverableQuality(slug: string, html: string, expectedSect
   } else if (archetype === 'proposal') {
     if (tables < 2 || tableRows < 6) violations.push('Proposals require at least two decision-useful tables covering items such as phases, team, risks, investment, or compliance.')
     if (lists + tables < 4) violations.push('Proposal content is overly narrative; convert method, responsibilities, risks, and next steps into scannable structures.')
+    if (unresolvedMarkers > 3) violations.push(`Proposal contains ${unresolvedMarkers} unresolved placeholders and is not client-ready.`)
   } else if (archetype === 'decision-guide') {
     if (tables + lists < 2) violations.push('Decision guides require issue-to-action mapping through tables or structured lists.')
   }
 
   if (unresolvedMarkers > 0) warnings.push(`${unresolvedMarkers} explicit unresolved marker(s) remain and must stay visible to the reviewer.`)
+  if (duplicateSectionLeadings > 0) violations.push(`${duplicateSectionLeadings} section heading(s) are duplicated immediately in the body.`)
   if (tables === 0 && words > 500) warnings.push('A long narrative document contains no table; verify that comparable information is not buried in prose.')
 
   const penalty = violations.length * 18 + warnings.length * 4
