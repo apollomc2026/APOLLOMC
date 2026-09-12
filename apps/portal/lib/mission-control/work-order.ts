@@ -25,7 +25,7 @@ export function executionFields(spec: DeliverableSpecification, now = new Date()
     fields.problem_statement ??= spec.mission.objective
     fields.our_understanding ??= spec.mission.objective
     fields.pricing_detail ??= spec.content.commercial_terms.value
-    fields.assumptions ??= spec.content.assumptions.join('\n')
+    fields.assumptions ??= spec.content.assumptions.join('\n') || 'This proposal is based solely on the scope and facts stated in the approved mission brief. Changes to scope, access, schedule, site conditions, or client requirements require written review and may affect price and schedule.'
   }
   return fields
 }

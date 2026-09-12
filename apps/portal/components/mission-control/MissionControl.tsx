@@ -7,6 +7,7 @@ import {
   FilePlus2,
   Orbit,
   Paperclip,
+  Rocket,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
@@ -44,6 +45,7 @@ export function MissionControl() {
     Record<string, string>
   >({});
   const [operatorInvolvement, setOperatorInvolvement] = useState(50);
+  const [launchCountdown, setLaunchCountdown] = useState<number | "LIFTOFF" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
@@ -643,6 +645,18 @@ export function MissionControl() {
     }
   }
 
+  async function launchApprovedExecution() {
+    if (launchCountdown !== null || working) return;
+    for (let count = 5; count >= 1; count -= 1) {
+      setLaunchCountdown(count);
+      await new Promise((resolve) => window.setTimeout(resolve, 850));
+    }
+    setLaunchCountdown("LIFTOFF");
+    await new Promise((resolve) => window.setTimeout(resolve, 650));
+    await approveBrief();
+    setLaunchCountdown(null);
+  }
+
   async function requestRevision() {
     if (!jobId || !revision.trim() || working) return;
     setWorking(true);
@@ -1161,17 +1175,20 @@ export function MissionControl() {
                 </label>
               ) : null}
               <button
-                className="mc-approve"
-                onClick={approveBrief}
+                className={`mc-approve${specification.approval.status === "approved" && !jobId ? " mc-launch-control" : ""}${launchCountdown !== null ? " launching" : ""}`}
+                onClick={specification.approval.status === "approved" && !jobId ? launchApprovedExecution : approveBrief}
                 disabled={
+                  launchCountdown !== null ||
                   readiness < 75 ||
                   (specification.approval.status === "approved"
                     ? Boolean(jobId)
                     : questions.length > 0 && !acceptUnresolved)
                 }
               >
-                <ShieldCheck size={17} />
-                {specification.approval.status === "approved"
+                {specification.approval.status === "approved" && !jobId ? <Rocket size={17} /> : <ShieldCheck size={17} />}
+                <span aria-live="polite">{launchCountdown !== null
+                  ? launchCountdown
+                  : specification.approval.status === "approved"
                   ? jobId
                     ? `Brief approved · v${specificationVersion || 1} locked`
                     : "Start approved execution"
@@ -1179,7 +1196,7 @@ export function MissionControl() {
                     ? questions.length > 0 && !acceptUnresolved
                       ? "Accept open decisions to approve"
                       : "Review and approve brief"
-                    : `${75 - readiness}% to brief readiness`}
+                    : `${75 - readiness}% to brief readiness`}</span>
               </button>
             </>
           ) : (
