@@ -200,6 +200,17 @@ test('a blocked workflow retries as a new auditable execution job', async ({ pag
   expect(retryBody).toEqual({ job_id: 'job-blocked' })
 })
 
+test('a safely failed workflow can be retried after its dependency is repaired', async ({ page }) => {
+  const fixture = await (await page.request.get('/api/mission-control/conversation?id=mission-demo')).json()
+  await page.route('**/api/mission-control/conversation?id=mission-demo', route => route.fulfill({ status: 200, contentType: 'application/json', json: { ...fixture, job: { ...fixture.job, id: 'job-failed', state: 'failed', artifact_url: null } } }))
+  let retryBody: Record<string, unknown> | null = null
+  await page.route('**/api/mission-control/retry', async route => { retryBody = route.request().postDataJSON(); await route.fulfill({ status: 202, contentType: 'application/json', json: { job_id: 'job-recovered', state: 'queued' } }) })
+  await page.goto('/dashboard?mission=mission-demo')
+  await page.getByRole('button', { name: 'Retry failed execution' }).click()
+  await expect(page.getByText('queued', { exact: true })).toBeVisible()
+  expect(retryBody).toEqual({ job_id: 'job-failed' })
+})
+
 test('the review workbench recovers a blocked run without labeling it as a draft', async ({ page }) => {
   const fixture = await (await page.request.get('/api/mission-control/conversation?id=mission-demo')).json()
   let conversationLoads = 0

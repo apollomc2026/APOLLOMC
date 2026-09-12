@@ -702,7 +702,12 @@ export function MissionControl() {
   }
 
   async function retryExecution() {
-    if (!jobId || jobState !== "blocked" || working) return;
+    if (
+      !jobId ||
+      !["blocked", "failed"].includes(jobState ?? "") ||
+      working
+    )
+      return;
     setWorking(true);
     setError(null);
     try {
@@ -967,13 +972,13 @@ export function MissionControl() {
                   ) : (
                     <small>APOLLO is preserving checkpoints and custody.</small>
                   )}
-                  {jobState === "blocked" ? (
-                    <button
-                      onClick={() => void retryExecution()}
-                      disabled={working}
-                    >
-                      Retry resolved execution
-                    </button>
+                    {jobState === "blocked" || jobState === "failed" ? (
+                      <button
+                        onClick={() => void retryExecution()}
+                        disabled={working}
+                      >
+                        {jobState === "failed" ? "Retry failed execution" : "Retry resolved execution"}
+                      </button>
                   ) : null}
                   {jobState === "delivered" ? (
                     <>
