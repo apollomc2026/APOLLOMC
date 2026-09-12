@@ -1,11 +1,66 @@
 import { createHash } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { interpretMissionWithClaude } from './ai-interpreter'
-import { specificationProvenance, type DeliverableSpecification, type MissionTurnResult } from './contracts'
+import { createMissionFact, mergeMissionFacts, specificationProvenance, type DeliverableSpecification, type MissionFact, type MissionTurnResult } from './contracts'
 import type { DocumentSource } from '@/lib/executor/contracts'
-import { getPresignedUrl } from '@/lib/s3/client'
+import { getFromS3, getPresignedUrl } from '@/lib/s3/client'
+import { extractEvidence, extractEvidenceFacts } from './evidence'
+import { executionGaps } from './work-order'
 
 export class MissionPersistenceError extends Error {}
+
+interface ReprocessableEvidenceRow {
+  id: string
+  original_name: string
+  retrieval_storage_key: string | null
+  retrieval_mime_type: string | null
+}
+
+/**
+ * Evidence is interpreted against a specialist schema. If Mission Control
+ * changes that schema, re-read every secured source before asking the operator
+ * for information the files may already contain.
+ */
+async function reconcileSecuredEvidence(input: {
+  db: Awaited<ReturnType<typeof createClient>>
+  userId: string
+  conversationId: string
+  specification: DeliverableSpecification
+}) {
+  const query = await input.db
+    .from('apollo_conversation_evidence')
+    .select('id, original_name, retrieval_storage_key, retrieval_mime_type')
+    .eq('conversation_id', input.conversationId)
+    .eq('user_id', input.userId)
+    .eq('extraction_status', 'verified')
+    .order('created_at')
+  if (query.error) throw new MissionPersistenceError('Secured mission evidence could not be reconciled')
+
+  const rows = (query.data ?? []) as ReprocessableEvidenceRow[]
+  if (!rows.length) return [] as MissionFact[]
+
+  const evidenceFacts: MissionFact[] = []
+  for (const row of rows) {
+    if (!row.retrieval_storage_key || !row.retrieval_mime_type) continue
+    try {
+      const bytes = await getFromS3(row.retrieval_storage_key)
+      const extracted = await extractEvidence(bytes, row.retrieval_mime_type)
+      const facts = (await extractEvidenceFacts(extracted.text, input.specification.artifact.recommended_type))
+        .map(fact => createMissionFact({ ...fact, source_reference: row.id, last_editor: input.userId }))
+      evidenceFacts.push(...facts)
+      const update = await input.db
+        .from('apollo_conversation_evidence')
+        .update({ extracted_facts: facts })
+        .eq('id', row.id)
+        .eq('user_id', input.userId)
+      if (update.error) throw new Error(update.error.message)
+    } catch {
+      // Custody remains intact. A source that cannot be re-read must not erase
+      // facts recovered from the other secured sources.
+    }
+  }
+  return evidenceFacts
+}
 
 export async function persistMissionTurn(input: {
   userId: string
@@ -25,6 +80,22 @@ export async function persistMissionTurn(input: {
   result.specification.provenance = specificationProvenance(result.specification.content.facts, result.specification.provenance.created_at, result.specification.provenance.model_versions)
   if (input.brandProfileId !== undefined) result.specification.presentation.brand_profile_id = input.brandProfileId
   if (input.aura) result.specification.aura = { ...result.specification.aura, ...input.aura }
+  if (input.conversationId) {
+    const evidenceFacts = await reconcileSecuredEvidence({ db, userId: input.userId, conversationId: input.conversationId, specification: result.specification })
+    if (evidenceFacts.length) {
+      const nonEvidenceFacts = result.specification.content.facts.filter(fact => fact.source !== 'evidence')
+      result.specification.content.facts = mergeMissionFacts(nonEvidenceFacts, evidenceFacts)
+      const gaps = executionGaps(result.specification)
+      result.specification.content.open_questions = gaps.map(gap => `What should APOLLO use for ${gap.label.toLowerCase()}?`)
+      result.specification.content.assumptions = gaps.map(gap => `${gap.label} remains unresolved`)
+      result.readiness = gaps.length ? Math.min(70, Math.max(50, 82 - gaps.length * 8)) : 82
+      result.readiness_state = result.readiness >= 75 ? 'ready' : 'calibrating'
+      result.question = result.specification.content.open_questions[0] ?? null
+      result.question_reason = result.question ? 'This required field was not found in the secured evidence.' : null
+      result.specification.approval = { status: gaps.length ? 'draft' : 'ready', approved_by: null, approved_at: null, unresolved_items_accepted: [] }
+      result.specification.provenance = specificationProvenance(result.specification.content.facts, result.specification.provenance.created_at, result.specification.provenance.model_versions)
+    }
+  }
   const apolloContent = [result.acknowledgement, result.question].filter(Boolean).join('\n\n')
   const contentHash = createHash('sha256').update(JSON.stringify(result.specification)).digest('hex')
   const state = result.readiness >= 75 ? 'brief_ready' : result.readiness >= 50 ? 'calibrating' : 'discovery'
