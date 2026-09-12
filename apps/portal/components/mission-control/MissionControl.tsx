@@ -50,6 +50,7 @@ export function MissionControl() {
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const notificationRequestedRef = useRef<string | null>(null);
 
@@ -277,6 +278,10 @@ export function MissionControl() {
     [specification],
   );
   const driveConnectHref = `/api/integrations/google-drive?action=connect&returnTo=${encodeURIComponent(conversationId ? `/dashboard?mission=${conversationId}` : "/dashboard")}`;
+  function correctDeliverableType() {
+    setDraft(`The intended deliverable is not ${title}. The intended deliverable is `);
+    window.setTimeout(() => composerRef.current?.focus(), 0);
+  }
 
   async function submit(override?: string) {
     const message = (typeof override === "string" ? override : draft).trim();
@@ -808,6 +813,11 @@ export function MissionControl() {
           New mission
         </button>
       </header>
+      {specification ? <section className="mc-deliverable-gate" aria-label="Intended deliverable confirmation">
+        <div><span>INTENDED DELIVERABLE</span><strong>{title}</strong><small>{specification.artifact.recommended_family}</small></div>
+        <p>Confirm APOLLO interpreted the requested output correctly before calibrating its contents.</p>
+        <div className="mc-deliverable-actions"><button type="button" onClick={()=>void submit(`I approve ${title} as the intended deliverable type. Continue calibrating this deliverable.`)} disabled={working}><Check size={15}/>Approve deliverable type</button><button type="button" onClick={correctDeliverableType} disabled={working}>Tell Houston what you need</button></div>
+      </section>:null}
       <section className="mc-status" aria-label="Mission readiness">
         <div>
           <span>Mission readiness</span>
@@ -902,6 +912,7 @@ export function MissionControl() {
                 : "Respond naturally—one answer can resolve several facts."}
             </div>
             <textarea
+              ref={composerRef}
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={(event) => {

@@ -43,6 +43,13 @@ describe('mission interpreter', () => {
     expect(result.specification.specialist.playbook_id).toBe('field-service-proposal')
   })
 
+  it('keeps an explicit cash-flow package ahead of executive and board language', () => {
+    const result = interpretMission('Create a board-ready 2027 Cash Flow Forecast and Budget Package for the Executive Leadership Team and Board Finance Committee. Primary audience: Executive Leadership Team, CFO, Controller, and Board Finance Committee members. Required format: PDF.')
+    expect(result.specification.artifact.recommended_type).toBe('cash-flow-budget-package')
+    expect(result.specification.specialist.playbook_id).toBe('financial-package')
+    expect(result.specification.audience.primary).toEqual(['Executive Leadership Team, CFO, Controller, and Board Finance Committee members'])
+  })
+
   it('merges Claude extraction while preserving stated and inferred provenance', () => {
     const base = interpretMission('I need a proposal.')
     const result = applyClaudeInterpretation(base, {
