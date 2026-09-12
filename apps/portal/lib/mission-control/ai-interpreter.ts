@@ -128,6 +128,15 @@ export async function interpretMissionWithClaude(text: string, prior?: Deliverab
   base.specification.aura.operator_involvement = operatorInvolvement
   const autonomous = operatorInvolvement <= 33
   const safeFallback = () => applyExplicitMissionDirectives(applyClaudeInterpretation(base, applyExpertRecommendationMode({}, text, base.specification, autonomous)), text)
+  if (/^Operator involvement override:/i.test(text.trim())) {
+    const result = safeFallback()
+    result.acknowledgement = autonomous
+      ? 'Autonomous control engaged. Houston resolved every safe professional default and will interrupt only for unsupported identity, evidence, commercial, legal, or conflicting facts.'
+      : operatorInvolvement <= 66
+        ? 'Collaborative control engaged. Houston will batch consequential decisions and provide recommendations.'
+        : 'Directed control engaged. Houston will request granular confirmation before consequential decisions.'
+    return result
+  }
   if (!process.env.ANTHROPIC_API_KEY) return safeFallback()
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })

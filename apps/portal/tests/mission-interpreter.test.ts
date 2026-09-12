@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { interpretMission } from '../lib/mission-control/interpreter'
-import { applyClaudeInterpretation, applyExpertRecommendationMode, applyExplicitMissionDirectives, promoteAcknowledgedGap } from '../lib/mission-control/ai-interpreter'
+import { applyClaudeInterpretation, applyExpertRecommendationMode, applyExplicitMissionDirectives, interpretMissionWithClaude, promoteAcknowledgedGap } from '../lib/mission-control/ai-interpreter'
 import { executionGaps } from '../lib/mission-control/work-order'
 
 describe('mission interpreter', () => {
@@ -107,5 +107,15 @@ describe('mission interpreter', () => {
       expect.objectContaining({ key: 'proposed_methodology', source: 'inferred' }),
     ]))
     expect(result.specification.content.open_questions).not.toEqual(expect.arrayContaining([expect.stringContaining('win themes'), expect.stringContaining('proposed methodology')]))
+  })
+
+  it('changes active mission control without consuming the outstanding factual answer', async () => {
+    const prior = interpretMission('Create a fixed-fee proposal for Acme Facilities at $18,750.').specification
+    const activeQuestion = prior.content.open_questions[0]
+    const result = await interpretMissionWithClaude('Operator involvement override: 0% (Fully Autonomous). Apply this control policy without answering a factual question.', prior, 0)
+    expect(result.specification.aura.operator_involvement).toBe(0)
+    expect(result.acknowledgement).toContain('Autonomous control engaged')
+    expect(result.specification.content.open_questions).toContain(activeQuestion)
+    expect(result.specification.content.facts).toEqual(expect.arrayContaining([expect.objectContaining({ key: 'proposed_methodology', source: 'inferred' })]))
   })
 })

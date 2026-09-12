@@ -141,6 +141,24 @@ test('open-decision workbench accepts text in each field', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Submit answered fields' })).toBeEnabled()
 })
 
+test('active mission can be overridden to fully autonomous control', async ({ page }) => {
+  const fixture = await (await page.request.get('/api/mission-control/conversation?id=mission-demo')).json()
+  let policyBody: Record<string, unknown> | null = null
+  await page.route('**/api/mission-control/interpret', async route => {
+    policyBody = route.request().postDataJSON()
+    const specification = (policyBody as { specification: Record<string, unknown> }).specification as typeof fixture.specification
+    await route.fulfill({ status: 200, contentType: 'application/json', json: { acknowledgement: 'Autonomous control engaged.', question: null, question_reason: null, readiness: 100, conversation_id: 'mission-demo', specification_version: 4, changed_facts: [], specification: { ...specification, aura: { ...specification.aura, operator_involvement: 0 } } } })
+  })
+  await page.route('**/api/mission-control/conversation?id=mission-demo', route => route.fulfill({ status: 200, contentType: 'application/json', json: fixture }))
+  await page.goto('/dashboard?mission=mission-demo')
+  const slider = page.getByLabel('Active mission operator involvement')
+  await slider.fill('0')
+  await expect(page.getByText('Fully Autonomous', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Apply to active mission' }).click()
+  await expect(page.getByText('Autonomous control engaged.')).toBeVisible()
+  expect(policyBody).toMatchObject({ conversation_id: 'mission-demo', aura: { operator_involvement: 0 } })
+})
+
 test('an approved brief can start execution after a blocked dependency is resolved', async ({ page }) => {
   const fixture = await (await page.request.get('/api/mission-control/conversation?id=mission-demo')).json()
   await page.route('**/api/mission-control/conversation?id=mission-demo', async route => {
