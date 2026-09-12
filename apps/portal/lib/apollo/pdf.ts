@@ -559,23 +559,120 @@ export function genreForSlug(slug: string): Genre {
 function buildFullHtml(args: BuildPdfArgs): string {
   args = { ...args, contentHtml: normalizeRenderText(sanitizeContentHtml(args.contentHtml)) }
   const genre = genreForSlug(args.template.slug)
-  if (genre === 'contractor_form') return buildContractorFormHtml(args)
-  if (genre === 'ledger') return buildLedgerHtml(args)
-  const layout = args.template.layout ?? 'contract'
-  switch (layout) {
-    case 'invoice':
-      return buildInvoiceHtml(args)
-    case 'one-pager':
-      return buildOnePagerHtml(args)
-    case 'minutes':
-      return buildMinutesHtml(args)
-    case 'financial-statement':
-      return buildFinancialStatementHtml(args)
-    case 'letter':
-    case 'contract':
-    default:
-      return buildContractHtml(args)
+  let html: string
+  if (genre === 'contractor_form') html = buildContractorFormHtml(args)
+  else if (genre === 'ledger') html = buildLedgerHtml(args)
+  else {
+    const layout = args.template.layout ?? 'contract'
+    switch (layout) {
+      case 'invoice':
+        html = buildInvoiceHtml(args)
+        break
+      case 'one-pager':
+        html = buildOnePagerHtml(args)
+        break
+      case 'minutes':
+        html = buildMinutesHtml(args)
+        break
+      case 'financial-statement':
+        html = buildFinancialStatementHtml(args)
+        break
+      case 'letter':
+      case 'contract':
+      default:
+        html = buildContractHtml(args)
+        break
+    }
   }
+  return ensurePacketCover(html, args)
+}
+
+// A packet is a controlled publication, not a loose stack of pages. This is a
+// renderer invariant rather than a model instruction: every deliverable named
+// "packet" or "package" receives one dedicated cover, regardless of which
+// layout genre renders its contents. Layouts that already provide a cover are
+// left untouched so the rule can never create duplicates.
+function ensurePacketCover(html: string, args: BuildPdfArgs): string {
+  const identity = `${args.template.slug} ${args.template.label}`
+  if (!/\b(?:packet|package)\b/i.test(identity)) return html
+  if (/class=["'][^"']*\b(?:cover|packet-cover)\b/i.test(html)) return html
+
+  const logoDataUri = resolveLogoDataUri(args.brand)
+  const wordmark = brandWordmark(args.brand.slug) || args.brand.label
+  const brandMark = logoDataUri
+    ? `<img class="packet-cover-logo" src="${logoDataUri}" alt="${escapeHtml(args.brand.label)}" />`
+    : `<div class="packet-cover-wordmark">${escapeHtml(wordmark)}</div>`
+  const entity =
+    args.preparedFor ||
+    readString(args.inputs, 'entity_name') ||
+    readString(args.inputs, 'client_name') ||
+    readString(args.inputs, 'prospect_organization')
+  const period =
+    readString(args.inputs, 'forecast_period') ||
+    readString(args.inputs, 'reporting_period') ||
+    readString(args.inputs, 'period')
+  const context = [entity, period].filter(Boolean).map(escapeHtml).join(' &middot; ')
+
+  const css = `
+<style>
+.packet-cover {
+  page-break-after: always;
+  height: 9in;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: var(--ink);
+}
+.packet-cover-brand {
+  min-height: 1.25in;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.packet-cover-logo { max-width: 3.15in; max-height: 1.2in; object-fit: contain; }
+.packet-cover-wordmark {
+  font-family: var(--font-body); font-size: 15pt; font-weight: 600;
+  letter-spacing: .38em; text-transform: uppercase;
+}
+.packet-cover-center { text-align: center; margin: auto 0; }
+.packet-cover-kicker {
+  font-size: 8pt; font-weight: 600; letter-spacing: .34em;
+  text-transform: uppercase; color: var(--metadata); margin-bottom: 42pt;
+}
+.packet-cover-title {
+  font-family: var(--font-display); font-size: 38pt; font-weight: 500;
+  line-height: 1.08; margin: 0 auto; max-width: 6.25in;
+}
+.packet-cover-rule { width: .7in; border-top: 1pt solid var(--accent); margin: 34pt auto 22pt; }
+.packet-cover-context {
+  font-size: 9pt; font-weight: 500; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--metadata);
+}
+.packet-cover-footer {
+  display: flex; justify-content: space-between; gap: 24pt;
+  border-top: .5pt solid var(--hairline); padding-top: 12pt;
+  font-size: 7.5pt; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--metadata);
+}
+</style>`
+  const cover = `
+<section class="packet-cover">
+  <div class="packet-cover-brand">${brandMark}</div>
+  <div class="packet-cover-center">
+    <div class="packet-cover-kicker">Decision-ready mission deliverable</div>
+    <h1 class="packet-cover-title">${escapeHtml(args.template.label)}</h1>
+    <div class="packet-cover-rule"></div>
+    ${context ? `<div class="packet-cover-context">${context}</div>` : ''}
+  </div>
+  <div class="packet-cover-footer">
+    <span>${escapeHtml(args.preparedDate)}</span>
+    <span>${escapeHtml(args.documentId)}</span>
+    <span>Confidential</span>
+  </div>
+</section>`
+
+  return html.replace('</head>', `${css}\n</head>`).replace(/<body([^>]*)>/i, `<body$1>${cover}`)
 }
 
 function decorateOperationalStatuses(html: string): string {
@@ -792,8 +889,9 @@ function decorateLedgerStatements(html: string, isStatementsPackage: boolean): s
 
 // ledger genre primitive (WS5). Clean financial typesetting: a quiet masthead,
 // then ruled statement tables with right-aligned, tabular figures and totals
-// emphasized by the model's bold. NO cover, NO TOC, NO section openers. Brand
-// (palette/typography) is shared with every other genre.
+// emphasized by the model's bold. Packet/package deliverables receive their
+// deterministic cover in ensurePacketCover; ledger bodies have no TOC or
+// section openers. Brand (palette/typography) is shared with every other genre.
 function buildLedgerHtml(args: BuildPdfArgs): string {
   const palette = resolvePaletteForBuild(args)
   const preset = resolvePreset(args.fontPreset?.key)
@@ -821,7 +919,7 @@ function buildLedgerHtml(args: BuildPdfArgs): string {
   return `<!doctype html>
 <html lang="en">${sharedHead(palette, preset, docTitle)}
 <style>
-@page { size: 8.5in 11in; margin: 0.9in 0.85in 0.85in 0.85in; }
+@page { size: 8.5in 11in; margin: 0.78in 0.85in 0.76in 0.85in; }
 @page :first { margin: 0.75in 0.85in 0.85in 0.85in; }
 body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.4; color: var(--ink); }
 .ld-masthead {
@@ -833,14 +931,14 @@ body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.4; color:
 .ld-meta { text-align: right; font-size: 7.5pt; letter-spacing: 0.14em; text-transform: uppercase; color: var(--metadata); white-space: nowrap; padding-left: 18pt; }
 .ld-body h2 {
   font-family: var(--font-body); font-size: 10pt; font-weight: 600; letter-spacing: 0.12em;
-  text-transform: uppercase; color: var(--ink); margin: 16pt 0 5pt 0; padding-bottom: 3pt;
+  text-transform: uppercase; color: var(--ink); margin: 10pt 0 3pt 0; padding-bottom: 2pt;
   border-bottom: 0.75pt solid var(--accent); break-after: avoid;
 }
 .ld-body h3 { font-family: var(--font-body); font-size: 9pt; font-weight: 600; margin: 8pt 0 2pt 0; color: var(--ink); }
-.ld-body table { width: 100%; border-collapse: collapse; margin: 4pt 0 10pt 0; font-size: 9pt; }
-.ld-body thead th { background: var(--ink); color: #fff; font-weight: 600; padding: 4pt 8pt; font-size: 8pt; letter-spacing: 0.04em; text-align: left; }
+.ld-body table { width: 100%; border-collapse: collapse; margin: 2pt 0 6pt 0; font-size: 8.8pt; }
+.ld-body thead th { background: var(--ink); color: #fff; font-weight: 600; padding: 3pt 8pt; font-size: 8pt; letter-spacing: 0.04em; text-align: left; }
 .ld-body thead th:not(:first-child) { text-align: right; }
-.ld-body td { border-bottom: 0.25pt solid var(--hairline); padding: 3pt 8pt; vertical-align: top; }
+.ld-body td { border-bottom: 0.25pt solid var(--hairline); padding: 1.8pt 8pt; vertical-align: top; }
 /* Line-item label left; every figure column right-aligned with tabular numerals. */
 .ld-body td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ld-body td strong { font-weight: 700; }
@@ -854,9 +952,9 @@ body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.4; color:
 .ld-body tbody tr.ld-section-header td { font-style: italic; font-size: 8.5pt; color: var(--metadata); padding-top: 10pt; padding-bottom: 2pt; border-bottom: none; }
 /* "The accompanying notes…" legend under each primary statement. */
 .ld-legend { font-style: italic; font-size: 8pt; color: var(--metadata); margin: -5pt 0 13pt 0; text-align: right; }
-.ld-body ul { margin: 3pt 0 9pt 0; padding-left: 15pt; }
-.ld-body li { margin: 1.5pt 0; }
-.ld-body p { margin: 0 0 7pt 0; }
+.ld-body ul { margin: 2pt 0 7pt 0; padding-left: 15pt; }
+.ld-body li { margin: 1pt 0; }
+.ld-body p { margin: 0 0 6pt 0; }
 .ld-body table:last-child, .ld-body ul:last-child, .ld-body p:last-child { margin-bottom: 0; }
 </style>
 </head>
