@@ -9,7 +9,7 @@ import type { Template } from '@/lib/apollo/templates'
 import { uploadSubmissionOutput } from '@/lib/apollo/storage'
 import type { ArtifactManifest, DocumentSource, DocumentWorkOrder } from './contracts'
 import { uploadDriveDraft } from './google-drive'
-import { BUCKET } from '@/lib/s3/client'
+import { BUCKET, getFromS3 } from '@/lib/s3/client'
 import { createServiceClient } from '@/lib/supabase/server'
 
 const MAX_SOURCE_BYTES = 10 * 1024 * 1024
@@ -18,11 +18,13 @@ async function loadExecutionBrand(order: DocumentWorkOrder): Promise<{ brand:Loa
   if (!order.brand_id.startsWith('kit:')) return { brand:await loadBrand(order.brand_id), palette:await loadBrandPalette(order.brand_id) }
   const id = order.brand_id.slice(4)
   const db = await createServiceClient()
-  const result = await db.from('apollo_brand_kits').select('id,name,primary_color,secondary_color,accent_color,heading_font,body_font,voice').eq('id',id).eq('user_id',order.requested_by).single()
+  const result = await db.from('apollo_brand_kits').select('id,name,primary_color,secondary_color,accent_color,heading_font,body_font,voice,source_storage_key,source_mime_type').eq('id',id).eq('user_id',order.requested_by).single()
   if (result.error || !result.data) return { brand:null, palette:DEFAULT_BRAND_PALETTE }
   const kit = result.data
   const palette = { ...DEFAULT_BRAND_PALETTE, ink:kit.primary_color || DEFAULT_BRAND_PALETTE.ink, accent:kit.accent_color || DEFAULT_BRAND_PALETTE.accent, metadata:kit.secondary_color || DEFAULT_BRAND_PALETTE.metadata }
-  const brand:LoadedBrand = { slug:order.brand_id, label:kit.name, logo_file:null, logo_path:null, logo_bytes:null, logo_mime:null, brand_md:[`# ${kit.name}`,kit.voice&&`Voice: ${kit.voice}`,kit.heading_font&&`Heading typeface: ${kit.heading_font}`,kit.body_font&&`Body typeface: ${kit.body_font}`,`Primary: ${palette.ink}`,`Accent: ${palette.accent}`].filter(Boolean).join('\n') }
+  const logoMime = kit.source_mime_type?.startsWith('image/') ? kit.source_mime_type : null
+  const logoBytes = logoMime && kit.source_storage_key ? await getFromS3(kit.source_storage_key) : null
+  const brand:LoadedBrand = { slug:order.brand_id, label:kit.name, logo_file:logoBytes ? kit.source_storage_key : null, logo_path:null, logo_bytes:logoBytes, logo_mime:logoMime, brand_md:[`# ${kit.name}`,kit.voice&&`Voice: ${kit.voice}`,kit.heading_font&&`Heading typeface: ${kit.heading_font}`,kit.body_font&&`Body typeface: ${kit.body_font}`,`Primary: ${palette.ink}`,`Accent: ${palette.accent}`].filter(Boolean).join('\n') }
   return { brand, palette }
 }
 
