@@ -19,6 +19,12 @@ describe('deterministic financial verification', () => {
     expect(report.verified_values).toBeGreaterThan(0)
   })
 
+  it('accepts a labeled cash schedule and validates only its data rows', () => {
+    const order = { ...base, deliverable_type: 'cash-flow-budget-package', fields: { base_case_lines: 'Month | Opening cash | Inflows | Outflows | Net change | Closing cash\nJan-27 | $425,000 | $340,000 | $318,000 | $22,000 | $447,000' } } as unknown as DocumentWorkOrder
+    const report = verifyFinancialDocument(order, '<table><tr><th>Opening cash</th></tr><tr><td>$425,000</td><td>$340,000</td><td>$318,000</td><td>$22,000</td><td>$447,000</td></tr></table>')
+    expect(report.verified_values).toBeGreaterThan(0)
+  })
+
   it('rejects a cash schedule whose math is wrong', () => {
     const order = { ...base, deliverable_type: 'cash-flow-budget-package', fields: { base_case_lines: 'Jan | 100 | 50 | (20) | 40 | 140' } } as unknown as DocumentWorkOrder
     expect(() => verifyFinancialDocument(order, '<p>100 50 (20) 40 140</p>')).toThrow(/net change/)

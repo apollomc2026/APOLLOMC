@@ -20,10 +20,16 @@ function nearlyEqual(a: number, b: number): boolean {
 
 function rows(raw: unknown, expectedColumns: number): string[][] {
   if (typeof raw !== 'string') throw new Error('financial schedule must be text')
-  return raw.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line, index) => {
+  const parsed = raw.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line, index) => {
     const columns = line.split('|').map((value) => value.trim())
     if (columns.length !== expectedColumns) throw new Error(`financial row ${index + 1} must contain ${expectedColumns} pipe-delimited columns`)
     return columns
+  })
+  const header = ['month', 'opening cash', 'inflows', 'outflows', 'net change', 'closing cash']
+  return parsed.filter((columns, index) => {
+    if (columns.every(column => /^:?-{3,}:?$/.test(column))) return false
+    if (index !== 0) return true
+    return !columns.every((column, columnIndex) => column.toLowerCase() === header[columnIndex])
   })
 }
 
@@ -40,6 +46,7 @@ function verifyVerbatimFigures(order: DocumentWorkOrder, contentHtml: string): n
     if (typeof raw !== 'string' || !raw.trim()) continue
     for (const line of raw.split(/\r?\n/).filter(Boolean)) {
       for (const figure of line.split('|').slice(1)) {
+        if (!/\d/.test(figure)) continue
         const expected = normalizedFigure(figure)
         if (expected && !normalizedOutput.includes(expected)) throw new Error(`rendered financial statement changed or omitted supplied figure '${figure.trim()}'`)
         if (expected) count += 1
