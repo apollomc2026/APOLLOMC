@@ -75,6 +75,8 @@ test('archive, telemetry, and settings are operational surfaces', async ({ page 
   await page.goto('/telemetry')
   await expect(page.getByRole('heading', { name:'Telemetry' })).toBeVisible()
   await expect(page.getByText('Average readiness')).toBeVisible()
+  await expect(page.getByRole('link', { name:'Open deliverable' })).toHaveAttribute('href', '#')
+  await expect(page.getByRole('link', { name:'Mission record' }).first()).toHaveAttribute('href', '/dashboard?mission=mission-demo')
   await page.goto('/settings')
   await expect(page.getByRole('heading', { name:'Settings' })).toBeVisible()
   await expect(page.getByRole('link', { name:'Connect Google Drive' })).toBeVisible()
