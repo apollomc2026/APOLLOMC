@@ -21,7 +21,8 @@ interface ClaudeInterpretation {
 export function promoteAcknowledgedGap(patch: ClaudeInterpretation, text: string, prior?: DeliverableSpecification): ClaudeInterpretation {
   const activeGap = prior ? executionGaps(prior)[0] : null
   const acknowledgement = safeText(patch.acknowledgement, 1200)
-  if (!activeGap || !acknowledgement || !/\b(?:received|resolved|confirmed|provided|captured)\b/i.test(acknowledgement)) return patch
+  const delegatesToEvidence = /\b(?:use|extract|read|pull|take)\b[\s\S]{0,180}\b(?:attached|uploaded|workbook|brief|evidence|source files?)\b/i.test(text)
+  if (!activeGap || delegatesToEvidence || !acknowledgement || !/\b(?:received|resolved|confirmed|provided|captured)\b/i.test(acknowledgement)) return patch
   return {
     ...patch,
     stated_facts: [

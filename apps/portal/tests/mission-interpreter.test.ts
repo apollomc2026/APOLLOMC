@@ -100,6 +100,16 @@ describe('mission interpreter', () => {
     expect(result.question).not.toBe(activeQuestion)
   })
 
+  it('does not mistake an evidence sourcing directive for the field value', () => {
+    const prior = interpretMission('Create a 2027 cash flow forecast and budget package.').specification
+    const patch = promoteAcknowledgedGap(
+      { acknowledgement: 'Received and resolved from the supplied evidence.' },
+      'Use the forecast period and figures directly from the attached workbook and management brief.',
+      prior,
+    )
+    expect(patch.stated_facts).toBeUndefined()
+  })
+
   it('fills safely inferable proposal defaults in expert recommendation mode', () => {
     const base = interpretMission('Create a fixed-fee proposal for Acme Facilities at $18,750.')
     const patch = applyExpertRecommendationMode({}, 'Use your expert recommendations for every unresolved decision.', base.specification)

@@ -75,7 +75,7 @@ export async function extractEvidenceFacts(text: string | undefined, moduleSlug:
   const fields = [...documentModule.required_fields, ...documentModule.optional_fields]
   const properties = Object.fromEntries(fields.map(field => [field.key, { type: 'string', description: field.label }]))
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-  const response = await client.messages.create({ model: modelFor('extraction'), max_tokens: 1800, system: 'Extract only values explicitly present in the evidence. Never infer, calculate, default, or fabricate. Use the exact field keys.', tools: [{ name: 'extract_evidence', description: 'Return only explicitly supported specialist fields.', input_schema: { type: 'object', properties } }], tool_choice: { type: 'tool', name: 'extract_evidence' }, messages: [{ role: 'user', content: text.slice(0, 80000) }] })
+  const response = await client.messages.create({ model: modelFor('extraction'), max_tokens: 6000, system: 'Extract only values explicitly present in the evidence. Never infer, calculate, default, or fabricate. Use the exact field keys. Extract every supported required field before including optional fields.', tools: [{ name: 'extract_evidence', description: 'Return explicitly supported specialist fields, prioritizing all required fields before optional fields.', input_schema: { type: 'object', properties } }], tool_choice: { type: 'tool', name: 'extract_evidence' }, messages: [{ role: 'user', content: text.slice(0, 80000) }] })
   const block = response.content.find(item => item.type === 'tool_use' && item.name === 'extract_evidence')
   if (!block || block.type !== 'tool_use') return []
   const labels = new Map(fields.map(field => [field.key, field.label]))

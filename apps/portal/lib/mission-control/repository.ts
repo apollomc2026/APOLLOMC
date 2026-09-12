@@ -83,7 +83,9 @@ export async function persistMissionTurn(input: {
   if (input.conversationId) {
     const evidenceFacts = await reconcileSecuredEvidence({ db, userId: input.userId, conversationId: input.conversationId, specification: result.specification })
     if (evidenceFacts.length) {
-      const nonEvidenceFacts = result.specification.content.facts.filter(fact => fact.source !== 'evidence')
+      const evidenceKeys = new Set(evidenceFacts.map(fact => fact.key))
+      const isEvidenceDirective = (value: string) => /\b(?:use|extract|read|pull|take)\b[\s\S]{0,180}\b(?:attached|uploaded|workbook|brief|evidence|source files?)\b/i.test(value)
+      const nonEvidenceFacts = result.specification.content.facts.filter(fact => fact.source !== 'evidence' && !(evidenceKeys.has(fact.key) && isEvidenceDirective(fact.value)))
       result.specification.content.facts = mergeMissionFacts(nonEvidenceFacts, evidenceFacts)
       const gaps = executionGaps(result.specification)
       result.specification.content.open_questions = gaps.map(gap => `What should APOLLO use for ${gap.label.toLowerCase()}?`)
