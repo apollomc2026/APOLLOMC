@@ -832,6 +832,18 @@ export function MissionControl() {
           New mission
         </button>
       </header>
+      {jobState === "failed" ? (
+        <section className="mc-failure-banner" role="alert" aria-live="assertive">
+          <div>
+            <span>MISSION LAUNCH FAILED</span>
+            <strong>APOLLO stopped safely before delivery.</strong>
+            <p>Check mission calibration and evidence, then retry the preserved execution. A failure alert has also been sent by email.</p>
+          </div>
+          <button type="button" onClick={() => void retryExecution()} disabled={working}>
+            {working ? "Preparing retry…" : "Check calibration & retry"}
+          </button>
+        </section>
+      ) : null}
       {specification ? <section className="mc-deliverable-gate" aria-label="Intended deliverable confirmation">
         <div><span>INTENDED DELIVERABLE</span><strong>{title}</strong><small>{specification.artifact.recommended_family}</small></div>
         <p>Confirm APOLLO interpreted the requested output correctly before calibrating its contents.</p>

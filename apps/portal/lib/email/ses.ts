@@ -138,15 +138,26 @@ export function rebuildCompleteEmail(deliverableName: string, sectionName: strin
 }
 
 export function failedEmail(deliverableName: string, missionId: string) {
+  const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?mission=${encodeURIComponent(missionId)}`
+  const safeName = escapeHtml(deliverableName)
+  const safeMissionId = escapeHtml(missionId)
   return {
-    subject: `Issue with your ${deliverableName} build`,
+    subject: `Action required: ${deliverableName} mission launch failed`,
     html: `
-      <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #1a1a2e;">Build Issue</h1>
-        <p>We encountered an issue building your <strong>${deliverableName}</strong>. Our team has been notified and will investigate.</p>
-        <p>Mission ID: ${missionId}</p>
-        <p style="color: #666; font-size: 14px;">If you need immediate assistance, contact support@apollomc.ai</p>
+      <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; color: #111827;">
+        <p style="color: #b45309; font-size: 12px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;">Apollo Mission Control</p>
+        <h1 style="color: #991b1b;">Mission launch failed</h1>
+        <p>APOLLO stopped the <strong>${safeName}</strong> mission safely before delivery.</p>
+        <p>Open Mission Control to review the calibration, evidence, and required inputs, then retry the preserved mission.</p>
+        <p><a href="${dashboardUrl}" style="display: inline-block; padding: 12px 24px; background: #b45309; color: white; text-decoration: none; border-radius: 999px;">Check calibration</a></p>
+        <p style="color: #6b7280; font-size: 13px;">Mission ${safeMissionId}</p>
+        <p style="color: #6b7280; font-size: 13px;">No evidence or prior execution record was discarded. If you need assistance, contact support@apollomc.ai.</p>
       </div>
     `,
+    text: `Mission launch failed. APOLLO stopped the ${deliverableName} mission safely. Check calibration and retry: ${dashboardUrl}\nMission ${missionId}`,
   }
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[character]!)
 }
