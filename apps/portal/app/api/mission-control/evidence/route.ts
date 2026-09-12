@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { requireAllowedUser } from '@/lib/apollo/auth'
 import { createClient } from '@/lib/supabase/server'
 import { deleteFromS3, getPresignedUrl, uploadToS3 } from '@/lib/s3/client'
-import { evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractEvidenceFacts } from '@/lib/mission-control/evidence'
+import { evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractEvidenceFacts, normalizeEvidenceMime } from '@/lib/mission-control/evidence'
 import { executionGaps } from '@/lib/mission-control/work-order'
 import { createMissionFact, mergeMissionFacts, specificationProvenance, type DeliverableSpecification } from '@/lib/mission-control/contracts'
 
@@ -42,7 +42,8 @@ export async function POST(request: Request) {
   const file = form.get('file')
   const conversationId = String(form.get('conversation_id') ?? '')
   if (!(file instanceof File) || !conversationId) return NextResponse.json({ error: 'A file and conversation are required' }, { status: 400 })
-  if (!ALLOWED.has(file.type) || file.size > MAX_BYTES) return NextResponse.json({ error: 'Unsupported file type or file exceeds 20 MB' }, { status: 415 })
+  const mimeType = normalizeEvidenceMime(file.name, file.type)
+  if (!mimeType || !ALLOWED.has(mimeType) || file.size > MAX_BYTES) return NextResponse.json({ error: 'Unsupported file type or file exceeds 20 MB' }, { status: 415 })
   const db = await createClient()
   const owner = await db.from('apollo_conversations').select('id, current_spec_version').eq('id', conversationId).eq('user_id', allowed.user.userId).single()
   if (owner.error || !owner.data) return NextResponse.json({ error: 'Mission conversation was not found' }, { status: 404 })
@@ -51,19 +52,19 @@ export async function POST(request: Request) {
   const prior = current.data.specification as DeliverableSpecification
   const moduleSlug = prior.artifact.recommended_type
   const bytes = Buffer.from(await file.arrayBuffer())
-  if (!evidenceMagicMatches(bytes, file.type)) return NextResponse.json({ error: 'File content does not match its declared type' }, { status: 415 })
+  if (!evidenceMagicMatches(bytes, mimeType)) return NextResponse.json({ error: 'File content does not match its declared type' }, { status: 415 })
   if (evidenceZipTooLarge(bytes)) return NextResponse.json({ error: 'File expands beyond the safe extraction limit' }, { status: 413 })
   const id = randomUUID()
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
   const storageKey = `mission-evidence/${conversationId}/${id}-${safeName}`
-  await uploadToS3(storageKey, bytes, file.type)
+  await uploadToS3(storageKey, bytes, mimeType)
   const originalHash = createHash('sha256').update(bytes).digest('hex')
   let extractionStatus: 'verified' | 'failed' = 'verified'
   let retrievalKey = storageKey; let retrievalMime = file.type; let retrievalHash = originalHash
   let extractedFacts: Awaited<ReturnType<typeof extractEvidenceFacts>> = []
   let extractedText: string | undefined
   try {
-    const extracted = await extractEvidence(bytes, file.type)
+    const extracted = await extractEvidence(bytes, mimeType)
     extractedText = extracted.text
     if (!extracted.safeForDirectRetrieval) {
       if (!extracted.text?.trim()) throw new Error('No retrievable text could be extracted')
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
     try { extractedFacts = await extractEvidenceFacts(extractedText, moduleSlug) } catch { extractedFacts = [] }
     extractedFacts = extractedFacts.map(fact => ({ ...fact, source_reference: id, last_editor: allowed.user.userId }))
   }
-  const inserted = await db.from('apollo_conversation_evidence').insert({ id, conversation_id: conversationId, user_id: allowed.user.userId, original_name: file.name, storage_key: storageKey, content_sha256: originalHash, retrieval_storage_key: retrievalKey, retrieval_mime_type: retrievalMime, retrieval_sha256: retrievalHash, mime_type: file.type, size_bytes: file.size, extraction_status: extractionStatus, extracted_facts: extractedFacts }).select('id, original_name, extraction_status').single()
+  const inserted = await db.from('apollo_conversation_evidence').insert({ id, conversation_id: conversationId, user_id: allowed.user.userId, original_name: file.name, storage_key: storageKey, content_sha256: originalHash, retrieval_storage_key: retrievalKey, retrieval_mime_type: retrievalMime, retrieval_sha256: retrievalHash, mime_type: mimeType, size_bytes: file.size, extraction_status: extractionStatus, extracted_facts: extractedFacts }).select('id, original_name, extraction_status').single()
   if (inserted.error) {
     await Promise.allSettled([deleteFromS3(storageKey), ...(retrievalKey !== storageKey ? [deleteFromS3(retrievalKey)] : [])])
     return NextResponse.json({ error: inserted.error.message }, { status: 500 })

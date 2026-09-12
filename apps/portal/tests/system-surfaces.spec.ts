@@ -301,7 +301,7 @@ test('advanced intake hands evidence-derived readiness and specification version
 
   await page.goto('/new-mission')
   await page.getByLabel('What must be accomplished?').fill('Prepare a field operations proposal grounded in the attached verified site notes.')
-  await page.getByLabel('Add available evidence').setInputFiles([
+  await page.getByLabel(/Drop evidence here or choose files/).setInputFiles([
     { name: 'site-notes.txt', mimeType: 'text/plain', buffer: Buffer.from('Verified site access and inspection scope.') },
     { name: 'mislabeled.pdf', mimeType: 'application/pdf', buffer: Buffer.from('not a pdf') },
   ])

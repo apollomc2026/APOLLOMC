@@ -1,4 +1,19 @@
 export interface EvidenceExtraction { text?: string; safeForDirectRetrieval: boolean }
+
+const EVIDENCE_MIME_BY_EXTENSION: Record<string, string> = {
+  pdf: 'application/pdf',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  csv: 'text/csv', txt: 'text/plain', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
+}
+
+export function normalizeEvidenceMime(name: string, declaredMime: string): string | null {
+  const extension = name.toLowerCase().split('.').pop() ?? ''
+  const expected = EVIDENCE_MIME_BY_EXTENSION[extension]
+  if (!expected) return null
+  if (!declaredMime || declaredMime === 'application/octet-stream') return expected
+  return declaredMime === expected ? expected : null
+}
 import Anthropic from '@anthropic-ai/sdk'
 import { modelFor } from '@/lib/ai/models'
 import { getModule } from '@/lib/apollo/packages-loader'
