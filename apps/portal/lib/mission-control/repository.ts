@@ -78,3 +78,28 @@ export async function refreshExecutionEvidence(input: { userId: string; conversa
     return { ...expected, name: String(row.original_name), retrieval_url: await getPresignedUrl(String(row.retrieval_storage_key), expiresIn), expires_at: expiresAt }
   }))
 }
+
+export async function loadCurrentMissionBrand(input: {
+  userId: string
+  conversationId: string
+}): Promise<string | null> {
+  const db = await createClient()
+  const conversation = await db
+    .from('apollo_conversations')
+    .select('current_spec_version')
+    .eq('id', input.conversationId)
+    .eq('user_id', input.userId)
+    .single()
+  if (conversation.error || !conversation.data)
+    throw new MissionPersistenceError('Current mission brand could not be read')
+  const version = await db
+    .from('apollo_specification_versions')
+    .select('specification')
+    .eq('conversation_id', input.conversationId)
+    .eq('version', conversation.data.current_spec_version)
+    .single()
+  if (version.error || !version.data)
+    throw new MissionPersistenceError('Current mission specification could not be read')
+  const specification = version.data.specification as DeliverableSpecification
+  return specification.presentation.brand_profile_id
+}

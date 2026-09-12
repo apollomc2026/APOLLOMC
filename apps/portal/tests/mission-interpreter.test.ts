@@ -76,6 +76,13 @@ describe('mission interpreter', () => {
     expect(result.specification.content.open_questions).not.toContain('What exact brand_profile_id should be applied?')
   })
 
+  it('preserves a selected client brand through every later intake turn', () => {
+    const prior = interpretMission('Create a proposal for Acme Facilities.').specification
+    prior.presentation.brand_profile_id = 'kit:7607208b-e32f-4b67-a676-23d885ecd7f6'
+    const result = interpretMission('Use a fixed fee of $18,750.', prior)
+    expect(result.specification.presentation.brand_profile_id).toBe('kit:7607208b-e32f-4b67-a676-23d885ecd7f6')
+  })
+
   it('promotes an acknowledged answer to the active specialist gap', () => {
     const prior = interpretMission('Create a fixed-fee proposal for Acme Facilities at $18,750.').specification
     const activeQuestion = prior.content.open_questions[0]
