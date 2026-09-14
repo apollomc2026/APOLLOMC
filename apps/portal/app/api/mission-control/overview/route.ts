@@ -6,8 +6,8 @@ export const dynamic = 'force-dynamic'
 
 const fixture = {
   missions: [
-    { id:'mission-demo', title:'Field Operations Proposal', status:'submitted', readiness:100, current_spec_version:3, updated_at:'2026-09-06T12:00:00.000Z', job:{ id:'job-demo', state:'delivered', progress_percent:100, message:'Document deliverables are ready', artifacts:[{ title:'Field Operations Proposal', web_view_url:'#', version:1 }] } },
-    { id:'mission-active', title:'Site Inspection Report', status:'calibrating', readiness:62, current_spec_version:2, updated_at:'2026-09-06T11:00:00.000Z', job:null },
+    { id:'mission-demo', title:'Field Operations Proposal', status:'submitted', readiness:100, current_spec_version:3, updated_at:'2026-09-06T12:00:00.000Z', job:{ id:'job-demo', state:'delivered', progress_percent:100, message:'Document deliverables are ready', artifacts:[{ title:'Field Operations Proposal', web_view_url:'#', version:1 }] }, jobs:[{ id:'job-demo', state:'delivered', progress_percent:100, message:'Document deliverables are ready', artifacts:[{ title:'Field Operations Proposal', web_view_url:'#', version:1 }], created_at:'2026-09-06T12:00:00.000Z' }] },
+    { id:'mission-active', title:'Site Inspection Report', status:'calibrating', readiness:62, current_spec_version:2, updated_at:'2026-09-06T11:00:00.000Z', job:null, jobs:[] },
   ],
   metrics:{ total:2, active:1, delivered:1, failed:0, average_progress:81 },
 }
@@ -22,12 +22,17 @@ export async function GET() {
   const service = await createServiceClient()
   const jobs = await service.from('apollo_document_jobs').select('id,conversation_id,state,progress_percent,status_message,artifacts,created_at').eq('requested_by', auth.user.userId).order('created_at', { ascending:false })
   if (jobs.error) return NextResponse.json({ error:jobs.error.message }, { status:500 })
-  const latestJobs = new Map<string, typeof jobs.data[number]>()
-  for (const job of jobs.data ?? []) if (!latestJobs.has(job.conversation_id)) latestJobs.set(job.conversation_id, job)
-  const missions = (conversations.data ?? []).map(mission => { const job = latestJobs.get(mission.id); return { ...mission, job:job ? { id:job.id, state:job.state, progress_percent:job.progress_percent, message:job.status_message, artifacts:job.artifacts ?? [] } : null } })
-  const delivered = missions.filter(mission => mission.job?.state === 'delivered').length
-  const failed = missions.filter(mission => mission.job && ['failed','blocked','cancelled'].includes(mission.job.state)).length
-  const active = missions.filter(mission => mission.status !== 'archived' && mission.job?.state !== 'delivered' && !['failed','blocked','cancelled'].includes(mission.job?.state ?? '')).length
+  const jobsByMission = new Map<string, typeof jobs.data>()
+  for (const job of jobs.data ?? []) jobsByMission.set(job.conversation_id, [...(jobsByMission.get(job.conversation_id) ?? []), job])
+  const missions = (conversations.data ?? []).map(mission => {
+    const missionJobs = jobsByMission.get(mission.id) ?? []
+    const normalizedJobs = missionJobs.map(job => ({ id:job.id, state:job.state, progress_percent:job.progress_percent, message:job.status_message, artifacts:job.artifacts ?? [], created_at:job.created_at }))
+    return { ...mission, job:normalizedJobs[0] ?? null, jobs:normalizedJobs }
+  })
+  const allJobs = missions.flatMap(mission => mission.jobs)
+  const delivered = allJobs.filter(job => job.state === 'delivered').length
+  const failed = allJobs.filter(job => ['failed','blocked','cancelled'].includes(job.state)).length
+  const active = allJobs.filter(job => !['delivered','failed','blocked','cancelled'].includes(job.state)).length + missions.filter(mission => mission.status !== 'archived' && mission.jobs.length === 0).length
   const averageProgress = missions.length ? Math.round(missions.reduce((sum,mission) => sum + (mission.job?.progress_percent ?? mission.readiness), 0) / missions.length) : 0
   return NextResponse.json(
     { missions, metrics:{ total:missions.length, active, delivered, failed, average_progress:averageProgress } },
