@@ -8,6 +8,7 @@ import {
   Orbit,
   Paperclip,
   Rocket,
+  RefreshCw,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
@@ -46,6 +47,8 @@ export function MissionControl() {
   >({});
   const [operatorInvolvement, setOperatorInvolvement] = useState(50);
   const [launchCountdown, setLaunchCountdown] = useState<number | "LIFTOFF" | null>(null);
+  const [regenerateOpen, setRegenerateOpen] = useState(false);
+  const [regenerateCountdown, setRegenerateCountdown] = useState<number | "LIFTOFF" | null>(null);
   const [launchPromptDismissed, setLaunchPromptDismissed] = useState(false);
   const [reviewAcknowledged, setReviewAcknowledged] = useState(false);
   const [reviewScrolled, setReviewScrolled] = useState(false);
@@ -713,15 +716,16 @@ export function MissionControl() {
     setLaunchCountdown(null);
   }
 
-  async function requestRevision() {
-    if (!jobId || !revision.trim() || working) return;
+  async function requestRevision(instructionOverride?: string) {
+    const instruction = instructionOverride?.trim() || revision.trim();
+    if (!jobId || !instruction || working) return;
     setWorking(true);
     setError(null);
     try {
       const response = await fetch("/api/mission-control/revise", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ job_id: jobId, instruction: revision }),
+        body: JSON.stringify({ job_id: jobId, instruction }),
       });
       const result = (await response.json()) as {
         job_id?: string;
@@ -735,7 +739,7 @@ export function MissionControl() {
         {
           id: crypto.randomUUID(),
           role: "user",
-          content: revision,
+          content: instruction,
           createdAt: new Date().toISOString(),
         },
         {
@@ -756,6 +760,28 @@ export function MissionControl() {
     } finally {
       setWorking(false);
     }
+  }
+
+  async function regenerateDeliverable() {
+    if (regenerateCountdown !== null || working) return;
+    for (let count = 5; count >= 1; count -= 1) {
+      setRegenerateCountdown(count);
+      await new Promise((resolve) => window.setTimeout(resolve, 850));
+    }
+    setRegenerateCountdown("LIFTOFF");
+    await new Promise((resolve) => window.setTimeout(resolve, 650));
+    await requestRevision("Regenerate this deliverable using the current approved evidence and publication standards. Preserve all verified facts and create a new immutable draft version.");
+    setRegenerateCountdown(null);
+    setRegenerateOpen(false);
+  }
+
+  function editMissionData() {
+    setRegenerateOpen(false);
+    setDraft("Update the approved mission data: ");
+    window.setTimeout(() => {
+      composerRef.current?.focus();
+      composerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
   }
 
   async function retryExecution() {
@@ -807,6 +833,20 @@ export function MissionControl() {
 
   return (
     <div className="mc-workspace">
+      {regenerateOpen ? <div className="mc-regenerate-overlay" role="dialog" aria-modal="true" aria-labelledby="regenerate-title">
+        <section className={regenerateCountdown !== null ? "launching" : ""}>
+          <button className="mc-regenerate-close" type="button" aria-label="Close launch room" onClick={() => setRegenerateOpen(false)} disabled={regenerateCountdown !== null}>×</button>
+          <div className="mc-regenerate-orbit"><Rocket size={34}/></div>
+          <span>RETURN TO LAUNCH ROOM</span>
+          <h2 id="regenerate-title">Command the next version.</h2>
+          <p>Use the approved evidence exactly as-is, or return to Mission Control to update the mission data first. Every prior deliverable remains preserved.</p>
+          <div className="mc-regenerate-choice"><button type="button" onClick={editMissionData} disabled={regenerateCountdown !== null}>Edit mission data</button><button type="button" className="selected" disabled>Approved evidence locked</button></div>
+          <button className="mc-regenerate-launch" type="button" onClick={() => void regenerateDeliverable()} disabled={working || regenerateCountdown !== null}>
+            <Rocket size={22}/><strong aria-live="assertive">{regenerateCountdown !== null ? regenerateCountdown : "INITIATE REGENERATION"}</strong>
+          </button>
+          <small>Creates a new immutable draft · prior versions remain available</small>
+        </section>
+      </div> : null}
       {specification && readiness >= 75 && questions.length === 0 && !jobId && !launchPromptDismissed ? (
         <div className="mc-launch-ready-overlay" role="dialog" aria-modal="true" aria-labelledby="launch-ready-title">
           <section>
@@ -872,6 +912,21 @@ export function MissionControl() {
           <button type="button" onClick={() => void retryExecution()} disabled={working}>
             {working ? "Preparing retry…" : "Check calibration & retry"}
           </button>
+        </section>
+      ) : null}
+      {jobId && jobState && !["failed", "blocked", "cancelled"].includes(jobState) ? (
+        <section className={`mc-regenerate-banner ${jobState === "delivered" ? "ready" : "active"}`} aria-label="Deliverable regeneration control" aria-live="polite">
+          <div className="mc-regenerate-icon"><RefreshCw size={22} className={jobState === "delivered" ? "" : "spin"} /></div>
+          <div className="mc-regenerate-copy">
+            <span>{jobState === "delivered" ? "VERSION CONTROL" : "DOCUMENT EXECUTION ACTIVE"}</span>
+            <strong>{jobState === "delivered" ? "Create an improved version anytime." : `APOLLO is building the next controlled draft · ${jobProgress ?? 1}%`}</strong>
+            <p>{jobState === "delivered" ? "Regenerate from the approved brief and verified evidence without replacing the prior deliverable." : "Your request was accepted. Progress and delivery will update here automatically."}</p>
+            {jobState !== "delivered" ? <i><b style={{ width: `${jobProgress ?? 1}%` }} /></i> : null}
+          </div>
+          <div className="mc-regenerate-actions">
+            {artifactUrl ? <a href={artifactUrl} target="_blank" rel="noreferrer">Open current draft</a> : null}
+            {jobState === "delivered" ? <button type="button" onClick={() => setRegenerateOpen(true)} disabled={working}>{working ? "Preparing launch room…" : "Regenerate / edit mission"}</button> : <b>{jobProgress ?? 1}%</b>}
+          </div>
         </section>
       ) : null}
       {specification ? <section className="mc-deliverable-gate" aria-label="Intended deliverable confirmation">
