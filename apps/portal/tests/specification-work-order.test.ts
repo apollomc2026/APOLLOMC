@@ -61,6 +61,19 @@ describe('approved specification compiler', () => {
     }
   })
 
+  it('binds the selected custom brand through compilation and every revision', () => {
+    const specification = interpretMission('Send a proposal to Acme Facilities for $18,500 before October 15, 2026.').specification
+    specification.presentation.brand_profile_id = 'kit:44444444-4444-4444-8444-444444444444'
+    specification.approval.status = 'approved'
+    for (const field of getModule('proposal')!.required_fields) specification.content.facts.push(createMissionFact({ key:field.key, label:field.label, value:`Confirmed ${field.label}`, source:'user', confidence:1 }))
+    const compiled = compileApprovedSpecification({ specification, ...ids })
+    expect(compiled.ok).toBe(true)
+    if (compiled.ok) {
+      expect(compiled.order.brand_id).toBe('kit:44444444-4444-4444-8444-444444444444')
+      expect(buildRevisionOrder(compiled.order, 'Tighten the executive summary.').brand_id).toBe(compiled.order.brand_id)
+    }
+  })
+
   it('places review instructions inside the constrained generation context', () => {
     const directive = formatRevisionDirective({ revision_of: 'job-v1', revision_instruction: 'Tighten the executive summary while preserving price and scope.' })
     expect(directive).toContain('Prior immutable job: job-v1')
