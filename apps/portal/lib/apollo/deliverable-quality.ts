@@ -83,6 +83,24 @@ export function auditDeliverableQuality(slug: string, html: string, expectedSect
     if (tables + lists < 2) violations.push('Decision guides require issue-to-action mapping through tables or structured lists.')
   }
 
+  if (FINANCIAL.has(slug) && (tables < 2 || tableRows < 8)) {
+    violations.push('Financial packets require at least two substantive tables and eight total rows so schedules, scenarios, and decision figures remain auditable.')
+  }
+  if (slug === 'federal-proposal') {
+    if (!/compliance\s+matrix/i.test(text) || !/requirement/i.test(text)) violations.push('Federal responses require a visible requirement-by-requirement compliance matrix.')
+    if (tables < 3 || tableRows < 10) violations.push('Federal responses require substantive compliance, delivery, and responsibility tables rather than proposal narrative alone.')
+  }
+  if (slug === 'capability-statement') {
+    if (tables + lists < 2) violations.push('Capability statements require scannable capabilities and proof structures, not an unbroken marketing narrative.')
+    if (!/(?:past performance|proof|evidence|verified)/i.test(text)) violations.push('Capability statements require an explicit proof or past-performance section for credibility.')
+    if (words > 1200) violations.push('Capability statements must remain concise enough for rapid executive review.')
+  }
+  if (slug === 'contract-package') {
+    if (!/(?:term and termination|termination)/i.test(text)) violations.push('Agreement packages require explicit term and termination treatment.')
+    if (!/(?:signature|acceptance|executed by)/i.test(text)) violations.push('Agreement packages require a visible execution or signature section.')
+    if (tables + lists < 2) violations.push('Agreement packages require structured obligations, responsibilities, or commercial terms.')
+  }
+
   if (unresolvedMarkers > 0) warnings.push(`${unresolvedMarkers} explicit unresolved marker(s) remain and must stay visible to the reviewer.`)
   if (duplicateSectionLeadings > 0) violations.push(`${duplicateSectionLeadings} section heading(s) are duplicated immediately in the body.`)
   if (tables === 0 && words > 500) warnings.push('A long narrative document contains no table; verify that comparable information is not buried in prose.')

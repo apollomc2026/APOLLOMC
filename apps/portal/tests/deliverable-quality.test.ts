@@ -37,4 +37,33 @@ describe('APOLLO deliverable workmanship floor', () => {
     expect(report.violations.join(' ')).toMatch(/unresolved placeholders/i)
     expect(report.violations.join(' ')).toMatch(/duplicated/i)
   })
+
+  it('requires auditable schedules in financial packets', () => {
+    const thin = auditDeliverableQuality('cash-flow-budget-package', section('Summary', words) + '<table><tr><th>Month</th></tr><tr><td>Jan</td></tr><tr><td>Feb</td></tr><tr><td>Mar</td></tr></table>', 1)
+    expect(thin.passed).toBe(false)
+    expect(thin.violations.join(' ')).toMatch(/two substantive tables/i)
+  })
+
+  it('requires a traceable compliance matrix in federal responses', () => {
+    const tables = '<table><tr><th>Item</th></tr>' + Array.from({ length: 4 }, (_, i) => `<tr><td>Requirement ${i + 1}</td></tr>`).join('') + '</table>'
+    const narrative = auditDeliverableQuality('federal-proposal', section('Executive response', words) + section('Technical approach', words) + tables + tables, 2)
+    expect(narrative.passed).toBe(false)
+    expect(narrative.violations.join(' ')).toMatch(/compliance matrix/i)
+  })
+
+  it('requires proof structures and executive brevity in capability statements', () => {
+    const narrative = auditDeliverableQuality('capability-statement', section('Overview', words.repeat(16)), 1)
+    expect(narrative.passed).toBe(false)
+    expect(narrative.violations.join(' ')).toMatch(/scannable capabilities/i)
+    expect(narrative.violations.join(' ')).toMatch(/proof or past-performance/i)
+    expect(narrative.violations.join(' ')).toMatch(/concise/i)
+  })
+
+  it('requires termination, execution, and structured obligations in agreements', () => {
+    const narrative = auditDeliverableQuality('contract-package', section('Purpose', words) + section('Scope', words), 2)
+    expect(narrative.passed).toBe(false)
+    expect(narrative.violations.join(' ')).toMatch(/term and termination/i)
+    expect(narrative.violations.join(' ')).toMatch(/signature/i)
+    expect(narrative.violations.join(' ')).toMatch(/structured obligations/i)
+  })
 })
