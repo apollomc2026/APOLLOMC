@@ -30,11 +30,21 @@ const nextConfig: NextConfig = {
     "/.well-known/workflow/v1/step": [
       "../../node_modules/@sparticuz/chromium/**/*",
     ],
+    "/api/mission-control/interpret": [
+      "../../node_modules/@napi-rs/canvas/**/*",
+      "../../node_modules/@napi-rs/canvas-linux-x64-gnu/**/*",
+      "../../node_modules/@napi-rs/canvas-linux-x64-musl/**/*",
+    ],
+    "/api/mission-control/evidence": [
+      "../../node_modules/@napi-rs/canvas/**/*",
+      "../../node_modules/@napi-rs/canvas-linux-x64-gnu/**/*",
+      "../../node_modules/@napi-rs/canvas-linux-x64-musl/**/*",
+    ],
   },
 
   // Keep the package external so Next doesn't rewrite the import path
   // and confuse executablePath() resolution.
-  serverExternalPackages: ["@sparticuz/chromium"],
+  serverExternalPackages: ["@sparticuz/chromium", "@napi-rs/canvas"],
 
   // HS4.2: don't advertise the framework.
   poweredByHeader: false,
