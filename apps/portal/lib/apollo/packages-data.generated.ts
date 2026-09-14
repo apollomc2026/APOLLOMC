@@ -3661,8 +3661,8 @@ export const MODULES_RAW: Record<string, unknown> = {
         "label": "Final Test Results",
         "required": true,
         "min_words": 40,
-        "max_words": 600,
-        "instructions": "A markdown table whose columns match the header of the test_results field (e.g., ID | Location | Continuity | DC Resistance | Insulation R | Result), one row per item. Right-align numeric/measurement columns. Reproduce every value exactly; never invent a reading. Below the table, one line stating overall pass."
+        "max_words": 650,
+        "instructions": "A markdown table whose columns match the header of the test_results field (e.g., ID | Location | Continuity | DC Resistance | Insulation R | Result), one row per item. Right-align numeric/measurement columns. Reproduce every value exactly; never invent a reading. If repeated values are approximate or described by the evidence as representative or typical, state that limitation immediately before the table so they are not presented as independently precise readings. Below the table, one line stating overall pass."
       },
       {
         "key": "quality_summary",

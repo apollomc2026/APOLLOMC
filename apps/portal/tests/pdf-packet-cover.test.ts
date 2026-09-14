@@ -58,4 +58,19 @@ describe('packet cover invariant', () => {
     expect(html.match(/class="cover"/g)).toHaveLength(1)
     expect(html).not.toContain('class="packet-cover"')
   })
+
+  it('adds a branded cover and client-facing issue date to a final QC closeout', () => {
+    const html = buildFullHtml({
+      template: template('final-qc-report', 'Final Quality Control Report'),
+      brand,
+      inputs: { project_name: 'Nashua Garage Loop Installation', project_period: 'May 11–13, 2026' },
+      contentHtml: '<h2>Report Details</h2><table><thead><tr><th>Field</th><th>Detail</th></tr></thead><tbody><tr><td>Project</td><td>Nashua</td></tr></tbody></table>',
+      documentId: 'ONS-FINALQ-2026-09-14-ABC123',
+      preparedDate: '2026-09-14T19:00:07.696Z',
+    })
+    expect(html.match(/class="packet-cover"/g)).toHaveLength(1)
+    expect(html).toContain('Prepared by On Spot Solutions')
+    expect(html).toContain('Issued September 14, 2026')
+    expect(html).not.toContain('2026-09-14T19:00:07.696Z')
+  })
 })

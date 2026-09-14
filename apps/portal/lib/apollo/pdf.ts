@@ -594,7 +594,8 @@ function buildFullHtml(args: BuildPdfArgs): string {
 // left untouched so the rule can never create duplicates.
 function ensurePacketCover(html: string, args: BuildPdfArgs): string {
   const identity = `${args.template.slug} ${args.template.label}`
-  if (!/\b(?:packet|package)\b/i.test(identity)) return html
+  const formalCloseout = args.template.slug === 'final-qc-report'
+  if (!formalCloseout && !/\b(?:packet|package)\b/i.test(identity)) return html
   if (/class=["'][^"']*\b(?:cover|packet-cover)\b/i.test(html)) return html
 
   const logoDataUri = resolveLogoDataUri(args.brand)
@@ -606,12 +607,17 @@ function ensurePacketCover(html: string, args: BuildPdfArgs): string {
     args.preparedFor ||
     readString(args.inputs, 'entity_name') ||
     readString(args.inputs, 'client_name') ||
-    readString(args.inputs, 'prospect_organization')
+    readString(args.inputs, 'prospect_organization') ||
+    readString(args.inputs, 'project_name')
   const period =
     readString(args.inputs, 'forecast_period') ||
     readString(args.inputs, 'reporting_period') ||
     readString(args.inputs, 'period')
-  const context = [entity, period].filter(Boolean).map(escapeHtml).join(' &middot; ')
+  const projectPeriod = readString(args.inputs, 'project_period')
+  const context = [entity, period || projectPeriod].filter(Boolean).map(escapeHtml).join(' &middot; ')
+  const prepared = /^\d{4}-\d{2}-\d{2}T/.test(args.preparedDate)
+    ? new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(args.preparedDate))
+    : args.preparedDate
 
   const css = `
 <style>
@@ -630,7 +636,7 @@ function ensurePacketCover(html: string, args: BuildPdfArgs): string {
   align-items: center;
   justify-content: center;
 }
-.packet-cover-logo { max-width: 3.15in; max-height: 1.2in; object-fit: contain; }
+.packet-cover-logo { max-width: 4.2in; max-height: 1.65in; object-fit: contain; }
 .packet-cover-wordmark {
   font-family: var(--font-body); font-size: 15pt; font-weight: 600;
   letter-spacing: .38em; text-transform: uppercase;
@@ -660,14 +666,14 @@ function ensurePacketCover(html: string, args: BuildPdfArgs): string {
 <section class="packet-cover">
   <div class="packet-cover-brand">${brandMark}</div>
   <div class="packet-cover-center">
-    <div class="packet-cover-kicker">Decision-ready mission deliverable</div>
+    <div class="packet-cover-kicker">${formalCloseout ? 'Verified project closeout' : 'Decision-ready mission deliverable'}</div>
     <h1 class="packet-cover-title">${escapeHtml(args.template.label)}</h1>
     <div class="packet-cover-rule"></div>
     ${context ? `<div class="packet-cover-context">${context}</div>` : ''}
   </div>
   <div class="packet-cover-footer">
-    <span>${escapeHtml(args.preparedDate)}</span>
-    <span>${escapeHtml(args.documentId)}</span>
+    <span>Prepared by ${escapeHtml(args.brand.label)}</span>
+    <span>Issued ${escapeHtml(prepared)}</span>
     <span>Confidential</span>
   </div>
 </section>`
@@ -702,8 +708,16 @@ function buildContractorFormHtml(args: BuildPdfArgs): string {
   // Strip the leading <h1> (title lives in the masthead) and any mid-body
   // wordmark banner. Do NOT numberSections — contractor forms have no
   // numbered section openers; headings render as ALL-CAPS ruled labels.
-  const body = decorateOperationalStatuses(stripPreH2Banner(stripAllH1(stripLeadingTitle(args.contentHtml))))
-  const meta = [args.documentId, args.preparedDate]
+  let body = decorateOperationalStatuses(stripPreH2Banner(stripAllH1(stripLeadingTitle(args.contentHtml))))
+  body = body.replace(/<table\b[\s\S]*?<\/table>/gi, (table) => {
+    const rows = table.match(/<tr\b/gi)?.length ?? 0
+    return rows <= 4 ? table.replace(/<table\b([^>]*)>/i, (_whole, attrs: string) => `<table${addHtmlClass(attrs, 'keep-together')}>`) : table
+  })
+  body = body.replace(/<p>\s*Signature\s*(?:&amp;|&)\s*Date\s*<\/p>/gi, '<div class="cf-signature"><span>Authorized signature</span><span>Date</span></div>')
+  const prepared = /^\d{4}-\d{2}-\d{2}T/.test(args.preparedDate)
+    ? new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(args.preparedDate))
+    : args.preparedDate
+  const meta = [`Document control · ${args.documentId}`, `Issued ${prepared}`]
     .filter((s) => s && String(s).trim())
     .map((s) => escapeHtml(String(s)))
     .join(' &middot; ')
@@ -733,6 +747,8 @@ body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.42; color
 }
 .cf-body h3 { font-family: var(--font-body); font-size: 9pt; font-weight: 600; margin: 8pt 0 2pt 0; color: var(--ink); }
 .cf-body table { width: 100%; border-collapse: collapse; margin: 4pt 0 9pt 0; font-size: 8.8pt; }
+.cf-body thead { display: table-header-group; }
+.cf-body table.keep-together { break-inside: avoid; page-break-inside: avoid; }
 .cf-body th { background: var(--ink); color: #fff; text-align: left; font-weight: 600; padding: 4pt 6pt; font-size: 8pt; letter-spacing: 0.04em; }
 .cf-body td { border: 0.5pt solid var(--hairline); padding: 3.5pt 6pt; vertical-align: top; }
 .cf-body tbody tr:nth-child(even) td { background: #fafafa; }
@@ -744,6 +760,8 @@ body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.42; color
 .cf-body ul { margin: 3pt 0 9pt 0; padding-left: 15pt; }
 .cf-body li { margin: 1.5pt 0; }
 .cf-body p { margin: 0 0 6pt 0; }
+.cf-signature { display: grid; grid-template-columns: 2fr 1fr; gap: 20pt; margin-top: 22pt; }
+.cf-signature span { border-top: .7pt solid var(--ink); padding-top: 4pt; color: var(--metadata); font-size: 7.5pt; letter-spacing: .08em; text-transform: uppercase; }
 .cf-body table:last-child, .cf-body ul:last-child, .cf-body p:last-child { margin-bottom: 0; }
 </style>
 </head>
