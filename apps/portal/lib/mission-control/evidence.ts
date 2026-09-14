@@ -1,4 +1,5 @@
 export interface EvidenceExtraction { text?: string; safeForDirectRetrieval: boolean }
+export interface EvidenceRetrievalArtifact { bytes: Buffer; mime: string; derived: boolean }
 
 const EVIDENCE_MIME_BY_EXTENSION: Record<string, string> = {
   pdf: 'application/pdf',
@@ -67,6 +68,12 @@ export async function extractEvidence(bytes: Buffer, mime: string): Promise<Evid
     return { text, safeForDirectRetrieval: false }
   }
   return { safeForDirectRetrieval: false }
+}
+
+export function prepareEvidenceRetrieval(bytes: Buffer, normalizedMime: string, extracted: EvidenceExtraction): EvidenceRetrievalArtifact {
+  if (extracted.safeForDirectRetrieval) return { bytes, mime: normalizedMime, derived: false }
+  if (!extracted.text?.trim()) throw new Error('No retrievable text could be extracted')
+  return { bytes:Buffer.from(extracted.text, 'utf8'), mime:'text/plain', derived:true }
 }
 
 export async function extractEvidenceFacts(text: string | undefined, moduleSlug: string | null): Promise<MissionFact[]> {

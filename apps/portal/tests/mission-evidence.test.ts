@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { batchEvidenceSources, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, normalizeEvidenceMime } from '../lib/mission-control/evidence'
+import * as XLSX from 'xlsx'
+import { batchEvidenceSources, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, normalizeEvidenceMime, prepareEvidenceRetrieval } from '../lib/mission-control/evidence'
 import { mergeMissionFacts } from '../lib/mission-control/contracts'
 
 describe('mission evidence custody', () => {
@@ -22,6 +23,36 @@ describe('mission evidence custody', () => {
     expect(normalizeEvidenceMime('brief.pdf', '')).toBe('application/pdf')
     expect(normalizeEvidenceMime('brief.pdf', 'image/png')).toBeNull()
     expect(normalizeEvidenceMime('diagnostic.inspect.ndjson', 'application/octet-stream')).toBeNull()
+  })
+
+  it('uses the canonical MIME in execution custody even when the browser supplied none', () => {
+    const bytes = Buffer.from('%PDF-1.7')
+    expect(prepareEvidenceRetrieval(bytes, 'application/pdf', { safeForDirectRetrieval:true })).toEqual({
+      bytes,
+      mime:'application/pdf',
+      derived:false,
+    })
+  })
+
+  it('converts Office evidence to a hashable text execution artifact', () => {
+    const artifact = prepareEvidenceRetrieval(Buffer.from('office zip'), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', { text:'=== Forecast ===\nMonth,Closing cash\nJan,125000', safeForDirectRetrieval:false })
+    expect(artifact.mime).toBe('text/plain')
+    expect(artifact.derived).toBe(true)
+    expect(artifact.bytes.toString('utf8')).toContain('Jan,125000')
+  })
+
+  it('extracts an uploaded workbook into the execution-safe tabular derivative', async () => {
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([
+      ['Month', 'Opening cash', 'Inflows', 'Outflows', 'Closing cash'],
+      ['January', 100000, 25000, 18000, 107000],
+    ]), 'Base Case')
+    const bytes = Buffer.from(XLSX.write(workbook, { type:'buffer', bookType:'xlsx' }))
+    const extracted = await extractEvidence(bytes, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    const retrieval = prepareEvidenceRetrieval(bytes, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', extracted)
+    expect(retrieval.mime).toBe('text/plain')
+    expect(retrieval.bytes.toString('utf8')).toContain('=== Base Case ===')
+    expect(retrieval.bytes.toString('utf8')).toContain('January,100000,25000,18000,107000')
   })
 
   it('preserves contradictory values from separate evidence sources for reconciliation', () => {

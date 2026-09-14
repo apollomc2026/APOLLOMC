@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { requireAllowedUser } from '@/lib/apollo/auth'
 import { createClient } from '@/lib/supabase/server'
 import { deleteFromS3, getPresignedUrl, uploadToS3 } from '@/lib/s3/client'
-import { evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractEvidenceFacts, normalizeEvidenceMime } from '@/lib/mission-control/evidence'
+import { evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractEvidenceFacts, normalizeEvidenceMime, prepareEvidenceRetrieval } from '@/lib/mission-control/evidence'
 import { executionGaps } from '@/lib/mission-control/work-order'
 import { createMissionFact, mergeMissionFacts, specificationProvenance, type DeliverableSpecification } from '@/lib/mission-control/contracts'
 
@@ -60,17 +60,18 @@ export async function POST(request: Request) {
   await uploadToS3(storageKey, bytes, mimeType)
   const originalHash = createHash('sha256').update(bytes).digest('hex')
   let extractionStatus: 'verified' | 'failed' = 'verified'
-  let retrievalKey = storageKey; let retrievalMime = file.type; let retrievalHash = originalHash
+  let retrievalKey = storageKey; let retrievalMime = mimeType; let retrievalHash = originalHash
   let extractedFacts: Awaited<ReturnType<typeof extractEvidenceFacts>> = []
   let extractedText: string | undefined
   try {
     const extracted = await extractEvidence(bytes, mimeType)
     extractedText = extracted.text
-    if (!extracted.safeForDirectRetrieval) {
-      if (!extracted.text?.trim()) throw new Error('No retrievable text could be extracted')
-      const derived = Buffer.from(extracted.text, 'utf8')
-      retrievalKey = `${storageKey}.extracted.txt`; retrievalMime = 'text/plain'; retrievalHash = createHash('sha256').update(derived).digest('hex')
-      await uploadToS3(retrievalKey, derived, retrievalMime)
+    const retrieval = prepareEvidenceRetrieval(bytes, mimeType, extracted)
+    retrievalMime = retrieval.mime
+    retrievalHash = createHash('sha256').update(retrieval.bytes).digest('hex')
+    if (retrieval.derived) {
+      retrievalKey = `${storageKey}.extracted.txt`
+      await uploadToS3(retrievalKey, retrieval.bytes, retrievalMime)
     }
   } catch { extractionStatus = 'failed' }
   if (extractionStatus === 'verified') {
