@@ -181,15 +181,34 @@ function fieldIsPresent(fields: Record<string, unknown>, key: string): boolean {
   return value !== undefined && value !== null && String(value).trim() !== ''
 }
 
-function activeSections(args: OrchestrateArgs): ModuleSection[] {
+const OPTIONAL_SECTION_DEPENDENCIES:Record<string,string[]> = {
+  'audit-readiness:appendices':['prior_audit_results','key_controls','known_gaps','system_landscape'],
+  'board-report:compliance_update':['compliance_updates'],
+  'board-report:appendices':['operational_metrics','capital_expenditures'],
+  'compliance-report:appendices':['prior_audit_findings'],
+  'contract-package:exhibits':['compensation_terms','insurance_requirements','special_provisions'],
+  'daily-construction-report:third_party_activity':['subcontractor_activity'],
+  'exec-presentation:risk_assessment':['competitive_context','sensitive_topics'],
+  'exec-presentation:appendix':['financial_data'],
+  'federal-proposal:transition_plan':['period_of_performance','teaming_partners','key_personnel'],
+  'investor-memo:due_diligence_findings':['management_assessment','due_diligence_status'],
+  'investor-update:asks':['asks_of_investors'],
+  'one-pager:traction':['traction_metrics','customer_logos','outcome_metrics','social_proof'],
+  'pwp:client_reference':['reference_contact'],
+  'sow:governance':['key_milestones','team_structure','client_pm_name','provider_pm_name'],
+}
+
+export function activeSections(args: OrchestrateArgs): ModuleSection[] {
   return args.module.sections.filter((section) => {
     if (section.key === 'cover') return false
-    if (args.slug !== 'proposal') return true
-    if (section.key === 'team_organization') return ['team_lead_name','team_lead_qualifications','team_members'].some((key) => fieldIsPresent(args.fields, key))
-    if (section.key === 'past_performance') return fieldIsPresent(args.fields, 'past_performance')
-    if (section.key === 'references') return fieldIsPresent(args.fields, 'references')
-    if (section.key === 'appendix_compliance') return fieldIsPresent(args.fields, 'evaluation_criteria')
-    return true
+    if (section.required !== false) return true
+    const optionalKeys = args.module.optional_fields.map(field => field.key)
+    const inferredDependencies = optionalKeys.filter(key => section.key === key || section.instructions.toLowerCase().includes(key.toLowerCase()))
+    const mappedDependencies = OPTIONAL_SECTION_DEPENDENCIES[`${args.slug}:${section.key}`] ?? []
+    const dependencies = [...new Set([...inferredDependencies, ...mappedDependencies])]
+    if (dependencies.some(key => fieldIsPresent(args.fields, key))) return true
+    if (/^(?:appendix|appendices|exhibits)$/.test(section.key)) return args.uploads.length > 0
+    return false
   })
 }
 
