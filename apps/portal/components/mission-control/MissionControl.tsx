@@ -1042,6 +1042,12 @@ export function MissionControl() {
             </div>
             <FilePlus2 size={20} />
           </div>
+          {specification ? <nav className="mc-dossier-nav" aria-label="Mission dossier sections">
+            <button type="button" onClick={() => document.getElementById("mission-overview")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Overview</button>
+            <button type="button" onClick={() => document.getElementById("mission-facts")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Facts</button>
+            <button type="button" onClick={() => document.getElementById("mission-decisions")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Decisions</button>
+            <button type="button" onClick={() => document.getElementById("mission-calibration")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Calibration</button>
+          </nav> : null}
           {specification ? (
             <>
               <div className="mc-recommendation">
@@ -1059,7 +1065,7 @@ export function MissionControl() {
                 <div><small>APOLLO leads</small><small>You direct</small></div>
                 <button type="button" onClick={() => void applyOperatorInvolvement()} disabled={working || operatorInvolvement === (specification.aura.operator_involvement ?? 50)}>Apply to active mission</button>
               </div>
-              <div className="mc-brief-section mc-brief-overview">
+              <div className="mc-brief-section mc-brief-overview" id="mission-overview">
                 <h3>Mission definition</h3>
                 <dl>
                   <div>
@@ -1123,7 +1129,7 @@ export function MissionControl() {
                   ) : null}
                 </div>
               ) : null}
-              <div className="mc-brief-section">
+              <div className="mc-brief-section" id="mission-facts">
                 <h3>
                   Mission facts <b>{facts.length}</b>
                 </h3>
@@ -1156,7 +1162,7 @@ export function MissionControl() {
                   <p className="mc-empty">Confirmed facts will appear here.</p>
                 )}
               </div>
-              <div className="mc-brief-section">
+              <div className="mc-brief-section" id="mission-evidence">
                 <h3>
                   Evidence record <b>{specification.sources.length}</b>
                 </h3>
@@ -1174,7 +1180,7 @@ export function MissionControl() {
                   </p>
                 )}
               </div>
-              <div className="mc-brief-section">
+              <div className="mc-brief-section" id="mission-decisions">
                 <h3>
                   Assumptions and obligations{" "}
                   <b>
@@ -1276,7 +1282,7 @@ export function MissionControl() {
                   </p>
                 ))}
               </div>
-              <div className="mc-brief-section">
+              <div className="mc-brief-section" id="mission-calibration">
                 <h3>Aura calibration</h3>
                 {aura.map(([key, value]) => (
                   <div className="mc-aura" key={key}>
