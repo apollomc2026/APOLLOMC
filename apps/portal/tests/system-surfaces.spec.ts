@@ -71,9 +71,12 @@ test('mission control presents a command deck with immediate reflight and enviro
   await page.goto('/dashboard')
   const commandDeck = page.locator('.dashboard-command-deck')
   await expect(commandDeck.getByText('Field Operations Proposal')).toBeVisible()
+  await expect(commandDeck.getByText('LATEST SUCCESSFUL MISSION')).toBeVisible()
   await expect(commandDeck.getByRole('button', { name:/Regenerate deliverable/i })).toBeVisible()
+  await expect(commandDeck.getByRole('link', { name:'Open deliverable' })).toBeVisible()
   await expect(commandDeck.getByRole('link', { name:'Telemetry' })).toHaveAttribute('href', '/telemetry?mission=mission-demo')
   await expect(commandDeck.getByRole('link', { name:'Edit mission data' })).toHaveAttribute('href', '/new-mission?mission=mission-demo&edit=1')
+  await expect(commandDeck.getByRole('link', { name:'New mission' })).toHaveAttribute('href', '/new-mission')
 })
 
 test('archive, telemetry, and settings are operational surfaces', async ({ page }) => {
