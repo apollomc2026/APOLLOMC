@@ -3,6 +3,7 @@
     "app/api/apollo/submit/route.ts": { "maxDuration": 60 }
   },
   "crons": [
-    { "path": "/api/apollo/keepalive", "schedule": "0 9 * * *" }
+    { "path": "/api/apollo/keepalive", "schedule": "0 9 * * *" },
+    { "path": "/api/cron/notifications", "schedule": "*/10 * * * *" }
   ]
 }

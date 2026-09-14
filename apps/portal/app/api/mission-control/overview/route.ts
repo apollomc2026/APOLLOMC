@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server'
+import { after, NextResponse } from 'next/server'
 import { requireAllowedUser } from '@/lib/apollo/auth'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { reconcileTerminalNotifications } from '@/lib/executor/notification-reconciler'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,6 +35,7 @@ export async function GET() {
   const failed = allJobs.filter(job => ['failed','blocked','cancelled'].includes(job.state)).length
   const active = allJobs.filter(job => !['delivered','failed','blocked','cancelled'].includes(job.state)).length + missions.filter(mission => mission.status !== 'archived' && mission.jobs.length === 0).length
   const averageProgress = missions.length ? Math.round(missions.reduce((sum,mission) => sum + (mission.job?.progress_percent ?? mission.readiness), 0) / missions.length) : 0
+  after(() => reconcileTerminalNotifications({ userId:auth.user.userId, limit:5 }).catch(error => console.error('[apollo-notifications] reconciliation failed', error instanceof Error ? error.message : 'unknown error')))
   return NextResponse.json(
     { missions, metrics:{ total:missions.length, active, delivered, failed, average_progress:averageProgress } },
     { headers:{ 'Cache-Control':'private, no-store, max-age=0' } },
