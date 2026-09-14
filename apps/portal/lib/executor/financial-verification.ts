@@ -37,6 +37,52 @@ function normalizedFigure(raw: string): string {
   return raw.replace(/\s/g, '').replace(/\$/g, '')
 }
 
+function htmlText(contentHtml: string): string {
+  return contentHtml
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;|&#160;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/\s+/g, ' ')
+}
+
+function financialValues(contentHtml: string): number[] {
+  return (htmlText(contentHtml).match(/\(?-?\$?\s*\d[\d,]*(?:\.\d+)?\)?/g) ?? [])
+    .flatMap(value => {
+      try { return [parseMoney(value)] } catch { return [] }
+    })
+}
+
+function verifySourceBasis(order: DocumentWorkOrder, contentHtml: string, schedules: Record<string, number[]>, directMoneyFields: string[] = []): number {
+  const outputValues = financialValues(contentHtml)
+  const expected: Array<{ field:string; raw:string }> = []
+  for (const [field, indices] of Object.entries(schedules)) {
+    const raw = order.fields[field]
+    if (typeof raw !== 'string' || !raw.trim()) continue
+    for (const [lineIndex, line] of raw.split(/\r?\n/).map(line => line.trim()).filter(Boolean).entries()) {
+      const columns = line.split('|').map(value => value.trim())
+      if (columns.every(column => /^:?-{3,}:?$/.test(column))) continue
+      for (const index of indices) {
+        const value = columns[index]
+        if (!value || !/\d/.test(value)) continue
+        try { parseMoney(value) } catch { throw new Error(`${field} row ${lineIndex + 1} contains invalid financial value '${value}'`) }
+        expected.push({ field, raw:value })
+      }
+    }
+  }
+  for (const field of directMoneyFields) {
+    const raw = order.fields[field]
+    if (raw === undefined || raw === null || raw === '') continue
+    expected.push({ field, raw:String(raw) })
+  }
+  for (const item of expected) {
+    const value = parseMoney(item.raw)
+    if (!outputValues.some(output => nearlyEqual(output, value))) throw new Error(`rendered ${order.deliverable_type} changed or omitted ${item.field} value '${item.raw}'`)
+  }
+  return expected.length
+}
+
 function verifyVerbatimFigures(order: DocumentWorkOrder, contentHtml: string): number {
   const keys = ['balance_sheet_lines', 'income_statement_lines', 'cash_flow_lines', 'statement_of_equity_lines']
   let count = 0
@@ -91,6 +137,31 @@ export function verifyFinancialDocument(order: DocumentWorkOrder, contentHtml: s
     const arithmetic = verifyCashFlowBudget(order)
     const figures = verifyVerbatimFigures({ ...order, fields: { balance_sheet_lines: order.fields.base_case_lines, income_statement_lines: order.fields.best_case_lines, cash_flow_lines: order.fields.worst_case_lines } }, contentHtml)
     return { required: true, checks: ['cash continuity', 'net change arithmetic', 'closing balance arithmetic', 'supplied figures preserved'], verified_values: arithmetic + figures }
+  }
+  if (order.deliverable_type === 'budget-vs-actual') {
+    const count = verifySourceBasis(order, contentHtml, { revenue_lines:[1,2], expense_lines:[1,2] })
+    return { required:true, checks:['budget and actual source figures preserved'], verified_values:count }
+  }
+  if (order.deliverable_type === 'cash-flow-forecast') {
+    const count = verifySourceBasis(order, contentHtml, { recurring_inflows:[1], recurring_outflows:[1], receivables_aging:[1], payables_aging:[1], one_time_items:[1] }, ['starting_cash_position','minimum_cash_threshold'])
+    return { required:true, checks:['forecast source figures preserved'], verified_values:count }
+  }
+  if (order.deliverable_type === 'expense-report') {
+    const count = verifySourceBasis(order, contentHtml, { expense_lines:[3], mileage_entries:[3,4], foreign_currency_conversions:[1,3,4] }, ['mileage_rate_per_mile','per_diem_rate','total_advance_received'])
+    return { required:true, checks:['expense and reimbursement source figures preserved'], verified_values:count }
+  }
+  if (order.deliverable_type === 'invoice') {
+    const count = verifySourceBasis(order, contentHtml, { line_items:[2,3] }, ['tax_rate_percent','late_payment_interest_percent_monthly'])
+    return { required:true, checks:['invoice quantity, rate, tax, and payment figures preserved'], verified_values:count }
+  }
+  if (order.deliverable_type === 'personal-monthly') {
+    const count = verifySourceBasis(order, contentHtml, { income_sources:[1], fixed_expenses:[1], variable_expenses:[1], savings_deposits:[1], debt_payments:[1], assets_snapshot:[1], liabilities_snapshot:[1], goals_progress:[1,2] })
+    return { required:true, checks:['personal finance source figures preserved'], verified_values:count }
+  }
+  if (order.deliverable_type === 'tax-estimate') {
+    const count = verifySourceBasis(order, contentHtml, { itemized_deductions_breakdown:[1], tax_credits:[1] }, ['gross_income_w2','gross_income_1099_self_employment','gross_income_investment','gross_income_other','withholdings_ytd','estimated_payments_ytd','prior_year_tax_liability'])
+    if (!/planning purposes|not (?:tax|legal) advice|not a tax return/i.test(htmlText(contentHtml))) throw new Error('tax estimate is missing its planning-only professional boundary')
+    return { required:true, checks:['tax source figures preserved', 'planning-only boundary present'], verified_values:count }
   }
   throw new Error(`deterministic financial verification is not implemented for ${order.deliverable_type}`)
 }

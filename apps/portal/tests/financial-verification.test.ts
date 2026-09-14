@@ -35,8 +35,31 @@ describe('deterministic financial verification', () => {
     expect(() => verifyFinancialDocument(order, '<p>Cash 312,400 999,999</p>')).toThrow(/changed or omitted/)
   })
 
-  it('fails closed for an unsupported deterministic financial type', () => {
-    const order = { ...base, deliverable_type: 'cash-flow-forecast', fields: {} } as unknown as DocumentWorkOrder
+  it.each([
+    ['budget-vs-actual', { revenue_lines:'Service | 1000 | 1200', expense_lines:'Labor | 600 | 550' }, '1000 1200 600 550'],
+    ['cash-flow-forecast', { starting_cash_position:'50000', recurring_inflows:'Contracts | 8000 | 1 | 1 | 13', recurring_outflows:'Payroll | 4000 | 1 | 1 | 13' }, '50,000 8,000 4,000'],
+    ['expense-report', { expense_lines:'2026-09-01 | Travel | Rail | 245.50 | USD | card | 6010 | Site visit' }, '$245.50'],
+    ['invoice', { line_items:'CONSULT | Consulting | 8 | 175 | N', tax_rate_percent:'0', late_payment_interest_percent_monthly:'1.5' }, '8 $175 0% 1.5%'],
+    ['personal-monthly', { income_sources:'Salary | 7200', fixed_expenses:'Housing | 2100', variable_expenses:'Food | 650' }, '$7,200 $2,100 $650'],
+  ])('preserves the approved source basis for %s', (deliverable_type, fields, output) => {
+    const report = verifyFinancialDocument({ ...base, deliverable_type, fields } as unknown as DocumentWorkOrder, `<p>${output}</p>`)
+    expect(report.required).toBe(true)
+    expect(report.verified_values).toBeGreaterThan(0)
+  })
+
+  it('requires both source figures and the professional boundary for tax estimates', () => {
+    const order = { ...base, deliverable_type:'tax-estimate', fields:{ gross_income_w2:'125000', withholdings_ytd:'22000', prior_year_tax_liability:'23500' } } as unknown as DocumentWorkOrder
+    expect(() => verifyFinancialDocument(order, '<p>$125,000 $22,000 $23,500</p>')).toThrow(/planning-only/)
+    expect(verifyFinancialDocument(order, '<p>For planning purposes only. $125,000 $22,000 $23,500</p>').verified_values).toBe(3)
+  })
+
+  it('rejects a changed source value in every supported financial class', () => {
+    const order = { ...base, deliverable_type:'cash-flow-forecast', fields:{ starting_cash_position:'50000', recurring_inflows:'Contracts | 8000 | 1 | 1 | 13', recurring_outflows:'Payroll | 4000 | 1 | 1 | 13' } } as unknown as DocumentWorkOrder
+    expect(() => verifyFinancialDocument(order, '<p>50,000 8,000 9,999</p>')).toThrow(/recurring_outflows/)
+  })
+
+  it('still fails closed for an unknown deterministic financial type', () => {
+    const order = { ...base, deliverable_type: 'unknown-financial-type', fields: {} } as unknown as DocumentWorkOrder
     expect(() => verifyFinancialDocument(order, '')).toThrow(/not implemented/)
   })
 })
