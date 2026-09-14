@@ -704,7 +704,7 @@ function buildContractorFormHtml(args: BuildPdfArgs): string {
   const palette = resolvePaletteForBuild(args)
   const preset = resolvePreset(args.fontPreset?.key)
   const docTitle = args.template.label
-  const wordmark = brandWordmark(args.brand.slug)
+  const wordmark = brandWordmark(args.brand.slug) || args.brand.label
   // Strip the leading <h1> (title lives in the masthead) and any mid-body
   // wordmark banner. Do NOT numberSections — contractor forms have no
   // numbered section openers; headings render as ALL-CAPS ruled labels.
@@ -1004,7 +1004,7 @@ function buildContractHtml(args: BuildPdfArgs): string {
     ? `<section class="preamble">${preamble}</section>`
     : ''
   const signaturesHtml = renderSignatureBlock(args)
-  const wordmark = brandWordmark(args.brand.slug)
+  const wordmark = brandWordmark(args.brand.slug) || args.brand.label
   const docTitle = args.template.label
   const preparedFor = args.preparedFor
     ?? readString(args.inputs, 'receiving_party_name')
@@ -1458,7 +1458,7 @@ function buildInvoiceHtml(args: BuildPdfArgs): string {
   const flags = placementFlags(placement, 'invoice')
   const logoDataUri = resolveLogoDataUri(args.brand)
   const watermarkHtml = flags.hasWatermark ? renderWatermarkHtml(logoDataUri) : ''
-  const wordmark = brandWordmark(args.brand.slug)
+  const wordmark = brandWordmark(args.brand.slug) || args.brand.label
   const docTitle = args.template.label
   const invoiceNumber = readString(args.inputs, 'invoice_number') || args.documentId
   const invoiceDate = readString(args.inputs, 'invoice_date') || args.preparedDate
@@ -1588,7 +1588,7 @@ function buildOnePagerHtml(args: BuildPdfArgs): string {
   const flags = placementFlags(placement, 'one-pager')
   const logoDataUri = resolveLogoDataUri(args.brand)
   const watermarkHtml = flags.hasWatermark ? renderWatermarkHtml(logoDataUri) : ''
-  const wordmark = brandWordmark(args.brand.slug)
+  const wordmark = brandWordmark(args.brand.slug) || args.brand.label
   const docTitle = args.template.label
   const subjectTitle = readString(args.inputs, 'subject_title') || docTitle
   const body = stripAllH1(stripLeadingTitle(args.contentHtml))
@@ -1672,7 +1672,7 @@ function buildMinutesHtml(args: BuildPdfArgs): string {
   const flags = placementFlags(placement, 'minutes')
   const logoDataUri = resolveLogoDataUri(args.brand)
   const watermarkHtml = flags.hasWatermark ? renderWatermarkHtml(logoDataUri) : ''
-  const wordmark = brandWordmark(args.brand.slug)
+  const wordmark = brandWordmark(args.brand.slug) || args.brand.label
   const docTitle = args.template.label
   const meetingTitle = readString(args.inputs, 'meeting_title') || docTitle
   const meetingDate = readString(args.inputs, 'meeting_date') || args.preparedDate
@@ -1796,7 +1796,7 @@ function buildFinancialStatementHtml(args: BuildPdfArgs): string {
   const flags = placementFlags(placement, 'financial-statement')
   const logoDataUri = resolveLogoDataUri(args.brand)
   const watermarkHtml = flags.hasWatermark ? renderWatermarkHtml(logoDataUri) : ''
-  const wordmark = brandWordmark(args.brand.slug)
+  const wordmark = brandWordmark(args.brand.slug) || args.brand.label
   const docTitle = args.template.label
 
   // Pull masthead metadata from common input keys. Each financial template
