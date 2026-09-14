@@ -37,6 +37,20 @@ describe('mission interpreter', () => {
     expect(interpretMission('Create a cash flow forecast with variance analysis.').specification.specialist.playbook_id).toBe('financial-package')
   })
 
+  it('makes an explicit Final Quality Control Report correction authoritative over prior routing', () => {
+    const prior = interpretMission('Prepare a contract package for the project.').specification
+    const result = interpretMission('Set the intended deliverable exactly to Final Quality Control Report. Do not substitute another deliverable type.', prior)
+    expect(result.specification.artifact.recommended_type).toBe('final-qc-report')
+    expect(result.specification.artifact.recommended_family).toBe('Quality control closeout')
+    expect(result.specification.specialist.required_checks).toContain('test-result-traceability')
+  })
+
+  it('does not crash when Claude returns stated_facts as an object', () => {
+    const prior = interpretMission('Prepare a contract package for the project.').specification
+    const malformed = { acknowledgement: 'Received and resolved.', stated_facts: { key: 'unexpected-object' } } as unknown as Parameters<typeof promoteAcknowledgedGap>[0]
+    expect(() => promoteAcknowledgedGap(malformed, 'Set the intended deliverable exactly to Final Quality Control Report.', prior)).not.toThrow()
+  })
+
   it('keeps an explicitly requested proposal ahead of incidental financial caution language', () => {
     const result = interpretMission('Create an internal project proposal and do not invent financial claims.')
     expect(result.specification.artifact.recommended_type).toBe('proposal')

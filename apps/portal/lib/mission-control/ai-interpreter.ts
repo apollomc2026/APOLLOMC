@@ -10,7 +10,7 @@ interface ClaudeInterpretation {
   objective?: string
   desired_action?: string
   primary_audience?: string
-  recommendation?: 'proposal' | 'sow' | 'contract-package' | 'daily-construction-report' | 'capability-statement' | 'cash-flow-budget-package' | 'federal-proposal'
+  recommendation?: 'proposal' | 'sow' | 'contract-package' | 'daily-construction-report' | 'final-qc-report' | 'capability-statement' | 'cash-flow-budget-package' | 'federal-proposal'
   rationale?: string
   stated_facts?: Array<{ key: string; label: string; value: string }>
   inferred_facts?: Array<{ key: string; label: string; value: string; confidence: number }>
@@ -26,7 +26,7 @@ export function promoteAcknowledgedGap(patch: ClaudeInterpretation, text: string
   return {
     ...patch,
     stated_facts: [
-      ...(patch.stated_facts ?? []).filter(fact => fact.key !== activeGap.key),
+      ...(Array.isArray(patch.stated_facts) ? patch.stated_facts : []).filter(fact => fact && typeof fact === 'object' && fact.key !== activeGap.key),
       { key: activeGap.key, label: activeGap.label, value: text.trim() },
     ],
   }
@@ -160,6 +160,8 @@ export async function interpretMissionWithClaude(text: string, prior?: Deliverab
     return result
   } catch (error) {
     console.warn('[mission-control] Claude interpretation fallback:', error instanceof Error ? error.message : 'unknown error')
-    return safeFallback()
+    const result = safeFallback()
+    result.acknowledgement = `Mission Control used its deterministic interpreter because the AI response could not be validated. ${result.acknowledgement}`
+    return result
   }
 }

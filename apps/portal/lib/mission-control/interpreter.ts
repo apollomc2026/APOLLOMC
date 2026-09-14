@@ -9,7 +9,7 @@ const GOVERNMENT = /rfp|solicitation|government|federal|compliance/i
 const FINANCIAL = /cash flow|budget|financial|forecast|variance/i
 const EXPLICIT_PROPOSAL = /\b(?:proposal|estimate|quote)\b/i
 
-export type SupportedMissionArtifact = 'proposal' | 'sow' | 'contract-package' | 'daily-construction-report' | 'capability-statement' | 'cash-flow-budget-package' | 'federal-proposal'
+export type SupportedMissionArtifact = 'proposal' | 'sow' | 'contract-package' | 'daily-construction-report' | 'final-qc-report' | 'capability-statement' | 'cash-flow-budget-package' | 'federal-proposal'
 
 /**
  * Preserve a deliverable the user named directly. Broad domain vocabulary is
@@ -20,6 +20,7 @@ export function explicitMissionArtifact(text: string): SupportedMissionArtifact 
   if (/\b(?:rfp|solicitation|federal proposal|government proposal)\b/i.test(text)) return 'federal-proposal'
   if (/\b(?:cash[ -]?flow (?:forecast|budget)|budget(?: vs\.? actual)?|financial forecast|variance analysis)\b/i.test(text)) return 'cash-flow-budget-package'
   if (/\b(?:capability statement|qualifications statement)\b/i.test(text)) return 'capability-statement'
+  if (/\b(?:final[ -]?(?:quality control|qc) report|final inspection report)\b/i.test(text)) return 'final-qc-report'
   if (/\b(?:service agreement|contract package|contract|nda|non-disclosure agreement)\b/i.test(text)) return 'contract-package'
   if (/\b(?:daily (?:construction|site) report|incident report|field service report)\b/i.test(text)) return 'daily-construction-report'
   if (/\bstatement of work\b|\bsow\b/i.test(text)) return 'sow'
@@ -32,6 +33,7 @@ export function recommendMissionArtifact(text: string) {
   if (explicit === 'cash-flow-budget-package') return { family: 'Financial package', type: 'cash-flow-budget-package', playbook: 'financial-package', rationale: 'The outcome depends on reconciled numerical evidence and decision-ready financial explanation.', sections: ['Executive summary', 'Assumptions', 'Cash-flow analysis', 'Variance analysis', 'Risks and sensitivities', 'Recommended actions'], checks: ['arithmetic-reconciliation', 'period-consistency', 'source-traceability'] }
   if (explicit === 'capability-statement') return { family: 'Executive communication', type: 'capability-statement', playbook: 'executive-capability', rationale: 'The audience needs a concise statement of credibility, differentiation, and next action.', sections: ['Positioning statement', 'Core capabilities', 'Proof and past performance', 'Differentiators', 'Contact and next action'], checks: ['claim-provenance', 'audience-fit', 'brevity'] }
   if (explicit === 'contract-package') return { family: 'Legal agreement', type: 'contract-package', playbook: 'balanced-agreement', rationale: 'The mission centers on mutual obligations and terms that should remain explicit and balanced.', sections: ['Purpose and parties', 'Scope and responsibilities', 'Commercial terms', 'Term and termination', 'Risk allocation', 'Signatures'], checks: ['party-and-authority', 'obligation-balance', 'termination-terms'] }
+  if (explicit === 'final-qc-report') return { family: 'Quality control closeout', type: 'final-qc-report', playbook: 'field-service-report', rationale: 'The requested outcome is a consolidated, evidence-led acceptance record for completed work.', sections: ['Project and inspection summary', 'Scope and acceptance criteria', 'Test instruments and methods', 'Per-item results', 'Exceptions and corrective actions', 'Certification and acceptance'], checks: ['acceptance-criteria', 'test-result-traceability', 'evidence-custody', 'unverified-claims'] }
   if (explicit === 'daily-construction-report') return { family: 'Operational report', type: 'daily-construction-report', playbook: 'field-service-report', rationale: 'The request is evidence-led and needs a chronological, defensible record.', sections: ['Report summary', 'Conditions and observations', 'Work completed', 'Evidence log', 'Issues and actions', 'Attestation'], checks: ['timeline-consistency', 'evidence-custody', 'unverified-claims'] }
   if (explicit === 'sow') return { family: 'Statement of work', type: 'sow', playbook: 'statement-of-work', rationale: 'A statement of work makes scope, responsibilities, schedule, acceptance, and change control explicit.', sections: ['Purpose', 'Scope', 'Deliverables', 'Responsibilities', 'Schedule', 'Acceptance criteria', 'Change control'], checks: ['scope-completeness', 'acceptance-criteria', 'responsibility-clarity'] }
   if (explicit === 'federal-proposal') return { family: 'Government response', type: 'federal-proposal', playbook: 'government-response', rationale: 'The mission appears governed by explicit requirements that need traceable compliance coverage.', sections: ['Executive response', 'Compliance matrix', 'Technical approach', 'Management approach', 'Past performance', 'Required representations'], checks: ['requirement-coverage', 'page-limits', 'unmet-requirements'] }
@@ -61,7 +63,11 @@ function extractFacts(text: string, now: Date): MissionFact[] {
 }
 
 export function interpretMission(text: string, prior?: DeliverableSpecification, now = new Date()): MissionTurnResult {
-  const choice = recommendMissionArtifact(`${prior?.mission.objective ?? ''} ${text}`)
+  // An explicit supported deliverable in the newest user turn is authoritative.
+  // Do not let an older objective, evidence filename, or model fallback outweigh
+  // a direct operator correction such as "Set this to Final QC Report".
+  const explicit = explicitMissionArtifact(text)
+  const choice = recommendMissionArtifact(explicit ? text : `${prior?.mission.objective ?? ''} ${text}`)
   const changed = extractFacts(text, now)
   const factMap = new Map((prior?.content.facts ?? []).map(fact => {
     const normalized = createMissionFact(fact, now)
