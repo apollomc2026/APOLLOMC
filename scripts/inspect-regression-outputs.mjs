@@ -13,7 +13,7 @@ const EXTRACT_DIR = path.join(__dirname, 'tmp-extract')
 
 const SIG_REQUIRED = new Set([
   'nda_on-spot-solutions',
-  'sow_atlas',
+  'sow_on-spot-solutions',
   'engagement-letter_apollo',
 ])
 

@@ -1,4 +1,4 @@
-export type QualityArchetype = 'editorial' | 'proposal' | 'decision-guide' | 'field-record' | 'commercial' | 'financial'
+export type QualityArchetype = 'editorial' | 'proposal' | 'decision-guide' | 'field-record' | 'commercial' | 'financial' | 'presentation'
 
 export interface DeliverableQualityReport {
   archetype: QualityArchetype
@@ -21,12 +21,14 @@ const FIELD_RECORDS = new Set(['daily-construction-report', 'final-qc-report', '
 const COMMERCIAL = new Set(['quote', 'invoice', 'change-order', 'expense-report', 'budget-vs-actual', 'cash-flow-forecast', 'tax-estimate', 'personal-monthly'])
 const FINANCIAL = new Set(['financial-statements-package', 'cash-flow-budget-package'])
 const DECISION_GUIDES = new Set(['meeting-minutes', 'legal-memo', 'contract-package', 'audit-readiness', 'compliance-report'])
+const PRESENTATIONS = new Set(['pitch-deck', 'exec-presentation'])
 
 export function qualityArchetypeForSlug(slug: string): QualityArchetype {
   if (FIELD_RECORDS.has(slug)) return 'field-record'
   if (FINANCIAL.has(slug)) return 'financial'
   if (COMMERCIAL.has(slug)) return 'commercial'
   if (DECISION_GUIDES.has(slug)) return 'decision-guide'
+  if (PRESENTATIONS.has(slug)) return 'presentation'
   if (slug === 'proposal' || slug === 'federal-proposal' || slug === 'sow') return 'proposal'
   return 'editorial'
 }
@@ -81,6 +83,11 @@ export function auditDeliverableQuality(slug: string, html: string, expectedSect
     if (unresolvedMarkers > 3) violations.push(`Proposal contains ${unresolvedMarkers} unresolved placeholders and is not client-ready.`)
   } else if (archetype === 'decision-guide') {
     if (tables + lists < 2) violations.push('Decision guides require issue-to-action mapping through tables or structured lists.')
+  } else if (archetype === 'presentation') {
+    const minimumTables = slug === 'exec-presentation' ? 2 : 1
+    if (tables < minimumTables || tableRows < minimumTables * 3) violations.push(`Presentation decks require at least ${minimumTables} substantive decision table${minimumTables === 1 ? '' : 's'} with real rows; pipe-delimited prose is not a table.`)
+    if (lists < 4 || listItems < 12) violations.push('Presentation decks require scannable slide-native bullets or decision structures instead of paragraph-led pages.')
+    if (words > 1800) violations.push('Presentation decks exceed the executive reading-density ceiling and must be tightened for live delivery.')
   }
 
   if (FINANCIAL.has(slug) && (tables < 2 || tableRows < 8)) {

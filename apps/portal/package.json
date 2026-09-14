@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "gen:thumbnails": "node scripts/generate-style-thumbnails.mjs",
     "test": "vitest run",
+    "pilot:golden": "tsx scripts/pilot-golden-matrix.mts",
     "release:check": "node scripts/release-readiness.mjs"
   },
   "dependencies": {
@@ -55,6 +56,7 @@
     "eslint-config-next": "16.3.4",
     "playwright": "^1.58.2",
     "tailwindcss": "^4",
+    "tsx": "^4.20.6",
     "typescript": "^5",
     "vitest": "^4.1.10"
   },

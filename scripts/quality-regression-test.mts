@@ -55,16 +55,16 @@ const cases: Case[] = [
     },
   },
   {
-    slug: 'sow_atlas',
+    slug: 'sow_on-spot-solutions',
     templateSlug: 'sow',
-    brandSlug: 'atlas',
+    brandSlug: 'on-spot-solutions',
     inputs: {
       client_name: 'Summit Property Management',
-      project_title: 'Atlas Access Control Deployment',
+      project_title: 'Access Control Deployment',
       start_date: '2026-05-01',
       end_date: '2026-08-31',
       project_summary:
-        'Deploy Atlas field intelligence platform across 12 Summit properties. Includes hardware installation, technician training, and 60-day support period.',
+        'Deploy the approved access-control solution across 12 Summit properties. Includes hardware installation, technician training, and a 60-day support period.',
       deliverables:
         'Hardware deployment at 12 sites\nTechnician training program for Summit maintenance staff\n60-day post-deployment support\nFinal deployment report',
       fee_structure: 'Fixed fee $87,500',

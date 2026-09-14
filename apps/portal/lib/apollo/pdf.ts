@@ -532,7 +532,7 @@ hr.hairline {
 // genre changes structure and density, never brand. A deliverable's genre is
 // resolved from its slug here: this is the single place a new genre, or a new
 // slug joining one, gets wired.
-export type Genre = 'editorial' | 'contractor_form' | 'ledger'
+export type Genre = 'editorial' | 'contractor_form' | 'ledger' | 'presentation'
 
 const CONTRACTOR_FORM_SLUGS = new Set<string>([
   'daily-construction-report',
@@ -544,10 +544,15 @@ const LEDGER_SLUGS = new Set<string>([
   'financial-statements-package',
   'cash-flow-budget-package',
 ])
+const PRESENTATION_SLUGS = new Set<string>([
+  'pitch-deck',
+  'exec-presentation',
+])
 
 export function genreForSlug(slug: string): Genre {
   if (CONTRACTOR_FORM_SLUGS.has(slug)) return 'contractor_form'
   if (LEDGER_SLUGS.has(slug)) return 'ledger'
+  if (PRESENTATION_SLUGS.has(slug)) return 'presentation'
   return 'editorial'
 }
 
@@ -560,6 +565,7 @@ function buildFullHtml(args: BuildPdfArgs): string {
   let html: string
   if (genre === 'contractor_form') html = buildContractorFormHtml(args)
   else if (genre === 'ledger') html = buildLedgerHtml(args)
+  else if (genre === 'presentation') html = buildPresentationHtml(args)
   else {
     const layout = args.template.layout ?? 'contract'
     switch (layout) {
@@ -982,6 +988,139 @@ body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.4; color:
   <div class="ld-body">
 ${body}
   </div>
+</body>
+</html>`
+}
+
+interface PresentationSection {
+  title: string
+  body: string
+}
+
+function presentationSections(html: string): PresentationSection[] {
+  const matches = [...html.matchAll(/<h2\b[^>]*>([\s\S]*?)<\/h2>/gi)]
+  if (matches.length === 0) {
+    return stripTags(html) ? [{ title: 'Mission brief', body: html }] : []
+  }
+  return matches.map((match, index) => {
+    const start = (match.index ?? 0) + match[0].length
+    const end = matches[index + 1]?.index ?? html.length
+    return {
+      title: cleanSectionTitle(stripTags(match[1])),
+      body: html.slice(start, end).trim(),
+    }
+  }).filter(section => section.title && stripTags(section.body))
+}
+
+function structurePresentationBody(html: string): string {
+  return html.replace(/<p\b[^>]*>([\s\S]*?\(1\)[\s\S]*?)<\/p>/gi, (whole, inner:string) => {
+    const parts = inner.split(/\s*\(\d+\)\s*/).map(part => part.trim()).filter(Boolean)
+    if (parts.length < 3) return whole
+    const introduction = parts.shift() ?? ''
+    return `${introduction ? `<p class="presentation-intro">${introduction}</p>` : ''}<ul class="presentation-points">${parts.map(item => `<li>${item}</li>`).join('')}</ul>`
+  })
+}
+
+// Presentation outputs are a distinct publication class. They use a true
+// 16:9 canvas, one decision-led section per slide, large typography, and no
+// report furniture (TOC, Roman section openers, or signature pages).
+function buildPresentationHtml(args: BuildPdfArgs): string {
+  const palette = resolvePaletteForBuild(args)
+  const preset = resolvePreset(args.fontPreset?.key)
+  const logoDataUri = resolveLogoDataUri(args.brand)
+  const wordmark = brandWordmark(args.brand.slug) || args.brand.label
+  let source = stripDuplicateSectionLeadings(pruneNonContentSections(args, stripPreH2Banner(stripAllH1(stripLeadingTitle(args.contentHtml)))))
+  source = stripSection(source, /^(?:title|cover) slide$/i)
+  const sections = presentationSections(source)
+  const subject =
+    readString(args.inputs, 'company_name') ||
+    readString(args.inputs, 'organization_name') ||
+    args.preparedFor ||
+    args.brand.label
+  const subtitle =
+    readString(args.inputs, 'tagline') ||
+    readString(args.inputs, 'presentation_topic') ||
+    readString(args.inputs, 'key_message')
+  const audience = readString(args.inputs, 'audience')
+  const presenter = readString(args.inputs, 'presenter_name')
+  const coverBrand = logoDataUri
+    ? `<img class="presentation-logo" src="${logoDataUri}" alt="${escapeHtml(args.brand.label)}" />`
+    : `<div class="presentation-wordmark">${escapeHtml(wordmark)}</div>`
+  const slides = sections.map((section, index) => {
+    const structuredBody = structurePresentationBody(section.body)
+    const wordCount = stripTags(structuredBody).split(/\s+/).filter(Boolean).length
+    const density = wordCount > 130 ? 'dense' : wordCount > 80 ? 'standard' : 'sparse'
+    const structured = /<(?:table|ul|ol|h3|blockquote)\b/i.test(structuredBody) ? 'structured' : 'statement'
+    return `
+<section class="presentation-slide ${density}" data-slide="${String(index + 2).padStart(2, '0')}">
+  <header><span>${String(index + 2).padStart(2, '0')} / ${escapeHtml(args.template.label)}</span><i></i></header>
+  <div class="presentation-slide-content">
+    <h2>${escapeHtml(section.title)}</h2>
+    <div class="presentation-rule"></div>
+    <div class="presentation-body ${structured}">${structuredBody}</div>
+  </div>
+</section>`
+  }).join('')
+
+  return `<!doctype html>
+<html lang="en">${sharedHead(palette, preset, args.template.label)}
+<style>
+@page { size: 13.333in 7.5in; margin: .48in .62in .55in .62in; }
+body { font-size: 12pt; line-height: 1.42; }
+.presentation-cover,.presentation-slide { box-sizing:border-box; min-height:6.3in; break-after:page; page-break-after:always; position:relative; overflow:hidden; }
+.presentation-cover { display:grid; grid-template-rows:auto 1fr auto; padding:.08in 0; }
+.presentation-cover::before { content:""; position:absolute; right:-1.2in; top:-1.1in; width:4.4in; height:4.4in; border-radius:50%; background:radial-gradient(circle, color-mix(in srgb,var(--accent) 17%,transparent), transparent 66%); }
+.presentation-cover::after { content:""; position:absolute; left:0; right:0; bottom:.72in; height:1px; background:linear-gradient(90deg,var(--accent),var(--hairline) 42%,transparent); }
+.presentation-cover-top,.presentation-cover-footer,.presentation-slide header { display:flex; align-items:center; justify-content:space-between; gap:24pt; color:var(--metadata); font-size:7.5pt; font-weight:600; letter-spacing:.19em; text-transform:uppercase; }
+.presentation-cover-top { position:relative; z-index:1; min-height:.58in; }
+.presentation-logo { max-width:2.55in; max-height:.62in; object-fit:contain; object-position:left center; }
+.presentation-wordmark { color:var(--ink); font-size:11pt; letter-spacing:.3em; }
+.presentation-cover-center { position:relative; z-index:1; align-self:center; max-width:10.6in; padding:0 0 .18in .82in; border-left:2pt solid var(--accent); }
+.presentation-kicker { margin:0 0 18pt; color:var(--accent); font-size:8pt; font-weight:700; letter-spacing:.26em; text-transform:uppercase; }
+.presentation-cover h1 { margin:0; max-width:10.4in; color:var(--ink); font-family:var(--font-display); font-size:42pt; font-weight:500; line-height:1.02; letter-spacing:-.025em; }
+.presentation-subtitle { margin:20pt 0 0; max-width:8.9in; color:var(--metadata); font-size:15pt; line-height:1.42; }
+.presentation-cover-footer { position:relative; z-index:1; padding-top:18pt; }
+.presentation-slide { display:flex; flex-direction:column; padding:.05in 0; }
+.presentation-slide::after { content:attr(data-slide); position:absolute; right:.15in; bottom:.16in; color:color-mix(in srgb,var(--accent) 7%,transparent); font-family:var(--font-display); font-size:88pt; font-weight:600; line-height:1; pointer-events:none; }
+.presentation-slide header { flex:0 0 auto; min-height:.38in; }
+.presentation-slide header i { flex:1; height:1px; background:linear-gradient(90deg,var(--hairline),transparent); }
+.presentation-slide-content { position:relative; z-index:1; flex:1; display:flex; flex-direction:column; justify-content:center; padding:.22in .5in .08in .62in; }
+.presentation-slide-content::before { content:""; position:absolute; left:0; top:12%; bottom:12%; width:1px; background:linear-gradient(180deg,transparent,var(--accent),transparent); }
+.presentation-slide h2 { margin:0; max-width:11in; color:var(--ink); font-family:var(--font-display); font-size:29pt; font-weight:500; line-height:1.06; letter-spacing:-.02em; }
+.presentation-rule { width:.62in; margin:15pt 0 20pt; border-top:1.5pt solid var(--accent); }
+.presentation-body { max-width:10.65in; color:var(--ink); }
+.presentation-slide.sparse .presentation-body { font-size:15.5pt; line-height:1.38; max-width:9.8in; }
+.presentation-slide.standard .presentation-body { font-size:11.4pt; line-height:1.34; }
+.presentation-slide.dense .presentation-body { font-size:9.2pt; line-height:1.28; }
+.presentation-body.statement { padding:18pt 22pt; border:1px solid var(--hairline); border-left:3pt solid var(--accent); background:linear-gradient(110deg,color-mix(in srgb,var(--accent) 5%,transparent),transparent 72%); }
+.presentation-body.statement p:last-child { margin-bottom:0; }
+.presentation-body h3 { margin:13pt 0 6pt; color:var(--ink); font-family:var(--font-display); font-size:15pt; font-weight:600; }
+.presentation-body p { margin:0 0 8pt; }
+.presentation-intro { max-width:9.4in; color:var(--metadata); font-weight:600; }
+.presentation-points { margin-top:8pt!important; padding:0!important; list-style:none; }
+.presentation-points li { position:relative; padding:8pt 11pt 8pt 22pt!important; border:1px solid var(--hairline); background:color-mix(in srgb,var(--accent) 4%,transparent); }
+.presentation-points li::before { content:""; position:absolute; left:9pt; top:13pt; width:4pt; height:4pt; border-radius:50%; background:var(--accent); }
+.presentation-body ul,.presentation-body ol { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7pt 28pt; margin:0; padding-left:18pt; }
+.presentation-body li { padding-left:2pt; break-inside:avoid; }
+.presentation-body blockquote { margin:8pt 0; padding:10pt 15pt; border-left:2pt solid var(--accent); background:color-mix(in srgb,var(--accent) 5%,transparent); font-family:var(--font-display); font-size:15pt; }
+.presentation-body table { width:100%; margin:4pt 0 0; border-collapse:collapse; table-layout:auto; font-size:9pt; line-height:1.3; }
+.presentation-body th { padding:7pt 8pt; border-bottom:1.2pt solid var(--accent); color:var(--metadata); font-size:7pt; letter-spacing:.09em; text-align:left; text-transform:uppercase; }
+.presentation-body td { padding:6pt 8pt; border-bottom:.5pt solid var(--hairline); vertical-align:top; }
+.presentation-body tr { break-inside:avoid; }
+.presentation-body code,.presentation-body pre { font-size:8pt; }
+</style>
+</head>
+<body>
+<section class="presentation-cover">
+  <div class="presentation-cover-top">${coverBrand}<span>Confidential &middot; ${escapeHtml(displayDate(args.preparedDate))}</span></div>
+  <div class="presentation-cover-center">
+    <p class="presentation-kicker">${escapeHtml(subject)}</p>
+    <h1>${escapeHtml(args.template.label)}</h1>
+    ${subtitle ? `<p class="presentation-subtitle">${escapeHtml(subtitle)}</p>` : ''}
+  </div>
+  <div class="presentation-cover-footer"><span>${presenter ? escapeHtml(presenter) : `Prepared by ${escapeHtml(args.brand.label)}`}</span><span>${audience ? `Prepared for ${escapeHtml(audience)}` : escapeHtml(args.documentId)}</span></div>
+</section>
+${slides}
 </body>
 </html>`
 }
@@ -2059,6 +2198,7 @@ export async function buildPdf(args: BuildPdfArgs): Promise<Buffer> {
     const genre = genreForSlug(args.template.slug)
     const isLedger = genre === 'ledger'
     const isContractorForm = genre === 'contractor_form'
+    const isPresentation = genre === 'presentation'
     let footerTemplate: string
     if (isLedger) {
       const entity = readString(args.inputs, 'entity_name')
@@ -2076,11 +2216,13 @@ export async function buildPdf(args: BuildPdfArgs): Promise<Buffer> {
         </div>
       `
     } else {
+      const footerPadding = isPresentation ? '.62in' : '1.25in'
+      const pageLabel = isPresentation ? 'Slide' : 'Page'
       footerTemplate = `
         ${disclaimerHtml}
-        <div style="width:100%;font-family:${footerFontStack};font-size:7pt;letter-spacing:0.18em;text-transform:uppercase;color:${headerFooterColor};padding:0 1.25in;display:flex;justify-content:space-between;">
+        <div style="width:100%;font-family:${footerFontStack};font-size:7pt;letter-spacing:0.18em;text-transform:uppercase;color:${headerFooterColor};padding:0 ${footerPadding};display:flex;justify-content:space-between;">
           <span>${escapeHtml(brandWordmark(args.brand.slug) || args.brand.label)} · ${escapeHtml(args.template.label.toUpperCase())}</span>
-          <span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>
+          <span>${pageLabel} <span class="pageNumber"></span> of <span class="totalPages"></span></span>
         </div>
       `
     }
@@ -2094,9 +2236,14 @@ export async function buildPdf(args: BuildPdfArgs): Promise<Buffer> {
     // repeated header mark creates a visibly duplicated cover logo.
     const headerTemplate = '<div></div>'
     const pdf = await page.pdf({
-      format: 'Letter',
+      ...(isPresentation ? { width:'13.333in', height:'7.5in' } : { format:'Letter' as const }),
       printBackground: true,
-      margin: {
+      margin: isPresentation ? {
+        top: '.48in',
+        bottom: '.55in',
+        left: '.62in',
+        right: '.62in',
+      } : {
         top: '1.5in',
         bottom: '1in',
         left: '1.25in',

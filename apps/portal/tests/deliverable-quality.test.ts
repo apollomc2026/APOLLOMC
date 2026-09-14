@@ -66,4 +66,12 @@ describe('APOLLO deliverable workmanship floor', () => {
     expect(narrative.violations.join(' ')).toMatch(/signature/i)
     expect(narrative.violations.join(' ')).toMatch(/structured obligations/i)
   })
+
+  it('rejects report-like presentation decks without real decision tables and slide structures', () => {
+    const narrative = auditDeliverableQuality('exec-presentation', section('Executive Summary', words.repeat(6)) + '<p>Option | Cost | Risk</p>', 1)
+    expect(qualityArchetypeForSlug('exec-presentation')).toBe('presentation')
+    expect(narrative.passed).toBe(false)
+    expect(narrative.violations.join(' ')).toMatch(/at least 2 substantive decision tables/i)
+    expect(narrative.violations.join(' ')).toMatch(/slide-native bullets/i)
+  })
 })

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activeSections, type OrchestrateArgs } from '../lib/apollo/orchestrate'
+import { activeSections, buildUserPromptText, workmanshipRepairGuidance, type OrchestrateArgs } from '../lib/apollo/orchestrate'
 import { getModule } from '../lib/apollo/packages-loader'
 
 function args(slug:string, fields:Record<string,unknown> = {}, uploads:OrchestrateArgs['uploads'] = []):OrchestrateArgs {
@@ -41,5 +41,37 @@ describe('optional section evidence boundaries', () => {
   it('never asks the model to recreate the renderer-owned proposal cover', () => {
     expect(activeSections(args('proposal', { past_performance:'Verified reference project' })).map(section => section.key)).not.toContain('cover')
     expect(activeSections(args('proposal', { past_performance:'Verified reference project' })).map(section => section.key)).toContain('past_performance')
+  })
+
+  it('never asks the model to recreate renderer-owned signature pages', () => {
+    expect(activeSections(args('contract-package')).map(section => section.key)).not.toContain('signature_block')
+    expect(activeSections(args('sow')).map(section => section.key)).not.toContain('signature_block')
+    expect(activeSections(args('engagement-letter')).map(section => section.key)).toContain('acceptance_signatures')
+  })
+
+  it('does not prime generation with missing optional fields or client-facing placeholders', () => {
+    const module = getModule('federal-proposal')!
+    const fields = Object.fromEntries(module.required_fields.map(field => [field.key, field.key === 'solicitation_number' ? 'FAKE-001' : `Verified ${field.label}`]))
+    const prompt = buildUserPromptText(args('federal-proposal', fields))
+    expect(prompt).not.toContain('Period of Performance')
+    expect(prompt).not.toContain('_(not provided)_')
+    expect(prompt).toContain('FAKE-001')
+  })
+
+  it('turns federal workmanship failures into explicit table construction instructions', () => {
+    const guidance = workmanshipRepairGuidance('federal-proposal', ['Federal response requires substantive tables.']).join('\n')
+    expect(guidance).toContain('Requirement | Response Section | Compliance | Evidence')
+    expect(guidance).toContain('Workstream | Owner | Deliverable | Control')
+    expect(guidance).toContain('Markdown table syntax')
+  })
+
+  it('instructs presentation missions to produce slide-native decision content', () => {
+    const module = getModule('pitch-deck')!
+    const fields = Object.fromEntries(module.required_fields.map(field => [field.key, `Verified ${field.label}`]))
+    const prompt = buildUserPromptText(args('pitch-deck', fields))
+    expect(prompt).toContain('Presentation-native composition')
+    expect(prompt).toContain('3–5 concise bullets')
+    expect(prompt).toContain('paragraphs under 45 words')
+    expect(prompt).toContain('16:9 slide')
   })
 })

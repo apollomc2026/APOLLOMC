@@ -102,7 +102,7 @@ You MUST:
 - Follow the brand's "Generation rules" verbatim. These are not suggestions.
 - Follow the chosen style's content verbatim for visual restraint and voice.
 - Follow each section's instructions verbatim.
-- Stay grounded in the user-provided fields. If a value is not provided, use a precise placeholder ("to be confirmed", "TBD") — do not fabricate.
+- Stay grounded in the user-provided fields. The execution gate guarantees required facts are present. Omit unsupported optional details and optional sections instead of inserting placeholders or fabricating content.
 - Use the uploaded reference materials (images, PDFs, extracted text) to inform tone, factual content, and visual identity. If a brand guide is uploaded, follow its colors, fonts, and tone notes inside the body content.
 - Honor the section list exactly: same keys, same labels, same order.
 - For each section, write content within the min/max word range declared in the module.
@@ -142,9 +142,9 @@ function formatFieldsBlock(
     }
   }
   if (module.optional_fields.length) {
-    lines.push('')
-    lines.push('### Optional fields')
-    for (const f of module.optional_fields) {
+    const suppliedOptionalFields = module.optional_fields.filter((field) => fieldIsPresent(fields, field.key))
+    if (suppliedOptionalFields.length) lines.push('', '### Supplied optional fields')
+    for (const f of suppliedOptionalFields) {
       lines.push(`- **${f.label}** (\`${f.key}\`): ${pickFieldValue(fields, f)}`)
     }
   }
@@ -204,7 +204,10 @@ const OPTIONAL_SECTION_DEPENDENCIES:Record<string,string[]> = {
 
 export function activeSections(args: OrchestrateArgs): ModuleSection[] {
   return args.module.sections.filter((section) => {
-    if (section.key === 'cover') return false
+    // Covers and bare signature blocks are renderer-owned furniture. The model
+    // may supply closing/acceptance prose in other named sections, but must not
+    // create a second visual signature page or duplicate blank lines.
+    if (section.key === 'cover' || section.key === 'signature_block') return false
     if (section.required !== false) return true
     const optionalKeys = args.module.optional_fields.map(field => field.key)
     const inferredDependencies = optionalKeys.filter(key => section.key === key || section.instructions.toLowerCase().includes(key.toLowerCase()))
@@ -234,8 +237,9 @@ function buildSystemPrompt(args: OrchestrateArgs): string {
   ].join('\n')
 }
 
-function buildUserPromptText(args: OrchestrateArgs): string {
+export function buildUserPromptText(args: OrchestrateArgs): string {
   const sections = activeSections(args)
+  const isPresentation = args.slug === 'pitch-deck' || args.slug === 'exec-presentation'
   const moduleSummary = {
     deliverable_slug: args.module.deliverable_slug,
     required_fields: args.module.required_fields.map((f) => ({
@@ -243,7 +247,7 @@ function buildUserPromptText(args: OrchestrateArgs): string {
       label: f.label,
       type: f.type,
     })),
-    optional_fields: args.module.optional_fields.map((f) => ({
+    optional_fields: args.module.optional_fields.filter((field) => fieldIsPresent(args.fields, field.key)).map((f) => ({
       key: f.key,
       label: f.label,
       type: f.type,
@@ -275,6 +279,16 @@ function buildUserPromptText(args: OrchestrateArgs): string {
     '# Sections (build exactly these client-relevant sections, in order)',
     formatSectionsBlock(sections),
     '',
+    ...(isPresentation ? [
+      '# Presentation-native composition',
+      'The renderer places each section on its own 16:9 slide. Write for a live decision room, not a portrait report:',
+      '- Lead each slide with one decisive takeaway. Use short paragraphs only when a statement needs narrative force.',
+      '- Prefer 3–5 concise bullets, a compact comparison table, or a labeled decision structure over an essay.',
+      '- Keep paragraphs under 45 words. Break longer reasoning into scannable bullets with concrete labels.',
+      '- Surface supplied numbers, dates, owners, decisions, risks, and actions visibly; do not bury them in prose.',
+      '- Do not add a table of contents, title-slide section, slide number, footer, or decorative instructions; the renderer owns that furniture.',
+      '',
+    ] : []),
     '# Uploaded reference materials',
     args.uploads.length === 0
       ? 'No files uploaded.'
@@ -372,6 +386,26 @@ function describeAjvErrors(errors: unknown): string {
       return `- ${path}: ${e.message || e.keyword || 'invalid'}`
     })
     .join('\n')
+}
+
+export function workmanshipRepairGuidance(slug:string, violations:string[]):string[] {
+  const guidance = [
+    ...violations.map(item => `- ${item}`),
+    '- Preserve every supplied fact and every required section key.',
+    '- Use GitHub-flavored Markdown table syntax (header row, separator row, then data rows) inside section content whenever the audit requires a table; prose that merely describes rows does not count.',
+  ]
+  if (slug === 'federal-proposal') guidance.push(
+    '- Put a requirements traceability table in compliance_matrix with columns Requirement | Response Section | Compliance | Evidence.',
+    '- Put a responsibility/delivery table in management_approach or technical_approach with columns Workstream | Owner | Deliverable | Control.',
+  )
+  if (slug === 'proposal') guidance.push('- Put phases, responsibilities, risks, or investment into at least two decision-useful Markdown tables.')
+  if (slug === 'pitch-deck') guidance.push('- Put supplied market, competition, traction, or financial comparison facts into at least one real Markdown table with a header, separator, and data rows.')
+  if (slug === 'exec-presentation') guidance.push(
+    '- Put the strategic options comparison into a real Markdown table with columns Option | Decision latency | Evidence provenance | Accountability | Cost.',
+    '- Put the risk assessment into a second real Markdown table with columns Risk | Likelihood | Impact | Mitigation.',
+    '- Keep the remaining slides concise and bullet-led; do not write a report paragraph and call it a slide.',
+  )
+  return guidance
 }
 
 interface ToolUseBlock {
@@ -611,7 +645,7 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
       type: 'text',
       text: [
         'Your structured output passed its JSON schema but failed APOLLO workmanship review:',
-        ...quality.violations.map(item => `- ${item}`),
+        ...workmanshipRepairGuidance(args.slug, quality.violations),
         '',
         'Rebuild the content so every violation is resolved while preserving all supplied facts, section keys, section order, and the schema. Do not invent claims or values.',
         'Previous structured output:',
@@ -623,20 +657,54 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
     } catch (err) {
       throw new OrchestrateError('Workmanship repair pass failed: ' + (err instanceof Error ? err.message : String(err)), 'claude_invocation', err)
     }
-    if (!validator(output)) throw new OrchestrateError('Workmanship repair broke the deliverable schema', 'schema_invalid', validator.errors)
+    if (!validator(output)) {
+      const errorSummary = describeAjvErrors(validator.errors)
+      warnings.push('Workmanship repair changed the output shape; running one bounded schema recovery pass.')
+      const recoveryBlocks: AnthropicContentBlock[] = [{
+        type:'text',
+        text:[
+          'Your workmanship repair improved the content but broke the required JSON schema:',
+          '```', errorSummary, '```',
+          'Re-emit the complete deliverable through emit_deliverable. Restore every required top-level property and section key exactly as the tool schema requires. Preserve the repaired content and every supplied fact; do not summarize, omit sections, or invent values.',
+          'Malformed repaired output:',
+          '```json', JSON.stringify(output).slice(0, 20000), '```',
+        ].join('\n'),
+      }]
+      try {
+        output = await callClaudeWithTool(client, args, systemPrompt, recoveryBlocks, MAX_TOKENS_RETRY, modelFor('repair'))
+      } catch (err) {
+        throw new OrchestrateError('Post-workmanship schema recovery failed: ' + (err instanceof Error ? err.message : String(err)), 'claude_invocation', err)
+      }
+      if (!validator(output)) throw new OrchestrateError('Workmanship repair remained schema-invalid after recovery', 'schema_invalid', validator.errors)
+    }
     contentHtml = renderContentHtml(output, args.module, args.deliverableLabel)
     quality = auditDeliverableQuality(args.slug, contentHtml, expectedSections)
-    if (!quality.passed) throw new OrchestrateError('Deliverable remained below the APOLLO workmanship floor after repair', 'quality_invalid', quality)
+    if (!quality.passed) {
+      warnings.push(`Focused workmanship repair scored ${quality.score}; running one final bounded recovery pass.`)
+      const finalBlocks:AnthropicContentBlock[] = [{ type:'text', text:[
+        'The prior repair remains below APOLLO publication quality:',
+        ...workmanshipRepairGuidance(args.slug, quality.violations),
+        'Re-emit the complete schema-valid deliverable. Correct every listed violation using concrete, source-grounded structures. Do not insert placeholders, omit required sections, or invent facts.',
+        'Prior output:', '```json', JSON.stringify(output).slice(0, 20000), '```',
+      ].join('\n') }]
+      try {
+        output = await callClaudeWithTool(client, args, systemPrompt, finalBlocks, MAX_TOKENS_RETRY, modelFor('repair'))
+      } catch (err) {
+        throw new OrchestrateError('Final workmanship recovery failed: ' + (err instanceof Error ? err.message : String(err)), 'claude_invocation', err)
+      }
+      if (!validator(output)) throw new OrchestrateError('Final workmanship recovery broke the deliverable schema', 'schema_invalid', validator.errors)
+      contentHtml = renderContentHtml(output, args.module, args.deliverableLabel)
+      quality = auditDeliverableQuality(args.slug, contentHtml, expectedSections)
+      if (!quality.passed) throw new OrchestrateError('Deliverable remained below the APOLLO workmanship floor after bounded recovery', 'quality_invalid', quality)
+    }
   }
 
   return { output, contentHtml, warnings, quality }
 }
 
-// Layout heuristic for the unified catalog. The PDF pipeline supports
-// contract / letter / invoice / one-pager / minutes / financial-statement;
-// for deliverables that don't have a perfect primitive (pitch-deck,
-// exec-presentation, federal-proposal), we fall back to "contract" for
-// v1 — the spec acknowledges visual-fidelity-per-industry as iteration 2.
+// Layout heuristic for editorial templates. Presentation deliverables are
+// dispatched by pdf.ts through their own 16:9 genre renderer; this field
+// remains "contract" for backward-compatible Template typing only.
 export type LayoutKey =
   | 'contract'
   | 'letter'
