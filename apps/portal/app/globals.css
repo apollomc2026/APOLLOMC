@@ -1035,7 +1035,7 @@ html[data-theme="light"] .mc-failure-banner p { color:#71313d; }
 .mc-launch-ready-overlay .mc-launch-control.launching{opacity:1;filter:none}
 
 /* Native option menus do not reliably inherit themed select colors. */
-.review-controls select{color-scheme:dark}
-.review-controls select option{background:#0b1017;color:#f0f4ff}
-html[data-theme='light'] .review-controls select{color-scheme:light;background:rgba(255,255,255,.94);color:#132630}
-html[data-theme='light'] .review-controls select option{background:#fff;color:#132630}
+.review-controls select{color-scheme:dark;background-color:#0b1017;color:#f0f4ff;-webkit-text-fill-color:#f0f4ff}
+.review-controls select option{background-color:#0b1017!important;color:#f0f4ff!important;-webkit-text-fill-color:#f0f4ff}
+html[data-theme='light'] .review-controls select{color-scheme:light;background-color:#fff;color:#132630;-webkit-text-fill-color:#132630}
+html[data-theme='light'] .review-controls select option{background-color:#fff!important;color:#132630!important;-webkit-text-fill-color:#132630}
