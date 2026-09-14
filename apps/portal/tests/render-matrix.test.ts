@@ -39,7 +39,7 @@ describe('complete catalog rendering matrix', () => {
       sections:module.sections.map(section => ({ id:section.key, title:section.label })),
       generation_notes:'',
     }
-    const contentHtml = module.sections.map(section => sectionBody(section.label)).join('')
+    const contentHtml = module.sections.map(section => sectionBody(section.label)).join('') + (deliverable.slug === 'fsr' ? '<table><tbody><tr><td>Signature: __________</td><td>Date: __________</td></tr></tbody></table>' : '')
     const html = buildFullHtml({
       template,
       brand:clientBrand,
@@ -58,6 +58,13 @@ describe('complete catalog rendering matrix', () => {
     if (deliverable.slug === 'change-order') {
       expect(html).toContain('class="signatures-page"')
       expect(html).toContain('Northstar Fabrication')
+    }
+    if (['fsr','incident-report'].includes(deliverable.slug)) {
+      expect(html).toContain('class="cf-masthead"')
+      expect(html).toContain('class="cf-signatures"')
+      expect(html).not.toContain('Signature: __________')
+      expect(html).not.toContain('class="toc-page"')
+      expect(html).not.toContain('class="cover"')
     }
     if (['pitch-deck','exec-presentation'].includes(deliverable.slug)) {
       expect(html).toContain('class="presentation-cover"')

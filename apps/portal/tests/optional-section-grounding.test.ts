@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activeSections, buildUserPromptText, workmanshipRepairGuidance, type OrchestrateArgs } from '../lib/apollo/orchestrate'
+import { activeSections, buildUserPromptText, sectionContractViolations, workmanshipRepairGuidance, type OrchestrateArgs } from '../lib/apollo/orchestrate'
 import { getModule } from '../lib/apollo/packages-loader'
 
 function args(slug:string, fields:Record<string,unknown> = {}, uploads:OrchestrateArgs['uploads'] = []):OrchestrateArgs {
@@ -50,6 +50,7 @@ describe('optional section evidence boundaries', () => {
   })
 
   it('does not ask the model to duplicate layout-owned mastheads', () => {
+    expect(activeSections(args('quote')).map(section => section.key)).not.toContain('header')
     expect(activeSections(args('invoice')).map(section => section.key)).not.toEqual(expect.arrayContaining(['header_masthead','bill_to_block']))
     expect(activeSections(args('meeting-minutes')).map(section => section.key)).not.toContain('header')
     expect(activeSections(args('tax-estimate')).map(section => section.key)).not.toContain('header_masthead')
@@ -80,5 +81,24 @@ describe('optional section evidence boundaries', () => {
     expect(prompt).toContain('3–5 concise bullets')
     expect(prompt).toContain('paragraphs under 45 words')
     expect(prompt).toContain('16:9 slide')
+  })
+
+  it('instructs long field records to remain shift-handoff native', () => {
+    const mission = args('incident-report', Object.fromEntries(getModule('incident-report')!.required_fields.map(field => [field.key, `Verified ${field.label}`])))
+    const prompt = buildUserPromptText(mission)
+    expect(prompt).toContain('Field-native composition')
+    expect(prompt).toContain('Word range: 15–70')
+    expect(prompt).toContain('do not add a cover, table of contents, appendix, or duplicate identification section')
+  })
+
+  it('identifies the exact missing, duplicate, or reordered section key while safely ignoring extras', () => {
+    const mission = args('nda')
+    const keys = activeSections(mission).map(section => section.key)
+    const malformed = { sections:[...keys.slice(1).map(key => ({ key, label:key, content:'Controlled content' })), { key:'unsupported', label:'Unsupported', content:'No' }, { key:keys[1], label:keys[1], content:'Duplicate' }] }
+    const violations = sectionContractViolations(mission, malformed).join('\n')
+    expect(violations).toContain(`Missing required section keys: ${keys[0]}`)
+    expect(violations).not.toContain('unsupported')
+    expect(violations).toContain(`Duplicate section keys: ${keys[1]}`)
+    expect(violations).toContain('Section order must be:')
   })
 })

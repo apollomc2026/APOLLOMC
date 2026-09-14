@@ -165,11 +165,19 @@ export function formatRevisionDirective(fields: Record<string, unknown>): string
   ].join('\n')
 }
 
-function formatSectionsBlock(sections: ModuleSection[]): string {
+const COMPACT_OPERATIONAL_SLUGS = new Set(['fsr','incident-report'])
+
+function effectiveWordRange(slug:string, section:ModuleSection):{ min:number; max:number } {
+  if (!COMPACT_OPERATIONAL_SLUGS.has(slug)) return { min:section.min_words, max:section.max_words }
+  return { min:Math.min(section.min_words, 15), max:Math.min(section.max_words, 70) }
+}
+
+function formatSectionsBlock(slug:string, sections: ModuleSection[]): string {
   const lines: string[] = []
   sections.forEach((s, i) => {
+    const range = effectiveWordRange(slug, s)
     lines.push(`#### Section ${i + 1}: ${s.label}  (\`${s.key}\`)`)
-    lines.push(`Word range: ${s.min_words}–${s.max_words}`)
+    lines.push(`Word range: ${range.min}–${range.max}`)
     if (s.required) lines.push('Required: yes')
     if (s.instructions) {
       lines.push('Instructions:')
@@ -206,6 +214,7 @@ const OPTIONAL_SECTION_DEPENDENCIES:Record<string,string[]> = {
 // Excluding it from the model contract prevents duplicated mastheads and party
 // blocks while retaining the underlying fields as authoritative inputs.
 const RENDERER_OWNED_SECTIONS:Record<string,Set<string>> = {
+  quote:new Set(['header']),
   invoice:new Set(['header_masthead','bill_to_block']),
   'meeting-minutes':new Set(['header']),
   'tax-estimate':new Set(['header_masthead']),
@@ -268,8 +277,8 @@ export function buildUserPromptText(args: OrchestrateArgs): string {
       key: s.key,
       label: s.label,
       required: s.required,
-      min_words: s.min_words,
-      max_words: s.max_words,
+      min_words: effectiveWordRange(args.slug, s).min,
+      max_words: effectiveWordRange(args.slug, s).max,
     })),
   }
 
@@ -288,7 +297,7 @@ export function buildUserPromptText(args: OrchestrateArgs): string {
     '',
     ...(revisionDirective ? [revisionDirective, ''] : []),
     '# Sections (build exactly these client-relevant sections, in order)',
-    formatSectionsBlock(sections),
+    formatSectionsBlock(args.slug, sections),
     '',
     ...(isPresentation ? [
       '# Presentation-native composition',
@@ -298,6 +307,14 @@ export function buildUserPromptText(args: OrchestrateArgs): string {
       '- Keep paragraphs under 45 words. Break longer reasoning into scannable bullets with concrete labels.',
       '- Surface supplied numbers, dates, owners, decisions, risks, and actions visibly; do not bury them in prose.',
       '- Do not add a table of contents, title-slide section, slide number, footer, or decorative instructions; the renderer owns that furniture.',
+      '',
+    ] : []),
+    ...(COMPACT_OPERATIONAL_SLUGS.has(args.slug) ? [
+      '# Field-native composition',
+      'This is a field record, not a narrative report. Keep it compact enough to scan during a shift handoff:',
+      '- Prefer compact tables, checklists, labeled facts, and short chronology rows over explanatory paragraphs.',
+      '- State none/not reported once where applicable; do not expand an absent injury, witness, damage, or photo record into boilerplate.',
+      '- Preserve measured facts and required sign-off, but do not add a cover, table of contents, appendix, or duplicate identification section.',
       '',
     ] : []),
     '# Uploaded reference materials',
@@ -397,6 +414,21 @@ function describeAjvErrors(errors: unknown): string {
       return `- ${path}: ${e.message || e.keyword || 'invalid'}`
     })
     .join('\n')
+}
+
+export function sectionContractViolations(args:OrchestrateArgs, output:Record<string,unknown>):string[] {
+  const expected = activeSections(args).map(section => section.key)
+  const raw = Array.isArray(output.sections) ? output.sections : []
+  const actual = raw.flatMap(section => section && typeof section === 'object' && typeof (section as Record<string,unknown>).key === 'string' ? [String((section as Record<string,unknown>).key)] : [])
+  const missing = expected.filter(key => !actual.includes(key))
+  const duplicates = [...new Set(actual.filter((key,index) => actual.indexOf(key) !== index))]
+  const ordered = actual.filter(key => expected.includes(key))
+  const expectedOrder = expected.filter(key => actual.includes(key))
+  return [
+    ...(missing.length ? [`Missing required section keys: ${missing.join(', ')}`] : []),
+    ...(duplicates.length ? [`Duplicate section keys: ${duplicates.join(', ')}`] : []),
+    ...(ordered.join('|') !== expectedOrder.join('|') ? [`Section order must be: ${expected.join(', ')}`] : []),
+  ]
 }
 
 export function workmanshipRepairGuidance(slug:string, violations:string[]):string[] {
@@ -504,7 +536,8 @@ function renderSectionContent(content: string): string {
 function renderContentHtml(
   output: Record<string, unknown>,
   module: DeliverableModule,
-  fallbackTitle: string
+  fallbackTitle: string,
+  allowedSectionKeys?:Set<string>
 ): string {
   const metadata = (output.metadata && typeof output.metadata === 'object')
     ? (output.metadata as Record<string, unknown>)
@@ -530,6 +563,7 @@ function renderContentHtml(
   // sections present in the output but not in the module (defensive).
   const seen = new Set<string>()
   for (const s of module.sections) {
+    if (allowedSectionKeys && !allowedSectionKeys.has(s.key)) continue
     const found = byKey.get(s.key)
     if (!found) continue
     seen.add(s.key)
@@ -538,6 +572,7 @@ function renderContentHtml(
   }
   for (const [key, val] of byKey) {
     if (seen.has(key)) continue
+    if (allowedSectionKeys && !allowedSectionKeys.has(key)) continue
     parts.push(`<h2>${escapeHtml(val.label)}</h2>`)
     parts.push(renderSectionContent(val.content))
   }
@@ -577,6 +612,7 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
   const promptBlocks = buildContentBlocks(args, userPromptText)
   const validator = makeValidator(args.schema)
   const warnings: string[] = []
+  const allowedSectionKeys = new Set(activeSections(args).map(section => section.key))
 
   let output: Record<string, unknown>
   try {
@@ -590,8 +626,9 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
     )
   }
 
-  if (!validator(output)) {
-    const errorSummary = describeAjvErrors(validator.errors)
+  let contractViolations = sectionContractViolations(args, output)
+  if (!validator(output) || contractViolations.length) {
+    const errorSummary = [describeAjvErrors(validator.errors), ...contractViolations.map(item => `- ${item}`)].filter(item => item !== 'unknown validation error').join('\n')
     warnings.push('First-pass schema validation failed; running corrective follow-up.')
 
     // Corrective second pass — feed the model its own output and the ajv
@@ -628,18 +665,19 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
         err
       )
     }
-    if (!validator(output)) {
+    contractViolations = sectionContractViolations(args, output)
+    if (!validator(output) || contractViolations.length) {
       throw new OrchestrateError(
         'AI output failed schema validation after repair pass',
         'schema_invalid',
-        validator.errors
+        { schema:validator.errors, sections:contractViolations }
       )
     }
   }
 
   let contentHtml: string
   try {
-    contentHtml = renderContentHtml(output, args.module, args.deliverableLabel)
+    contentHtml = renderContentHtml(output, args.module, args.deliverableLabel, allowedSectionKeys)
   } catch (err) {
     throw new OrchestrateError(
       'Failed to render content HTML: ' + (err instanceof Error ? err.message : String(err)),
@@ -668,8 +706,9 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
     } catch (err) {
       throw new OrchestrateError('Workmanship repair pass failed: ' + (err instanceof Error ? err.message : String(err)), 'claude_invocation', err)
     }
-    if (!validator(output)) {
-      const errorSummary = describeAjvErrors(validator.errors)
+    contractViolations = sectionContractViolations(args, output)
+    if (!validator(output) || contractViolations.length) {
+      const errorSummary = [describeAjvErrors(validator.errors), ...contractViolations.map(item => `- ${item}`)].filter(item => item !== 'unknown validation error').join('\n')
       warnings.push('Workmanship repair changed the output shape; running one bounded schema recovery pass.')
       const recoveryBlocks: AnthropicContentBlock[] = [{
         type:'text',
@@ -686,9 +725,10 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
       } catch (err) {
         throw new OrchestrateError('Post-workmanship schema recovery failed: ' + (err instanceof Error ? err.message : String(err)), 'claude_invocation', err)
       }
-      if (!validator(output)) throw new OrchestrateError('Workmanship repair remained schema-invalid after recovery', 'schema_invalid', validator.errors)
+      contractViolations = sectionContractViolations(args, output)
+      if (!validator(output) || contractViolations.length) throw new OrchestrateError('Workmanship repair remained schema-invalid after recovery', 'schema_invalid', { schema:validator.errors, sections:contractViolations })
     }
-    contentHtml = renderContentHtml(output, args.module, args.deliverableLabel)
+    contentHtml = renderContentHtml(output, args.module, args.deliverableLabel, allowedSectionKeys)
     quality = auditDeliverableQuality(args.slug, contentHtml, expectedSections)
     if (!quality.passed) {
       warnings.push(`Focused workmanship repair scored ${quality.score}; running one final bounded recovery pass.`)
@@ -703,8 +743,9 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
       } catch (err) {
         throw new OrchestrateError('Final workmanship recovery failed: ' + (err instanceof Error ? err.message : String(err)), 'claude_invocation', err)
       }
-      if (!validator(output)) throw new OrchestrateError('Final workmanship recovery broke the deliverable schema', 'schema_invalid', validator.errors)
-      contentHtml = renderContentHtml(output, args.module, args.deliverableLabel)
+      contractViolations = sectionContractViolations(args, output)
+      if (!validator(output) || contractViolations.length) throw new OrchestrateError('Final workmanship recovery broke the deliverable schema', 'schema_invalid', { schema:validator.errors, sections:contractViolations })
+      contentHtml = renderContentHtml(output, args.module, args.deliverableLabel, allowedSectionKeys)
       quality = auditDeliverableQuality(args.slug, contentHtml, expectedSections)
       if (!quality.passed) throw new OrchestrateError('Deliverable remained below the APOLLO workmanship floor after bounded recovery', 'quality_invalid', quality)
     }

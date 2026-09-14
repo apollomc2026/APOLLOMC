@@ -537,6 +537,8 @@ export type Genre = 'editorial' | 'contractor_form' | 'ledger' | 'presentation'
 const CONTRACTOR_FORM_SLUGS = new Set<string>([
   'daily-construction-report',
   'final-qc-report',
+  'fsr',
+  'incident-report',
   'project-completion-notice',
   'tool-box-talk',
 ])
@@ -728,6 +730,19 @@ function buildContractorFormHtml(args: BuildPdfArgs): string {
   const brandLine = wordmark ? `<div class="cf-brand">${escapeHtml(wordmark)}</div>` : ''
   const logoDataUri = resolveLogoDataUri(args.brand)
   const brandMark = logoDataUri ? `<img class="cf-logo" src="${logoDataUri}" alt="" />` : ''
+  const signoffParties = ['fsr','incident-report'].includes(args.template.slug) ? (SIGNATURE_PARTIES[args.template.slug] ?? []) : []
+  if (signoffParties.length) {
+    body = body.replace(/<tr\b[^>]*>[\s\S]*?<\/tr>/gi, row => {
+      const text = row.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim()
+      return /\b(?:signature|date)\s*:\s*_{2,}/i.test(text) ? '' : row
+    })
+    body = body.replace(/<p>\s*(?:signature|date)\s*:\s*_{2,}[\s\S]*?<\/p>/gi, '')
+  }
+  const signoffHtml = signoffParties.length ? `<div class="cf-signatures">${signoffParties.map(p => {
+    const fallbackField = p.label === 'Customer' ? 'customer_contact_onsite' : undefined
+    const name = readString(args.inputs, p.nameField) || readString(args.inputs, fallbackField) || (p.label === 'Provider' ? args.brand.label : '')
+    return `<div><b>${escapeHtml(p.label)}</b><strong>${escapeHtml(name)}</strong><i></i><span>Signature</span><i class="date-line"></i><span>Date</span></div>`
+  }).join('')}</div>` : ''
 
   return `<!doctype html>
 <html lang="en">${sharedHead(palette, preset, docTitle)}
@@ -766,6 +781,13 @@ body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.42; color
 .cf-body p { margin: 0 0 6pt 0; }
 .cf-signature { display: grid; grid-template-columns: 2fr 1fr; gap: 20pt; margin-top: 22pt; }
 .cf-signature span { border-top: .7pt solid var(--ink); padding-top: 4pt; color: var(--metadata); font-size: 7.5pt; letter-spacing: .08em; text-transform: uppercase; }
+.cf-signatures { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24pt; margin-top:18pt; break-inside:avoid; }
+.cf-signatures>div { display:flex; flex-direction:column; }
+.cf-signatures b,.cf-signatures span { color:var(--metadata); font-size:7.5pt; font-weight:600; letter-spacing:.12em; text-transform:uppercase; }
+.cf-signatures strong { min-height:16pt; margin:5pt 0 18pt; font-size:10pt; }
+.cf-signatures i { border-bottom:.7pt solid var(--ink); }
+.cf-signatures i.date-line { width:42%; margin-top:14pt; }
+.cf-signatures span { margin-top:4pt; }
 .cf-body table:last-child, .cf-body ul:last-child, .cf-body p:last-child { margin-bottom: 0; }
 </style>
 </head>
@@ -776,6 +798,7 @@ body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.42; color
   </div>
   <div class="cf-body">
 ${body}
+${signoffHtml}
   </div>
 </body>
 </html>`
