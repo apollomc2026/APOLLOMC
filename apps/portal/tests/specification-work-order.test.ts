@@ -74,6 +74,27 @@ describe('approved specification compiler', () => {
     }
   })
 
+  it('binds revision identity to the effective brand and evidence contents, not expiring retrieval URLs', () => {
+    const source = { source_id: 'evidence-1', name: 'scope.pdf', media_type: 'application/pdf', retrieval_url: 'https://evidence.example/first-signature', content_sha256: 'c'.repeat(64), sensitivity: 'confidential' as const, expires_at: '2026-09-06T13:00:00Z' }
+    const prior: DocumentWorkOrder = { protocol_version:'1.0',work_order_id:'10000000-0000-4000-8000-000000000001',idempotency_key:'original-work-order-id',project_id:'spec',conversation_id:ids.conversationId,task_id:'10000000-0000-4000-8000-000000000002',requested_by:ids.requestedBy,capability:'professional-document-generation',deliverable_type:'proposal',objective:'Proposal',audience:'Client',formats:['pdf'],fields:{ commercial_value:'$18,500' },sources:[source],brand_id:'kit:brand-a',style_id:'style',sensitivity:'internal',priority:'medium',drive_destination:{folder_id:'drive-folder',lifecycle:'draft'},quality_gates:{schema_validation:true,source_grounding:true,independent_review:false,deterministic_financial_verification:false,human_approval_before_publish:true},trace:{ specification_id:'spec-v1', specification_hash:'d'.repeat(64), specification_schema_version:'3.0', playbook_id:'field-service-proposal', playbook_version:'1.0', model_versions:['apollo-deterministic-interpreter@1.0'], required_checks:['source_grounding'], accepted_unresolved_items:[] },created_at:'2026-09-07T00:00:00.000Z' }
+    const instruction = 'Regenerate using current approved evidence.'
+    const original = buildRevisionOrder(prior, instruction)
+    const rotatedUrl = buildRevisionOrder({ ...prior, sources:[{ ...source, retrieval_url:'https://evidence.example/rotated-signature', expires_at:'2026-09-06T14:00:00Z' }] }, instruction)
+    const changedBrand = buildRevisionOrder({ ...prior, brand_id:'kit:brand-b' }, instruction)
+    const changedContents = buildRevisionOrder({ ...prior, sources:[{ ...source, content_sha256:'e'.repeat(64) }] }, instruction)
+
+    expect(rotatedUrl.work_order_id).toBe(original.work_order_id)
+    expect(changedBrand.work_order_id).not.toBe(original.work_order_id)
+    expect(changedContents.work_order_id).not.toBe(original.work_order_id)
+    expect(original).toMatchObject({
+      brand_id:'kit:brand-a',
+      sources:[{ source_id:'evidence-1', content_sha256:'c'.repeat(64) }],
+      fields:{ commercial_value:'$18,500', revision_of:prior.work_order_id },
+      quality_gates:prior.quality_gates,
+      trace:prior.trace,
+    })
+  })
+
   it('places review instructions inside the constrained generation context', () => {
     const directive = formatRevisionDirective({ revision_of: 'job-v1', revision_instruction: 'Tighten the executive summary while preserving price and scope.' })
     expect(directive).toContain('Prior immutable job: job-v1')

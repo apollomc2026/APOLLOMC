@@ -252,6 +252,12 @@ export function MissionControl() {
     });
   }, [jobId, jobState]);
 
+  useEffect(() => {
+    const editingMission = new URLSearchParams(window.location.search).get("edit") === "1";
+    if (editingMission || jobState !== "delivered" || !conversationId || window.location.pathname !== "/new-mission") return;
+    window.location.replace(`/telemetry?mission=${encodeURIComponent(conversationId)}`);
+  }, [conversationId, jobState]);
+
   const readinessLabel = jobState === "delivered"
     ? "Mission complete"
     : jobState && !["failed", "blocked", "cancelled"].includes(jobState)
@@ -288,7 +294,7 @@ export function MissionControl() {
         : [],
     [specification],
   );
-  const driveConnectHref = `/api/integrations/google-drive?action=connect&returnTo=${encodeURIComponent(conversationId ? `/dashboard?mission=${conversationId}` : "/dashboard")}`;
+  const driveConnectHref = `/api/integrations/google-drive?action=connect&returnTo=${encodeURIComponent(conversationId ? `/new-mission?mission=${conversationId}` : "/new-mission")}`;
   function correctDeliverableType() {
     setDraft(`The intended deliverable is not ${title}. The intended deliverable is `);
     window.setTimeout(() => composerRef.current?.focus(), 0);
@@ -391,7 +397,7 @@ export function MissionControl() {
     setReviewScrolled(false);
     setError(null);
     window.localStorage.removeItem(STORAGE_KEY);
-    window.history.replaceState(window.history.state, "", "/dashboard");
+    window.history.replaceState(window.history.state, "", "/new-mission");
   }
 
   function submitDecisionAnswers(useRecommendations: boolean) {

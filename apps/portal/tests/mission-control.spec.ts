@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 test.describe('APOLLO 3 mission control', () => {
   test('accepts natural language, recommends a specialist, and exposes truthful gaps', async ({ page }) => {
-    await page.goto('/dashboard')
+    await page.goto('/new-mission?draft=1')
     const composer = page.getByPlaceholder('Describe what must be accomplished, who it is for, and what you already have…')
     await composer.fill('Prepare a proposal for Acme Facilities for $18,500, due October 15, 2026. The contact is Jordan Lee and our methodology is inspect, remediate, and verify.')
     await page.getByRole('button', { name: 'Answer all and continue' }).click()
@@ -14,12 +14,13 @@ test.describe('APOLLO 3 mission control', () => {
     await expect(page.getByRole('heading', { name: /Assumptions and obligations/ })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Output strategy' })).toBeVisible()
     await expect(page.getByText(/What should APOLLO use for/).first()).toBeVisible()
-    await expect(page.getByRole('button', { name: /brief readiness/ })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Submit answered fields' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Use recommendations for remaining' })).toBeEnabled()
   })
 
   test('remains usable without horizontal overflow on a mobile viewport', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
-    await page.goto('/dashboard')
+    await page.goto('/new-mission?draft=1')
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
     expect(overflow).toBe(false)
     await expect(page.getByRole('heading', { name: 'What are we building?' })).toBeVisible()
@@ -42,7 +43,7 @@ test.describe('APOLLO 3 mission control', () => {
       Object.defineProperty(window, 'SpeechRecognition', { value: FakeSpeechRecognition, configurable: true })
       Object.defineProperty(window, 'webkitSpeechRecognition', { value: FakeSpeechRecognition, configurable: true })
     })
-    await page.goto('/dashboard')
+    await page.goto('/new-mission?draft=1')
     await page.getByRole('button', { name: 'Start voice intake' }).click()
     await expect(page.getByRole('button', { name: 'Stop voice intake' })).toBeVisible()
     await page.evaluate(() => {
@@ -74,11 +75,11 @@ test.describe('APOLLO 3 mission control', () => {
         },
       }),
     }))
-    await page.goto('/dashboard')
+    await page.goto('/new-mission?draft=1')
     await page.getByPlaceholder('Describe what must be accomplished, who it is for, and what you already have…').fill('Build the decision brief')
     await page.getByRole('button', { name: 'Answer all and continue' }).click()
-    await expect(page.getByRole('button', { name: 'Accept open decisions to approve' })).toBeDisabled()
-    await page.getByRole('checkbox', { name: /explicitly accept them as unresolved/ }).check()
-    await expect(page.getByRole('button', { name: 'Review and approve brief' })).toBeEnabled()
+    await expect(page.getByRole('button', { name: 'Submit answered fields' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Use recommendations for remaining' })).toBeEnabled()
+    await expect(page.getByRole('dialog', { name: 'Ready for launch.' })).toHaveCount(0)
   })
 })
