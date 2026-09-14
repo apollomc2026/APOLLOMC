@@ -4,7 +4,7 @@ Authoritative product direction: `guiding light/Apollo guiding light.docx` in th
 
 ## Product spine
 
-1. A user begins with a natural-language outcome in Mission Control.
+1. A user begins with a natural-language outcome in New Mission. Mission Control remains the portfolio command overview; Telemetry owns delivered-flight review, regeneration, and version lineage.
 2. APOLLO separates stated facts, evidence-derived facts, and inference; recommends one specialist playbook; and asks one consequential question.
 3. Every conversational or evidence change creates a durable specification version. Readiness is capped below approval until the selected document module has all required inputs.
 4. Approval atomically locks the current specification. The compiler refuses missing fields instead of fabricating content.
@@ -38,6 +38,7 @@ Authoritative product direction: `guiding light/Apollo guiding light.docx` in th
 | Brand custody | create or import a user-owned brand kit; uploaded guides are hash-bound in private storage | `tests/system-surfaces.spec.ts` |
 | Light and dark UI | persisted theme selection across public and protected surfaces; navigation-specific contrast tokens | `tests/system-surfaces.spec.ts` |
 | Operational navigation | Archive, Telemetry, and Settings read current mission/executor state; no release-facing placeholder pages | `tests/system-surfaces.spec.ts` |
+| Operational surface separation | Dashboard is a portfolio/status overview; New Mission owns intake through approval and launch; Telemetry owns delivered artifacts, revision controls, regeneration, and flight lineage. Legacy dashboard mission URLs converge without discarding mission state | `tests/system-surfaces.spec.ts` |
 | Advanced mission launch | `/new-mission` combines natural-language intent with optional audience, deadline, format, evidence, persisted aura calibration and executable custom brand kits | `tests/system-surfaces.spec.ts` |
 | Evidence-aware launch handoff | Evidence uploads advance the durable specification version and the recalculated readiness/specification state is handed intact to Mission Control | `tests/system-surfaces.spec.ts` |
 | Partial evidence resilience | Multi-file intake preserves every secured file and resulting specification version when another file is rejected; rejected filenames and reasons remain visible without stranding the mission | `tests/system-surfaces.spec.ts` |
@@ -46,6 +47,9 @@ Authoritative product direction: `guiding light/Apollo guiding light.docx` in th
 | Explicit unresolved-item consent | Mission Control disables approval while open decisions remain unless the operator explicitly accepts the exact current set; the database rejects stale, partial or additional acceptance lists and disables the legacy bypass signature | `tests/mission-control.spec.ts` plus RPC privilege verification |
 | Product infrastructure separation | Legacy THEMIS/CMD rows are retained for controlled extraction, but all browser-role privileges are revoked inside APOLLO's Supabase project; no APOLLO runtime code references those tables | live catalog privilege verification |
 | APOLLO operator access | The exact `support@apollomc.ai` bootstrap identity remains authorized even if hosted environment configuration drifts; configured access remains exact-email only and grants neither domain-wide nor cross-product access | `tests/auth-allowlist.test.ts` |
+| Post-delivery mission edits | Editing facts reopens the New Mission workspace, clears the obsolete delivered execution from active state, requires a fresh review/approval checkpoint, and continues artifact numbering and `revision_of` lineage after reapproval | `tests/system-surfaces.spec.ts`, `tests/specification-work-order.test.ts` |
+| Reflight input identity | Identical revision requests deduplicate only when the effective brand and evidence content hashes are unchanged; rotating signed retrieval URLs do not create false versions | `tests/specification-work-order.test.ts` |
+| Brand-library concurrency | A late initial library response merges with locally created/uploaded kits instead of erasing the operator's new brand card | `tests/system-surfaces.spec.ts` |
 
 ## Verification snapshot — 2026-09-07
 
@@ -56,6 +60,16 @@ Authoritative product direction: `guiding light/Apollo guiding light.docx` in th
 - Production build: passed with all portal, executor and Workflow routes emitted.
 - Dependency audit: 0 critical, 0 low, 2 moderate and 14 high. All 16 remaining advisories originate in `workflow@4.8.5` and its pinned `nanoid`/`undici` graph. npm's proposed forced remediation is a breaking downgrade to Workflow 2.0.6, so it is not an acceptable automatic release change. Track the upstream 4.x remediation before public release.
 - Billing remains scaffold-only. `BILLING_MODE=internal` is a release invariant and no payment provider is activated.
+
+## Verification snapshot — 2026-09-14
+
+- Release-candidate commits `eb38f02` and `6aeaba3` separate command overview, mission authoring, and telemetry/reflight responsibilities and preserve approved edit lineage.
+- TypeScript passed with the current Next.js 16.3.4 application.
+- Unit and contract suite passed: 107 tests across 22 files.
+- Chromium acceptance passed in one combined run: 23 journeys, including command-surface separation, legacy-link convergence, telemetry-owned reflight controls, post-delivery factual editing with a fresh approval checkpoint, brand-kit concurrency, mobile layout, both themes, evidence handoff, failure recovery, and immutable revision history.
+- Production build passed with all 29 application pages and the complete executor/API surface emitted.
+- Vercel deployments `dpl_HACoiTXNjTSDMfnsfnisCMg8ZfvR` and `dpl_3fXhVBCWL7jUSQK6Jzp9sduYSz5K` reached `READY`; the stable release-candidate alias was assigned to each successive commit.
+- Billing remains internal and dormant. No payment activation is part of this pilot gate.
 
 ## Hosted evidence
 
