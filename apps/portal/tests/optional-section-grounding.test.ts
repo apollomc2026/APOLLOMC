@@ -49,6 +49,13 @@ describe('optional section evidence boundaries', () => {
     expect(activeSections(args('engagement-letter')).map(section => section.key)).toContain('acceptance_signatures')
   })
 
+  it('does not ask the model to duplicate layout-owned mastheads', () => {
+    expect(activeSections(args('invoice')).map(section => section.key)).not.toEqual(expect.arrayContaining(['header_masthead','bill_to_block']))
+    expect(activeSections(args('meeting-minutes')).map(section => section.key)).not.toContain('header')
+    expect(activeSections(args('tax-estimate')).map(section => section.key)).not.toContain('header_masthead')
+    expect(activeSections(args('change-order')).map(section => section.key)).not.toContain('header')
+  })
+
   it('does not prime generation with missing optional fields or client-facing placeholders', () => {
     const module = getModule('federal-proposal')!
     const fields = Object.fromEntries(module.required_fields.map(field => [field.key, field.key === 'solicitation_number' ? 'FAKE-001' : `Verified ${field.label}`]))

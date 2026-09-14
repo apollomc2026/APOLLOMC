@@ -1611,8 +1611,8 @@ function buildInvoiceHtml(args: BuildPdfArgs): string {
   return `<!doctype html>
 <html lang="en">${sharedHead(palette, preset, docTitle)}
 <style>
-@page { size: 8.5in 11in; margin: 0.9in 0.9in 0.9in 0.9in; }
-.invoice { display: flex; flex-direction: column; gap: 36pt; }
+@page { size: 8.5in 11in; margin: 0.65in 0.75in 0.7in 0.75in; }
+.invoice { display: flex; flex-direction: column; gap: 18pt; }
 .invoice-masthead {
   display: flex; justify-content: space-between; align-items: flex-start;
   padding-bottom: 16pt; border-bottom: 0.75pt solid var(--accent);
@@ -1642,33 +1642,36 @@ function buildInvoiceHtml(args: BuildPdfArgs): string {
 .invoice-party-address { font-family: var(--font-body); font-size: 10pt;
   color: var(--ink); white-space: pre-line; margin: 0; }
 .invoice-body {
-  font-family: var(--font-body); font-size: 10pt; line-height: 1.6;
+  font-family: var(--font-body); font-size: 9pt; line-height: 1.38;
 }
-.invoice-body table { width: 100%; border-collapse: collapse; margin: 16pt 0; }
+.invoice-body table { width: 100%; border-collapse: collapse; margin: 8pt 0; }
 .invoice-body thead th {
   font-family: var(--font-body); font-size: 8pt; font-weight: 500;
   letter-spacing: 0.22em; text-transform: uppercase; color: var(--metadata);
-  text-align: left; padding: 8pt 0; border-bottom: 0.5pt solid var(--accent);
+  text-align: left; padding: 5pt 0; border-bottom: 0.5pt solid var(--accent);
 }
 .invoice-body thead th:last-child,
 .invoice-body tbody td:last-child { text-align: right; }
 .invoice-body thead th.num, .invoice-body tbody td.num { text-align: right; }
 .invoice-body tbody td {
-  font-family: var(--font-body); font-size: 10pt; color: var(--ink);
-  padding: 8pt 0; border-bottom: 0.25pt solid var(--hairline);
+  font-family: var(--font-body); font-size: 9pt; color: var(--ink);
+  padding: 5pt 0; border-bottom: 0.25pt solid var(--hairline);
   vertical-align: top;
 }
 .invoice-body h2 {
   font-family: var(--font-display); font-weight: 500;
-  font-size: 16pt; color: var(--ink); margin: 28pt 0 10pt 0;
+  font-size: 13pt; color: var(--ink); margin: 13pt 0 6pt 0;
 }
 .invoice-body h3 {
   font-family: var(--font-body); font-size: 9pt; font-weight: 500;
   letter-spacing: 0.22em; text-transform: uppercase; color: var(--metadata);
-  margin: 22pt 0 6pt 0;
+  margin: 10pt 0 4pt 0;
 }
-.invoice-body p { margin: 0 0 8pt 0; }
-.invoice-body ul { margin: 8pt 0; padding-left: 18pt; }
+.invoice-body p { margin: 0 0 5pt 0; }
+.invoice-body ul { margin: 5pt 0; padding-left: 18pt; }
+.invoice-body dl { display:grid; grid-template-columns:max-content 1fr; gap:3pt 14pt; margin:0 0 8pt; }
+.invoice-body dt { color:var(--metadata); font-size:8pt; font-weight:600; letter-spacing:.12em; text-transform:uppercase; }
+.invoice-body dd { margin:0; }
 /* Make Claude's totals render aligned right, gracefully */
 .invoice-body .totals, .invoice-body strong { font-variant-numeric: tabular-nums; }
 </style>
@@ -1957,6 +1960,7 @@ function buildFinancialStatementHtml(args: BuildPdfArgs): string {
   const scenarioLabel = readString(args.inputs, 'scenario_label')
 
   const body = stripAllH1(stripLeadingTitle(args.contentHtml))
+  const signaturesHtml = renderSignatureBlock(args)
 
   return `<!doctype html>
 <html lang="en">${sharedHead(palette, preset, docTitle)}
@@ -2024,6 +2028,9 @@ function buildFinancialStatementHtml(args: BuildPdfArgs): string {
 .fin-body p { margin: 0 0 10pt 0; }
 .fin-body ul, .fin-body ol { margin: 6pt 0 12pt 0; padding-left: 20pt; }
 .fin-body li { margin-bottom: 4pt; }
+.fin-body dl { display:grid; grid-template-columns:max-content 1fr; gap:5pt 18pt; margin:0 0 14pt; }
+.fin-body dt { color:var(--metadata); font-size:8pt; font-weight:600; letter-spacing:.12em; text-transform:uppercase; }
+.fin-body dd { margin:0; font-weight:500; }
 
 /* Tables — monospace numerics, right-aligned amounts, subtle striping. */
 .fin-body table,
@@ -2095,6 +2102,17 @@ function buildFinancialStatementHtml(args: BuildPdfArgs): string {
 }
 .fin-disclaimer-prominent strong,
 .fin-disclaimer-prominent b { font-weight: 700; }
+.signatures-page { page-break-before: always; padding-top: 0.25in; }
+.sig-eyebrow { margin:0 0 8pt; font:600 8pt var(--font-body); letter-spacing:.22em; text-transform:uppercase; color:var(--metadata); }
+.sig-heading { font-family:var(--font-display); font-style:italic; font-weight:400; font-size:28pt; margin:0; }
+.section-rule { border:0; border-top:.5pt solid var(--accent); margin:16pt 0 0; }
+.sig-grid { display:grid; grid-template-columns:1fr 1fr; gap:48pt; margin-top:36pt; }
+.sig-grid-1 { grid-template-columns:minmax(0,3.6in); justify-content:center; }
+.sig-cell { display:flex; flex-direction:column; }
+.sig-name { font-family:var(--font-display); font-size:14pt; font-weight:500; color:var(--ink); margin:0 0 42pt; }
+.sig-line { border-bottom:.5pt solid var(--ink); height:1pt; margin:0 0 6pt; }
+.sig-line-short { width:40%; margin-top:28pt; }
+.sig-caption { font:500 8pt var(--font-body); letter-spacing:.22em; text-transform:uppercase; color:var(--metadata); margin:0; }
 ${watermarkCss()}
 </style>
 <body>
@@ -2120,6 +2138,8 @@ ${watermarkCss()}
 </div>
 
 <div class="fin-body">${body}</div>
+
+${signaturesHtml}
 
 ${watermarkHtml}
 </body>

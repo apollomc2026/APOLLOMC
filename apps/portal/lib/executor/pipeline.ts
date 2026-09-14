@@ -41,7 +41,7 @@ function safeCode(value: string, length: number): string {
 }
 
 function shouldHaveSignatureBlock(slug: string): boolean {
-  return ['sow', 'proposal', 'contract-package', 'engagement-letter', 'nda'].includes(slug)
+  return ['sow', 'proposal', 'contract-package', 'engagement-letter', 'nda', 'change-order'].includes(slug)
 }
 
 async function retrieveSource(source: DocumentSource): Promise<OrchestrateUpload> {

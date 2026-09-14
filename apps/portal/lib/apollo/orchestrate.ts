@@ -202,12 +202,23 @@ const OPTIONAL_SECTION_DEPENDENCIES:Record<string,string[]> = {
   'sow:governance':['key_milestones','team_structure','client_pm_name','provider_pm_name'],
 }
 
+// Publication furniture is rendered deterministically by the selected layout.
+// Excluding it from the model contract prevents duplicated mastheads and party
+// blocks while retaining the underlying fields as authoritative inputs.
+const RENDERER_OWNED_SECTIONS:Record<string,Set<string>> = {
+  invoice:new Set(['header_masthead','bill_to_block']),
+  'meeting-minutes':new Set(['header']),
+  'tax-estimate':new Set(['header_masthead']),
+  'change-order':new Set(['header']),
+}
+
 export function activeSections(args: OrchestrateArgs): ModuleSection[] {
   return args.module.sections.filter((section) => {
     // Covers and bare signature blocks are renderer-owned furniture. The model
     // may supply closing/acceptance prose in other named sections, but must not
     // create a second visual signature page or duplicate blank lines.
     if (section.key === 'cover' || section.key === 'signature_block') return false
+    if (RENDERER_OWNED_SECTIONS[args.slug]?.has(section.key)) return false
     if (section.required !== false) return true
     const optionalKeys = args.module.optional_fields.map(field => field.key)
     const inferredDependencies = optionalKeys.filter(key => section.key === key || section.instructions.toLowerCase().includes(key.toLowerCase()))
