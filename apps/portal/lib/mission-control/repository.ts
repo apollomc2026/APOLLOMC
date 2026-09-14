@@ -4,7 +4,7 @@ import { interpretMissionWithClaude } from './ai-interpreter'
 import { createMissionFact, mergeMissionFacts, specificationProvenance, type DeliverableSpecification, type MissionFact, type MissionTurnResult } from './contracts'
 import type { DocumentSource } from '@/lib/executor/contracts'
 import { getFromS3, getPresignedUrl } from '@/lib/s3/client'
-import { extractEvidence, extractEvidenceFacts } from './evidence'
+import { extractEvidence, extractEvidenceFactsFromSources } from './evidence'
 import { executionGaps } from './work-order'
 
 export class MissionPersistenceError extends Error {}
@@ -39,26 +39,34 @@ async function reconcileSecuredEvidence(input: {
   const rows = (query.data ?? []) as ReprocessableEvidenceRow[]
   if (!rows.length) return [] as MissionFact[]
 
-  const evidenceFacts: MissionFact[] = []
-  for (const row of rows) {
-    if (!row.retrieval_storage_key || !row.retrieval_mime_type) continue
+  const readableSources = (await Promise.all(rows.map(async row => {
+    if (!row.retrieval_storage_key || !row.retrieval_mime_type) return null
     try {
       const bytes = await getFromS3(row.retrieval_storage_key)
       const extracted = await extractEvidence(bytes, row.retrieval_mime_type)
-      const facts = (await extractEvidenceFacts(extracted.text, input.specification.artifact.recommended_type))
-        .map(fact => createMissionFact({ ...fact, source_reference: row.id, last_editor: input.userId }))
-      evidenceFacts.push(...facts)
-      const update = await input.db
-        .from('apollo_conversation_evidence')
-        .update({ extracted_facts: facts })
-        .eq('id', row.id)
-        .eq('user_id', input.userId)
-      if (update.error) throw new Error(update.error.message)
-    } catch {
-      // Custody remains intact. A source that cannot be re-read must not erase
-      // facts recovered from the other secured sources.
+      return extracted.text?.trim() ? { id: row.id, name: row.original_name, text: extracted.text } : null
+    } catch { return null }
+  }))).filter((source): source is { id: string; name: string; text: string } => Boolean(source))
+  if (!readableSources.length) return [] as MissionFact[]
+
+  const moduleSlug = input.specification.artifact.recommended_type
+  const moduleTerms = moduleSlug.split('-').filter(term => term.length > 2)
+  const prioritizedSources = [...readableSources].sort((left, right) => {
+    const score = (name: string) => {
+      const normalized = name.toLowerCase()
+      const termScore = moduleTerms.reduce((total, term) => total + (normalized.includes(term) ? 2 : 0), 0)
+      const finalQcScore = moduleSlug === 'final-qc-report' && /final.?qc|project.?completion/i.test(normalized) ? 20 : 0
+      return termScore + finalQcScore
     }
-  }
+    return score(right.name) - score(left.name)
+  })
+  const evidenceFacts = (await extractEvidenceFactsFromSources(prioritizedSources, moduleSlug))
+    .map(fact => createMissionFact({ ...fact, last_editor: input.userId }))
+  await Promise.all(rows.map(async row => {
+    const facts = evidenceFacts.filter(fact => fact.source_reference === row.id)
+    const update = await input.db.from('apollo_conversation_evidence').update({ extracted_facts: facts }).eq('id', row.id).eq('user_id', input.userId)
+    if (update.error) throw new MissionPersistenceError('Recalibrated evidence facts could not be recorded')
+  }))
   return evidenceFacts
 }
 

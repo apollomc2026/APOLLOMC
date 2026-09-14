@@ -48,6 +48,7 @@ export function MissionControl() {
   const [operatorInvolvement, setOperatorInvolvement] = useState(50);
   const [launchCountdown, setLaunchCountdown] = useState<number | "LIFTOFF" | null>(null);
   const [launchPromptDismissed, setLaunchPromptDismissed] = useState(false);
+  const [reviewAcknowledged, setReviewAcknowledged] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
@@ -172,6 +173,10 @@ export function MissionControl() {
       `${url.pathname}${url.search}${url.hash}`,
     );
   }, [hydrated, conversationId]);
+
+  useEffect(() => {
+    setReviewAcknowledged(false);
+  }, [specificationVersion]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -379,6 +384,7 @@ export function MissionControl() {
     setDecisionAnswers({});
     setOperatorInvolvement(50);
     setLaunchPromptDismissed(false);
+    setReviewAcknowledged(false);
     setError(null);
     window.localStorage.removeItem(STORAGE_KEY);
     window.history.replaceState(window.history.state, "", "/dashboard");
@@ -811,8 +817,12 @@ export function MissionControl() {
             <div className="mc-launch-ready-orbit"><Rocket size={32} /></div>
             <span>MISSION CALIBRATION COMPLETE</span>
             <h2 id="launch-ready-title">Ready for launch.</h2>
-            <p>Houston resolved the required intake and prepared the controlled mission brief. One action locks the brief and begins execution.</p>
-            <button className={`mc-approve mc-launch-control${launchCountdown !== null ? " launching" : ""}`} onClick={launchApprovedExecution} disabled={working || launchCountdown !== null}>
+            <p>Houston resolved every required field supported by your instructions and evidence. Review the brief, acknowledge it, then launch.</p>
+            <label className="mc-launch-acknowledgement">
+              <input type="checkbox" checked={reviewAcknowledged} onChange={(event) => setReviewAcknowledged(event.target.checked)} />
+              <span>I have reviewed the mission brief and approve it for execution.</span>
+            </label>
+            <button className={`mc-approve mc-launch-control${launchCountdown !== null ? " launching" : ""}`} onClick={launchApprovedExecution} disabled={working || launchCountdown !== null || !reviewAcknowledged}>
               <Rocket size={18} />
               <strong aria-live="polite">{launchCountdown !== null ? launchCountdown : "INITIATE LAUNCH"}</strong>
             </button>
@@ -849,6 +859,12 @@ export function MissionControl() {
         <p>Confirm APOLLO interpreted the requested output correctly before calibrating its contents.</p>
         <div className="mc-deliverable-actions"><button type="button" onClick={()=>void submit(`I approve ${title} as the intended deliverable type. Continue calibrating this deliverable.`)} disabled={working}><Check size={15}/>Approve deliverable type</button><button type="button" onClick={correctDeliverableType} disabled={working}>Tell Houston what you need</button></div>
       </section>:null}
+      {specification ? <ol className="mc-mission-sequence" aria-label="Mission launch sequence">
+        <li className="complete"><b>1</b><span><strong>Confirm deliverable</strong><small>{title}</small></span></li>
+        <li className={questions.length === 0 ? "complete" : "active"}><b>2</b><span><strong>Resolve required facts</strong><small>{questions.length ? `${questions.length} awaiting evidence or input` : "Calibration complete"}</small></span></li>
+        <li className={questions.length === 0 ? "active" : "locked"}><b>3</b><span><strong>Review acknowledgment</strong><small>{questions.length === 0 ? "Review and check the approval box" : "Available after calibration"}</small></span></li>
+        <li className={reviewAcknowledged && questions.length === 0 ? "active" : "locked"}><b>4</b><span><strong>Initiate launch</strong><small>{reviewAcknowledged && questions.length === 0 ? "Ready for liftoff" : "Locked until review"}</small></span></li>
+      </ol> : null}
       <section className="mc-status" aria-label="Mission readiness">
         <div>
           <span>Mission readiness</span>

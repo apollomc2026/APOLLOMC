@@ -55,6 +55,16 @@ describe('mission interpreter', () => {
     expect(result.specification.artifact.recommended_family).toBe('Quality control closeout')
   })
 
+  it('does not append a conversational question beside authoritative specialist gaps', () => {
+    const base = interpretMission('Prepare a final QC report for this project.')
+    const result = applyClaudeInterpretation(base, {
+      recommendation: 'final-qc-report',
+      next_question: 'Who is the inspector or engineer of record for this report?',
+    })
+    expect(result.specification.content.open_questions).toHaveLength(executionGaps(result.specification).length)
+    expect(result.specification.content.open_questions).not.toContain('Who is the inspector or engineer of record for this report?')
+  })
+
   it('does not crash when Claude returns stated_facts as an object', () => {
     const prior = interpretMission('Prepare a contract package for the project.').specification
     const malformed = { acknowledgement: 'Received and resolved.', stated_facts: { key: 'unexpected-object' } } as unknown as Parameters<typeof promoteAcknowledgedGap>[0]

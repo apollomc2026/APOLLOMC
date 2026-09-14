@@ -97,7 +97,10 @@ export function applyClaudeInterpretation(base: MissionTurnResult, patch: Claude
     questionReason = `${gaps[0].label} is required by the selected document module and cannot be invented.`
   }
   const modelQuestion = safeText(patch.next_question, 500)
-  const openQuestions = [...new Set([...gapQuestions, ...(modelQuestion && !gapQuestions.includes(modelQuestion) ? [modelQuestion] : [])])]
+  // The specialist schema is authoritative once it has concrete gaps. A free-form
+  // model question at this point commonly duplicates one of those gaps in different
+  // words and creates phantom work for the operator.
+  const openQuestions = gaps.length ? [...new Set(gapQuestions)] : modelQuestion ? [modelQuestion] : []
   specification.content.open_questions = openQuestions
   specification.content.assumptions = openQuestions.map(item => item.replace(/\?$/, ' remains unresolved'))
   specification.provenance = specificationProvenance([...merged.values()], specification.provenance.created_at, specification.provenance.model_versions)

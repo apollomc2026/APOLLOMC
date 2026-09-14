@@ -69,15 +69,41 @@ export async function extractEvidence(bytes: Buffer, mime: string): Promise<Evid
 }
 
 export async function extractEvidenceFacts(text: string | undefined, moduleSlug: string | null): Promise<MissionFact[]> {
-  if (!text?.trim() || !moduleSlug || !process.env.ANTHROPIC_API_KEY) return []
+  return extractEvidenceFactsFromSources(text?.trim() ? [{ id: 'evidence', name: 'Evidence', text }] : [], moduleSlug)
+}
+
+export async function extractEvidenceFactsFromSources(
+  sources: Array<{ id: string; name: string; text?: string }>,
+  moduleSlug: string | null,
+): Promise<MissionFact[]> {
+  const readable = sources.filter(source => source.text?.trim()) as Array<{ id: string; name: string; text: string }>
+  if (!readable.length || !moduleSlug || !process.env.ANTHROPIC_API_KEY) return []
   const documentModule = getModule(moduleSlug)
   if (!documentModule) return []
   const fields = [...documentModule.required_fields, ...documentModule.optional_fields]
-  const properties = Object.fromEntries(fields.map(field => [field.key, { type: 'string', description: field.label }]))
+  const sourceIds = readable.map(source => source.id)
+  const properties = Object.fromEntries(fields.map(field => [field.key, {
+    type: 'object',
+    description: field.label,
+    properties: {
+      value: { type: 'string', description: `Exact evidence-supported value for ${field.label}` },
+      source_id: { type: 'string', enum: sourceIds, description: 'ID of the source that directly supports this value' },
+    },
+    required: ['value', 'source_id'],
+  }]))
+  const evidenceText = readable
+    .map(source => `=== SOURCE ${source.id}: ${source.name} ===\n${source.text.slice(0, 16000)}`)
+    .join('\n\n')
+    .slice(0, 80000)
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-  const response = await client.messages.create({ model: modelFor('extraction'), max_tokens: 6000, system: 'Extract only values explicitly present in the evidence. Never infer, calculate, default, or fabricate. Use the exact field keys. Extract every supported required field before including optional fields.', tools: [{ name: 'extract_evidence', description: 'Return explicitly supported specialist fields, prioritizing all required fields before optional fields.', input_schema: { type: 'object', properties } }], tool_choice: { type: 'tool', name: 'extract_evidence' }, messages: [{ role: 'user', content: text.slice(0, 80000) }] })
+  const response = await client.messages.create({ model: modelFor('extraction'), max_tokens: 6000, system: 'Extract only values explicitly present in the labeled evidence sources. Never infer, calculate, default, or fabricate. Use the exact field keys and cite the source ID that directly supports each value. Extract every supported required field before including optional fields.', tools: [{ name: 'extract_evidence', description: 'Return explicitly supported specialist fields with their source IDs, prioritizing all required fields before optional fields.', input_schema: { type: 'object', properties } }], tool_choice: { type: 'tool', name: 'extract_evidence' }, messages: [{ role: 'user', content: evidenceText }] })
   const block = response.content.find(item => item.type === 'tool_use' && item.name === 'extract_evidence')
   if (!block || block.type !== 'tool_use') return []
   const labels = new Map(fields.map(field => [field.key, field.label]))
-  return Object.entries(block.input as Record<string, unknown>).flatMap(([key, value]) => typeof value === 'string' && value.trim() && labels.has(key) ? [createMissionFact({ key, label: labels.get(key)!, value: value.trim().slice(0, 2000), source: 'evidence', confidence: 1, sensitivity: 'confidential' })] : [])
+  return Object.entries(block.input as Record<string, unknown>).flatMap(([key, raw]) => {
+    if (!raw || typeof raw !== 'object' || !labels.has(key)) return []
+    const value = 'value' in raw && typeof raw.value === 'string' ? raw.value.trim() : ''
+    const sourceReference = 'source_id' in raw && typeof raw.source_id === 'string' && sourceIds.includes(raw.source_id) ? raw.source_id : null
+    return value && sourceReference ? [createMissionFact({ key, label: labels.get(key)!, value: value.slice(0, 2000), source: 'evidence', source_reference: sourceReference, confidence: 1, sensitivity: 'confidential' })] : []
+  })
 }
