@@ -30,6 +30,20 @@ export function evidenceMagicMatches(bytes: Buffer, mime: string): boolean {
   return mime === 'text/csv' || mime === 'text/plain'
 }
 
+/**
+ * Re-encode field images before custody so camera GPS, device identity, comments,
+ * profiles, and other embedded metadata never enter APOLLO's evidence store.
+ * `rotate()` applies EXIF orientation before sharp drops the metadata block.
+ */
+export async function sanitizeEvidenceBytes(bytes: Buffer, mime: string): Promise<Buffer> {
+  if (mime !== 'image/jpeg' && mime !== 'image/png') return bytes
+  const sharp = (await import('sharp')).default
+  const image = sharp(bytes, { failOn:'error', limitInputPixels:40_000_000 }).rotate()
+  return mime === 'image/jpeg'
+    ? image.jpeg({ quality:92, mozjpeg:true }).toBuffer()
+    : image.png({ compressionLevel:9 }).toBuffer()
+}
+
 export function evidenceZipTooLarge(bytes: Buffer, limit = 200 * 1024 * 1024): boolean {
   const floor = Math.max(0, bytes.length - 22 - 65536)
   let eocd = -1

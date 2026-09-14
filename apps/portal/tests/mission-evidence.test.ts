@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as XLSX from 'xlsx'
-import { batchEvidenceSources, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, normalizeEvidenceMime, prepareEvidenceRetrieval } from '../lib/mission-control/evidence'
+import sharp from 'sharp'
+import { batchEvidenceSources, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, normalizeEvidenceMime, prepareEvidenceRetrieval, sanitizeEvidenceBytes } from '../lib/mission-control/evidence'
 import { mergeMissionFacts } from '../lib/mission-control/contracts'
 
 describe('mission evidence custody', () => {
@@ -32,6 +33,22 @@ describe('mission evidence custody', () => {
       mime:'application/pdf',
       derived:false,
     })
+  })
+
+  it('removes embedded camera metadata before field images enter evidence custody', async () => {
+    const photographed = await sharp({
+      create:{ width:4, height:3, channels:3, background:{ r:20, g:80, b:140 } },
+    }).jpeg().withMetadata({ orientation:6 }).toBuffer()
+    expect((await sharp(photographed).metadata()).exif).toBeDefined()
+
+    const sanitized = await sanitizeEvidenceBytes(photographed, 'image/jpeg')
+    const metadata = await sharp(sanitized).metadata()
+    expect(metadata.exif).toBeUndefined()
+    expect(metadata.icc).toBeUndefined()
+    expect(metadata.xmp).toBeUndefined()
+    expect(metadata.orientation).toBeUndefined()
+    expect(metadata.width).toBe(3)
+    expect(metadata.height).toBe(4)
   })
 
   it('converts Office evidence to a hashable text execution artifact', () => {

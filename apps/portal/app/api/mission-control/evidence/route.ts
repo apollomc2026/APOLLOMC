@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { requireAllowedUser } from '@/lib/apollo/auth'
 import { createClient } from '@/lib/supabase/server'
 import { deleteFromS3, getPresignedUrl, uploadToS3 } from '@/lib/s3/client'
-import { evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractEvidenceFacts, normalizeEvidenceMime, prepareEvidenceRetrieval } from '@/lib/mission-control/evidence'
+import { evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractEvidenceFacts, normalizeEvidenceMime, prepareEvidenceRetrieval, sanitizeEvidenceBytes } from '@/lib/mission-control/evidence'
 import { executionGaps } from '@/lib/mission-control/work-order'
 import { createMissionFact, mergeMissionFacts, specificationProvenance, type DeliverableSpecification } from '@/lib/mission-control/contracts'
 
@@ -51,8 +51,11 @@ export async function POST(request: Request) {
   if (current.error || !current.data) return NextResponse.json({ error: 'Current mission specification was not found' }, { status: 409 })
   const prior = current.data.specification as DeliverableSpecification
   const moduleSlug = prior.artifact.recommended_type
-  const bytes = Buffer.from(await file.arrayBuffer())
-  if (!evidenceMagicMatches(bytes, mimeType)) return NextResponse.json({ error: 'File content does not match its declared type' }, { status: 415 })
+  const receivedBytes = Buffer.from(await file.arrayBuffer())
+  if (!evidenceMagicMatches(receivedBytes, mimeType)) return NextResponse.json({ error: 'File content does not match its declared type' }, { status: 415 })
+  let bytes: Buffer
+  try { bytes = await sanitizeEvidenceBytes(receivedBytes, mimeType) }
+  catch { return NextResponse.json({ error: 'Image could not be safely normalized for evidence custody' }, { status: 415 }) }
   if (evidenceZipTooLarge(bytes)) return NextResponse.json({ error: 'File expands beyond the safe extraction limit' }, { status: 413 })
   const id = randomUUID()
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
@@ -78,7 +81,7 @@ export async function POST(request: Request) {
     try { extractedFacts = await extractEvidenceFacts(extractedText, moduleSlug) } catch { extractedFacts = [] }
     extractedFacts = extractedFacts.map(fact => ({ ...fact, source_reference: id, last_editor: allowed.user.userId }))
   }
-  const inserted = await db.from('apollo_conversation_evidence').insert({ id, conversation_id: conversationId, user_id: allowed.user.userId, original_name: file.name, storage_key: storageKey, content_sha256: originalHash, retrieval_storage_key: retrievalKey, retrieval_mime_type: retrievalMime, retrieval_sha256: retrievalHash, mime_type: mimeType, size_bytes: file.size, extraction_status: extractionStatus, extracted_facts: extractedFacts }).select('id, original_name, extraction_status').single()
+  const inserted = await db.from('apollo_conversation_evidence').insert({ id, conversation_id: conversationId, user_id: allowed.user.userId, original_name: file.name, storage_key: storageKey, content_sha256: originalHash, retrieval_storage_key: retrievalKey, retrieval_mime_type: retrievalMime, retrieval_sha256: retrievalHash, mime_type: mimeType, size_bytes: bytes.length, extraction_status: extractionStatus, extracted_facts: extractedFacts }).select('id, original_name, extraction_status').single()
   if (inserted.error) {
     await Promise.allSettled([deleteFromS3(storageKey), ...(retrievalKey !== storageKey ? [deleteFromS3(retrievalKey)] : [])])
     return NextResponse.json({ error: inserted.error.message }, { status: 500 })
