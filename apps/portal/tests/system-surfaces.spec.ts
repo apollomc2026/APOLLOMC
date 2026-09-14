@@ -67,6 +67,15 @@ test('atmospheric sunburst and starfield respect theme and reduced motion', asyn
   expect(reducedDuration).toBeLessThanOrEqual(.001)
 })
 
+test('mission control presents a command deck with immediate reflight and environment actions', async ({ page }) => {
+  await page.goto('/dashboard')
+  const commandDeck = page.locator('.dashboard-command-deck')
+  await expect(commandDeck.getByText('Field Operations Proposal')).toBeVisible()
+  await expect(commandDeck.getByRole('button', { name:/Regenerate deliverable/i })).toBeVisible()
+  await expect(commandDeck.getByRole('link', { name:'Telemetry' })).toHaveAttribute('href', '/telemetry?mission=mission-demo')
+  await expect(commandDeck.getByRole('link', { name:'Edit mission data' })).toHaveAttribute('href', '/new-mission?mission=mission-demo&edit=1')
+})
+
 test('archive, telemetry, and settings are operational surfaces', async ({ page }) => {
   await page.goto('/archive')
   await expect(page.getByRole('heading', { name:'Mission Archive' })).toBeVisible()
