@@ -15,6 +15,7 @@ export function normalizeEvidenceMime(name: string, declaredMime: string): strin
   return declaredMime === expected ? expected : null
 }
 import Anthropic from '@anthropic-ai/sdk'
+import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages/messages'
 import { modelFor } from '@/lib/ai/models'
 import { getModule } from '@/lib/apollo/packages-loader'
 import { createMissionFact, type MissionFact } from './contracts'
@@ -97,6 +98,42 @@ export async function extractEvidenceFactsFromSources(
     .slice(0, 80000)
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   const response = await client.messages.create({ model: modelFor('extraction'), max_tokens: 6000, system: 'Extract only values explicitly present in the labeled evidence sources. Never infer, calculate, default, or fabricate. Use the exact field keys and cite the source ID that directly supports each value. Extract every supported required field before including optional fields.', tools: [{ name: 'extract_evidence', description: 'Return explicitly supported specialist fields with their source IDs, prioritizing all required fields before optional fields.', input_schema: { type: 'object', properties } }], tool_choice: { type: 'tool', name: 'extract_evidence' }, messages: [{ role: 'user', content: evidenceText }] })
+  const block = response.content.find(item => item.type === 'tool_use' && item.name === 'extract_evidence')
+  if (!block || block.type !== 'tool_use') return []
+  const labels = new Map(fields.map(field => [field.key, field.label]))
+  return Object.entries(block.input as Record<string, unknown>).flatMap(([key, raw]) => {
+    if (!raw || typeof raw !== 'object' || !labels.has(key)) return []
+    const value = 'value' in raw && typeof raw.value === 'string' ? raw.value.trim() : ''
+    const sourceReference = 'source_id' in raw && typeof raw.source_id === 'string' && sourceIds.includes(raw.source_id) ? raw.source_id : null
+    return value && sourceReference ? [createMissionFact({ key, label: labels.get(key)!, value: value.slice(0, 2000), source: 'evidence', source_reference: sourceReference, confidence: 1, sensitivity: 'confidential' })] : []
+  })
+}
+
+export async function extractEvidenceFactsFromPdfs(
+  sources: Array<{ id: string; name: string; bytes: Buffer }>,
+  moduleSlug: string | null,
+): Promise<MissionFact[]> {
+  if (!sources.length || !moduleSlug || !process.env.ANTHROPIC_API_KEY) return []
+  const documentModule = getModule(moduleSlug)
+  if (!documentModule) return []
+  const fields = [...documentModule.required_fields, ...documentModule.optional_fields]
+  const selected = sources.slice(0, 3)
+  const sourceIds = selected.map(source => source.id)
+  const properties = Object.fromEntries(fields.map(field => [field.key, {
+    type: 'object', description: field.label,
+    properties: {
+      value: { type: 'string', description: `Exact evidence-supported value for ${field.label}` },
+      source_id: { type: 'string', enum: sourceIds, description: 'ID of the PDF that directly supports this value' },
+    },
+    required: ['value', 'source_id'],
+  }]))
+  const content: ContentBlockParam[] = selected.flatMap(source => [
+    { type: 'text' as const, text: `SOURCE ID: ${source.id} — ${source.name}` },
+    { type: 'document' as const, title: source.name, source: { type: 'base64' as const, media_type: 'application/pdf' as const, data: source.bytes.toString('base64') } },
+  ])
+  content.push({ type: 'text', text: 'Extract every explicitly supported required field from these PDFs. Do not infer missing client facts.' })
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  const response = await client.messages.create({ model: modelFor('extraction'), max_tokens: 6000, system: 'Extract only values explicitly present in the labeled PDF evidence. Never infer, calculate, default, or fabricate. Use the exact field keys and cite the source ID that directly supports each value.', tools: [{ name: 'extract_evidence', description: 'Return explicitly supported specialist fields with their source IDs.', input_schema: { type: 'object', properties } }], tool_choice: { type: 'tool', name: 'extract_evidence' }, messages: [{ role: 'user', content }] })
   const block = response.content.find(item => item.type === 'tool_use' && item.name === 'extract_evidence')
   if (!block || block.type !== 'tool_use') return []
   const labels = new Map(fields.map(field => [field.key, field.label]))

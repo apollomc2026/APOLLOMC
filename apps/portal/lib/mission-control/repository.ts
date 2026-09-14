@@ -4,7 +4,7 @@ import { interpretMissionWithClaude } from './ai-interpreter'
 import { createMissionFact, mergeMissionFacts, specificationProvenance, type DeliverableSpecification, type MissionFact, type MissionTurnResult } from './contracts'
 import type { DocumentSource } from '@/lib/executor/contracts'
 import { getFromS3, getPresignedUrl } from '@/lib/s3/client'
-import { extractEvidence, extractEvidenceFactsFromSources } from './evidence'
+import { extractEvidence, extractEvidenceFactsFromPdfs, extractEvidenceFactsFromSources } from './evidence'
 import { executionGaps } from './work-order'
 
 export class MissionPersistenceError extends Error {}
@@ -44,22 +44,22 @@ async function reconcileSecuredEvidence(input: {
   const rows = (query.data ?? []) as ReprocessableEvidenceRow[]
   if (!rows.length) return [] as MissionFact[]
 
-  const readableSources = (await Promise.all(rows.map(async row => {
+  const recoveredSources = (await Promise.all(rows.map(async row => {
     if (!row.retrieval_storage_key || !row.retrieval_mime_type) return null
     try {
       const bytes = await getFromS3(row.retrieval_storage_key)
       const extracted = await extractEvidence(bytes, row.retrieval_mime_type)
-      return extracted.text?.trim() ? { id: row.id, name: row.original_name, text: extracted.text } : null
+      return { id: row.id, name: row.original_name, text: extracted.text?.trim() || null, pdfBytes: row.retrieval_mime_type === 'application/pdf' ? bytes : null }
     } catch (error) {
       console.warn('[mission-control] Evidence source could not be re-read', { evidenceId: row.id, name: row.original_name, error: error instanceof Error ? error.message : 'unknown error' })
       return null
     }
-  }))).filter((source): source is { id: string; name: string; text: string } => Boolean(source))
-  if (!readableSources.length) return [] as MissionFact[]
+  }))).filter((source): source is { id: string; name: string; text: string | null; pdfBytes: Buffer | null } => Boolean(source))
+  if (!recoveredSources.length) return [] as MissionFact[]
 
   const moduleSlug = input.specification.artifact.recommended_type
   const moduleTerms = moduleSlug.split('-').filter(term => term.length > 2)
-  const prioritizedSources = [...readableSources].sort((left, right) => {
+  const prioritizedSources = [...recoveredSources].sort((left, right) => {
     const score = (name: string) => {
       const normalized = name.toLowerCase()
       const termScore = moduleTerms.reduce((total, term) => total + (normalized.includes(term) ? 2 : 0), 0)
@@ -68,12 +68,17 @@ async function reconcileSecuredEvidence(input: {
     }
     return score(right.name) - score(left.name)
   })
-  const evidenceFacts = (await extractEvidenceFactsFromSources(prioritizedSources, moduleSlug))
+  const readableSources = prioritizedSources.filter((source): source is typeof source & { text: string } => Boolean(source.text))
+  const pdfSources = prioritizedSources.filter((source): source is typeof source & { pdfBytes: Buffer } => Boolean(source.pdfBytes))
+  const extracted = readableSources.length
+    ? await extractEvidenceFactsFromSources(readableSources, moduleSlug)
+    : await extractEvidenceFactsFromPdfs(pdfSources.map(source => ({ id: source.id, name: source.name, bytes: source.pdfBytes })), moduleSlug)
+  const evidenceFacts = extracted
     .map(fact => createMissionFact({ ...fact, last_editor: input.userId }))
   if (moduleSlug === 'final-qc-report' && !evidenceFacts.some(fact => fact.key === 'reference_documents')) {
     evidenceFacts.push(createMissionFact({ key: 'reference_documents', label: 'Reference documents / standards', value: rows.map(row => row.original_name).join('; '), source: 'evidence', source_reference: rows[0]?.id ?? null, confidence: 1, sensitivity: 'confidential', last_editor: input.userId }))
   }
-  console.info('[mission-control] Evidence recalibration completed', { conversationId: input.conversationId, moduleSlug, securedSources: rows.length, readableSources: readableSources.length, extractedFacts: evidenceFacts.length })
+  console.info('[mission-control] Evidence recalibration completed', { conversationId: input.conversationId, moduleSlug, securedSources: rows.length, recoveredSources: recoveredSources.length, readableSources: readableSources.length, nativePdfFallback: !readableSources.length && pdfSources.length > 0, extractedFacts: evidenceFacts.length })
   await Promise.all(rows.map(async row => {
     const facts = evidenceFacts.filter(fact => fact.source_reference === row.id)
     const update = await input.db.from('apollo_conversation_evidence').update({ extracted_facts: facts }).eq('id', row.id).eq('user_id', input.userId)
