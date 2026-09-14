@@ -73,6 +73,29 @@ export async function extractEvidenceFacts(text: string | undefined, moduleSlug:
   return extractEvidenceFactsFromSources(text?.trim() ? [{ id: 'evidence', name: 'Evidence', text }] : [], moduleSlug)
 }
 
+export function evidenceFactsFromToolInput(
+  input: Record<string, unknown>,
+  fields: Array<{ key: string; label: string }>,
+  sourceIds: string[],
+): MissionFact[] {
+  const labels = new Map(fields.map(field => [field.key, field.label]))
+  return Object.entries(input).flatMap(([key, raw]) => {
+    if (!labels.has(key)) return []
+    const candidates = Array.isArray(raw) ? raw : [raw]
+    return candidates.flatMap(candidate => {
+      if (!candidate || typeof candidate !== 'object') return []
+      const value = 'value' in candidate && typeof candidate.value === 'string' ? candidate.value.trim() : ''
+      const sourceReference = 'source_id' in candidate && typeof candidate.source_id === 'string' && sourceIds.includes(candidate.source_id) ? candidate.source_id : null
+      return value && sourceReference ? [createMissionFact({ key, label: labels.get(key)!, value:value.slice(0, 2000), source:'evidence', source_reference:sourceReference, confidence:1, sensitivity:'confidential' })] : []
+    })
+  })
+}
+
+export function batchEvidenceSources<T>(sources:T[], batchSize:number):T[][] {
+  if (!Number.isInteger(batchSize) || batchSize < 1) throw new Error('Evidence batch size must be a positive integer')
+  return Array.from({ length:Math.ceil(sources.length / batchSize) }, (_, index) => sources.slice(index * batchSize, (index + 1) * batchSize))
+}
+
 export async function extractEvidenceFactsFromSources(
   sources: Array<{ id: string; name: string; text?: string }>,
   moduleSlug: string | null,
@@ -82,31 +105,24 @@ export async function extractEvidenceFactsFromSources(
   const documentModule = getModule(moduleSlug)
   if (!documentModule) return []
   const fields = [...documentModule.required_fields, ...documentModule.optional_fields]
-  const sourceIds = readable.map(source => source.id)
-  const properties = Object.fromEntries(fields.map(field => [field.key, {
-    type: 'object',
-    description: field.label,
-    properties: {
-      value: { type: 'string', description: `Exact evidence-supported value for ${field.label}` },
-      source_id: { type: 'string', enum: sourceIds, description: 'ID of the source that directly supports this value' },
-    },
-    required: ['value', 'source_id'],
-  }]))
-  const evidenceText = readable
-    .map(source => `=== SOURCE ${source.id}: ${source.name} ===\n${source.text.slice(0, 16000)}`)
-    .join('\n\n')
-    .slice(0, 80000)
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-  const response = await client.messages.create({ model: modelFor('extraction'), max_tokens: 6000, system: 'Extract only values explicitly present in the labeled evidence sources. Never infer, calculate, default, or fabricate. Use the exact field keys and cite the source ID that directly supports each value. Extract every supported required field before including optional fields.', tools: [{ name: 'extract_evidence', description: 'Return explicitly supported specialist fields with their source IDs, prioritizing all required fields before optional fields.', input_schema: { type: 'object', properties } }], tool_choice: { type: 'tool', name: 'extract_evidence' }, messages: [{ role: 'user', content: evidenceText }] })
-  const block = response.content.find(item => item.type === 'tool_use' && item.name === 'extract_evidence')
-  if (!block || block.type !== 'tool_use') return []
-  const labels = new Map(fields.map(field => [field.key, field.label]))
-  return Object.entries(block.input as Record<string, unknown>).flatMap(([key, raw]) => {
-    if (!raw || typeof raw !== 'object' || !labels.has(key)) return []
-    const value = 'value' in raw && typeof raw.value === 'string' ? raw.value.trim() : ''
-    const sourceReference = 'source_id' in raw && typeof raw.source_id === 'string' && sourceIds.includes(raw.source_id) ? raw.source_id : null
-    return value && sourceReference ? [createMissionFact({ key, label: labels.get(key)!, value: value.slice(0, 2000), source: 'evidence', source_reference: sourceReference, confidence: 1, sensitivity: 'confidential' })] : []
-  })
+  const facts: MissionFact[] = []
+  for (const batch of batchEvidenceSources(readable, 4)) {
+    const sourceIds = batch.map(source => source.id)
+    const properties = evidenceToolProperties(fields, sourceIds, 'source')
+    const evidenceText = batch.map(source => `=== SOURCE ${source.id}: ${source.name} ===\n${source.text.slice(0, 16000)}`).join('\n\n')
+    const response = await client.messages.create({ model:modelFor('extraction'), max_tokens:6000, system:'Extract only values explicitly present in the labeled evidence sources. Never infer, calculate, default, or fabricate. Use the exact field keys and cite the source ID that directly supports each value. For each field, return every distinct source-supported candidate; never choose between contradictory sources. Extract every supported required field before including optional fields.', tools:[{ name:'extract_evidence', description:'Return all explicitly supported specialist-field candidates with their source IDs, preserving contradictions for reconciliation.', input_schema:{ type:'object', properties } }], tool_choice:{ type:'tool', name:'extract_evidence' }, messages:[{ role:'user', content:evidenceText }] })
+    const block = response.content.find(item => item.type === 'tool_use' && item.name === 'extract_evidence')
+    if (block?.type === 'tool_use') facts.push(...evidenceFactsFromToolInput(block.input as Record<string, unknown>, fields, sourceIds))
+  }
+  return facts
+}
+
+function evidenceToolProperties(fields: Array<{ key:string; label:string }>, sourceIds:string[], sourceLabel:'source'|'PDF') {
+  return Object.fromEntries(fields.map(field => [field.key, {
+    type:'array', description:`${field.label}. Return one candidate per directly supporting ${sourceLabel}, including every contradictory value.`,
+    items:{ type:'object', properties:{ value:{ type:'string', description:`Exact evidence-supported value for ${field.label}` }, source_id:{ type:'string', enum:sourceIds, description:`ID of the ${sourceLabel} that directly supports this candidate` } }, required:['value','source_id'] },
+  }]))
 }
 
 export async function extractEvidenceFactsFromPdfs(
@@ -117,30 +133,16 @@ export async function extractEvidenceFactsFromPdfs(
   const documentModule = getModule(moduleSlug)
   if (!documentModule) return []
   const fields = [...documentModule.required_fields, ...documentModule.optional_fields]
-  const selected = sources.slice(0, 3)
-  const sourceIds = selected.map(source => source.id)
-  const properties = Object.fromEntries(fields.map(field => [field.key, {
-    type: 'object', description: field.label,
-    properties: {
-      value: { type: 'string', description: `Exact evidence-supported value for ${field.label}` },
-      source_id: { type: 'string', enum: sourceIds, description: 'ID of the PDF that directly supports this value' },
-    },
-    required: ['value', 'source_id'],
-  }]))
-  const content: ContentBlockParam[] = selected.flatMap(source => [
-    { type: 'text' as const, text: `SOURCE ID: ${source.id} — ${source.name}` },
-    { type: 'document' as const, title: source.name, source: { type: 'base64' as const, media_type: 'application/pdf' as const, data: source.bytes.toString('base64') } },
-  ])
-  content.push({ type: 'text', text: 'Extract every explicitly supported required field from these PDFs. Do not infer missing client facts.' })
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-  const response = await client.messages.create({ model: modelFor('extraction'), max_tokens: 6000, system: 'Extract only values explicitly present in the labeled PDF evidence. Never infer, calculate, default, or fabricate. Use the exact field keys and cite the source ID that directly supports each value.', tools: [{ name: 'extract_evidence', description: 'Return explicitly supported specialist fields with their source IDs.', input_schema: { type: 'object', properties } }], tool_choice: { type: 'tool', name: 'extract_evidence' }, messages: [{ role: 'user', content }] })
-  const block = response.content.find(item => item.type === 'tool_use' && item.name === 'extract_evidence')
-  if (!block || block.type !== 'tool_use') return []
-  const labels = new Map(fields.map(field => [field.key, field.label]))
-  return Object.entries(block.input as Record<string, unknown>).flatMap(([key, raw]) => {
-    if (!raw || typeof raw !== 'object' || !labels.has(key)) return []
-    const value = 'value' in raw && typeof raw.value === 'string' ? raw.value.trim() : ''
-    const sourceReference = 'source_id' in raw && typeof raw.source_id === 'string' && sourceIds.includes(raw.source_id) ? raw.source_id : null
-    return value && sourceReference ? [createMissionFact({ key, label: labels.get(key)!, value: value.slice(0, 2000), source: 'evidence', source_reference: sourceReference, confidence: 1, sensitivity: 'confidential' })] : []
-  })
+  const facts: MissionFact[] = []
+  for (const batch of batchEvidenceSources(sources, 3)) {
+    const sourceIds = batch.map(source => source.id)
+    const properties = evidenceToolProperties(fields, sourceIds, 'PDF')
+    const content: ContentBlockParam[] = batch.flatMap(source => [{ type:'text' as const, text:`SOURCE ID: ${source.id} — ${source.name}` }, { type:'document' as const, title:source.name, source:{ type:'base64' as const, media_type:'application/pdf' as const, data:source.bytes.toString('base64') } }])
+    content.push({ type:'text', text:'Extract every explicitly supported required field from these PDFs. Return every conflicting candidate and do not infer missing client facts.' })
+    const response = await client.messages.create({ model:modelFor('extraction'), max_tokens:6000, system:'Extract only values explicitly present in the labeled PDF evidence. Never infer, calculate, default, or fabricate. Use the exact field keys and cite the source ID that directly supports each value. For each field, return every distinct source-supported candidate; never choose between contradictory PDFs.', tools:[{ name:'extract_evidence', description:'Return all explicitly supported specialist-field candidates with their PDF source IDs, preserving contradictions for reconciliation.', input_schema:{ type:'object', properties } }], tool_choice:{ type:'tool', name:'extract_evidence' }, messages:[{ role:'user', content }] })
+    const block = response.content.find(item => item.type === 'tool_use' && item.name === 'extract_evidence')
+    if (block?.type === 'tool_use') facts.push(...evidenceFactsFromToolInput(block.input as Record<string, unknown>, fields, sourceIds))
+  }
+  return facts
 }
