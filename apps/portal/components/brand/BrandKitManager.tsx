@@ -12,7 +12,7 @@ export function BrandKitManager() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
 
-  useEffect(() => { fetch('/api/mission-control/brand-kits').then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }).then(b => setKits(b.brand_kits ?? [])).catch(e => setMessage(e.message || 'Brand kits could not be loaded')).finally(() => setLoading(false)) }, [])
+  useEffect(() => { fetch('/api/mission-control/brand-kits').then(async r => { if (!r.ok) throw new Error((await r.json()).error); return r.json() }).then(b => setKits(current => { const fetched = (b.brand_kits ?? []) as BrandKit[]; return [...current, ...fetched.filter(kit => !current.some(existing => existing.id === kit.id))] })).catch(e => setMessage(e.message || 'Brand kits could not be loaded')).finally(() => setLoading(false)) }, [])
 
   async function create(event:FormEvent<HTMLFormElement>) {
     event.preventDefault(); setSaving(true); setMessage('')

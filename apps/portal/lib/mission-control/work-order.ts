@@ -69,3 +69,17 @@ export function compileApprovedSpecification(input: {
     protocol_version: '1.0', work_order_id: uuidFromDigest(digest), idempotency_key: `spec-${digest}`, project_id: input.specificationId, conversation_id: input.conversationId, task_id: uuidFromDigest(digest, 32), requested_by: input.requestedBy, capability: 'professional-document-generation', deliverable_type: spec.artifact.recommended_type, objective: spec.mission.objective, audience: spec.audience.primary.join(', '), formats: ['pdf'], fields, sources: input.sources ?? [], brand_id: spec.presentation.brand_profile_id ?? 'apollo', style_id: style.id, sensitivity: spec.mission.stakes === 'high' ? 'confidential' : 'internal', priority: spec.mission.deadline ? 'high' : 'medium', deadline: spec.mission.deadline ?? undefined, drive_destination: { folder_id: input.driveFolderId, lifecycle: 'draft' }, quality_gates: { schema_validation: true, source_grounding: true, independent_review: spec.mission.stakes === 'high', deterministic_financial_verification: spec.specialist.playbook_id === 'financial-package', human_approval_before_publish: true }, trace: { specification_id: input.specificationId, specification_hash: input.specificationHash, specification_schema_version: spec.schema_version, playbook_id: spec.specialist.playbook_id, playbook_version: spec.specialist.playbook_version, model_versions: spec.provenance?.model_versions ?? [], required_checks: spec.specialist.required_checks, accepted_unresolved_items: spec.approval.unresolved_items_accepted ?? [] }, created_at: now.toISOString(),
   } }
 }
+
+export function continueApprovedMissionLineage(order:DocumentWorkOrder, prior:DocumentWorkOrder):DocumentWorkOrder {
+  const priorVersion = Number(prior.fields.artifact_version ?? 1)
+  const artifactVersion = Number.isSafeInteger(priorVersion) && priorVersion > 0 ? priorVersion + 1 : 2
+  return {
+    ...order,
+    fields:{
+      ...order.fields,
+      revision_of:prior.work_order_id,
+      revision_instruction:'Mission data updated and explicitly reapproved by the operator.',
+      artifact_version:artifactVersion,
+    },
+  }
+}

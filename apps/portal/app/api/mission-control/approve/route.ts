@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
 import { requireAllowedUser } from '@/lib/apollo/auth'
 import { approveSpecification, loadExecutionEvidence, MissionPersistenceError } from '@/lib/mission-control/repository'
-import { compileApprovedSpecification } from '@/lib/mission-control/work-order'
+import { compileApprovedSpecification, continueApprovedMissionLineage } from '@/lib/mission-control/work-order'
 import { acceptWorkOrder, WorkOrderAcceptanceError } from '@/lib/executor/accept'
+import { getLatestDeliveredJobForConversation } from '@/lib/executor/ledger'
+import type { DocumentWorkOrder } from '@/lib/executor/contracts'
 import { driveConnectionStatus } from '@/lib/integrations/google-drive-auth'
 
 export async function POST(request: Request) {
@@ -20,7 +22,11 @@ export async function POST(request: Request) {
     const sources = await loadExecutionEvidence({ userId: allowed.user.userId, conversationId: body.conversation_id })
     const compiled = compileApprovedSpecification({ specification: approval.specification, specificationId: approval.specification_id, specificationHash: approval.content_hash, conversationId: body.conversation_id, requestedBy: allowed.user.userId, driveFolderId: drive.folderId, sources })
     if (!compiled.ok) return NextResponse.json({ ...approval, execution: { state: 'blocked', missing: compiled.missing } })
-    return NextResponse.json({ ...approval, execution: await acceptWorkOrder(compiled.order) })
+    const priorJob = await getLatestDeliveredJobForConversation({ conversationId:body.conversation_id, requestedBy:allowed.user.userId, excludeJobId:compiled.order.work_order_id })
+    const order = priorJob?.work_order
+      ? continueApprovedMissionLineage(compiled.order, priorJob.work_order as DocumentWorkOrder)
+      : compiled.order
+    return NextResponse.json({ ...approval, execution: await acceptWorkOrder(order) })
   } catch (error) {
     const status = error instanceof MissionPersistenceError ? 409 : error instanceof WorkOrderAcceptanceError ? error.status : 500
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Specification approval failed' }, { status })

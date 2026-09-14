@@ -356,6 +356,12 @@ export function MissionControl() {
       setSpecificationVersion(
         result.specification_version ?? specificationVersion + 1,
       );
+      if (jobState === "delivered") {
+        setJobId(null);
+        setJobState(null);
+        setJobProgress(null);
+        setArtifactUrl(null);
+      }
       setDecisionAnswers((current) =>
         Object.fromEntries(
           Object.entries(current).filter(([question]) =>

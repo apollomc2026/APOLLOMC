@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compileApprovedSpecification, executionGaps } from '../lib/mission-control/work-order'
+import { compileApprovedSpecification, continueApprovedMissionLineage, executionGaps } from '../lib/mission-control/work-order'
 import { interpretMission } from '../lib/mission-control/interpreter'
 import { getModule } from '../lib/apollo/packages-loader'
 import { buildRevisionOrder } from '../lib/mission-control/revision'
@@ -93,6 +93,14 @@ describe('approved specification compiler', () => {
       quality_gates:prior.quality_gates,
       trace:prior.trace,
     })
+  })
+
+  it('continues artifact lineage when edited mission data is explicitly reapproved', () => {
+    const prior:DocumentWorkOrder = { protocol_version:'1.0',work_order_id:'10000000-0000-4000-8000-000000000001',idempotency_key:'prior',project_id:'old-spec',conversation_id:ids.conversationId,task_id:'10000000-0000-4000-8000-000000000002',requested_by:ids.requestedBy,capability:'professional-document-generation',deliverable_type:'proposal',objective:'Old objective',audience:'Client',formats:['pdf'],fields:{ artifact_version:3 },sources:[],brand_id:'kit:brand-a',style_id:'style',sensitivity:'internal',priority:'medium',drive_destination:{folder_id:'drive-folder',lifecycle:'draft'},quality_gates:{schema_validation:true,source_grounding:true,independent_review:false,deterministic_financial_verification:false,human_approval_before_publish:true},created_at:'2026-09-07T00:00:00.000Z' }
+    const updated = { ...prior, work_order_id:'20000000-0000-4000-8000-000000000001', idempotency_key:'updated-spec', project_id:'new-spec', objective:'Updated objective', fields:{ client_name:'Acme' }, brand_id:'kit:brand-b' }
+    const continued = continueApprovedMissionLineage(updated, prior)
+    expect(continued).toMatchObject({ work_order_id:updated.work_order_id, idempotency_key:'updated-spec', project_id:'new-spec', objective:'Updated objective', brand_id:'kit:brand-b', fields:{ client_name:'Acme', artifact_version:4, revision_of:prior.work_order_id, revision_instruction:expect.stringMatching(/updated and explicitly reapproved/) } })
+    expect(continued.fields).not.toHaveProperty('old_objective')
   })
 
   it('places review instructions inside the constrained generation context', () => {

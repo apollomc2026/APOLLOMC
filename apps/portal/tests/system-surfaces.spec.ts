@@ -183,6 +183,20 @@ test('active mission can be overridden to fully autonomous control', async ({ pa
   expect(policyBody).toMatchObject({ conversation_id: 'mission-demo', aura: { operator_involvement: 0 } })
 })
 
+test('editing delivered mission facts creates a fresh approval checkpoint', async ({ page }) => {
+  const fixture = await (await page.request.get('/api/mission-control/conversation?id=mission-demo')).json()
+  await page.route('**/api/mission-control/conversation?id=mission-demo', route => route.fulfill({ status:200, contentType:'application/json', json:fixture }))
+  await page.route('**/api/mission-control/interpret', async route => {
+    const request = route.request().postDataJSON()
+    await route.fulfill({ status:200, contentType:'application/json', json:{ acknowledgement:'Mission facts updated.', question:null, question_reason:null, readiness:100, conversation_id:'mission-demo', specification_version:4, changed_facts:[], specification:{ ...request.specification, mission:{ ...request.specification.mission, objective:'Updated approved field objective.' }, approval:{ status:'ready', approved_by:null, approved_at:null, unresolved_items_accepted:[] }, content:{ ...request.specification.content, open_questions:[] } } } })
+  })
+  await page.goto('/new-mission?mission=mission-demo&edit=1')
+  await page.getByPlaceholder('Describe what must be accomplished, who it is for, and what you already have…').fill('Update the mission objective to the approved field objective.')
+  await page.getByRole('button', { name:'Answer all and continue' }).click()
+  await expect(page.getByText('Mission facts updated.')).toBeVisible()
+  await expect(page.getByRole('dialog', { name:'Ready for launch.' })).toBeVisible()
+})
+
 test('an approved brief can start execution after a blocked dependency is resolved', async ({ page }) => {
   const fixture = await (await page.request.get('/api/mission-control/conversation?id=mission-demo')).json()
   await page.route('**/api/mission-control/conversation?id=mission-demo', async route => {
