@@ -30,17 +30,25 @@ export function MissionLedger({ view }:{ view:'archive'|'telemetry'|'dashboard' 
     return () => { active=false; window.clearInterval(timer); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('focus', guardedRefresh) }
   }, [refresh])
   const missions = useMemo(() => (data?.missions ?? []).filter(m => m.title.toLowerCase().includes(query.toLowerCase())),[data,query])
-  // Mission Control is the command deck, so keep the most recent successful
-  // delivery featured. An in-flight calibration must not make the high-value
-  // reflight controls disappear from the landing station.
-  const commandMission = useMemo(() => missions.find(m => m.job?.state === 'delivered') ?? missions.find(m => m.job && !['failed','blocked','cancelled'].includes(m.job.state)) ?? missions[0] ?? null,[missions])
-  async function regenerate(mission:Mission) {
-    if (launchingId || mission.job?.state !== 'delivered') return
+  // A mission may have a newer failed or active reflight while still owning a
+  // successful immutable delivery. Feature the newest successful flight across
+  // complete mission history so the command-deck actions never disappear.
+  const commandSelection = useMemo(() => {
+    const delivered = missions.flatMap(mission => (mission.jobs?.length ? mission.jobs : mission.job ? [mission.job] : [])
+      .filter(job => job.state === 'delivered')
+      .map(job => ({ mission, job })))
+      .sort((a,b) => new Date(b.job.created_at ?? b.mission.updated_at).getTime() - new Date(a.job.created_at ?? a.mission.updated_at).getTime())[0]
+    if (delivered) return delivered
+    const mission = missions.find(candidate => candidate.job && !['failed','blocked','cancelled'].includes(candidate.job.state)) ?? missions[0] ?? null
+    return mission ? { mission, job:mission.job } : null
+  },[missions])
+  async function regenerate(mission:Mission, job:Job) {
+    if (launchingId || job.state !== 'delivered') return
     setLaunchingId(mission.id); setActionError('')
     try {
       for (let count=5;count>=1;count-=1) { setCountdown(count); await new Promise(resolve=>window.setTimeout(resolve,850)) }
       setCountdown('LIFTOFF'); await new Promise(resolve=>window.setTimeout(resolve,1000))
-      const response = await fetch('/api/mission-control/revise',{ method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({ job_id:mission.job.id, instruction:'Regenerate this deliverable using the current approved evidence and publication standards. Preserve all verified facts and create a new immutable draft version.' }) })
+      const response = await fetch('/api/mission-control/revise',{ method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({ job_id:job.id, instruction:'Regenerate this deliverable using the current approved evidence and publication standards. Preserve all verified facts and create a new immutable draft version.' }) })
       const body = await response.json()
       if (!response.ok || !body.job_id) throw new Error(body.error ?? 'Regeneration could not be launched')
       await refresh()
@@ -50,10 +58,10 @@ export function MissionLedger({ view }:{ view:'archive'|'telemetry'|'dashboard' 
   if (error) return <div className="ops-empty"><ShieldAlert/><h2>Ledger connection interrupted</h2><p>{error}</p></div>
   if (!data) return <div className="ops-empty"><Activity className="ops-pulse"/><p>Reading durable mission ledger…</p></div>
   if (view === 'dashboard') return <div className="ops-stack">
-    {commandMission ? <section className="dashboard-command-deck">
+    {commandSelection ? <section className="dashboard-command-deck">
       <div className="dashboard-command-orbit"><Rocket/></div>
-      <div className="dashboard-command-copy"><span>{commandMission.job?.state === 'delivered' ? 'LATEST SUCCESSFUL MISSION' : 'CURRENT COMMAND'} · SPECIFICATION V{commandMission.current_spec_version}</span><h2>{commandMission.title}</h2><p>{commandMission.job?.state === 'delivered' ? 'Your latest controlled draft is ready for action. Open it, launch a cinematic reflight, or enter the mission environment for granular control.' : commandMission.job ? `${commandMission.job.message} · ${commandMission.job.progress_percent}%` : `Mission calibration is ${commandMission.readiness}% complete.`}</p><div className="dashboard-command-status"><i/><strong>{commandMission.job?.state?.replace(/-/g,' ') ?? `${commandMission.readiness}% ready`}</strong><small>{data.metrics.active} active · updated {new Date(commandMission.updated_at).toLocaleString()}</small></div></div>
-      <div className="dashboard-command-actions">{commandMission.job?.state === 'delivered' ? <button type="button" onClick={()=>void regenerate(commandMission)} disabled={launchingId!==null}><Rocket/><strong aria-live="assertive">{launchingId===commandMission.id && countdown!==null ? countdown : 'REGENERATE DELIVERABLE'}</strong><small>5 · 4 · 3 · 2 · 1 · Liftoff</small></button> : <Link className="dashboard-primary-action" href={`/new-mission?mission=${commandMission.id}`}><Rocket/><strong>RESUME MISSION</strong><small>Return to calibration and launch control</small></Link>}<div className="dashboard-command-quick">{commandMission.job?.artifacts?.[0]?.web_view_url ? <a href={commandMission.job.artifacts[0].web_view_url} target="_blank" rel="noreferrer"><ExternalLink/>Open deliverable</a> : null}<Link href={`/telemetry?mission=${commandMission.id}`}><Gauge/>Telemetry</Link><Link href={`/new-mission?mission=${commandMission.id}&edit=1`}><PencilLine/>Edit mission data</Link><Link href="/new-mission"><Plus/>New mission</Link></div></div>
+      <div className="dashboard-command-copy"><span>{commandSelection.job?.state === 'delivered' ? 'LATEST SUCCESSFUL MISSION' : 'CURRENT COMMAND'} · SPECIFICATION V{commandSelection.mission.current_spec_version}</span><h2>{commandSelection.mission.title}</h2><p>{commandSelection.job?.state === 'delivered' ? 'Your latest controlled draft is ready for action. Open it, launch a cinematic reflight, or enter the mission environment for granular control.' : commandSelection.job ? `${commandSelection.job.message} · ${commandSelection.job.progress_percent}%` : `Mission calibration is ${commandSelection.mission.readiness}% complete.`}</p><div className="dashboard-command-status"><i/><strong>{commandSelection.job?.state?.replace(/-/g,' ') ?? `${commandSelection.mission.readiness}% ready`}</strong><small>{data.metrics.active} active · updated {new Date(commandSelection.job?.created_at ?? commandSelection.mission.updated_at).toLocaleString()}</small></div></div>
+      <div className="dashboard-command-actions">{commandSelection.job?.state === 'delivered' ? <button type="button" onClick={()=>void regenerate(commandSelection.mission,commandSelection.job!)} disabled={launchingId!==null}><Rocket/><strong aria-live="assertive">{launchingId===commandSelection.mission.id && countdown!==null ? countdown : 'REGENERATE DELIVERABLE'}</strong><small>5 · 4 · 3 · 2 · 1 · Liftoff</small></button> : <Link className="dashboard-primary-action" href={`/new-mission?mission=${commandSelection.mission.id}`}><Rocket/><strong>RESUME MISSION</strong><small>Return to calibration and launch control</small></Link>}<div className="dashboard-command-quick">{commandSelection.job?.artifacts?.[0]?.web_view_url ? <a href={commandSelection.job.artifacts[0].web_view_url} target="_blank" rel="noreferrer"><ExternalLink/>Open deliverable</a> : null}<Link href={`/telemetry?mission=${commandSelection.mission.id}`}><Gauge/>Telemetry</Link><Link href={`/new-mission?mission=${commandSelection.mission.id}&edit=1`}><PencilLine/>Edit mission data</Link><Link href="/new-mission"><Plus/>New mission</Link></div></div>
       {actionError ? <p className="dashboard-command-error"><ShieldAlert/>{actionError}</p> : null}
     </section> : <section className="dashboard-command-deck empty"><div className="dashboard-command-orbit"><Rocket/></div><div className="dashboard-command-copy"><span>COMMAND DECK · STANDING BY</span><h2>Ready for a new mission.</h2><p>Begin with the outcome. APOLLO will calibrate the specialist deliverable and preserve its evidence state.</p></div><div className="dashboard-command-actions"><Link className="dashboard-primary-action" href="/new-mission"><Plus/><strong>INITIALIZE MISSION</strong><small>Open the mission engineering environment</small></Link></div></section>}
     <section className="telemetry-grid">{[['Total missions',data.metrics.total],['Active flights',data.metrics.active],['Delivered documents',data.metrics.delivered],['Mission failures',data.metrics.failed]].map(([label,value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}</section>

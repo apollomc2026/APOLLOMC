@@ -69,6 +69,17 @@ test('atmospheric sunburst and starfield respect theme and reduced motion', asyn
 })
 
 test('mission control presents a command deck with immediate reflight and environment actions', async ({ page }) => {
+  const fixture = await (await page.request.get('/api/mission-control/overview')).json()
+  const successfulFlight = fixture.missions[0].jobs[0]
+  await page.route('**/api/mission-control/overview', route => route.fulfill({
+    status:200,
+    contentType:'application/json',
+    json:{ ...fixture, missions:[{
+      ...fixture.missions[0],
+      job:{ id:'newer-active-reflight', state:'generating', progress_percent:45, message:'Engineering reflight', artifacts:[], created_at:'2026-09-07T13:00:00.000Z' },
+      jobs:[{ id:'newer-active-reflight', state:'generating', progress_percent:45, message:'Engineering reflight', artifacts:[], created_at:'2026-09-07T13:00:00.000Z' }, successfulFlight],
+    }, ...fixture.missions.slice(1)] },
+  }))
   await page.goto('/dashboard')
   const commandDeck = page.locator('.dashboard-command-deck')
   await expect(commandDeck.getByText('Field Operations Proposal')).toBeVisible()
