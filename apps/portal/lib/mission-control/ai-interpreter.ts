@@ -3,14 +3,14 @@ import { modelFor } from '@/lib/ai/models'
 import { explicitMissionArtifact, interpretMission, recommendMissionArtifact } from './interpreter'
 import { createMissionFact, specificationProvenance, type DeliverableSpecification, type MissionFact, type MissionTurnResult } from './contracts'
 import { executionGaps } from './work-order'
-import { getModule } from '@/lib/apollo/packages-loader'
+import { getCatalog, getModule } from '@/lib/apollo/packages-loader'
 
 interface ClaudeInterpretation {
   acknowledgement?: string
   objective?: string
   desired_action?: string
   primary_audience?: string
-  recommendation?: 'proposal' | 'sow' | 'contract-package' | 'daily-construction-report' | 'final-qc-report' | 'capability-statement' | 'cash-flow-budget-package' | 'federal-proposal'
+  recommendation?: string
   rationale?: string
   stated_facts?: Array<{ key: string; label: string; value: string }>
   inferred_facts?: Array<{ key: string; label: string; value: string; confidence: number }>
@@ -83,7 +83,8 @@ export function applyClaudeInterpretation(base: MissionTurnResult, patch: Claude
   const desiredAction = safeText(patch.desired_action, 1000)
   let question = safeText(patch.next_question, 500) ?? base.question
   let questionReason = safeText(patch.question_reason, 500) ?? base.question_reason
-  const recommendation = patch.recommendation ? recommendMissionArtifact(patch.recommendation) : null
+  const recommendationSlug = patch.recommendation ? explicitMissionArtifact(patch.recommendation) : null
+  const recommendation = recommendationSlug ? recommendMissionArtifact(recommendationSlug) : null
   const specification: DeliverableSpecification = {
     ...base.specification,
     mission: { ...base.specification.mission, objective: objective ?? base.specification.mission.objective, desired_decision_or_action: desiredAction ?? base.specification.mission.desired_decision_or_action },
@@ -150,10 +151,11 @@ export async function interpretMissionWithClaude(text: string, prior?: Deliverab
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const fieldGuide = getModule(base.specification.artifact.recommended_type)?.required_fields.map(field => `${field.key}: ${field.label}`).join(', ') ?? ''
+    const deliverableGuide = getCatalog().industries.filter(industry => industry.status === 'active').flatMap(industry => industry.deliverables.map(deliverable => `${deliverable.slug} (${deliverable.label})`)).join(', ')
     // Sonnet 5 can spend part of the output allowance on adaptive thinking.
     // Leave enough room for both that reasoning and the complete JSON contract;
     // a truncated object must never silently discard a multi-fact user answer.
-    const response = await client.messages.create({ model: modelFor('mission_interpretation'), max_tokens: 6000, system: SYSTEM, messages: [{ role: 'user', content: `Existing specification:\n${JSON.stringify(prior ?? null)}\n\nNew user turn:\n${text}\n\nFor the recommended specialist module, use these exact fact keys when directly stated: ${fieldGuide}` }] })
+    const response = await client.messages.create({ model: modelFor('mission_interpretation'), max_tokens: 6000, system: SYSTEM, messages: [{ role: 'user', content: `Existing specification:\n${JSON.stringify(prior ?? null)}\n\nNew user turn:\n${text}\n\nSupported deliverable slugs (return exactly one of these when recommending): ${deliverableGuide}\n\nFor the currently detected specialist module, use these exact fact keys when directly stated: ${fieldGuide}` }] })
     const raw = response.content.find(block => block.type === 'text')
     if (!raw || raw.type !== 'text') return safeFallback()
     const json = raw.text.match(/\{[\s\S]*\}/)?.[0]

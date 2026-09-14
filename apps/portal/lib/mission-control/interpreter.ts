@@ -1,5 +1,6 @@
 import { createMissionFact, specificationProvenance, type DeliverableSpecification, type MissionFact, type MissionTurnResult } from './contracts'
 import { executionGaps } from './work-order'
+import { findDeliverable, getCatalog, getModule } from '@/lib/apollo/packages-loader'
 
 const FIELD_SERVICE = /proposal|estimate|quote|scope|client|job|project|work discussed|service/i
 const AGREEMENT = /agreement|contract|nda|legal/i
@@ -9,12 +10,23 @@ const GOVERNMENT = /rfp|solicitation|government|federal|compliance/i
 const FINANCIAL = /cash flow|budget|financial|forecast|variance/i
 const EXPLICIT_PROPOSAL = /\b(?:proposal|estimate|quote)\b/i
 
-export type SupportedMissionArtifact = 'proposal' | 'sow' | 'contract-package' | 'daily-construction-report' | 'final-qc-report' | 'capability-statement' | 'cash-flow-budget-package' | 'federal-proposal'
+export type SupportedMissionArtifact = string
 
-const SUPPORTED_MISSION_ARTIFACTS = new Set<SupportedMissionArtifact>([
-  'proposal', 'sow', 'contract-package', 'daily-construction-report', 'final-qc-report',
-  'capability-statement', 'cash-flow-budget-package', 'federal-proposal',
-])
+function normalizedArtifactName(value:string) {
+  return value.toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim()
+}
+
+function namedCatalogArtifact(text:string):string|null {
+  const normalized = ` ${normalizedArtifactName(text)} `
+  const deliverables = getCatalog().industries.flatMap(industry => industry.status === 'active' ? industry.deliverables : [])
+    .sort((left, right) => normalizedArtifactName(right.label).length - normalizedArtifactName(left.label).length)
+  for (const deliverable of deliverables) {
+    const label = normalizedArtifactName(deliverable.label)
+    const slug = normalizedArtifactName(deliverable.slug)
+    if (normalized.includes(` ${label} `) || normalized === ` ${slug} ` || normalized.includes(` ${slug} `)) return deliverable.slug
+  }
+  return null
+}
 
 /**
  * Preserve a deliverable the user named directly. Broad domain vocabulary is
@@ -22,6 +34,8 @@ const SUPPORTED_MISSION_ARTIFACTS = new Set<SupportedMissionArtifact>([
  * claims" must never turn an explicitly requested proposal into a budget.
  */
 export function explicitMissionArtifact(text: string): SupportedMissionArtifact | null {
+  const named = namedCatalogArtifact(text)
+  if (named) return named
   if (/\b(?:rfp|solicitation|federal proposal|government proposal)\b/i.test(text)) return 'federal-proposal'
   if (/\b(?:cash[ -]?flow (?:forecast|budget)|budget(?: vs\.? actual)?|financial forecast|variance analysis)\b/i.test(text)) return 'cash-flow-budget-package'
   if (/\b(?:capability statement|qualifications statement)\b/i.test(text)) return 'capability-statement'
@@ -37,9 +51,7 @@ export function recommendMissionArtifact(text: string) {
   // AI tool output and internal callers use canonical slugs. Accept them
   // directly instead of forcing them back through natural-language matching,
   // where a slug such as final-qc-report can collapse to generic "report".
-  const explicit = SUPPORTED_MISSION_ARTIFACTS.has(text as SupportedMissionArtifact)
-    ? text as SupportedMissionArtifact
-    : explicitMissionArtifact(text)
+  const explicit = explicitMissionArtifact(text)
   if (explicit === 'cash-flow-budget-package') return { family: 'Financial package', type: 'cash-flow-budget-package', playbook: 'financial-package', rationale: 'The outcome depends on reconciled numerical evidence and decision-ready financial explanation.', sections: ['Executive summary', 'Assumptions', 'Cash-flow analysis', 'Variance analysis', 'Risks and sensitivities', 'Recommended actions'], checks: ['arithmetic-reconciliation', 'period-consistency', 'source-traceability'] }
   if (explicit === 'capability-statement') return { family: 'Executive communication', type: 'capability-statement', playbook: 'executive-capability', rationale: 'The audience needs a concise statement of credibility, differentiation, and next action.', sections: ['Positioning statement', 'Core capabilities', 'Proof and past performance', 'Differentiators', 'Contact and next action'], checks: ['claim-provenance', 'audience-fit', 'brevity'] }
   if (explicit === 'contract-package') return { family: 'Legal agreement', type: 'contract-package', playbook: 'balanced-agreement', rationale: 'The mission centers on mutual obligations and terms that should remain explicit and balanced.', sections: ['Purpose and parties', 'Scope and responsibilities', 'Commercial terms', 'Term and termination', 'Risk allocation', 'Signatures'], checks: ['party-and-authority', 'obligation-balance', 'termination-terms'] }
@@ -48,6 +60,28 @@ export function recommendMissionArtifact(text: string) {
   if (explicit === 'sow') return { family: 'Statement of work', type: 'sow', playbook: 'statement-of-work', rationale: 'A statement of work makes scope, responsibilities, schedule, acceptance, and change control explicit.', sections: ['Purpose', 'Scope', 'Deliverables', 'Responsibilities', 'Schedule', 'Acceptance criteria', 'Change control'], checks: ['scope-completeness', 'acceptance-criteria', 'responsibility-clarity'] }
   if (explicit === 'federal-proposal') return { family: 'Government response', type: 'federal-proposal', playbook: 'government-response', rationale: 'The mission appears governed by explicit requirements that need traceable compliance coverage.', sections: ['Executive response', 'Compliance matrix', 'Technical approach', 'Management approach', 'Past performance', 'Required representations'], checks: ['requirement-coverage', 'page-limits', 'unmet-requirements'] }
   if (explicit === 'proposal') return { family: 'Client decision package', type: 'proposal', playbook: 'field-service-proposal', rationale: 'A proposal with a clear scope and attached terms gives the recipient an easy decision while keeping execution precise.', sections: ['Executive overview', 'Understanding of need', 'Proposed scope', 'Approach and schedule', 'Investment and terms', 'Assumptions and exclusions', 'Acceptance'], checks: ['scope-completeness', 'commercial-terms', 'assumption-disclosure'] }
+  if (explicit) {
+    const deliverable = findDeliverable(explicit)
+    const documentModule = getModule(explicit)
+    if (deliverable && documentModule) return {
+      family:deliverable.industry_label,
+      type:deliverable.slug,
+      playbook:deliverable.industry_slug === 'finance' || deliverable.industry_slug === 'accounting-advisory'
+        ? 'financial-package'
+        : deliverable.industry_slug === 'field-service'
+          ? 'field-service-report'
+          : deliverable.industry_slug === 'government'
+            ? 'government-response'
+            : deliverable.industry_slug === 'legal'
+              ? 'balanced-agreement'
+              : deliverable.industry_slug === 'startup'
+                ? 'executive-capability'
+                : `catalog-${deliverable.slug}`,
+      rationale:`The operator explicitly requested the cataloged ${deliverable.label.toLowerCase()}, so its specialist fact schema and document structure are authoritative.`,
+      sections:documentModule.sections.map(section => section.label),
+      checks:['required-field-completeness', 'source-traceability', 'schema-validation', 'human-approval'],
+    }
+  }
   if (GOVERNMENT.test(text)) return { family: 'Government response', type: 'federal-proposal', playbook: 'government-response', rationale: 'The mission appears governed by explicit requirements that need traceable compliance coverage.', sections: ['Executive response', 'Compliance matrix', 'Technical approach', 'Management approach', 'Past performance', 'Required representations'], checks: ['requirement-coverage', 'page-limits', 'unmet-requirements'] }
   if (EXECUTIVE.test(text)) return { family: 'Executive communication', type: 'capability-statement', playbook: 'executive-capability', rationale: 'The audience needs a concise statement of credibility, differentiation, and next action.', sections: ['Positioning statement', 'Core capabilities', 'Proof and past performance', 'Differentiators', 'Contact and next action'], checks: ['claim-provenance', 'audience-fit', 'brevity'] }
   if (AGREEMENT.test(text)) return { family: 'Legal agreement', type: 'contract-package', playbook: 'balanced-agreement', rationale: 'The mission centers on mutual obligations and terms that should remain explicit and balanced.', sections: ['Purpose and parties', 'Scope and responsibilities', 'Commercial terms', 'Term and termination', 'Risk allocation', 'Signatures'], checks: ['party-and-authority', 'obligation-balance', 'termination-terms'] }
