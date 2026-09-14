@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import JSZip from 'jszip'
 
 test('evidence vault loads durable custody records', async ({ page }) => {
   await page.goto('/files')
@@ -351,6 +352,20 @@ test('New Mission opens advanced branded intake and hands off to Mission Control
   await expect(page.getByRole('button', { name:'Tell Houston what you need' })).toBeVisible()
   await expect(page.locator('.mc-panel-heading h2')).not.toHaveText('Mission strategy pending')
   await expect(page.locator('.mc-aura').filter({ hasText:'authority' }).getByText('75')).toBeVisible()
+})
+
+test('New Mission expands a ZIP evidence package into individually reviewable files', async ({ page }) => {
+  const zip=new JSZip()
+  zip.file('day1/site-notes.txt','Verified site access and inspection scope.')
+  zip.file('day1/results.csv','id,result\nL1,PASS')
+  const buffer=await zip.generateAsync({ type:'nodebuffer', compression:'DEFLATE' })
+  await page.goto('/new-mission')
+  const picker=page.getByLabel(/Drop evidence here or choose files/)
+  await expect(picker).toHaveAttribute('accept',/\.zip/)
+  await picker.setInputFiles({ name:'Flowbird.zip', mimeType:'application/zip', buffer })
+  await expect(page.getByText('Flowbird__day1__site-notes.txt')).toBeVisible()
+  await expect(page.getByText('Flowbird__day1__results.csv')).toBeVisible()
+  await expect(page.getByRole('button',{ name:/Initialize controlled mission/ })).toBeEnabled()
 })
 
 test('advanced intake hands evidence-derived readiness and specification version to Mission Control', async ({ page }) => {

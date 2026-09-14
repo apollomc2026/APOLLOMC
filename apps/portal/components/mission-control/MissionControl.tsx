@@ -18,6 +18,7 @@ import type {
   MissionTurnResult,
   VoiceTranscriptMetadata,
 } from "@/lib/mission-control/contracts";
+import { EVIDENCE_FILE_ACCEPT, expandEvidencePackages } from "@/lib/mission-control/zip-evidence";
 import { VoiceControl } from "./VoiceControl";
 
 const STORAGE_KEY = "apollo:mission-control:v1";
@@ -555,7 +556,9 @@ export function MissionControl() {
     let finalVersion = specificationVersion;
     let finalReadiness = readiness;
     try {
-      for (const file of [...files]) {
+      const expanded = await expandEvidencePackages([...files]);
+      rejected.push(...expanded.rejected);
+      for (const file of expanded.files) {
         try {
           const form = new FormData();
           form.set("conversation_id", conversationId);
@@ -1097,7 +1100,7 @@ export function MissionControl() {
                   type="file"
                   multiple
                   hidden
-                  accept=".pdf,.docx,.xlsx,.csv,.txt,.png,.jpg,.jpeg"
+                  accept={EVIDENCE_FILE_ACCEPT}
                   onChange={(event) => void attachEvidence(event.target.files)}
                 />
                 <button
