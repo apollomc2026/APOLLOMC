@@ -10,4 +10,10 @@ describe('PWA privacy boundary', () => {
     const precache = worker.match(/const PRECACHE_ASSETS = \[([\s\S]*?)\];/)?.[1] ?? ''
     expect(precache).not.toContain('/dashboard')
   })
+
+  it('tolerates browsers that suppress service-worker registration', () => {
+    const layout = readFileSync(new URL('../app/layout.tsx', import.meta.url), 'utf8')
+    expect(layout).toContain('if (reg && reg.scope)')
+    expect(layout).not.toContain("console.log('[Apollo] Service worker registered:', reg.scope);\n        })")
+  })
 })

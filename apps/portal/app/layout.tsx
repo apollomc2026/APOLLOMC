@@ -55,7 +55,9 @@ const swScript = `
     window.addEventListener('load', function() {
       navigator.serviceWorker.register('/sw.js', { scope: '/' })
         .then(function(reg) {
-          console.log('[Apollo] Service worker registered:', reg.scope);
+          if (reg && reg.scope) {
+            console.log('[Apollo] Service worker registered:', reg.scope);
+          }
         })
         .catch(function(err) {
           console.warn('[Apollo] Service worker registration failed:', err);
