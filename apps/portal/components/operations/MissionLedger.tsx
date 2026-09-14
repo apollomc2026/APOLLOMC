@@ -8,6 +8,16 @@ type Job = { id:string; state:string; progress_percent:number; message:string; c
 type Mission = { id:string; title:string; status:string; readiness:number; current_spec_version:number; updated_at:string; job:Job|null; jobs?:Job[] }
 type Overview = { missions:Mission[]; metrics:{ total:number; active:number; delivered:number; failed:number; average_progress:number } }
 
+function missionFlights(mission:Mission) {
+  return mission.jobs?.length ? mission.jobs : mission.job ? [mission.job] : []
+}
+
+function latestDeliveredFlight(mission:Mission) {
+  return missionFlights(mission)
+    .filter(job => job.state === 'delivered')
+    .sort((a,b) => new Date(b.created_at ?? mission.updated_at).getTime() - new Date(a.created_at ?? mission.updated_at).getTime())[0] ?? null
+}
+
 export function MissionLedger({ view }:{ view:'archive'|'telemetry'|'dashboard' }) {
   const [data,setData] = useState<Overview|null>(null); const [error,setError] = useState(''); const [query,setQuery] = useState('')
   const [launchingId,setLaunchingId] = useState<string|null>(null); const [countdown,setCountdown] = useState<number|'LIFTOFF'|null>(null); const [actionError,setActionError] = useState('')
@@ -34,7 +44,7 @@ export function MissionLedger({ view }:{ view:'archive'|'telemetry'|'dashboard' 
   // successful immutable delivery. Feature the newest successful flight across
   // complete mission history so the command-deck actions never disappear.
   const commandSelection = useMemo(() => {
-    const delivered = missions.flatMap(mission => (mission.jobs?.length ? mission.jobs : mission.job ? [mission.job] : [])
+    const delivered = missions.flatMap(mission => missionFlights(mission)
       .filter(job => job.state === 'delivered')
       .map(job => ({ mission, job })))
       .sort((a,b) => new Date(b.job.created_at ?? b.mission.updated_at).getTime() - new Date(a.job.created_at ?? a.mission.updated_at).getTime())[0]
@@ -65,7 +75,21 @@ export function MissionLedger({ view }:{ view:'archive'|'telemetry'|'dashboard' 
       {actionError ? <p className="dashboard-command-error"><ShieldAlert/>{actionError}</p> : null}
     </section> : <section className="dashboard-command-deck empty"><div className="dashboard-command-orbit"><Rocket/></div><div className="dashboard-command-copy"><span>COMMAND DECK · STANDING BY</span><h2>Ready for a new mission.</h2><p>Begin with the outcome. APOLLO will calibrate the specialist deliverable and preserve its evidence state.</p></div><div className="dashboard-command-actions"><Link className="dashboard-primary-action" href="/new-mission"><Plus/><strong>INITIALIZE MISSION</strong><small>Open the mission engineering environment</small></Link></div></section>}
     <section className="telemetry-grid">{[['Total missions',data.metrics.total],['Active flights',data.metrics.active],['Delivered documents',data.metrics.delivered],['Mission failures',data.metrics.failed]].map(([label,value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}</section>
-    <section className="ops-panel"><header><span>COMMAND PRIORITIES</span><Link href="/new-mission"><Plus/>New mission</Link></header>{missions.length ? missions.slice(0,5).map(m => <article className="archive-row" key={m.id}><div className="archive-icon">{m.job?.state==='delivered'?<CheckCircle2/>:<Gauge/>}</div><div><h2>{m.title}</h2><p>{m.job?.state?.replace(/-/g,' ') ?? `${m.readiness}% calibrated`} · updated {new Date(m.updated_at).toLocaleDateString()}</p></div><span className={`vault-status ${m.job?.state==='delivered'?'verified':''}`}>{m.job?.state ?? `${m.readiness}% ready`}</span><div className="archive-actions"><Link href={m.job?.state==='delivered'?`/telemetry?mission=${m.id}`:`/new-mission?mission=${m.id}`}>{m.job?.state==='delivered'?<><RotateCcw/>View flight controls</>:<><FileText/>Resume calibration</>}</Link></div></article>) : <div className="ops-empty"><Gauge/><h2>No mission activity yet</h2><p>Initialize a mission when you are ready to build.</p><Link href="/new-mission">Open New Mission</Link></div>}</section>
+    <section className="ops-panel dashboard-priorities"><header><span>COMMAND PRIORITIES</span><Link href="/new-mission"><Plus/>New mission</Link></header>{missions.length ? missions.slice(0,5).map(m => {
+      const deliveredFlight = latestDeliveredFlight(m)
+      const currentState = m.job?.state ?? `${m.readiness}% ready`
+      return <article className="dashboard-mission-row" key={m.id}>
+        <div className="archive-icon">{deliveredFlight?<CheckCircle2/>:<Gauge/>}</div>
+        <div className="dashboard-mission-copy"><span>{deliveredFlight?'FLIGHT PROVEN':'MISSION IN PROGRESS'}</span><h2>{m.title}</h2><p>{currentState.replace(/-/g,' ')} · specification v{m.current_spec_version} · updated {new Date(m.updated_at).toLocaleDateString()}</p></div>
+        <span className={`vault-status ${deliveredFlight?'verified':''}`}>{deliveredFlight?'delivered':currentState}</span>
+        <div className="dashboard-mission-actions">
+          {deliveredFlight ? <button type="button" className="dashboard-row-reflight" onClick={()=>void regenerate(m,deliveredFlight)} disabled={launchingId!==null}><Rocket/><span>{launchingId===m.id && countdown!==null ? countdown : 'REGENERATE'}</span></button> : <Link className="dashboard-row-primary" href={`/new-mission?mission=${m.id}`}><FileText/>Resume mission</Link>}
+          {deliveredFlight?.artifacts?.[0]?.web_view_url ? <a href={deliveredFlight.artifacts[0].web_view_url} target="_blank" rel="noreferrer"><ExternalLink/>Open</a> : null}
+          <Link href={`/telemetry?mission=${m.id}`}><Gauge/>Telemetry</Link>
+          <Link href={`/new-mission?mission=${m.id}&edit=1`}><PencilLine/>Edit</Link>
+        </div>
+      </article>
+    }) : <div className="ops-empty"><Gauge/><h2>No mission activity yet</h2><p>Initialize a mission when you are ready to build.</p><Link href="/new-mission">Open New Mission</Link></div>}</section>
     <section className="ops-panel"><header><span>QUICK ACTIONS</span><b>ENTER MISSION ENVIRONMENTS</b></header><div className="dashboard-surface-links"><Link href="/new-mission"><Plus/><strong>New Mission</strong><span>Engineer, calibrate, approve, and launch a new deliverable.</span></Link><Link href="/telemetry"><Gauge/><strong>Telemetry</strong><span>Monitor flights, open deliverables, and command directed reflight versions.</span></Link><Link href="/archive"><Archive/><strong>Archive</strong><span>Find preserved mission records and immutable deliverables.</span></Link><Link href="/settings/brand"><FileText/><strong>Brand Config</strong><span>Manage the identity and publication assets attached to missions.</span></Link></div></section>
   </div>
   if (view === 'telemetry') return <div className="ops-stack">

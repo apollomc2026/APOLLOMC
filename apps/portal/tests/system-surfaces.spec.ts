@@ -89,6 +89,11 @@ test('mission control presents a command deck with immediate reflight and enviro
   await expect(commandDeck.getByRole('link', { name:'Telemetry' })).toHaveAttribute('href', '/telemetry?mission=mission-demo')
   await expect(commandDeck.getByRole('link', { name:'Edit mission data' })).toHaveAttribute('href', '/new-mission?mission=mission-demo&edit=1')
   await expect(commandDeck.getByRole('link', { name:'New mission' })).toHaveAttribute('href', '/new-mission')
+  const priority = page.locator('.dashboard-mission-row').filter({ hasText:'Field Operations Proposal' })
+  await expect(priority.getByRole('button', { name:'REGENERATE' })).toBeVisible()
+  await expect(priority.getByRole('link', { name:'Open' })).toHaveAttribute('href', '#reflight')
+  await expect(priority.getByRole('link', { name:'Telemetry' })).toHaveAttribute('href', '/telemetry?mission=mission-demo')
+  await expect(priority.getByRole('link', { name:'Edit' })).toHaveAttribute('href', '/new-mission?mission=mission-demo&edit=1')
 })
 
 test('archive, telemetry, and settings are operational surfaces', async ({ page }) => {
