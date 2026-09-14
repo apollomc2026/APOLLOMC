@@ -16,6 +16,7 @@ import type {
   ConversationTurn,
   DeliverableSpecification,
   MissionTurnResult,
+  VoiceTranscriptMetadata,
 } from "@/lib/mission-control/contracts";
 import { VoiceControl } from "./VoiceControl";
 
@@ -33,6 +34,7 @@ export function MissionControl() {
   const [specification, setSpecification] =
     useState<DeliverableSpecification | null>(null);
   const [draft, setDraft] = useState("");
+  const [voiceMetadata, setVoiceMetadata] = useState<VoiceTranscriptMetadata | null>(null);
   const [readiness, setReadiness] = useState(0);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [specificationVersion, setSpecificationVersion] = useState(0);
@@ -303,6 +305,11 @@ export function MissionControl() {
   async function submit(override?: string) {
     const message = (typeof override === "string" ? override : draft).trim();
     if (!message || working) return;
+    const submittedVoiceMetadata = typeof override === "string" ? null : voiceMetadata;
+    if (submittedVoiceMetadata?.criticalReviewRequired && !submittedVoiceMetadata.criticalReviewConfirmed) {
+      setError("Review and confirm the voice transcript before sending critical names, dates, amounts, addresses, or obligations.");
+      return;
+    }
     setWorking(true);
     setError(null);
     setDraft("");
@@ -323,6 +330,7 @@ export function MissionControl() {
           message,
           specification,
           conversation_id: conversationId,
+          voice_transcript: submittedVoiceMetadata,
         }),
       });
       if (!response.ok)
@@ -346,6 +354,7 @@ export function MissionControl() {
         },
       ]);
       setSpecification(result.specification);
+      setVoiceMetadata(null);
       if (result.readiness >= 75 && result.specification.content.open_questions.length === 0)
         setLaunchPromptDismissed(false);
       setOperatorInvolvement(
@@ -381,12 +390,19 @@ export function MissionControl() {
     }
   }
 
-  function acceptVoiceTranscript(text: string) {
+  function acceptVoiceTranscript(text: string, metadata: VoiceTranscriptMetadata) {
     setDraft((current) => [current.trim(), text].filter(Boolean).join(" "));
+    setVoiceMetadata((current) => current ? {
+      inputChannel: "voice",
+      confidence: current.confidence === null ? metadata.confidence : metadata.confidence === null ? current.confidence : Math.min(current.confidence, metadata.confidence),
+      criticalReviewRequired: current.criticalReviewRequired || metadata.criticalReviewRequired,
+      criticalReviewConfirmed: !metadata.criticalReviewRequired && current.criticalReviewConfirmed && metadata.criticalReviewConfirmed,
+    } : metadata);
   }
 
   function resetMission() {
     setTurns([opening]);
+    setVoiceMetadata(null);
     setSpecification(null);
     setReadiness(0);
     setConversationId(null);
@@ -1084,6 +1100,7 @@ export function MissionControl() {
                 <VoiceControl
                   disabled={working}
                   onTranscript={acceptVoiceTranscript}
+                  onReviewConfirmed={() => setVoiceMetadata((current) => current ? { ...current, criticalReviewConfirmed:true } : current)}
                 />
               </div>
               <button

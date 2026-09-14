@@ -1,5 +1,5 @@
 begin;
-select plan(33);
+select plan(39);
 
 select ok(relrowsecurity, 'conversations has RLS enabled') from pg_class where oid = 'public.apollo_conversations'::regclass;
 select ok(relrowsecurity, 'turns has RLS enabled') from pg_class where oid = 'public.apollo_conversation_turns'::regclass;
@@ -18,6 +18,12 @@ select ok(has_table_privilege('authenticated', 'public.apollo_specification_vers
 
 select ok(not has_function_privilege('anon', 'public.apollo_commit_mission_turn(uuid,text,text,text,jsonb,text,text,text,smallint,text,text)', 'EXECUTE'), 'anonymous role cannot commit mission turns');
 select ok(has_function_privilege('authenticated', 'public.apollo_commit_mission_turn(uuid,text,text,text,jsonb,text,text,text,smallint,text,text)', 'EXECUTE'), 'authenticated role can atomically commit mission turns');
+select ok(not has_function_privilege('anon', 'public.apollo_commit_mission_turn_v2(uuid,text,text,text,jsonb,text,text,text,smallint,text,text,text,real,boolean,boolean)', 'EXECUTE'), 'anonymous role cannot commit voice-aware mission turns');
+select ok(has_function_privilege('authenticated', 'public.apollo_commit_mission_turn_v2(uuid,text,text,text,jsonb,text,text,text,smallint,text,text,text,real,boolean,boolean)', 'EXECUTE'), 'authenticated role can commit voice-aware mission turns');
+select ok(not prosecdef, 'voice-aware turn commit runs with caller privileges') from pg_proc where oid = 'public.apollo_commit_mission_turn_v2(uuid,text,text,text,jsonb,text,text,text,smallint,text,text,text,real,boolean,boolean)'::regprocedure;
+select is(proconfig, array['search_path='], 'voice-aware turn commit has an empty search path') from pg_proc where oid = 'public.apollo_commit_mission_turn_v2(uuid,text,text,text,jsonb,text,text,text,smallint,text,text,text,real,boolean,boolean)'::regprocedure;
+select like(pg_get_functiondef('public.apollo_commit_mission_turn_v2(uuid,text,text,text,jsonb,text,text,text,smallint,text,text,text,real,boolean,boolean)'::regprocedure), '%critical voice transcript values require confirmation%', 'database rejects unconfirmed critical voice values');
+select like(pg_get_constraintdef(oid), '%NOT critical_review_required%critical_review_confirmed%', 'turn rows enforce critical review confirmation') from pg_constraint where conname = 'apollo_voice_review_confirmation_required';
 select ok(not has_function_privilege('anon', 'public.apollo_approve_specification(uuid,integer)', 'EXECUTE'), 'anonymous role cannot approve specifications');
 select ok(has_function_privilege('authenticated', 'public.apollo_approve_specification(uuid,integer,jsonb)', 'EXECUTE'), 'authenticated role can approve with explicit unresolved-item acceptance');
 select ok(not has_function_privilege('authenticated', 'public.apollo_approve_specification(uuid,integer)', 'EXECUTE'), 'legacy approval signature cannot bypass unresolved-item acceptance');

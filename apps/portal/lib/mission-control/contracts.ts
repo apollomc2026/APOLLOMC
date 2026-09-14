@@ -111,4 +111,20 @@ export interface DeliverableSpecification {
   provenance: SpecificationProvenance
 }
 export interface MissionTurnResult { conversation_id?: string; specification_version?: number; acknowledgement: string; question: string | null; question_reason: string | null; readiness: number; readiness_state: ReadinessState; changed_facts: MissionFact[]; specification: DeliverableSpecification }
-export interface ConversationTurn { id: string; role: 'user' | 'apollo'; content: string; reason?: string | null; createdAt: string }
+export interface VoiceTranscriptMetadata {
+  inputChannel: 'voice'
+  confidence: number | null
+  criticalReviewRequired: boolean
+  criticalReviewConfirmed: boolean
+}
+export interface ConversationTurn {
+  id: string
+  role: 'user' | 'apollo'
+  content: string
+  reason?: string | null
+  createdAt: string
+  inputChannel?: 'text' | 'voice'
+  transcriptionConfidence?: number | null
+  criticalReviewRequired?: boolean
+  criticalReviewConfirmed?: boolean
+}

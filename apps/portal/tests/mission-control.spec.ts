@@ -28,6 +28,10 @@ test.describe('APOLLO 3 mission control', () => {
   })
 
   test('voice intake streams into the editable mission draft and flags critical values', async ({ page }) => {
+    let submittedBody: Record<string, unknown> | null = null
+    page.on('request', request => {
+      if (request.url().includes('/api/mission-control/interpret') && request.method() === 'POST') submittedBody = request.postDataJSON() as Record<string, unknown>
+    })
     await page.addInitScript(() => {
       class FakeSpeechRecognition {
         continuous = false
@@ -55,6 +59,13 @@ test.describe('APOLLO 3 mission control', () => {
     })
     await expect(page.getByPlaceholder('Describe what must be accomplished, who it is for, and what you already have…')).toHaveValue('Prepare the proposal for $18,500 by 10/15/2026')
     await expect(page.getByText(/Review names, dates, amounts, addresses, and obligations before sending/)).toContainText('71% confidence')
+    await page.getByRole('button', { name: 'Answer all and continue' }).click()
+    await expect(page.getByText(/Review and confirm the voice transcript/)).toBeVisible()
+    expect(submittedBody).toBeNull()
+    await page.getByRole('button', { name: 'I reviewed the transcript' }).click()
+    await page.getByRole('button', { name: 'Answer all and continue' }).click()
+    await expect.poll(() => submittedBody).not.toBeNull()
+    expect((submittedBody as Record<string, unknown> | null)?.voice_transcript).toEqual({ inputChannel:'voice', confidence:0.71, criticalReviewRequired:true, criticalReviewConfirmed:true })
   })
 
   test('requires explicit acceptance before approving a brief with open decisions', async ({ page }) => {

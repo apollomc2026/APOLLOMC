@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Mic, MicOff, ShieldAlert } from 'lucide-react'
+import type { VoiceTranscriptMetadata } from '@/lib/mission-control/contracts'
 
 type SpeechResult = {
   isFinal: boolean
@@ -36,12 +37,13 @@ declare global {
 
 type VoiceControlProps = {
   disabled?: boolean
-  onTranscript: (text: string) => void
+  onTranscript: (text: string, metadata: VoiceTranscriptMetadata) => void
+  onReviewConfirmed: () => void
 }
 
 const criticalValuePattern = /(?:\$\s?\d|\b\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?\b|\b\d{1,2}:\d{2}\b|@|\b(?:street|st|avenue|ave|road|rd|boulevard|blvd|drive|dr)\b)/i
 
-export function VoiceControl({ disabled, onTranscript }: VoiceControlProps) {
+export function VoiceControl({ disabled, onTranscript, onReviewConfirmed }: VoiceControlProps) {
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const [listening, setListening] = useState(false)
   const [interim, setInterim] = useState('')
@@ -84,9 +86,10 @@ export function VoiceControl({ disabled, onTranscript }: VoiceControlProps) {
       setInterim(provisional.trim())
       if (committed.trim()) {
         const text = committed.trim()
-        onTranscript(text)
+        const criticalReviewRequired = criticalValuePattern.test(text) || (finalConfidence !== null && finalConfidence < 0.78)
+        onTranscript(text, { inputChannel:'voice', confidence:finalConfidence, criticalReviewRequired, criticalReviewConfirmed:!criticalReviewRequired })
         setConfidence(finalConfidence)
-        setRequiresReview(criticalValuePattern.test(text) || (finalConfidence !== null && finalConfidence < 0.78))
+        setRequiresReview(current => current || criticalReviewRequired)
       }
     }
     recognition.onerror = () => {
@@ -115,7 +118,7 @@ export function VoiceControl({ disabled, onTranscript }: VoiceControlProps) {
         <span>{listening ? 'Stop listening' : 'Speak'}</span>
       </button>
       {interim ? <span className="mc-voice-interim" aria-live="polite">Hearing: {interim}</span> : null}
-      {requiresReview ? <span className="mc-voice-review"><ShieldAlert size={13} />Review names, dates, amounts, addresses, and obligations before sending{confidence !== null ? ` · ${Math.round(confidence * 100)}% confidence` : ''}</span> : null}
+      {requiresReview ? <span className="mc-voice-review"><ShieldAlert size={13} />Review names, dates, amounts, addresses, and obligations before sending{confidence !== null ? ` · ${Math.round(confidence * 100)}% confidence` : ''}<button type="button" onClick={() => { setRequiresReview(false); onReviewConfirmed() }}>I reviewed the transcript</button></span> : null}
       {unavailable ? <span className="mc-voice-review">Voice intake is unavailable in this browser. You can continue by typing.</span> : null}
     </div>
   )
