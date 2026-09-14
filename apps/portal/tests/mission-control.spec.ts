@@ -66,6 +66,7 @@ test.describe('APOLLO 3 mission control', () => {
     await page.getByRole('button', { name: 'Answer all and continue' }).click()
     await expect.poll(() => submittedBody).not.toBeNull()
     expect((submittedBody as Record<string, unknown> | null)?.voice_transcript).toEqual({ inputChannel:'voice', confidence:0.71, criticalReviewRequired:true, criticalReviewConfirmed:true })
+    await expect(page.getByText('Voice transcript · 71% confidence · reviewed')).toBeVisible()
   })
 
   test('requires explicit acceptance before approving a brief with open decisions', async ({ page }) => {

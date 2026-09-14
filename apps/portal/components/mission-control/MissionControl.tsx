@@ -320,6 +320,10 @@ export function MissionControl() {
         role: "user",
         content: message,
         createdAt: new Date().toISOString(),
+        inputChannel: submittedVoiceMetadata?.inputChannel ?? "text",
+        transcriptionConfidence: submittedVoiceMetadata?.confidence ?? null,
+        criticalReviewRequired: submittedVoiceMetadata?.criticalReviewRequired ?? false,
+        criticalReviewConfirmed: submittedVoiceMetadata?.criticalReviewConfirmed ?? false,
       },
     ]);
     try {
@@ -1013,6 +1017,14 @@ export function MissionControl() {
                     <small>
                       <ShieldCheck size={13} />
                       {turn.reason}
+                    </small>
+                  ) : null}
+                  {turn.inputChannel === "voice" ? (
+                    <small className="mc-voice-provenance">
+                      <ShieldCheck size={13} />
+                      Voice transcript
+                      {turn.transcriptionConfidence !== null && turn.transcriptionConfidence !== undefined ? ` · ${Math.round(turn.transcriptionConfidence * 100)}% confidence` : ""}
+                      {turn.criticalReviewRequired ? ` · ${turn.criticalReviewConfirmed ? "reviewed" : "review required"}` : ""}
                     </small>
                   ) : null}
                 </article>

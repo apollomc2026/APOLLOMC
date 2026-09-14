@@ -165,6 +165,20 @@ test('durable mission URLs restore the server record without browser cache', asy
   await expect(page.getByRole('button', { name:'REGENERATE DELIVERABLE' })).toBeVisible()
 })
 
+test('restored voice turns retain visible confidence and review provenance', async ({ page }) => {
+  const fixture = await (await page.request.get('/api/mission-control/conversation?id=mission-demo')).json()
+  await page.route('**/api/mission-control/conversation?id=mission-demo', async route => {
+    await route.fulfill({ status:200, contentType:'application/json', json:{
+      ...fixture,
+      job:null,
+      jobs:[],
+      turns:[...fixture.turns, { id:'voice-turn', role:'user', content:'Mobilize at 10:30 on September 18.', createdAt:'2026-09-14T18:00:00.000Z', inputChannel:'voice', transcriptionConfidence:.86, criticalReviewRequired:true, criticalReviewConfirmed:true }],
+    } })
+  })
+  await page.goto('/new-mission?mission=mission-demo&edit=1')
+  await expect(page.getByText('Voice transcript · 86% confidence · reviewed')).toBeVisible()
+})
+
 test('open-decision workbench accepts text in each field', async ({ page }) => {
   const fixture = await (await page.request.get('/api/mission-control/conversation?id=mission-demo')).json()
   const questions = ['Who leads the work?', 'What risks should be highlighted?']
@@ -312,7 +326,7 @@ test('taxonomy-first mission URLs converge on conversational intake', async ({ p
 
 test('New Mission opens advanced branded intake and hands off to Mission Control', async ({ page }) => {
   await page.goto('/dashboard')
-  await page.getByRole('link', { name:/New Mission/ }).click()
+  await page.getByRole('link', { name:/New Mission Engineer/ }).click()
   await expect(page.getByRole('heading', { name:'Engineer the launch brief.' })).toBeVisible()
   await expect(page.getByLabel('Mission brand')).toBeVisible()
   await expect(page.getByLabel('Controlled output')).toHaveValue('PDF')
