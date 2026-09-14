@@ -4,9 +4,9 @@ import type { DocumentWorkOrder } from '../lib/executor/contracts'
 
 const base = {
   protocol_version: '1.0', work_order_id: '00000000-0000-4000-8000-000000000401', idempotency_key: 'financial:test:document:v1',
-  project_id: 'atlas', conversation_id: '00000000-0000-4000-8000-000000000402', task_id: '00000000-0000-4000-8000-000000000403',
+  project_id: 'apollo-pilot', conversation_id: '00000000-0000-4000-8000-000000000402', task_id: '00000000-0000-4000-8000-000000000403',
   requested_by: 'jon', capability: 'financial-package', objective: 'verify', audience: 'leadership', formats: ['pdf'], sources: [],
-  brand_id: 'atlas', style_id: 'ledger', sensitivity: 'confidential', priority: 'critical', drive_destination: { folder_id: 'draft', lifecycle: 'draft' },
+  brand_id: 'on-spot-solutions', style_id: 'ledger', sensitivity: 'confidential', priority: 'critical', drive_destination: { folder_id: 'draft', lifecycle: 'draft' },
   quality_gates: { schema_validation: true, source_grounding: true, independent_review: true, deterministic_financial_verification: true, human_approval_before_publish: true },
   created_at: '2026-07-20T12:00:00.000Z',
 } as const

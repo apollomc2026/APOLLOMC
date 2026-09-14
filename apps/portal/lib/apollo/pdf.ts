@@ -459,8 +459,6 @@ function brandWordmark(brandSlug: string): string {
   switch (brandSlug) {
     case 'apollo':
       return 'APOLLO'
-    case 'atlas':
-      return 'ATLAS'
     case 'on-spot-solutions':
       return 'ON SPOT SOLUTIONS'
     default:

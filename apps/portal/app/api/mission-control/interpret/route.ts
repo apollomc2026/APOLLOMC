@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   const voice = body.voice_transcript
   if (voice && (voice.inputChannel !== 'voice' || (voice.confidence !== null && (!Number.isFinite(voice.confidence) || voice.confidence < 0 || voice.confidence > 1)) || typeof voice.criticalReviewRequired !== 'boolean' || typeof voice.criticalReviewConfirmed !== 'boolean')) return NextResponse.json({ error:'Voice transcript metadata is invalid' }, { status:400 })
   if (voice?.criticalReviewRequired && !voice.criticalReviewConfirmed) return NextResponse.json({ error:'Critical voice transcript values must be reviewed before submission' }, { status:409 })
-  if (body.brand_profile_id && !/^(apollo|atlas|on-spot-solutions|habi|metis|themis|kit:[0-9a-f-]{36})$/.test(body.brand_profile_id)) return NextResponse.json({ error:'Brand profile is invalid' }, { status:400 })
+  if (body.brand_profile_id && !/^(apollo|on-spot-solutions|kit:[0-9a-f-]{36})$/.test(body.brand_profile_id)) return NextResponse.json({ error:'Brand profile is invalid' }, { status:400 })
   const auraKeys = ['authority','warmth','technicality','restraint','urgency','prestige','visual_density','operator_involvement'] as const
   const aura = body.aura ? Object.fromEntries(auraKeys.flatMap(key => Number.isFinite(body.aura?.[key]) ? [[key,Math.max(0,Math.min(100,Number(body.aura![key])))]] : [])) : undefined
   if (process.env.PLAYWRIGHT_TESTING === 'true') {

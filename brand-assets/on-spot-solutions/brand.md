@@ -243,7 +243,7 @@ Maintain clear space of **1× the logo's cap-height** on all four sides. No text
 
 - A **Massachusetts-based field service firm** with licensed, certified technicians performing work on site. Credentials: OSHA 30, MA low-voltage license, Mass Gaming Commission registration.
 - A **three-tier service operation** — inspections (door-opener, fees credited toward work), field service and maintenance (recurring anchor), installations and upgrades (growth lever).
-- A **technology-forward field service company** with an internal Orbit AI division that builds operational tooling (Atlas diagnostic platform, Spot Node parking access and billing platform, Field Ops PWA).
+- A **technology-forward field service company** that uses dedicated operational tooling to strengthen field execution, reporting, and customer service.
 
 ### On Spot Solutions **IS NOT**
 
@@ -260,25 +260,15 @@ Maintain clear space of **1× the logo's cap-height** on all four sides. No text
 |---|---|
 | Primary website | https://onspot-solutions.com |
 | Support email | support@onspot-solutions.com |
-| Atlas diagnostic platform | https://onspot-solutions.com/atlas.html |
 | Customer portal | https://onspot-solutions.com/portal/ |
 | Primary logo (live site) | https://onspot-solutions.com/assets/OnSpot_FULL_nearTouch.png |
 | Animated logo (live site) | https://onspot-solutions.com/assets/OSAL.gif |
 
 ---
 
-## 9. Brand family
+## 9. Brand boundary
 
-On Spot Solutions is the parent brand. The following sub-brands operate beneath it, each with its own `brand.md` living inside its own sibling folder in the brand-assets tree (e.g., `brand-assets/<slug>/brand.md`):
-
-| Sub-brand | Slug | Role |
-|---|---|---|
-| Orbit AI | `orbit-ai` | Technology division — umbrella for all software and AI products. Not customer-facing in field contexts. |
-| Atlas | `atlas` | Field-engineer diagnostic PWA. Product of Orbit AI. Positioned as a *diagnostic engine*, not an AI chatbot. |
-| Spot Node | `spot-node` | Next-generation parking access and billing platform (Raspberry Pi 5 edge hardware + Supabase backend). Patent-pending Trust Ladder architecture. |
-| Apollo | `apollo` | Internal document and proposal generation workflow. Not a chatbot, not an AI writing assistant, not consumer-facing — a production pipeline that produces branded On Spot deliverables. |
-
-Sub-brands **inherit** On Spot's typography, color rules, and white-background law unless their individual `brand.md` explicitly overrides a specific token.
+This profile governs On Spot Solutions deliverables only. It does not import, describe, or authorize any separate product identity. Product-specific brands must be supplied through their own isolated systems and must never be inferred from this guide.
 
 ---
 

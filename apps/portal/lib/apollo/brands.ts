@@ -37,20 +37,18 @@ const BRAND_ROOT = path.join(process.cwd(), '..', '..', 'brand-assets')
 
 const BRAND_LABELS: Record<string, string> = {
   apollo: 'Apollo',
-  atlas: 'Atlas',
   'on-spot-solutions': 'On Spot Solutions',
-  habi: 'Habi',
-  metis: 'Metis',
-  themis: 'Themis',
 }
+
+// Only identities owned by this product or explicitly authorized as APOLLO's
+// internal pilot client may ship in the public built-in catalog. Other On Spot
+// products remain separate systems and can only enter a customer's mission as
+// a private, user-uploaded brand kit.
+const BUILTIN_BRAND_SLUGS = new Set(Object.keys(BRAND_LABELS))
 
 const PRIMARY_LOGO_CANDIDATES: Record<string, string[]> = {
   apollo: ['apollo_logo_master.png', 'apollo_logo_transparent.png', 'apollomc-logo.png'],
-  atlas: ['atlas-logo-hires.png', 'atlas-statue.png'],
   'on-spot-solutions': ['OnSpot_FULL_nearTouch.png'],
-  habi: [],
-  metis: [],
-  themis: [],
 }
 
 const MIME_BY_EXT: Record<string, string> = {
@@ -85,6 +83,7 @@ export async function listBrands(): Promise<BrandInfo[]> {
     return results
   }
   for (const entry of entries) {
+    if (!BUILTIN_BRAND_SLUGS.has(entry)) continue
     const entryPath = path.join(BRAND_ROOT, entry)
     const stat = await fs.stat(entryPath).catch(() => null)
     if (!stat?.isDirectory()) continue
@@ -108,7 +107,7 @@ export async function listBrands(): Promise<BrandInfo[]> {
 
 export function isAllowedBrandSlug(slug: string): boolean {
   if (slug === 'other') return true
-  return /^[a-z0-9][a-z0-9-]*$/.test(slug)
+  return BUILTIN_BRAND_SLUGS.has(slug)
 }
 
 export async function loadBrand(slug: string): Promise<LoadedBrand | null> {
