@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import * as XLSX from 'xlsx'
 import sharp from 'sharp'
 import { batchEvidenceSources, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, normalizeEvidenceMime, prepareEvidenceRetrieval, sanitizeEvidenceBytes } from '../lib/mission-control/evidence'
-import { mergeMissionFacts } from '../lib/mission-control/contracts'
+import { createMissionFact, mergeMissionFacts } from '../lib/mission-control/contracts'
 import { buildContentBlocks, inlineEvidenceByteLimit, OrchestrateError } from '../lib/apollo/orchestrate'
 
 describe('mission evidence custody', () => {
@@ -99,6 +99,27 @@ describe('mission evidence custody', () => {
       expect.objectContaining({ value:'$18,500', source_reference:'proposal' }),
       expect.objectContaining({ value:'$19,250', source_reference:'work-order' }),
     ]))
+  })
+
+  it('lets an explicit operator answer adjudicate a surfaced evidence conflict', () => {
+    const conflicted = mergeMissionFacts([], [
+      createMissionFact({ key:'contract_value', label:'Contract value', value:'$18,500', source:'evidence', source_reference:'proposal', confidence:1 }),
+      createMissionFact({ key:'contract_value', label:'Contract value', value:'$19,250', source:'evidence', source_reference:'work-order', confidence:1 }),
+    ], new Date('2026-09-14T12:00:00.000Z'))
+    expect(conflicted[0].verification_state).toBe('conflict')
+
+    const adjudicated = mergeMissionFacts(conflicted, [createMissionFact({
+      key:'contract_value', label:'Contract value', value:'$19,250', source:'user', confidence:1,
+    })], new Date('2026-09-14T12:05:00.000Z'))
+    expect(adjudicated[0]).toMatchObject({ value:'$19,250', source:'user', verification_state:'stated' })
+    expect(adjudicated[0].conflicts).toBeUndefined()
+  })
+
+  it('reopens a conflict when later evidence contradicts an operator-adjudicated value', () => {
+    const chosen = createMissionFact({ key:'contract_value', label:'Contract value', value:'$19,250', source:'user', confidence:1 })
+    const result = mergeMissionFacts([chosen], [createMissionFact({ key:'contract_value', label:'Contract value', value:'$21,000', source:'evidence', source_reference:'amendment', confidence:1 })])
+    expect(result[0].verification_state).toBe('conflict')
+    expect(result[0].conflicts).toHaveLength(2)
   })
 
   it('rejects hallucinated fields and invalid source citations from extraction output', () => {

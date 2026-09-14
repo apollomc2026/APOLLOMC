@@ -30,6 +30,13 @@ export function mergeMissionFacts(priorFacts: MissionFact[], incomingFacts: Miss
   for (const incomingValue of incomingFacts) {
     const incoming = createMissionFact(incomingValue, now)
     const prior = merged.get(incoming.key)
+    // A direct operator statement is the adjudication path for conflicting
+    // evidence. Without this rule, answering the surfaced decision simply
+    // appended another candidate and left the mission permanently blocked.
+    if (prior?.verification_state === 'conflict' && incoming.source === 'user') {
+      merged.set(incoming.key, { ...incoming, verification_state:'stated', conflicts:undefined })
+      continue
+    }
     if (!prior || comparableFactValue(prior) === comparableFactValue(incoming)) {
       merged.set(incoming.key, incoming)
       continue
