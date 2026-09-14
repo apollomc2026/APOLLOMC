@@ -4,8 +4,8 @@ import { requireAllowedUser } from '@/lib/apollo/auth'
 import { createClient } from '@/lib/supabase/server'
 import { deleteFromS3, getPresignedUrl, uploadToS3 } from '@/lib/s3/client'
 import { evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractEvidenceFacts, MAX_EVIDENCE_BYTES, normalizeEvidenceMime, prepareEvidenceRetrieval, sanitizeEvidenceBytes } from '@/lib/mission-control/evidence'
-import { executionGaps } from '@/lib/mission-control/work-order'
-import { createMissionFact, mergeMissionFacts, specificationProvenance, type DeliverableSpecification } from '@/lib/mission-control/contracts'
+import { type DeliverableSpecification } from '@/lib/mission-control/contracts'
+import { mergeEvidenceIntoSpecification } from '@/lib/mission-control/evidence-specification'
 
 const ALLOWED = new Set(['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv', 'text/plain', 'image/png', 'image/jpeg'])
 
@@ -87,23 +87,26 @@ export async function POST(request: Request) {
   }
   let specificationVersion: number | null = null; let readiness: number | null = null
   if (prior?.schema_version === '1.0') {
-    const normalizedPriorFacts = prior.content.facts.map(fact => createMissionFact(fact))
-    const mergedFacts = mergeMissionFacts(normalizedPriorFacts, extractedFacts)
-    const hasConflict = mergedFacts.some(fact => fact.verification_state === 'conflict' && extractedFacts.some(extracted => extracted.key === fact.key))
-    const effectiveStatus = hasConflict ? 'conflict' as const : extractionStatus
-    if (hasConflict) {
-      const conflictUpdate = await db.from('apollo_conversation_evidence').update({ extraction_status: effectiveStatus }).eq('id', id).eq('user_id', allowed.user.userId)
-      if (conflictUpdate.error) return NextResponse.json({ error: conflictUpdate.error.message }, { status: 500 })
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const latestOwner = await db.from('apollo_conversations').select('current_spec_version').eq('id', conversationId).eq('user_id', allowed.user.userId).single()
+      if (latestOwner.error || !latestOwner.data) return NextResponse.json({ error:'Mission conversation was not found' }, { status:404 })
+      const expectedVersion = latestOwner.data.current_spec_version
+      const latest = await db.from('apollo_specification_versions').select('specification').eq('conversation_id', conversationId).eq('version', expectedVersion).single()
+      if (latest.error || !latest.data) return NextResponse.json({ error:'Current mission specification was not found' }, { status:409 })
+      const merged = mergeEvidenceIntoSpecification({ prior:latest.data.specification as DeliverableSpecification, evidence:{ id, name:file.name, status:extractionStatus, facts:extractedFacts } })
+      readiness = merged.readiness
+      const committed = await db.rpc('apollo_commit_evidence_specification_v2', { p_conversation_id:conversationId, p_expected_version:expectedVersion, p_specification:merged.specification, p_content_hash:createHash('sha256').update(JSON.stringify(merged.specification)).digest('hex'), p_readiness:readiness, p_status:merged.specification.approval.status })
+      if (!committed.error) {
+        if (merged.effectiveStatus === 'conflict') {
+          const conflictUpdate = await db.from('apollo_conversation_evidence').update({ extraction_status:'conflict' }).eq('id', id).eq('user_id', allowed.user.userId)
+          if (conflictUpdate.error) return NextResponse.json({ error:conflictUpdate.error.message }, { status:500 })
+        }
+        specificationVersion = Number(committed.data)
+        return NextResponse.json({ id, name:file.name, status:merged.effectiveStatus, facts:extractedFacts, specification:merged.specification, specification_version:specificationVersion, readiness }, { status:201 })
+      }
+      if (committed.error.code !== '40001') return NextResponse.json({ error:committed.error.message }, { status:500 })
     }
-    const priorProvenance = prior.provenance ?? specificationProvenance(prior.content.facts, new Date().toISOString())
-    const specification: DeliverableSpecification = { ...prior, sources: [...prior.sources.filter(source => source.id !== id), { id, name: file.name, status: effectiveStatus }], content: { ...prior.content, facts: mergedFacts }, approval: { status: 'draft', approved_by: null, approved_at: null, unresolved_items_accepted: [] }, provenance: specificationProvenance(mergedFacts, priorProvenance.created_at, priorProvenance.model_versions) }
-    const gaps = executionGaps(specification)
-    readiness = gaps.length ? Math.min(70, Math.max(50, mergedFacts.length * 8)) : 82
-    specification.approval.status = readiness >= 75 ? 'ready' : 'draft'
-    const committed = await db.rpc('apollo_commit_evidence_specification', { p_conversation_id: conversationId, p_specification: specification, p_content_hash: createHash('sha256').update(JSON.stringify(specification)).digest('hex'), p_readiness: readiness, p_status: specification.approval.status })
-    if (committed.error) return NextResponse.json({ error: committed.error.message }, { status: 500 })
-    specificationVersion = Number(committed.data)
-    return NextResponse.json({ id, name: file.name, status: effectiveStatus, facts: extractedFacts, specification, specification_version: specificationVersion, readiness }, { status: 201 })
+    return NextResponse.json({ error:'Mission evidence changed concurrently. The accepted file remains in custody; retry synchronization.' }, { status:409 })
   }
   return NextResponse.json({ id, name: file.name, status: inserted.data.extraction_status, facts: extractedFacts, specification_version: specificationVersion, readiness }, { status: 201 })
 }

@@ -133,3 +133,9 @@ https://portal-git-audit-conversational-i-1da0d5-support-3556s-projects.vercel.a
 ```
 
 Then use Settings → Connect Google Drive once and execute the existing internal golden mission through Drive custody and revision before promotion. Never substitute another Supabase project.
+## Concurrent evidence custody
+
+- Evidence specification commits now use optimistic concurrency against the mission's current specification version.
+- If simultaneous uploads race, the losing request rereads the newest specification and rebases its accepted evidence instead of replacing another file's custody record.
+- The database commit remains `security invoker`, verifies mission ownership, locks the conversation row, rejects stale expected versions with a serialization error, and is executable only by `authenticated`.
+- Verification: 250 unit tests across 30 files, TypeScript, and the production build pass; a focused rebase test proves both evidence sources remain in the latest specification.

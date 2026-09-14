@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 import * as XLSX from 'xlsx'
 import sharp from 'sharp'
 import { batchEvidenceSources, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, normalizeEvidenceMime, prepareEvidenceRetrieval, sanitizeEvidenceBytes } from '../lib/mission-control/evidence'
-import { createMissionFact, mergeMissionFacts } from '../lib/mission-control/contracts'
+import { createMissionFact, mergeMissionFacts, type DeliverableSpecification } from '../lib/mission-control/contracts'
 import { buildContentBlocks, inlineEvidenceByteLimit, OrchestrateError } from '../lib/apollo/orchestrate'
+import { mergeEvidenceIntoSpecification } from '../lib/mission-control/evidence-specification'
 
 describe('mission evidence custody', () => {
   it('rejects a declared PDF whose bytes are not a PDF', () => {
@@ -133,5 +134,22 @@ describe('mission evidence custody', () => {
     expect(batches).toHaveLength(4)
     expect(batches.flat()).toEqual(sources)
     expect(batchEvidenceSources(sources, 3).flat()).toEqual(sources)
+  })
+
+  it('rebases a concurrent evidence upload onto the latest specification without losing earlier custody', () => {
+    const prior: DeliverableSpecification = {
+      schema_version:'1.0', mission:{ title:'Test', objective:'Test', desired_decision_or_action:'Review', stakes:'low', deadline:null },
+      audience:{ primary:['Operator'], secondary:[], knowledge_level:'expert', relationship:'internal', sensitivities:[] },
+      artifact:{ recommended_family:'report', recommended_type:'final-qc-report', alternatives_considered:[], rationale:'', required_formats:['pdf'] },
+      aura:{ authority:50, warmth:50, technicality:50, restraint:50, urgency:50, prestige:50, visual_density:50, keywords:[], avoid:[] },
+      content:{ facts:[], claims:[], requirements:[], sections:[], commercial_terms:{}, obligations:[], assumptions:[], exclusions:[], open_questions:[] },
+      sources:[], specialist:{ playbook_id:'qc', playbook_version:'1', risk_flags:[], required_checks:[] },
+      presentation:{ brand_profile_id:null, design_profile_id:'default', layout_genre:'report', logo_policy:'cover', signature_policy:'none', watermark_policy:'none' },
+      approval:{ status:'draft', approved_by:null, approved_at:null, unresolved_items_accepted:[] },
+      provenance:{ fact_origins:[], inferences:[], defaults:[], model_versions:[], created_at:'2026-09-14T12:00:00.000Z' },
+    }
+    const first = mergeEvidenceIntoSpecification({ prior, evidence:{ id:'first', name:'first.pdf', status:'verified', facts:[] } })
+    const second = mergeEvidenceIntoSpecification({ prior:first.specification, evidence:{ id:'second', name:'second.pdf', status:'verified', facts:[] } })
+    expect(second.specification.sources.map(source => source.id)).toEqual(['first', 'second'])
   })
 })
