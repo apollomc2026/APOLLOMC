@@ -9,6 +9,11 @@ import { executionGaps } from './work-order'
 
 export class MissionPersistenceError extends Error {}
 
+function isControlMessageFact(fact: MissionFact) {
+  if (fact.key === 'deliverable_type') return false
+  return /^(?:Use (?:your )?expert recommendations\b|Operator involvement override:|I approve .+ as the intended deliverable type\b|(?:The intended deliverable is|Set the intended deliverable exactly to)|every unresolved decision that can be responsibly inferred)/i.test(fact.value.trim())
+}
+
 interface ReprocessableEvidenceRow {
   id: string
   original_name: string
@@ -45,7 +50,10 @@ async function reconcileSecuredEvidence(input: {
       const bytes = await getFromS3(row.retrieval_storage_key)
       const extracted = await extractEvidence(bytes, row.retrieval_mime_type)
       return extracted.text?.trim() ? { id: row.id, name: row.original_name, text: extracted.text } : null
-    } catch { return null }
+    } catch (error) {
+      console.warn('[mission-control] Evidence source could not be re-read', { evidenceId: row.id, name: row.original_name, error: error instanceof Error ? error.message : 'unknown error' })
+      return null
+    }
   }))).filter((source): source is { id: string; name: string; text: string } => Boolean(source))
   if (!readableSources.length) return [] as MissionFact[]
 
@@ -62,6 +70,10 @@ async function reconcileSecuredEvidence(input: {
   })
   const evidenceFacts = (await extractEvidenceFactsFromSources(prioritizedSources, moduleSlug))
     .map(fact => createMissionFact({ ...fact, last_editor: input.userId }))
+  if (moduleSlug === 'final-qc-report' && !evidenceFacts.some(fact => fact.key === 'reference_documents')) {
+    evidenceFacts.push(createMissionFact({ key: 'reference_documents', label: 'Reference documents / standards', value: rows.map(row => row.original_name).join('; '), source: 'evidence', source_reference: rows[0]?.id ?? null, confidence: 1, sensitivity: 'confidential', last_editor: input.userId }))
+  }
+  console.info('[mission-control] Evidence recalibration completed', { conversationId: input.conversationId, moduleSlug, securedSources: rows.length, readableSources: readableSources.length, extractedFacts: evidenceFacts.length })
   await Promise.all(rows.map(async row => {
     const facts = evidenceFacts.filter(fact => fact.source_reference === row.id)
     const update = await input.db.from('apollo_conversation_evidence').update({ extracted_facts: facts }).eq('id', row.id).eq('user_id', input.userId)
@@ -106,6 +118,23 @@ export async function persistMissionTurn(input: {
       result.specification.provenance = specificationProvenance(result.specification.content.facts, result.specification.provenance.created_at, result.specification.provenance.model_versions)
     }
   }
+  result.specification.content.facts = result.specification.content.facts.filter(fact => !isControlMessageFact(fact))
+  result.changed_facts = result.changed_facts.filter(fact => !isControlMessageFact(fact))
+  const sanitizedGaps = executionGaps(result.specification)
+  result.specification.content.open_questions = sanitizedGaps.map(gap => `What should APOLLO use for ${gap.label.toLowerCase()}?`)
+  result.specification.content.assumptions = sanitizedGaps.map(gap => `${gap.label} remains unresolved`)
+  if (sanitizedGaps.length) {
+    result.readiness = Math.min(result.readiness, 70)
+    result.readiness_state = 'calibrating'
+    result.question = result.specification.content.open_questions[0] ?? null
+  } else {
+    result.readiness = Math.max(result.readiness, 82)
+    result.readiness_state = 'ready'
+    result.question = null
+    result.question_reason = null
+  }
+  result.specification.approval = { status: sanitizedGaps.length ? 'draft' : 'ready', approved_by: null, approved_at: null, unresolved_items_accepted: [] }
+  result.specification.provenance = specificationProvenance(result.specification.content.facts, result.specification.provenance.created_at, result.specification.provenance.model_versions)
   const apolloContent = [result.acknowledgement, result.question].filter(Boolean).join('\n\n')
   const contentHash = createHash('sha256').update(JSON.stringify(result.specification)).digest('hex')
   const state = result.readiness >= 75 ? 'brief_ready' : result.readiness >= 50 ? 'calibrating' : 'discovery'

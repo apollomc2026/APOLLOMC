@@ -144,6 +144,20 @@ describe('mission interpreter', () => {
     expect(patch.stated_facts).toBeUndefined()
   })
 
+  it('does not promote the expert-recommendation command into the active factual gap', () => {
+    const prior = interpretMission('Create a final quality control report from the attached field records.').specification
+    const directive = 'Use your expert recommendations for every unresolved decision that can be responsibly inferred from the mission.'
+    const patch = promoteAcknowledgedGap({ acknowledgement: 'Received and resolved.' }, directive, prior)
+    expect(patch.stated_facts).toBeUndefined()
+  })
+
+  it('discards model-stated facts fabricated from the expert-recommendation command', () => {
+    const base = interpretMission('Create a final quality control report from the attached field records.')
+    const directive = 'Use your expert recommendations for every unresolved decision that can be responsibly inferred from the mission.'
+    const patch = applyExpertRecommendationMode({ stated_facts: [{ key: 'inspector', label: 'Inspector', value: directive }] }, directive, base.specification)
+    expect(patch.stated_facts).toEqual([])
+  })
+
   it('fills safely inferable proposal defaults in expert recommendation mode', () => {
     const base = interpretMission('Create a fixed-fee proposal for Acme Facilities at $18,750.')
     const patch = applyExpertRecommendationMode({}, 'Use your expert recommendations for every unresolved decision.', base.specification)

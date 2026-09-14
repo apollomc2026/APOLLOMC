@@ -22,7 +22,7 @@ export function promoteAcknowledgedGap(patch: ClaudeInterpretation, text: string
   const activeGap = prior ? executionGaps(prior)[0] : null
   const acknowledgement = safeText(patch.acknowledgement, 1200)
   const delegatesToEvidence = /\b(?:use|extract|read|pull|take)\b[\s\S]{0,180}\b(?:attached|uploaded|workbook|brief|evidence|source files?)\b/i.test(text)
-  if (!activeGap || delegatesToEvidence || !acknowledgement || !/\b(?:received|resolved|confirmed|provided|captured)\b/i.test(acknowledgement)) return patch
+  if (!activeGap || isMissionControlDirective(text) || delegatesToEvidence || !acknowledgement || !/\b(?:received|resolved|confirmed|provided|captured)\b/i.test(acknowledgement)) return patch
   return {
     ...patch,
     stated_facts: [
@@ -44,7 +44,11 @@ export function applyExpertRecommendationMode(patch: ClaudeInterpretation, text:
   ]
   if (Object.keys(specification.content.commercial_terms).length || /fixed[- ]fee/i.test(specification.mission.objective)) recommendations.push({ key: 'pricing_model', label: 'Pricing model', value: 'fixed-fee', confidence: .95 })
   const inferredFacts = Array.isArray(patch.inferred_facts) ? patch.inferred_facts : []
-  return { ...patch, acknowledgement: 'Expert recommendation mode applied. I resolved every professional default supported by the mission and preserved genuinely client-specific facts for explicit confirmation.', inferred_facts: [...inferredFacts, ...recommendations.filter(fact => !existing.has(fact.key))] }
+  return { ...patch, stated_facts: [], acknowledgement: 'Expert recommendation mode applied. I resolved every professional default supported by the mission and preserved genuinely client-specific facts for explicit confirmation.', inferred_facts: [...inferredFacts, ...recommendations.filter(fact => !existing.has(fact.key))] }
+}
+
+export function isMissionControlDirective(text: string) {
+  return /^(?:Use (?:your )?expert recommendations\b|Operator involvement override:)/i.test(text.trim())
 }
 
 const SYSTEM = `You are APOLLO's mission interpreter. Convert a natural professional request into evidence-aware mission state.
@@ -129,7 +133,7 @@ export function applyExplicitMissionDirectives(result: MissionTurnResult, text: 
 }
 
 export async function interpretMissionWithClaude(text: string, prior?: DeliverableSpecification, operatorInvolvement = prior?.aura.operator_involvement ?? 50): Promise<MissionTurnResult> {
-  const base = interpretMission(text, prior)
+  const base = interpretMission(isMissionControlDirective(text) ? '' : text, prior)
   base.specification.aura.operator_involvement = operatorInvolvement
   const autonomous = operatorInvolvement <= 33
   const safeFallback = () => applyExplicitMissionDirectives(applyClaudeInterpretation(base, applyExpertRecommendationMode({}, text, base.specification, autonomous)), text)
@@ -151,9 +155,9 @@ export async function interpretMissionWithClaude(text: string, prior?: Deliverab
     // a truncated object must never silently discard a multi-fact user answer.
     const response = await client.messages.create({ model: modelFor('mission_interpretation'), max_tokens: 6000, system: SYSTEM, messages: [{ role: 'user', content: `Existing specification:\n${JSON.stringify(prior ?? null)}\n\nNew user turn:\n${text}\n\nFor the recommended specialist module, use these exact fact keys when directly stated: ${fieldGuide}` }] })
     const raw = response.content.find(block => block.type === 'text')
-    if (!raw || raw.type !== 'text') return base
+    if (!raw || raw.type !== 'text') return safeFallback()
     const json = raw.text.match(/\{[\s\S]*\}/)?.[0]
-    if (!json) return base
+    if (!json) return safeFallback()
     const parsed = JSON.parse(json) as ClaudeInterpretation
     const patch = promoteAcknowledgedGap(applyExpertRecommendationMode(parsed, text, base.specification, autonomous), text, prior)
     const explicit = explicitMissionArtifact(text)
