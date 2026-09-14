@@ -5,6 +5,7 @@ import { verifyFinancialDocument } from '@/lib/executor/financial-verification'
 import { verifyAgreementDocument } from '@/lib/executor/agreement-verification'
 import { verifyFederalDocument } from '@/lib/executor/federal-verification'
 import { verifyFieldRecord } from '@/lib/executor/field-record-verification'
+import { verifyCommercialDocument } from '@/lib/executor/commercial-verification'
 import { GoogleDriveAuthorizationError } from '@/lib/executor/google-drive'
 import { sendCompletionNotification } from '@/lib/executor/completion-notification'
 import { sendFailureNotification } from '@/lib/executor/failure-notification'
@@ -79,6 +80,7 @@ async function verifyStep(order: DocumentWorkOrder, contentHtml: string, quality
   const agreement = verifyAgreementDocument(order, contentHtml)
   const federal = verifyFederalDocument(order, contentHtml)
   const fieldRecord = verifyFieldRecord(order, contentHtml)
+  const commercial = verifyCommercialDocument(order, contentHtml)
   const message = financial.required
     ? `Schema, workmanship, and deterministic financial verification passed (${financial.verified_values} values/checks)`
     : agreement.required
@@ -87,8 +89,10 @@ async function verifyStep(order: DocumentWorkOrder, contentHtml: string, quality
       ? `Schema, workmanship, and deterministic federal verification passed (${federal.verified_fields.length} solicitation anchors)`
     : fieldRecord.required
       ? `Schema, workmanship, and deterministic field-record verification passed (${fieldRecord.verified_rows} operational rows)`
+    : commercial.required
+      ? `Schema, workmanship, and deterministic commercial verification passed (${commercial.verified_rows} source rows, ${commercial.verified_figures} figures)`
     : `Structured document passed schema and workmanship validation (${quality.score}/100)`
-  await updateJob(order.work_order_id, 'validating', 60, message, { checkpoint_ref: `${order.work_order_id}:validating`, financial_verification: financial, agreement_verification: agreement, federal_verification: federal, field_record_verification: fieldRecord, workmanship: quality })
+  await updateJob(order.work_order_id, 'validating', 60, message, { checkpoint_ref: `${order.work_order_id}:validating`, financial_verification: financial, agreement_verification: agreement, federal_verification: federal, field_record_verification: fieldRecord, commercial_verification: commercial, workmanship: quality })
   console.log(`[apollo-document] validating DONE job=${order.work_order_id}`)
 }
 
