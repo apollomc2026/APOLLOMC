@@ -41,7 +41,6 @@ export function MissionControl() {
   const [jobProgress, setJobProgress] = useState<number | null>(null);
   const [artifactUrl, setArtifactUrl] = useState<string | null>(null);
   const [revision, setRevision] = useState("");
-  const [acceptUnresolved, setAcceptUnresolved] = useState(false);
   const [decisionAnswers, setDecisionAnswers] = useState<
     Record<string, string>
   >({});
@@ -49,11 +48,13 @@ export function MissionControl() {
   const [launchCountdown, setLaunchCountdown] = useState<number | "LIFTOFF" | null>(null);
   const [launchPromptDismissed, setLaunchPromptDismissed] = useState(false);
   const [reviewAcknowledged, setReviewAcknowledged] = useState(false);
+  const [reviewScrolled, setReviewScrolled] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const reviewRef = useRef<HTMLDivElement>(null);
   const notificationRequestedRef = useRef<string | null>(null);
 
   const restoreConversation = useCallback(async (id: string) => {
@@ -176,6 +177,7 @@ export function MissionControl() {
 
   useEffect(() => {
     setReviewAcknowledged(false);
+    setReviewScrolled(false);
   }, [specificationVersion]);
 
   useEffect(() => {
@@ -345,7 +347,6 @@ export function MissionControl() {
       setSpecificationVersion(
         result.specification_version ?? specificationVersion + 1,
       );
-      setAcceptUnresolved(false);
       setDecisionAnswers((current) =>
         Object.fromEntries(
           Object.entries(current).filter(([question]) =>
@@ -380,11 +381,11 @@ export function MissionControl() {
     setJobProgress(null);
     setArtifactUrl(null);
     setDraft("");
-    setAcceptUnresolved(false);
     setDecisionAnswers({});
     setOperatorInvolvement(50);
     setLaunchPromptDismissed(false);
     setReviewAcknowledged(false);
+    setReviewScrolled(false);
     setError(null);
     window.localStorage.removeItem(STORAGE_KEY);
     window.history.replaceState(window.history.state, "", "/dashboard");
@@ -481,7 +482,6 @@ export function MissionControl() {
       setSpecificationVersion(
         result.specification_version ?? specificationVersion + 1,
       );
-      setAcceptUnresolved(false);
       setDecisionAnswers((current) =>
         Object.fromEntries(
           Object.entries(current).filter(([question]) =>
@@ -607,7 +607,7 @@ export function MissionControl() {
     if (
       !specification ||
       readiness < 75 ||
-      (!alreadyApproved && questions.length > 0 && !acceptUnresolved)
+      (!alreadyApproved && questions.length > 0)
     )
       return;
     setWorking(true);
@@ -616,9 +616,7 @@ export function MissionControl() {
       if (conversationId) {
         const acceptedItems = alreadyApproved
           ? (specification.approval.unresolved_items_accepted ?? [])
-          : acceptUnresolved
-            ? questions
-            : [];
+          : [];
         const response = await fetch("/api/mission-control/approve", {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -689,9 +687,7 @@ export function MissionControl() {
             specification.approval.approved_at ?? new Date().toISOString(),
           unresolved_items_accepted: alreadyApproved
             ? (specification.approval.unresolved_items_accepted ?? [])
-            : acceptUnresolved
-              ? questions
-              : [],
+            : [],
         },
       });
     } catch (cause) {
@@ -817,9 +813,33 @@ export function MissionControl() {
             <div className="mc-launch-ready-orbit"><Rocket size={32} /></div>
             <span>MISSION CALIBRATION COMPLETE</span>
             <h2 id="launch-ready-title">Ready for launch.</h2>
-            <p>Houston resolved every required field supported by your instructions and evidence. Review the brief, acknowledge it, then launch.</p>
+            <p>Houston resolved every required field supported by your instructions and evidence. Review the complete brief before authorizing launch.</p>
+            <div
+              className="mc-launch-review-document"
+              ref={reviewRef}
+              tabIndex={0}
+              onScroll={(event) => {
+                const node = event.currentTarget;
+                if (node.scrollTop + node.clientHeight >= node.scrollHeight - 12) setReviewScrolled(true);
+              }}
+            >
+              <div className="mc-launch-review-heading"><span>INTENDED DELIVERABLE</span><strong>{title}</strong><small>{specification.artifact.recommended_family}</small></div>
+              <dl>
+                <div><dt>Objective</dt><dd>{specification.mission.objective}</dd></div>
+                <div><dt>Primary audience</dt><dd>{audience}</dd></div>
+                <div><dt>Output formats</dt><dd>{formats}</dd></div>
+              </dl>
+              <h3>Verified mission facts</h3>
+              {facts.map((fact) => <div className="mc-launch-review-fact" key={fact.key}><span>{fact.label}</span><p>{fact.value}</p><small>{fact.source}</small></div>)}
+              <h3>Planned document sections</h3>
+              <ol>{specification.content.sections.map((section) => <li key={section}>{section}</li>)}</ol>
+              <h3>Required quality checks</h3>
+              <ul>{specification.specialist.required_checks.map((check) => <li key={check}>{check.replace(/-/g, " ")}</li>)}</ul>
+              <div className="mc-launch-review-end"><Check size={16} /> End of controlled mission brief</div>
+            </div>
+            <small className={`mc-launch-scroll-status${reviewScrolled ? " complete" : ""}`}>{reviewScrolled ? "Review complete · acceptance unlocked" : "Scroll to the end to unlock acceptance"}</small>
             <label className="mc-launch-acknowledgement">
-              <input type="checkbox" checked={reviewAcknowledged} onChange={(event) => setReviewAcknowledged(event.target.checked)} />
+              <input type="checkbox" checked={reviewAcknowledged} disabled={!reviewScrolled} onChange={(event) => setReviewAcknowledged(event.target.checked)} />
               <span>I have reviewed the mission brief and approve it for execution.</span>
             </label>
             <button className={`mc-approve mc-launch-control${launchCountdown !== null ? " launching" : ""}`} onClick={launchApprovedExecution} disabled={working || launchCountdown !== null || !reviewAcknowledged}>
@@ -1268,48 +1288,6 @@ export function MissionControl() {
                   </div>
                 ))}
               </div>
-              {questions.length > 0 &&
-              specification.approval.status !== "approved" ? (
-                <label className="mc-unresolved-acceptance">
-                  <input
-                    type="checkbox"
-                    checked={acceptUnresolved}
-                    onChange={(event) =>
-                      setAcceptUnresolved(event.target.checked)
-                    }
-                  />
-                  <span>
-                    I reviewed these open decisions and explicitly accept them
-                    as unresolved for this draft.
-                  </span>
-                </label>
-              ) : null}
-              <button
-                className={`mc-approve${readiness >= 75 && questions.length === 0 && !jobId ? " mc-launch-control" : ""}${launchCountdown !== null ? " launching" : ""}`}
-                onClick={readiness >= 75 && questions.length === 0 && !jobId ? launchApprovedExecution : approveBrief}
-                disabled={
-                  launchCountdown !== null ||
-                  readiness < 75 ||
-                  (specification.approval.status === "approved"
-                    ? Boolean(jobId)
-                    : questions.length > 0 && !acceptUnresolved)
-                }
-              >
-                {specification.approval.status === "approved" && !jobId ? <Rocket size={17} /> : <ShieldCheck size={17} />}
-                <span aria-live="polite">{launchCountdown !== null
-                  ? launchCountdown
-                  : readiness >= 75 && questions.length === 0 && !jobId
-                    ? "Initiate Launch"
-                  : specification.approval.status === "approved"
-                  ? jobId
-                    ? `Brief approved · v${specificationVersion || 1} locked`
-                    : "Start approved execution"
-                  : questions.length > 0
-                    ? `${questions.length} required ${questions.length === 1 ? "fact remains" : "facts remain"}`
-                    : readiness >= 75
-                      ? "Review and approve brief"
-                      : "Calibration in progress"}</span>
-              </button>
             </>
           ) : (
             <div className="mc-empty-state">
