@@ -79,7 +79,7 @@ export function applyClaudeInterpretation(base: MissionTurnResult, patch: Claude
   const desiredAction = safeText(patch.desired_action, 1000)
   let question = safeText(patch.next_question, 500) ?? base.question
   let questionReason = safeText(patch.question_reason, 500) ?? base.question_reason
-  const recommendation = patch.recommendation ? recommendMissionArtifact(`Create a ${patch.recommendation}`) : null
+  const recommendation = patch.recommendation ? recommendMissionArtifact(patch.recommendation) : null
   const specification: DeliverableSpecification = {
     ...base.specification,
     mission: { ...base.specification.mission, objective: objective ?? base.specification.mission.objective, desired_decision_or_action: desiredAction ?? base.specification.mission.desired_decision_or_action },

@@ -11,6 +11,11 @@ const EXPLICIT_PROPOSAL = /\b(?:proposal|estimate|quote)\b/i
 
 export type SupportedMissionArtifact = 'proposal' | 'sow' | 'contract-package' | 'daily-construction-report' | 'final-qc-report' | 'capability-statement' | 'cash-flow-budget-package' | 'federal-proposal'
 
+const SUPPORTED_MISSION_ARTIFACTS = new Set<SupportedMissionArtifact>([
+  'proposal', 'sow', 'contract-package', 'daily-construction-report', 'final-qc-report',
+  'capability-statement', 'cash-flow-budget-package', 'federal-proposal',
+])
+
 /**
  * Preserve a deliverable the user named directly. Broad domain vocabulary is
  * useful only after this check; a caution such as "do not invent financial
@@ -29,7 +34,12 @@ export function explicitMissionArtifact(text: string): SupportedMissionArtifact 
 }
 
 export function recommendMissionArtifact(text: string) {
-  const explicit = explicitMissionArtifact(text)
+  // AI tool output and internal callers use canonical slugs. Accept them
+  // directly instead of forcing them back through natural-language matching,
+  // where a slug such as final-qc-report can collapse to generic "report".
+  const explicit = SUPPORTED_MISSION_ARTIFACTS.has(text as SupportedMissionArtifact)
+    ? text as SupportedMissionArtifact
+    : explicitMissionArtifact(text)
   if (explicit === 'cash-flow-budget-package') return { family: 'Financial package', type: 'cash-flow-budget-package', playbook: 'financial-package', rationale: 'The outcome depends on reconciled numerical evidence and decision-ready financial explanation.', sections: ['Executive summary', 'Assumptions', 'Cash-flow analysis', 'Variance analysis', 'Risks and sensitivities', 'Recommended actions'], checks: ['arithmetic-reconciliation', 'period-consistency', 'source-traceability'] }
   if (explicit === 'capability-statement') return { family: 'Executive communication', type: 'capability-statement', playbook: 'executive-capability', rationale: 'The audience needs a concise statement of credibility, differentiation, and next action.', sections: ['Positioning statement', 'Core capabilities', 'Proof and past performance', 'Differentiators', 'Contact and next action'], checks: ['claim-provenance', 'audience-fit', 'brevity'] }
   if (explicit === 'contract-package') return { family: 'Legal agreement', type: 'contract-package', playbook: 'balanced-agreement', rationale: 'The mission centers on mutual obligations and terms that should remain explicit and balanced.', sections: ['Purpose and parties', 'Scope and responsibilities', 'Commercial terms', 'Term and termination', 'Risk allocation', 'Signatures'], checks: ['party-and-authority', 'obligation-balance', 'termination-terms'] }

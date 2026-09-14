@@ -45,6 +45,16 @@ describe('mission interpreter', () => {
     expect(result.specification.specialist.required_checks).toContain('test-result-traceability')
   })
 
+  it('preserves the canonical final-qc-report slug through Claude interpretation', () => {
+    const base = interpretMission('Prepare a contract package for the project.')
+    const result = applyClaudeInterpretation(base, {
+      recommendation: 'final-qc-report',
+      rationale: 'The operator explicitly requested the consolidated acceptance record.',
+    })
+    expect(result.specification.artifact.recommended_type).toBe('final-qc-report')
+    expect(result.specification.artifact.recommended_family).toBe('Quality control closeout')
+  })
+
   it('does not crash when Claude returns stated_facts as an object', () => {
     const prior = interpretMission('Prepare a contract package for the project.').specification
     const malformed = { acknowledgement: 'Received and resolved.', stated_facts: { key: 'unexpected-object' } } as unknown as Parameters<typeof promoteAcknowledgedGap>[0]
