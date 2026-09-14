@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compileApprovedSpecification } from '../lib/mission-control/work-order'
+import { compileApprovedSpecification, executionGaps } from '../lib/mission-control/work-order'
 import { interpretMission } from '../lib/mission-control/interpreter'
 import { getModule } from '../lib/apollo/packages-loader'
 import { buildRevisionOrder } from '../lib/mission-control/revision'
@@ -102,5 +102,12 @@ describe('approved specification compiler', () => {
     const result = compileApprovedSpecification({ specification, ...ids })
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.missing).toContainEqual(expect.objectContaining({ key: 'pricing_detail', reason: expect.stringMatching(/Conflicting values/) }))
+  })
+
+  it('does not block the selected deliverable on stale conflicts from another module', () => {
+    const specification = interpretMission('Send a proposal to Acme Facilities for $18,500 before October 15, 2026.').specification
+    for (const field of getModule('proposal')!.required_fields) specification.content.facts.push(createMissionFact({ key: field.key, label: field.label, value: `Confirmed ${field.label}`, source: 'user', confidence: 1 }))
+    specification.content.facts.push({ ...createMissionFact({ key: 'party_a_name', label: 'Party A', value: 'On Spot', source: 'inferred', confidence: .8 }), verification_state: 'conflict' })
+    expect(executionGaps(specification)).not.toEqual(expect.arrayContaining([expect.objectContaining({ key: 'party_a_name' })]))
   })
 })

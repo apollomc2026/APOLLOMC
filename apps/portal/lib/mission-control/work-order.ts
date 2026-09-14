@@ -33,7 +33,8 @@ export function executionFields(spec: DeliverableSpecification, now = new Date()
 export function executionGaps(spec: DeliverableSpecification, now = new Date()) {
   const documentModule = getModule(spec.artifact.recommended_type)
   if (!documentModule) return [{ key: 'deliverable', label: 'Supported deliverable', reason: 'The recommendation is not mapped to an active document module.' }]
-  const conflicts = spec.content.facts.filter(fact => fact.verification_state === 'conflict').map(fact => ({ key: fact.key, label: fact.label, reason: 'Conflicting values must be resolved before controlled execution.' }))
+  const requiredKeys = new Set(documentModule.required_fields.map(field => field.key))
+  const conflicts = spec.content.facts.filter(fact => requiredKeys.has(fact.key) && fact.verification_state === 'conflict').map(fact => ({ key: fact.key, label: fact.label, reason: 'Conflicting values must be resolved before controlled execution.' }))
   const fields = executionFields(spec, now)
   const missing = documentModule.required_fields.filter(field => fields[field.key] === undefined || fields[field.key] === null || String(fields[field.key]).trim() === '').map(field => ({ key: field.key, label: field.label, reason: 'Required by the selected specialist document module.' }))
   return [...conflicts, ...missing.filter(gap => !conflicts.some(conflict => conflict.key === gap.key))]

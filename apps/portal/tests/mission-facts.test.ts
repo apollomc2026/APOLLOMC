@@ -24,4 +24,11 @@ describe('mission fact reconciliation', () => {
     expect(fact.source_reference).toBe('evidence-2')
     expect(fact.conflicts).toBeUndefined()
   })
+
+  it('lets verified evidence replace an earlier model inference', () => {
+    const inferred = createMissionFact({ key: 'report_date', label: 'Report date', value: '2026-05-12', source: 'inferred', confidence: .6 }, now)
+    const evidence = createMissionFact({ key: 'report_date', label: 'Report date', value: '2026-05-13', source: 'evidence', confidence: 1, source_reference: 'final-qc' }, now)
+    const [fact] = mergeMissionFacts([inferred], [evidence], now)
+    expect(fact).toEqual(expect.objectContaining({ value: '2026-05-13', source: 'evidence', verification_state: 'verified' }))
+  })
 })

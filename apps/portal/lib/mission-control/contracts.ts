@@ -34,6 +34,11 @@ export function mergeMissionFacts(priorFacts: MissionFact[], incomingFacts: Miss
       merged.set(incoming.key, incoming)
       continue
     }
+    if (incoming.source === 'evidence' && (prior.source === 'inferred' || prior.source === 'default')) {
+      merged.set(incoming.key, incoming)
+      continue
+    }
+    if ((incoming.source === 'inferred' || incoming.source === 'default') && (prior.source === 'evidence' || prior.source === 'user')) continue
     const candidates = [
       ...(prior.conflicts ?? [{ value: prior.value, normalized_value: prior.normalized_value, source: prior.source, source_reference: prior.source_reference }]),
       { value: incoming.value, normalized_value: incoming.normalized_value, source: incoming.source, source_reference: incoming.source_reference },
