@@ -55,6 +55,8 @@ describe('optional section evidence boundaries', () => {
     expect(activeSections(args('meeting-minutes')).map(section => section.key)).not.toContain('header')
     expect(activeSections(args('tax-estimate')).map(section => section.key)).not.toContain('header_masthead')
     expect(activeSections(args('change-order')).map(section => section.key)).not.toContain('header')
+    expect(activeSections(args('expense-report')).map(section => section.key)).not.toContain('header_masthead')
+    expect(activeSections(args('personal-monthly')).map(section => section.key)).not.toContain('header_masthead')
   })
 
   it('does not prime generation with missing optional fields or client-facing placeholders', () => {

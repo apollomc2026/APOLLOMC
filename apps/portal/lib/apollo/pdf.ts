@@ -711,6 +711,7 @@ function buildContractorFormHtml(args: BuildPdfArgs): string {
   const preset = resolvePreset(args.fontPreset?.key)
   const docTitle = args.template.label
   const wordmark = brandWordmark(args.brand.slug) || args.brand.label
+  const isCompactCloseout = ['project-completion-notice','tool-box-talk'].includes(args.template.slug)
   // Strip the leading <h1> (title lives in the masthead) and any mid-body
   // wordmark banner. Do NOT numberSections — contractor forms have no
   // numbered section openers; headings render as ALL-CAPS ruled labels.
@@ -757,7 +758,7 @@ body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.42; color
 .cf-identity { display: flex; align-items: center; gap: 12pt; }
 .cf-logo { width: 44pt; height: 30pt; object-fit: contain; object-position: left center; }
 .cf-brand { font-family: var(--font-body); font-size: 8pt; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--ink); }
-.cf-title { font-family: var(--font-display); font-size: 17pt; font-weight: 600; margin: 3pt 0 0 0; color: var(--ink); }
+.cf-title { font-family: var(--font-display); font-size: 16pt; font-weight: 600; margin: 3pt 0 0 0; color: var(--ink); white-space:nowrap; }
 .cf-meta { text-align: right; font-size: 7.5pt; letter-spacing: 0.14em; text-transform: uppercase; color: var(--metadata); white-space: nowrap; padding-left: 18pt; }
 .cf-body h2 {
   font-family: var(--font-body); font-size: 10pt; font-weight: 600; letter-spacing: 0.13em;
@@ -789,6 +790,14 @@ body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.42; color
 .cf-signatures i.date-line { width:42%; margin-top:14pt; }
 .cf-signatures span { margin-top:4pt; }
 .cf-body table:last-child, .cf-body ul:last-child, .cf-body p:last-child { margin-bottom: 0; }
+.cf-body.compact-closeout { font-size:8.5pt; line-height:1.28; }
+.cf-body.compact-closeout h2 { font-size:9pt; margin:9pt 0 3pt; padding-bottom:2pt; }
+.cf-body.compact-closeout table { margin:3pt 0 5pt; font-size:8pt; }
+.cf-body.compact-closeout th { padding:3pt 5pt; font-size:7.4pt; }
+.cf-body.compact-closeout td { padding:2.5pt 5pt; }
+.cf-body.compact-closeout p { margin-bottom:3pt; }
+.cf-body.compact-closeout ul { margin:2pt 0 4pt; }
+.cf-body.compact-closeout li { margin:.5pt 0; }
 </style>
 </head>
 <body>
@@ -796,7 +805,7 @@ body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.42; color
     <div class="cf-identity">${brandMark}<div>${brandLine}<div class="cf-title">${escapeHtml(docTitle)}</div></div></div>
     <div class="cf-meta">${meta}</div>
   </div>
-  <div class="cf-body">
+  <div class="cf-body${isCompactCloseout ? ' compact-closeout' : ''}">
 ${body}
 ${signoffHtml}
   </div>
@@ -1753,14 +1762,14 @@ function buildOnePagerHtml(args: BuildPdfArgs): string {
   const watermarkHtml = flags.hasWatermark ? renderWatermarkHtml(logoDataUri) : ''
   const wordmark = brandWordmark(args.brand.slug) || args.brand.label
   const docTitle = args.template.label
-  const subjectTitle = readString(args.inputs, 'subject_title') || docTitle
+  const subjectTitle = readString(args.inputs, 'subject_title') || readString(args.inputs, 'company_name') || docTitle
   const body = stripAllH1(stripLeadingTitle(args.contentHtml))
 
   return `<!doctype html>
 <html lang="en">${sharedHead(palette, preset, docTitle)}
 <style>
-@page { size: 8.5in 11in; margin: 1.1in 1.2in 1in 1.2in; }
-.onepager { display: flex; flex-direction: column; height: 8.5in; }
+@page { size: 8.5in 11in; margin: .72in .85in .65in .85in; }
+.onepager { display: flex; flex-direction: column; height: 9.63in; overflow:hidden; }
 .op-masthead {
   display: flex; justify-content: space-between; align-items: center;
   padding-bottom: 12pt; border-bottom: 0.5pt solid var(--hairline);
@@ -1769,32 +1778,31 @@ function buildOnePagerHtml(args: BuildPdfArgs): string {
   font-weight: 600; letter-spacing: 0.38em; color: var(--ink); }
 .op-docid { font-family: var(--font-body); font-size: 7.5pt;
   letter-spacing: 0.18em; text-transform: uppercase; color: var(--metadata); }
-.op-hero { margin-top: 36pt; }
+.op-hero { margin-top: 18pt; }
 .op-kicker { font-family: var(--font-body); font-size: 8.5pt;
   font-weight: 500; letter-spacing: 0.32em; text-transform: uppercase;
-  color: var(--metadata); margin: 0 0 14pt 0; }
+  color: var(--metadata); margin: 0 0 7pt 0; }
 .op-title { font-family: var(--font-display);
-  font-style: italic; font-weight: 400; font-size: 42pt; line-height: 1.05;
-  color: var(--ink); margin: 0 0 20pt 0; max-width: 5.8in; }
-.op-body { font-family: var(--font-body); font-size: 10.5pt;
-  line-height: 1.6; margin-top: 20pt; }
+  font-style: italic; font-weight: 400; font-size: 34pt; line-height: 1.05;
+  color: var(--ink); margin: 0 0 10pt 0; max-width: 6.5in; }
+.op-body { font-family: var(--font-body); font-size: 9.2pt;
+  line-height: 1.38; margin-top: 6pt; column-count:2; column-gap:28pt; }
 .op-body h2 {
-  font-family: var(--font-body); font-size: 8.5pt; font-weight: 500;
+  font-family: var(--font-body); font-size: 7.6pt; font-weight: 600;
   letter-spacing: 0.24em; text-transform: uppercase; color: var(--accent);
-  margin: 22pt 0 8pt 0; border-top: 0; padding-top: 0;
+  margin: 11pt 0 5pt 0; border-top: 0; padding-top: 0; break-after:avoid;
 }
 .op-body h2:first-child { margin-top: 0; }
-.op-body p { margin: 0 0 10pt 0; max-width: 5.8in; }
-.op-body ul { margin: 8pt 0 14pt 0; padding-left: 0; list-style: none; }
+.op-body p { margin: 0 0 6pt 0; }
+.op-body ul { margin: 4pt 0 7pt 0; padding-left: 0; list-style: none; }
 .op-body li {
-  position: relative; padding-left: 18pt; margin-bottom: 8pt;
-  max-width: 5.8in;
+  position: relative; padding-left: 14pt; margin-bottom: 4pt;
 }
 .op-body li::before {
   content: ''; position: absolute; left: 0; top: 9pt;
   width: 8pt; height: 0; border-top: 0.75pt solid var(--accent);
 }
-.op-footer { margin-top: auto; padding-top: 20pt;
+.op-footer { margin-top: auto; padding-top: 10pt;
   border-top: 0.5pt solid var(--hairline);
   display: flex; justify-content: space-between;
   font-family: var(--font-body); font-size: 8.5pt;
@@ -1983,6 +1991,7 @@ function buildFinancialStatementHtml(args: BuildPdfArgs): string {
   const scenarioLabel = readString(args.inputs, 'scenario_label')
 
   const body = stripAllH1(stripLeadingTitle(args.contentHtml))
+  const isCompactStatement = ['expense-report', 'personal-monthly'].includes(args.template.slug)
   const signaturesHtml = renderSignatureBlock(args)
 
   return `<!doctype html>
@@ -2110,6 +2119,13 @@ function buildFinancialStatementHtml(args: BuildPdfArgs): string {
   font-size: 11pt;
   background: transparent;
 }
+.fin-body.compact { font-size:8.4pt; line-height:1.25; }
+.fin-body.compact h2 { font-size:12.5pt; margin:10pt 0 4pt; }
+.fin-body.compact h3 { margin:7pt 0 3pt; }
+.fin-body.compact p { margin-bottom:4pt; }
+.fin-body.compact table,.fin-body.compact table.fin-table { margin:4pt 0; }
+.fin-body.compact table thead th { padding:4pt 5pt 4pt 0; font-size:7.4pt; }
+.fin-body.compact table tbody td { font-size:8.3pt; padding:3pt 5pt 3pt 0; }
 
 /* Disclaimer — both the prominent first-section variant and the
    small-italic running footer variant. */
@@ -2160,7 +2176,7 @@ ${watermarkCss()}
   </div>
 </div>
 
-<div class="fin-body">${body}</div>
+<div class="fin-body${isCompactStatement ? ' compact' : ''}">${body}</div>
 
 ${signaturesHtml}
 

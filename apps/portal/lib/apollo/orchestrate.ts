@@ -219,6 +219,8 @@ const RENDERER_OWNED_SECTIONS:Record<string,Set<string>> = {
   'meeting-minutes':new Set(['header']),
   'tax-estimate':new Set(['header_masthead']),
   'change-order':new Set(['header']),
+  'expense-report':new Set(['header_masthead']),
+  'personal-monthly':new Set(['header_masthead']),
 }
 
 export function activeSections(args: OrchestrateArgs): ModuleSection[] {

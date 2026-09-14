@@ -66,6 +66,17 @@ describe('complete catalog rendering matrix', () => {
       expect(html).not.toContain('class="toc-page"')
       expect(html).not.toContain('class="cover"')
     }
+    if (['project-completion-notice','tool-box-talk'].includes(deliverable.slug)) {
+      expect(html).toContain('class="cf-body compact-closeout"')
+      expect(html).toContain('white-space:nowrap')
+    }
+    if (['expense-report','personal-monthly'].includes(deliverable.slug)) {
+      expect(html).toContain('class="fin-body compact"')
+    }
+    if (deliverable.slug === 'one-pager') {
+      expect(html).toContain('column-count:2')
+      expect(html).toContain('Northstar Fabrication')
+    }
     if (['pitch-deck','exec-presentation'].includes(deliverable.slug)) {
       expect(html).toContain('class="presentation-cover"')
       expect(html).toMatch(/class="presentation-slide\s+(?:sparse|standard|dense)"/)
