@@ -1,5 +1,7 @@
 export interface EvidenceExtraction { text?: string; safeForDirectRetrieval: boolean }
 export interface EvidenceRetrievalArtifact { bytes: Buffer; mime: string; derived: boolean }
+export const MAX_EVIDENCE_BYTES = 20 * 1024 * 1024
+export const MAX_EXECUTABLE_IMAGE_BYTES = 5 * 1024 * 1024
 
 const EVIDENCE_MIME_BY_EXTENSION: Record<string, string> = {
   pdf: 'application/pdf',
@@ -38,10 +40,17 @@ export function evidenceMagicMatches(bytes: Buffer, mime: string): boolean {
 export async function sanitizeEvidenceBytes(bytes: Buffer, mime: string): Promise<Buffer> {
   if (mime !== 'image/jpeg' && mime !== 'image/png') return bytes
   const sharp = (await import('sharp')).default
-  const image = sharp(bytes, { failOn:'error', limitInputPixels:40_000_000 }).rotate()
-  return mime === 'image/jpeg'
-    ? image.jpeg({ quality:92, mozjpeg:true }).toBuffer()
-    : image.png({ compressionLevel:9 }).toBuffer()
+  const widths = [4096, 3000, 2200, 1600]
+  for (let index = 0; index < widths.length; index++) {
+    const image = sharp(bytes, { failOn:'error', limitInputPixels:40_000_000 })
+      .rotate()
+      .resize({ width:widths[index], height:widths[index], fit:'inside', withoutEnlargement:true })
+    const normalized = mime === 'image/jpeg'
+      ? await image.jpeg({ quality:[92, 86, 80, 74][index], mozjpeg:true }).toBuffer()
+      : await image.png({ compressionLevel:9, adaptiveFiltering:true }).toBuffer()
+    if (normalized.length <= MAX_EXECUTABLE_IMAGE_BYTES) return normalized
+  }
+  throw new Error('Normalized image exceeds executable evidence limit')
 }
 
 export function evidenceZipTooLarge(bytes: Buffer, limit = 200 * 1024 * 1024): boolean {

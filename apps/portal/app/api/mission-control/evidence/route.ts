@@ -3,12 +3,11 @@ import { NextResponse } from 'next/server'
 import { requireAllowedUser } from '@/lib/apollo/auth'
 import { createClient } from '@/lib/supabase/server'
 import { deleteFromS3, getPresignedUrl, uploadToS3 } from '@/lib/s3/client'
-import { evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractEvidenceFacts, normalizeEvidenceMime, prepareEvidenceRetrieval, sanitizeEvidenceBytes } from '@/lib/mission-control/evidence'
+import { evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractEvidenceFacts, MAX_EVIDENCE_BYTES, normalizeEvidenceMime, prepareEvidenceRetrieval, sanitizeEvidenceBytes } from '@/lib/mission-control/evidence'
 import { executionGaps } from '@/lib/mission-control/work-order'
 import { createMissionFact, mergeMissionFacts, specificationProvenance, type DeliverableSpecification } from '@/lib/mission-control/contracts'
 
 const ALLOWED = new Set(['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv', 'text/plain', 'image/png', 'image/jpeg'])
-const MAX_BYTES = 20 * 1024 * 1024
 
 interface EvidenceLedgerRow {
   id: string
@@ -43,7 +42,7 @@ export async function POST(request: Request) {
   const conversationId = String(form.get('conversation_id') ?? '')
   if (!(file instanceof File) || !conversationId) return NextResponse.json({ error: 'A file and conversation are required' }, { status: 400 })
   const mimeType = normalizeEvidenceMime(file.name, file.type)
-  if (!mimeType || !ALLOWED.has(mimeType) || file.size > MAX_BYTES) return NextResponse.json({ error: 'Unsupported file type or file exceeds 20 MB' }, { status: 415 })
+  if (!mimeType || !ALLOWED.has(mimeType) || file.size > MAX_EVIDENCE_BYTES) return NextResponse.json({ error: 'Unsupported file type or file exceeds 20 MB' }, { status: 415 })
   const db = await createClient()
   const owner = await db.from('apollo_conversations').select('id, current_spec_version').eq('id', conversationId).eq('user_id', allowed.user.userId).single()
   if (owner.error || !owner.data) return NextResponse.json({ error: 'Mission conversation was not found' }, { status: 404 })

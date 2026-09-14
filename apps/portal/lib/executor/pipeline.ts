@@ -11,8 +11,8 @@ import type { ArtifactManifest, DocumentSource, DocumentWorkOrder } from './cont
 import { uploadDriveDraft } from './google-drive'
 import { BUCKET, getFromS3 } from '@/lib/s3/client'
 import { createServiceClient } from '@/lib/supabase/server'
+import { MAX_EVIDENCE_BYTES } from '@/lib/mission-control/evidence'
 
-const MAX_SOURCE_BYTES = 10 * 1024 * 1024
 
 async function loadExecutionBrand(order: DocumentWorkOrder): Promise<{ brand:LoadedBrand|null; palette:BrandPalette }> {
   if (!order.brand_id.startsWith('kit:')) return { brand:await loadBrand(order.brand_id), palette:await loadBrandPalette(order.brand_id) }
@@ -54,9 +54,9 @@ async function retrieveSource(source: DocumentSource): Promise<OrchestrateUpload
   const response = await fetch(url, { signal: AbortSignal.timeout(30_000), redirect: 'error' })
   if (!response.ok) throw new Error(`source ${source.source_id} returned ${response.status}`)
   const declared = Number(response.headers.get('content-length') ?? 0)
-  if (declared > MAX_SOURCE_BYTES) throw new Error(`source ${source.source_id} exceeds size limit`)
+  if (declared > MAX_EVIDENCE_BYTES) throw new Error(`source ${source.source_id} exceeds size limit`)
   const bytes = Buffer.from(await response.arrayBuffer())
-  if (bytes.length > MAX_SOURCE_BYTES) throw new Error(`source ${source.source_id} exceeds size limit`)
+  if (bytes.length > MAX_EVIDENCE_BYTES) throw new Error(`source ${source.source_id} exceeds size limit`)
   const digest = createHash('sha256').update(bytes).digest('hex')
   if (digest !== source.content_sha256) throw new Error(`source ${source.source_id} failed integrity verification`)
   const inline = source.media_type.startsWith('image/') || source.media_type === 'application/pdf'

@@ -11,7 +11,7 @@
 // Pipeline:
 //   1. Build system prompt from Apollo master rules + brand.md + style.md
 //   2. Build user prompt: module sections + fields + uploads
-//   3. Invoke Claude Sonnet 4 with a tool whose input_schema is the
+//   3. Invoke the configured Claude model with a tool whose input_schema is the
 //      deliverable's output JSON schema → forces structured output
 //   4. Validate AI output against the schema with Ajv (draft 2020-12)
 //   5. On validation failure, send a corrective follow-up; on second
@@ -36,10 +36,13 @@ import type {
 } from './packages-loader'
 import type { LoadedBrand } from './brands'
 import { APOLLO_WORKMANSHIP_STANDARD, auditDeliverableQuality, type DeliverableQualityReport } from './deliverable-quality'
+import { MAX_EVIDENCE_BYTES, MAX_EXECUTABLE_IMAGE_BYTES } from '@/lib/mission-control/evidence'
 
 const MAX_TOKENS_PRIMARY = 8192
 const MAX_TOKENS_RETRY = 6144
-const INLINE_BYTE_LIMIT = 5 * 1024 * 1024 // 5 MB per inline document/image
+export function inlineEvidenceByteLimit(contentType:string):number {
+  return contentType === 'application/pdf' ? MAX_EVIDENCE_BYTES : MAX_EXECUTABLE_IMAGE_BYTES
+}
 
 export interface OrchestrateUpload {
   id: string
@@ -49,7 +52,7 @@ export interface OrchestrateUpload {
   size_bytes: number
   caption: string | null
   extracted_text: string | null
-  bytes: Buffer | null // populated for image/* and application/pdf when ≤ 5 MB
+  bytes: Buffer | null // populated for image/* and application/pdf within its supported inline limit
 }
 
 export interface OrchestrateArgs {
@@ -80,6 +83,7 @@ export class OrchestrateError extends Error {
       | 'no_output'
       | 'schema_invalid'
       | 'quality_invalid'
+      | 'evidence_invalid'
       | 'render',
     public readonly details?: unknown
   ) {
@@ -283,7 +287,7 @@ function buildUserPromptText(args: OrchestrateArgs): string {
 
 type AnthropicContentBlock = Anthropic.ContentBlockParam
 
-function buildContentBlocks(
+export function buildContentBlocks(
   args: OrchestrateArgs,
   prompt: string
 ): AnthropicContentBlock[] {
@@ -294,7 +298,7 @@ function buildContentBlocks(
       `Document: ${u.original_filename} (kind: ${u.upload_kind}` +
       (u.caption ? `, caption: ${u.caption}` : '') +
       ')'
-    if (u.bytes && u.bytes.length <= INLINE_BYTE_LIMIT) {
+    if (u.bytes && u.bytes.length <= inlineEvidenceByteLimit(u.content_type)) {
       if (u.content_type.startsWith('image/')) {
         const mediaType = u.content_type as
           | 'image/jpeg'
@@ -335,12 +339,11 @@ function buildContentBlocks(
       })
       continue
     }
-    blocks.push({
-      type: 'text',
-      text:
-        headerText +
-        '\n(File present, no inline preview — include it in your reasoning conceptually.)',
-    })
+    throw new OrchestrateError(
+      `${u.original_filename} cannot be read safely in this execution. Reattach a smaller image or an extractable document.`,
+      'evidence_invalid',
+      { evidence_id:u.id, content_type:u.content_type, size_bytes:u.size_bytes },
+    )
   }
 
   return blocks

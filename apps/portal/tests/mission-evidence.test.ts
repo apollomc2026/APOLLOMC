@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx'
 import sharp from 'sharp'
 import { batchEvidenceSources, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, normalizeEvidenceMime, prepareEvidenceRetrieval, sanitizeEvidenceBytes } from '../lib/mission-control/evidence'
 import { mergeMissionFacts } from '../lib/mission-control/contracts'
+import { buildContentBlocks, inlineEvidenceByteLimit, OrchestrateError } from '../lib/apollo/orchestrate'
 
 describe('mission evidence custody', () => {
   it('rejects a declared PDF whose bytes are not a PDF', () => {
@@ -49,6 +50,20 @@ describe('mission evidence custody', () => {
     expect(metadata.orientation).toBeUndefined()
     expect(metadata.width).toBe(3)
     expect(metadata.height).toBe(4)
+  })
+
+  it('keeps accepted PDFs executable above the image-only five-megabyte ceiling', () => {
+    expect(inlineEvidenceByteLimit('application/pdf')).toBe(20 * 1024 * 1024)
+    expect(inlineEvidenceByteLimit('image/jpeg')).toBe(5 * 1024 * 1024)
+    const pdf = Buffer.alloc(6 * 1024 * 1024, 1)
+    const blocks = buildContentBlocks({ uploads:[{ id:'large-pdf', upload_kind:'reference_doc', original_filename:'survey.pdf', content_type:'application/pdf', size_bytes:pdf.length, caption:null, extracted_text:null, bytes:pdf }] } as never, 'Mission evidence')
+    expect(blocks.some(block => block.type === 'document')).toBe(true)
+  })
+
+  it('fails closed instead of pretending an unreadable attachment was considered', () => {
+    const image = Buffer.alloc(5 * 1024 * 1024 + 1, 1)
+    expect(() => buildContentBlocks({ uploads:[{ id:'oversize-image', upload_kind:'site_photo', original_filename:'site.jpg', content_type:'image/jpeg', size_bytes:image.length, caption:null, extracted_text:null, bytes:image }] } as never, 'Mission evidence'))
+      .toThrowError(OrchestrateError)
   })
 
   it('converts Office evidence to a hashable text execution artifact', () => {
