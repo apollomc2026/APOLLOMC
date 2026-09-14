@@ -1304,11 +1304,11 @@ export function MissionControl() {
                   ? jobId
                     ? `Brief approved · v${specificationVersion || 1} locked`
                     : "Start approved execution"
-                  : readiness >= 75
-                    ? questions.length > 0 && !acceptUnresolved
-                      ? "Accept open decisions to approve"
-                      : "Review and approve brief"
-                    : `${75 - readiness}% to brief readiness`}</span>
+                  : questions.length > 0
+                    ? `${questions.length} required ${questions.length === 1 ? "fact remains" : "facts remain"}`
+                    : readiness >= 75
+                      ? "Review and approve brief"
+                      : "Calibration in progress"}</span>
               </button>
             </>
           ) : (
