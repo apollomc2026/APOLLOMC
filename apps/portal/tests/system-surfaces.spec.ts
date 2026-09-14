@@ -233,11 +233,14 @@ test('a safely failed workflow can be retried after its dependency is repaired',
   const fixture = await (await page.request.get('/api/mission-control/conversation?id=mission-demo')).json()
   await page.route('**/api/mission-control/conversation?id=mission-demo', route => route.fulfill({ status: 200, contentType: 'application/json', json: { ...fixture, job: { ...fixture.job, id: 'job-failed', state: 'failed', artifact_url: null } } }))
   let retryBody: Record<string, unknown> | null = null
+  let notificationBody: Record<string, unknown> | null = null
+  await page.route('**/api/mission-control/notify', async route => { notificationBody = route.request().postDataJSON(); await route.fulfill({ status:200, contentType:'application/json', json:{ sent:true } }) })
   await page.route('**/api/mission-control/retry', async route => { retryBody = route.request().postDataJSON(); await route.fulfill({ status: 202, contentType: 'application/json', json: { job_id: 'job-recovered', state: 'queued' } }) })
   await page.goto('/dashboard?mission=mission-demo')
   const failureBanner = page.locator('.mc-failure-banner')
   await expect(failureBanner).toContainText('MISSION LAUNCH FAILED')
-  await expect(failureBanner).toContainText('A failure alert has also been sent by email.')
+  await expect(failureBanner).toContainText('A failure alert is also queued for email delivery.')
+  await expect.poll(() => notificationBody).toEqual({ job_id:'job-failed' })
   await expect(failureBanner.getByRole('button', { name: 'Check calibration & retry' })).toBeVisible()
   await page.getByRole('button', { name: 'Retry failed execution' }).click()
   await expect(page.getByText('queued', { exact: true })).toBeVisible()

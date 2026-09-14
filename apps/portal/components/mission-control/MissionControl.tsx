@@ -242,7 +242,7 @@ export function MissionControl() {
   }, [jobId, jobState]);
 
   useEffect(() => {
-    if (!jobId || jobState !== "delivered") return;
+    if (!jobId || !["delivered", "failed"].includes(jobState ?? "")) return;
     if (notificationRequestedRef.current === jobId) return;
     notificationRequestedRef.current = jobId;
     void fetch("/api/mission-control/notify", {
@@ -907,7 +907,7 @@ export function MissionControl() {
           <div>
             <span>MISSION LAUNCH FAILED</span>
             <strong>APOLLO stopped safely before delivery.</strong>
-            <p>Check mission calibration and evidence, then retry the preserved execution. A failure alert has also been sent by email.</p>
+            <p>Check mission calibration and evidence, then retry the preserved execution. A failure alert is also queued for email delivery.</p>
           </div>
           <button type="button" onClick={() => void retryExecution()} disabled={working}>
             {working ? "Preparing retry…" : "Check calibration & retry"}

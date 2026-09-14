@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAllowedUser } from '@/lib/apollo/auth'
 import { sendCompletionNotification } from '@/lib/executor/completion-notification'
+import { sendFailureNotification } from '@/lib/executor/failure-notification'
 import { getJob } from '@/lib/executor/ledger'
 
 export async function POST(request: Request) {
@@ -13,8 +14,10 @@ export async function POST(request: Request) {
   const job = await getJob(body.job_id)
   if (!job || job.requested_by !== allowed.user.userId)
     return NextResponse.json({ error: 'Document job was not found' }, { status: 404 })
-  if (job.state !== 'delivered')
-    return NextResponse.json({ error: 'Only delivered jobs can issue completion notifications' }, { status: 409 })
-  const result = await sendCompletionNotification(body.job_id)
+  if (!['delivered', 'failed'].includes(String(job.state)))
+    return NextResponse.json({ error: 'Only terminal delivered or failed jobs can issue notifications' }, { status: 409 })
+  const result = job.state === 'delivered'
+    ? await sendCompletionNotification(body.job_id)
+    : await sendFailureNotification(body.job_id)
   return NextResponse.json(result)
 }

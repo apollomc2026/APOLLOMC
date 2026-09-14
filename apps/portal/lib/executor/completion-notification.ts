@@ -4,6 +4,7 @@ import type { ArtifactManifest } from './contracts'
 
 export async function sendCompletionNotification(jobId: string) {
   const db = await createServiceClient()
+  const staleBefore = new Date(Date.now() - 10 * 60_000).toISOString()
   const claim = await db
     .from('apollo_document_jobs')
     .update({
@@ -13,7 +14,7 @@ export async function sendCompletionNotification(jobId: string) {
     })
     .eq('id', jobId)
     .eq('state', 'delivered')
-    .in('completion_email_status', ['pending', 'failed'])
+    .or(`completion_email_status.in.(pending,failed),and(completion_email_status.eq.sending,updated_at.lt.${staleBefore})`)
     .select('id,conversation_id,requested_by,artifacts')
     .maybeSingle()
 
