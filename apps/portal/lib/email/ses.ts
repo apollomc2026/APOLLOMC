@@ -93,7 +93,7 @@ export function missionCompleteEmail(
   missionId: string,
   artifactUrl: string,
 ) {
-  const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?mission=${encodeURIComponent(missionId)}`
+  const telemetryUrl = `${process.env.NEXT_PUBLIC_APP_URL}/telemetry?mission=${encodeURIComponent(missionId)}`
   return {
     subject: `Mission complete: ${deliverableName} is ready`,
     html: `
@@ -102,11 +102,11 @@ export function missionCompleteEmail(
         <h1 style="color: #111827;">Mission complete</h1>
         <p>Your <strong>${deliverableName}</strong> has passed APOLLO's workmanship checks and is ready for pickup.</p>
         <p><a href="${artifactUrl}" style="display: inline-block; padding: 12px 24px; background: #0b7285; color: white; text-decoration: none; border-radius: 999px;">Open deliverable</a></p>
-        <p><a href="${dashboardUrl}" style="color: #0b7285;">View mission record</a></p>
+        <p><a href="${telemetryUrl}" style="color: #0b7285;">View mission record</a></p>
         <p style="color: #6b7280; font-size: 13px;">Mission ${missionId}</p>
       </div>
     `,
-    text: `Mission complete. ${deliverableName} is ready: ${artifactUrl}\nMission record: ${dashboardUrl}`,
+    text: `Mission complete. ${deliverableName} is ready: ${artifactUrl}\nMission record: ${telemetryUrl}`,
   }
 }
 
@@ -138,7 +138,7 @@ export function rebuildCompleteEmail(deliverableName: string, sectionName: strin
 }
 
 export function failedEmail(deliverableName: string, missionId: string) {
-  const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?mission=${encodeURIComponent(missionId)}`
+  const calibrationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/new-mission?mission=${encodeURIComponent(missionId)}`
   const safeName = escapeHtml(deliverableName)
   const safeMissionId = escapeHtml(missionId)
   return {
@@ -149,12 +149,12 @@ export function failedEmail(deliverableName: string, missionId: string) {
         <h1 style="color: #991b1b;">Mission launch failed</h1>
         <p>APOLLO stopped the <strong>${safeName}</strong> mission safely before delivery.</p>
         <p>Open Mission Control to review the calibration, evidence, and required inputs, then retry the preserved mission.</p>
-        <p><a href="${dashboardUrl}" style="display: inline-block; padding: 12px 24px; background: #b45309; color: white; text-decoration: none; border-radius: 999px;">Check calibration</a></p>
+        <p><a href="${calibrationUrl}" style="display: inline-block; padding: 12px 24px; background: #b45309; color: white; text-decoration: none; border-radius: 999px;">Check calibration</a></p>
         <p style="color: #6b7280; font-size: 13px;">Mission ${safeMissionId}</p>
         <p style="color: #6b7280; font-size: 13px;">No evidence or prior execution record was discarded. If you need assistance, contact support@apollomc.ai.</p>
       </div>
     `,
-    text: `Mission launch failed. APOLLO stopped the ${deliverableName} mission safely. Check calibration and retry: ${dashboardUrl}\nMission ${missionId}`,
+    text: `Mission launch failed. APOLLO stopped the ${deliverableName} mission safely. Check calibration and retry: ${calibrationUrl}\nMission ${missionId}`,
   }
 }
 
