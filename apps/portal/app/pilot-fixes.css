@@ -1,0 +1,5 @@
+.mc-launch-ready-overlay > section {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--orange) transparent;
+}

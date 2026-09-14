@@ -6,10 +6,10 @@ export const dynamic = 'force-dynamic'
 
 const fixture = {
   missions: [
-    { id:'mission-demo', title:'Field Operations Proposal', status:'submitted', readiness:100, current_spec_version:3, updated_at:'2026-09-06T12:00:00.000Z', job:{ id:'job-demo', state:'delivered', progress_percent:100, message:'Document deliverables are ready', artifacts:[{ title:'Field Operations Proposal', web_view_url:'#', version:1 }] }, jobs:[{ id:'job-demo', state:'delivered', progress_percent:100, message:'Document deliverables are ready', artifacts:[{ title:'Field Operations Proposal', web_view_url:'#', version:1 }], created_at:'2026-09-06T12:00:00.000Z' }] },
+    { id:'mission-demo', title:'Field Operations Proposal', status:'submitted', readiness:100, current_spec_version:3, updated_at:'2026-09-06T12:00:00.000Z', job:{ id:'job-reflight', state:'delivered', progress_percent:100, message:'Document deliverables are ready', artifacts:[{ title:'Field Operations Proposal', web_view_url:'#reflight', version:2 }] }, jobs:[{ id:'job-reflight', state:'delivered', progress_percent:100, message:'Document deliverables are ready', artifacts:[{ title:'Field Operations Proposal', web_view_url:'#reflight', version:2 }], created_at:'2026-09-06T13:00:00.000Z' },{ id:'job-demo', state:'delivered', progress_percent:100, message:'Document deliverables are ready', artifacts:[{ title:'Field Operations Proposal', web_view_url:'#launch', version:1 }], created_at:'2026-09-06T12:00:00.000Z' }] },
     { id:'mission-active', title:'Site Inspection Report', status:'calibrating', readiness:62, current_spec_version:2, updated_at:'2026-09-06T11:00:00.000Z', job:null, jobs:[] },
   ],
-  metrics:{ total:2, active:1, delivered:1, failed:0, average_progress:81 },
+  metrics:{ total:2, active:1, delivered:2, failed:0, average_progress:81 },
 }
 
 export async function GET() {

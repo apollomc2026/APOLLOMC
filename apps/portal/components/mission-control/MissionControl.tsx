@@ -711,7 +711,7 @@ export function MissionControl() {
       await new Promise((resolve) => window.setTimeout(resolve, 850));
     }
     setLaunchCountdown("LIFTOFF");
-    await new Promise((resolve) => window.setTimeout(resolve, 650));
+    await new Promise((resolve) => window.setTimeout(resolve, 1200));
     await approveBrief();
     setLaunchCountdown(null);
   }
@@ -769,7 +769,7 @@ export function MissionControl() {
       await new Promise((resolve) => window.setTimeout(resolve, 850));
     }
     setRegenerateCountdown("LIFTOFF");
-    await new Promise((resolve) => window.setTimeout(resolve, 650));
+    await new Promise((resolve) => window.setTimeout(resolve, 1200));
     await requestRevision("Regenerate this deliverable using the current approved evidence and publication standards. Preserve all verified facts and create a new immutable draft version.");
     setRegenerateCountdown(null);
     setRegenerateOpen(false);
