@@ -2,6 +2,7 @@ import type { ArtifactManifest, DocumentWorkOrder, JobState } from '@/lib/execut
 import { assertNotCancelled, completeJob, getJob, updateJob } from '@/lib/executor/ledger'
 import { generateStructuredDocument, renderAndStorePdf } from '@/lib/executor/pipeline'
 import { verifyFinancialDocument } from '@/lib/executor/financial-verification'
+import { verifyAgreementDocument } from '@/lib/executor/agreement-verification'
 import { GoogleDriveAuthorizationError } from '@/lib/executor/google-drive'
 import { sendCompletionNotification } from '@/lib/executor/completion-notification'
 import { sendFailureNotification } from '@/lib/executor/failure-notification'
@@ -73,10 +74,13 @@ async function verifyStep(order: DocumentWorkOrder, contentHtml: string, quality
   console.log(`[apollo-document] validating START job=${order.work_order_id}`)
   await assertNotCancelled(order.work_order_id)
   const financial = verifyFinancialDocument(order, contentHtml)
+  const agreement = verifyAgreementDocument(order, contentHtml)
   const message = financial.required
     ? `Schema, workmanship, and deterministic financial verification passed (${financial.verified_values} values/checks)`
+    : agreement.required
+      ? `Schema, workmanship, and deterministic agreement verification passed (${agreement.verified_fields.length} legal anchors)`
     : `Structured document passed schema and workmanship validation (${quality.score}/100)`
-  await updateJob(order.work_order_id, 'validating', 60, message, { checkpoint_ref: `${order.work_order_id}:validating`, financial_verification: financial, workmanship: quality })
+  await updateJob(order.work_order_id, 'validating', 60, message, { checkpoint_ref: `${order.work_order_id}:validating`, financial_verification: financial, agreement_verification: agreement, workmanship: quality })
   console.log(`[apollo-document] validating DONE job=${order.work_order_id}`)
 }
 
