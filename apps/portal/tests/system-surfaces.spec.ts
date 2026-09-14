@@ -109,6 +109,7 @@ test('telemetry navigation surfaces failed and newly delivered mission notices',
 })
 
 test('delivered work opens a controlled review and accepts scoped revision directives', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('apollo:theme', 'dark'))
   const conversationResponse = await page.request.get('/api/mission-control/conversation?id=mission-demo')
   expect(conversationResponse.ok()).toBe(true)
   const conversation = await conversationResponse.json()
@@ -129,7 +130,13 @@ test('delivered work opens a controlled review and accepts scoped revision direc
   await expect(page.getByRole('heading', { name:'Nothing overwritten.' })).toBeVisible()
   await expect(page.getByText('DRAFT 2')).toBeVisible()
   await expect(page.getByText('DRAFT 1')).toBeVisible()
-  await page.getByLabel('Revision target').selectOption('Executive decision brief')
+  const revisionTarget = page.getByLabel('Revision target')
+  await expect.poll(() => revisionTarget.evaluate(element => getComputedStyle(element).colorScheme)).toBe('dark')
+  await expect.poll(() => revisionTarget.locator('option').first().evaluate(element => getComputedStyle(element).color)).toBe('rgb(240, 244, 255)')
+  await page.getByRole('button', { name:'Use light mode' }).click()
+  await expect.poll(() => revisionTarget.evaluate(element => getComputedStyle(element).colorScheme)).toBe('light')
+  await expect.poll(() => revisionTarget.locator('option').first().evaluate(element => getComputedStyle(element).color)).toBe('rgb(19, 38, 48)')
+  await revisionTarget.selectOption('Executive decision brief')
   await page.getByLabel('Describe the required change').fill('Make the approval request more decisive while preserving every commercial term.')
   const revision = page.waitForResponse(response => response.url().endsWith('/api/mission-control/revise') && response.status() === 202)
   await page.getByRole('button', { name:'INITIATE DIRECTED REFLIGHT' }).click()
