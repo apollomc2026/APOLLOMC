@@ -20,8 +20,9 @@ export interface DeliverableQualityReport {
 const FIELD_RECORDS = new Set(['daily-construction-report', 'final-qc-report', 'project-completion-notice', 'tool-box-talk', 'incident-report'])
 const COMMERCIAL = new Set(['quote', 'invoice', 'change-order', 'expense-report', 'budget-vs-actual', 'cash-flow-forecast', 'tax-estimate', 'personal-monthly'])
 const FINANCIAL = new Set(['financial-statements-package', 'cash-flow-budget-package'])
-const DECISION_GUIDES = new Set(['meeting-minutes', 'legal-memo', 'contract-package', 'audit-readiness', 'compliance-report'])
+const DECISION_GUIDES = new Set(['meeting-minutes', 'legal-memo', 'contract-package', 'contract-intelligence-review', 'audit-readiness', 'compliance-report'])
 const PRESENTATIONS = new Set(['pitch-deck', 'exec-presentation'])
+const STRATEGIC_REPORTS = new Set(['business-plan','market-analysis','investor-memo','investor-update'])
 
 export function qualityArchetypeForSlug(slug: string): QualityArchetype {
   if (FIELD_RECORDS.has(slug)) return 'field-record'
@@ -90,6 +91,11 @@ export function auditDeliverableQuality(slug: string, html: string, expectedSect
     if (words > 1800) violations.push('Presentation decks exceed the executive reading-density ceiling and must be tightened for live delivery.')
   }
 
+  if (STRATEGIC_REPORTS.has(slug)) {
+    if (tables < 2 || tableRows < 6) violations.push('Strategic publications require at least two decision-useful tables covering evidence such as market position, milestones, economics, risks, or recommendations.')
+    if (lists + tables < 4) violations.push('Strategic publication content is overly narrative; convert comparisons, priorities, risks, and actions into scannable structures.')
+  }
+
   if (FINANCIAL.has(slug) && (tables < 2 || tableRows < 8)) {
     violations.push('Financial packets require at least two substantive tables and eight total rows so schedules, scenarios, and decision figures remain auditable.')
   }
@@ -106,6 +112,11 @@ export function auditDeliverableQuality(slug: string, html: string, expectedSect
     if (!/(?:term and termination|termination)/i.test(text)) violations.push('Agreement packages require explicit term and termination treatment.')
     if (!/(?:signature|acceptance|executed by)/i.test(text)) violations.push('Agreement packages require a visible execution or signature section.')
     if (tables + lists < 2) violations.push('Agreement packages require structured obligations, responsibilities, or commercial terms.')
+  }
+  if (slug === 'contract-intelligence-review') {
+    if (tables < 5 || tableRows < 20) violations.push('Contract intelligence reviews require at least five substantive tables and twenty rows for dates, clauses, obligations, value, risks, and actions.')
+    if (!/(?:clause|section|page)\b/i.test(text)) violations.push('Contract intelligence findings require visible clause, section, or page anchors back to the controlling source.')
+    if (!/(?:active|expired|upcoming|conditional|unknown)/i.test(text)) violations.push('Contract intelligence reviews require explicit operational status labels for rights, duties, and deadlines.')
   }
 
   if (unresolvedMarkers > 0) warnings.push(`${unresolvedMarkers} explicit unresolved marker(s) remain and must stay visible to the reviewer.`)

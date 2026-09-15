@@ -6,7 +6,7 @@
 // has zero runtime file dependencies — required for Vercel serverless where
 // outputFileTracingIncludes is unreliable with the --turbopack production build.
 //
-// Counts at generation time: 37 modules, 37 schemas, 17 styles.
+// Counts at generation time: 38 modules, 38 schemas, 17 styles.
 
 export const CATALOG_RAW = {
   "industries": [
@@ -27,6 +27,16 @@ export const CATALOG_RAW = {
           "estimated_minutes": 8,
           "base_price_cents": 6500,
           "schema_file": "legal-memo.schema.json"
+        },
+        {
+          "slug": "contract-intelligence-review",
+          "label": "Contract Intelligence Review",
+          "description": "Clause-linked plain-English contract review covering status, deadlines, obligations, costs, exclusions, overlooked protections, and practical ways to capture the agreement's full value.",
+          "estimated_pages_min": 8,
+          "estimated_pages_max": 24,
+          "estimated_minutes": 16,
+          "base_price_cents": 9500,
+          "schema_file": "contract-intelligence-review.schema.json"
         },
         {
           "slug": "contract-package",
@@ -2021,6 +2031,131 @@ export const MODULES_RAW: Record<string, unknown> = {
         "instructions": "Include supporting materials such as control mapping tables, evidence logs, glossary of terms, and regulatory reference links."
       }
     ]
+  },
+  "contract-intelligence-review": {
+    "deliverable_slug": "contract-intelligence-review",
+    "required_fields": [],
+    "optional_fields": [
+      {
+        "key": "review_perspective",
+        "label": "Whose interests should APOLLO prioritize?",
+        "type": "text",
+        "placeholder": "e.g., customer, vendor, employee, property owner; default: document owner"
+      },
+      {
+        "key": "review_goal",
+        "label": "What do you most want to understand or accomplish?",
+        "type": "textarea",
+        "placeholder": "Optional — APOLLO will perform a complete operational review by default"
+      },
+      {
+        "key": "as_of_date",
+        "label": "Review as-of date",
+        "type": "date"
+      },
+      {
+        "key": "jurisdiction",
+        "label": "Known jurisdiction",
+        "type": "text",
+        "placeholder": "Optional — extracted from the agreement when stated"
+      },
+      {
+        "key": "related_documents",
+        "label": "Related amendments, schedules, warranties, or policies",
+        "type": "textarea",
+        "placeholder": "Optional — attach the actual files whenever available"
+      }
+    ],
+    "file_upload_prompts": [
+      {
+        "kind": "reference_doc",
+        "label": "Upload the complete contract and any amendments, schedules, exhibits, warranty booklets, or incorporated policies",
+        "required": true
+      }
+    ],
+    "sections": [
+      {
+        "key": "command_summary",
+        "label": "Contract Command Summary",
+        "required": true,
+        "min_words": 150,
+        "max_words": 350,
+        "instructions": "Identify the agreement, parties, apparent current status as of the stated review date, the five most consequential findings, and the immediate next actions. Use plain language. Distinguish verified clauses from interpretation and missing documents."
+      },
+      {
+        "key": "status_dashboard",
+        "label": "Status and Critical Dates Dashboard",
+        "required": true,
+        "min_words": 150,
+        "max_words": 500,
+        "instructions": "Create a table with event or right, controlling clause/page, trigger date, deadline or notice window, current status (active, expired, upcoming, conditional, unknown), responsible party, and recommended action. Include effective date, term, renewal, cancellation, claim, cure, payment, warranty, audit, return, and survival dates when present. Never calculate a date unless the contract supplies the inputs; label calculated dates and method."
+      },
+      {
+        "key": "plain_english_map",
+        "label": "Plain-English Contract Map",
+        "required": true,
+        "min_words": 400,
+        "max_words": 1000,
+        "instructions": "Explain each material clause in simple terms in a navigable table: topic, what the contract says, what it means operationally, who must act, and exact clause/page source. Cover the complete agreement rather than only adverse clauses."
+      },
+      {
+        "key": "obligation_matrix",
+        "label": "Obligations, Rights, and Dependencies",
+        "required": true,
+        "min_words": 300,
+        "max_words": 900,
+        "instructions": "Create an owner-based matrix of mandatory duties, discretionary rights, prerequisites, evidence needed, counterparty dependencies, frequency, consequence of nonperformance, and clause/page. Separate the operator's obligations from the counterparty's obligations."
+      },
+      {
+        "key": "money_value",
+        "label": "Money, Coverage, and Value Capture",
+        "required": true,
+        "min_words": 250,
+        "max_words": 750,
+        "instructions": "Extract verified prices, fees, limits, deductibles, credits, reimbursements, warranties, service levels, remedies, benefits, coverage, exclusions, and claim procedures. Explain how to use each available benefit or entitlement, what proof is required, and what could cause denial or forfeiture. Do not invent financial figures or coverage."
+      },
+      {
+        "key": "missed_items",
+        "label": "Commonly Missed Clauses and Hidden Friction",
+        "required": true,
+        "min_words": 250,
+        "max_words": 750,
+        "instructions": "Flag automatic renewal, notice method, short claim windows, incorporated documents, exclusions, maintenance conditions, discretion clauses, deemed acceptance, fee escalation, assignment, survival, audit rights, limitation periods, and remedy restrictions when actually present. For each item state why it matters and cite the exact clause/page. Do not imply a standard clause exists when it does not."
+      },
+      {
+        "key": "leverage_playbook",
+        "label": "Contract Leverage Playbook",
+        "required": true,
+        "min_words": 250,
+        "max_words": 750,
+        "instructions": "Give practical, lawful ways to use the contract to its fullest extent: claims to prepare, benefits to request, notices to send, records to preserve, performance to demand, milestones to monitor, and negotiation points. Tie every action to contract language or clearly label it as a strategic suggestion requiring professional confirmation."
+      },
+      {
+        "key": "risk_escalation",
+        "label": "Risk and Professional Escalation",
+        "required": true,
+        "min_words": 200,
+        "max_words": 650,
+        "instructions": "Rank high, medium, and low operational risks. Identify ambiguous, conflicting, missing, unsigned, illegible, or externally incorporated material. State which questions require a licensed attorney, accountant, insurance professional, or other specialist. This is contract intelligence, not legal advice."
+      },
+      {
+        "key": "action_calendar",
+        "label": "Action Calendar and Checklist",
+        "required": true,
+        "min_words": 200,
+        "max_words": 600,
+        "instructions": "Produce a prioritized checklist and calendar with owner, action, due date or trigger, required evidence, source clause/page, and completion status. Put urgent preservation or notice actions first. Include a re-review trigger for amendments or changed facts."
+      },
+      {
+        "key": "source_index",
+        "label": "Clause and Source Index",
+        "required": true,
+        "min_words": 150,
+        "max_words": 500,
+        "instructions": "Provide a compact index mapping every major finding to document name, clause/section, and page. List unreviewed, missing, unreadable, or incorporated-but-not-provided material explicitly. Never cite a clause that was not present in the evidence."
+      }
+    ],
+    "generation_notes": "Treat the uploaded agreement and related documents as the sole authority. Review the complete evidence set, including amendments and exhibits. Every material finding, date, obligation, entitlement, risk, and recommended contract action must include an exact document and clause/section or page anchor. Never fabricate language, deadlines, legal authority, coverage, or remedies. Use plain English first, then the precise source. Clearly label active, expired, upcoming, conditional, conflicting, and unknown states. If the evidence is incomplete, say so prominently. This deliverable provides operational contract intelligence and issue spotting, not legal advice, and must route legal conclusions to qualified counsel."
   },
   "contract-package": {
     "deliverable_slug": "contract-package",
@@ -9287,6 +9422,102 @@ export const SCHEMAS_RAW: Record<string, unknown> = {
                     "type": "string"
                   },
                   "remediation_deadline": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "contract-intelligence-review": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Contract Intelligence Review",
+    "description": "Clause-linked operational review of an existing agreement.",
+    "type": "object",
+    "required": [
+      "metadata",
+      "sections"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "metadata": {
+        "type": "object",
+        "required": [
+          "deliverable_type",
+          "title",
+          "client_name",
+          "date",
+          "prepared_by"
+        ],
+        "properties": {
+          "deliverable_type": {
+            "type": "string",
+            "const": "contract-intelligence-review"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 5
+          },
+          "client_name": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "prepared_by": {
+            "type": "string"
+          },
+          "confidentiality_notice": {
+            "type": "string"
+          }
+        }
+      },
+      "sections": {
+        "type": "array",
+        "minItems": 10,
+        "items": {
+          "type": "object",
+          "required": [
+            "key",
+            "label",
+            "content"
+          ],
+          "properties": {
+            "key": {
+              "type": "string",
+              "enum": [
+                "command_summary",
+                "status_dashboard",
+                "plain_english_map",
+                "obligation_matrix",
+                "money_value",
+                "missed_items",
+                "leverage_playbook",
+                "risk_escalation",
+                "action_calendar",
+                "source_index"
+              ]
+            },
+            "label": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string",
+              "minLength": 50
+            },
+            "citations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "reference": {
+                    "type": "string"
+                  },
+                  "pin_cite": {
                     "type": "string"
                   }
                 }

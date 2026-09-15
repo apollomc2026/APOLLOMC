@@ -19,6 +19,16 @@
           "schema_file": "legal-memo.schema.json"
         },
         {
+          "slug": "contract-intelligence-review",
+          "label": "Contract Intelligence Review",
+          "description": "Clause-linked plain-English contract review covering status, deadlines, obligations, costs, exclusions, overlooked protections, and practical ways to capture the agreement's full value.",
+          "estimated_pages_min": 8,
+          "estimated_pages_max": 24,
+          "estimated_minutes": 16,
+          "base_price_cents": 9500,
+          "schema_file": "contract-intelligence-review.schema.json"
+        },
+        {
           "slug": "contract-package",
           "label": "Contract Package",
           "description": "Complete contract package including master agreement, exhibits, schedules, and signature blocks with customizable terms and conditions.",

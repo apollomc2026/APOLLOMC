@@ -16,8 +16,8 @@ describe('complete active deliverable catalog', () => {
     .filter(industry => industry.status === 'active')
     .flatMap(industry => industry.deliverables)
 
-  it('contains the complete 37-deliverable pilot catalog', () => {
-    expect(deliverables).toHaveLength(37)
+  it('contains the complete 38-deliverable pilot catalog', () => {
+    expect(deliverables).toHaveLength(38)
     expect(new Set(deliverables.map(item => item.slug)).size).toBe(deliverables.length)
   })
 

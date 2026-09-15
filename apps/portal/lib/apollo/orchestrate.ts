@@ -40,6 +40,10 @@ import { MAX_EVIDENCE_BYTES, MAX_EXECUTABLE_IMAGE_BYTES } from '@/lib/mission-co
 
 const MAX_TOKENS_PRIMARY = 8192
 const MAX_TOKENS_RETRY = 6144
+const MAX_TOKENS_LONG_FORM = 16384
+const MAX_TOKENS_LONG_FORM_RETRY = 14336
+const SOURCE_BOUND_STRATEGIC_SLUGS = new Set(['business-plan','market-analysis','investor-memo','investor-update','contract-intelligence-review'])
+const LONG_FORM_EDITORIAL_SLUGS = new Set(['business-plan','market-analysis','investor-memo','investor-update','audit-readiness','legal-memo','contract-intelligence-review','compliance-report','board-report','discovery-summary'])
 export function inlineEvidenceByteLimit(contentType:string):number {
   return contentType === 'application/pdf' ? MAX_EVIDENCE_BYTES : MAX_EXECUTABLE_IMAGE_BYTES
 }
@@ -149,6 +153,45 @@ function formatFieldsBlock(
     }
   }
   return lines.join('\n')
+}
+
+export function outputTokenBudget(args:OrchestrateArgs, retry = false):number {
+  const sections = activeSections(args)
+  const maximumWords = sections.reduce((total, section) => total + section.max_words, 0)
+  if (maximumWords >= 4500 || sections.length >= 11) return retry ? MAX_TOKENS_LONG_FORM_RETRY : MAX_TOKENS_LONG_FORM
+  if (maximumWords >= 2600 || sections.length >= 8) return retry ? 10240 : 12288
+  return retry ? MAX_TOKENS_RETRY : MAX_TOKENS_PRIMARY
+}
+
+function sourceCorpus(args:OrchestrateArgs):string {
+  return [JSON.stringify(args.fields), ...args.uploads.map(upload => upload.extracted_text ?? '')].join('\n')
+}
+
+function normalizedCommercialClaims(text:string):Set<string> {
+  const claims = new Set<string>()
+  for (const match of text.matchAll(/\$\s*([\d,.]+)\s*(billion\b|million\b|thousand\b|[bmk](?![a-z]))?/gi)) {
+    const base = Number(match[1].replace(/,/g,''))
+    if (!Number.isFinite(base)) continue
+    const scale = (match[2] ?? '').toLowerCase()
+    const factor = scale === 'billion' || scale === 'b' ? 1e9 : scale === 'million' || scale === 'm' ? 1e6 : scale === 'thousand' || scale === 'k' ? 1e3 : 1
+    claims.add(`money:${Math.round(base * factor * 100) / 100}`)
+  }
+  for (const match of text.matchAll(/\b(\d+(?:\.\d+)?)\s*%/g)) claims.add(`percent:${Number(match[1])}`)
+  return claims
+}
+
+export function sourceBoundaryViolations(args:OrchestrateArgs, html:string):string[] {
+  const corpus = sourceCorpus(args)
+  const violations:string[] = []
+  if (SOURCE_BOUND_STRATEGIC_SLUGS.has(args.slug)) {
+    const allowed = normalizedCommercialClaims(corpus)
+    const unsupported = [...normalizedCommercialClaims(html)].filter(claim => !allowed.has(claim))
+    if (unsupported.length) violations.push(`Unsupported commercial figures were introduced (${unsupported.join(', ')}). Remove them or label the exact figures as unresolved; do not estimate market size, growth, valuation, revenue, pricing, or returns without supplied evidence.`)
+  }
+  if ((args.slug === 'legal-memo' || args.slug === 'contract-intelligence-review') && /\b(?:v\.|\d{4}\s+WL\s+|F\.\s*Supp\.|N\.E\.\d)/i.test(html) && !/\b(?:v\.|\d{4}\s+WL\s+|F\.\s*Supp\.|N\.E\.\d)/i.test(corpus)) {
+    violations.push('Unsupported case authority was introduced. Cite only authorities supplied in the approved fields or evidence; identify all other legal research as required for retained counsel.')
+  }
+  return violations
 }
 
 export function formatRevisionDirective(fields: Record<string, unknown>): string | null {
@@ -319,6 +362,15 @@ export function buildUserPromptText(args: OrchestrateArgs): string {
       '- Preserve measured facts and required sign-off, but do not add a cover, table of contents, appendix, or duplicate identification section.',
       '',
     ] : []),
+    ...(LONG_FORM_EDITORIAL_SLUGS.has(args.slug) ? [
+      '# Executive publication composition',
+      '- Use compact tables or labeled lists for comparisons, decisions, risks, owners, milestones, and recommendations. Do not publish a wall of prose.',
+      '- Every currency amount, percentage, market size, growth rate, valuation, return, customer count, and performance metric must come verbatim from the supplied fields or attached evidence. If not supplied, state that validation is required; never create a management estimate.',
+      ...(SOURCE_BOUND_STRATEGIC_SLUGS.has(args.slug) ? [`- Permitted normalized currency and percentage claims from the source corpus: ${[...normalizedCommercialClaims(sourceCorpus(args))].join(', ') || 'none'}. Any other numeric commercial claim is prohibited.`] : []),
+      ...((args.slug === 'legal-memo' || args.slug === 'contract-intelligence-review') ? ['- Cite only contract clauses, statutes, regulations, cases, and authorities explicitly supplied in the fields or attached evidence. Never invent or recall a citation from model memory; mark additional legal research for retained counsel.'] : []),
+      ...(args.slug === 'contract-intelligence-review' ? ['- Every material finding and recommended contract action must identify its source document and clause, section, or page. Clearly distinguish active, expired, upcoming, conditional, conflicting, and unknown status.', '- Treat this as operational contract intelligence and issue spotting, not legal advice. Identify questions that require licensed counsel or another qualified professional.'] : []),
+      '',
+    ] : []),
     '# Uploaded reference materials',
     args.uploads.length === 0
       ? 'No files uploaded.'
@@ -469,6 +521,20 @@ function findToolUse(
   return null
 }
 
+export function normalizeSectionCollection(args:OrchestrateArgs, output:Record<string,unknown>):Record<string,unknown> {
+  if (Array.isArray(output.sections) || !output.sections || typeof output.sections !== 'object') return output
+  const keyed=output.sections as Record<string,unknown>
+  const sections=activeSections(args).flatMap(section => {
+    const raw=keyed[section.key]
+    if (typeof raw === 'string') return [{ key:section.key, label:section.label, content:raw }]
+    if (!raw || typeof raw !== 'object') return []
+    const value=raw as Record<string,unknown>
+    if (typeof value.content !== 'string') return []
+    return [{ ...value, key:section.key, label:typeof value.label === 'string' ? value.label : section.label }]
+  })
+  return { ...output, sections }
+}
+
 async function callClaudeWithTool(
   client: Anthropic,
   args: OrchestrateArgs,
@@ -499,6 +565,14 @@ async function callClaudeWithTool(
     messages: [{ role: 'user', content: promptBlocks }],
   })
 
+  if (response.stop_reason === 'max_tokens') {
+    throw new OrchestrateError(
+      `Claude exhausted the ${maxTokens}-token publication budget before completing the structured deliverable`,
+      'no_output',
+      { stop_reason:response.stop_reason, max_tokens:maxTokens }
+    )
+  }
+
   const tool = findToolUse(response.content)
   if (!tool) {
     throw new OrchestrateError(
@@ -507,7 +581,7 @@ async function callClaudeWithTool(
       { content: response.content }
     )
   }
-  return tool.input
+  return normalizeSectionCollection(args, tool.input)
 }
 
 // Each section's canonical heading is the single <h2> emitted by
@@ -618,7 +692,7 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
 
   let output: Record<string, unknown>
   try {
-    output = await callClaudeWithTool(client, args, systemPrompt, promptBlocks, MAX_TOKENS_PRIMARY, modelFor('structured_fill'))
+    output = await callClaudeWithTool(client, args, systemPrompt, promptBlocks, outputTokenBudget(args), modelFor('structured_fill'))
   } catch (err) {
     if (err instanceof OrchestrateError) throw err
     throw new OrchestrateError(
@@ -636,6 +710,7 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
     // Corrective second pass — feed the model its own output and the ajv
     // error list, ask it to repair.
     const repairBlocks: AnthropicContentBlock[] = [
+      ...promptBlocks,
       {
         type: 'text',
         text: [
@@ -657,7 +732,7 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
         args,
         systemPrompt,
         repairBlocks,
-        MAX_TOKENS_RETRY,
+        outputTokenBudget(args, true),
         modelFor('repair')
       )
     } catch (err) {
@@ -690,9 +765,15 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
 
   const expectedSections = activeSections(args).filter(section => section.required !== false).length
   let quality = auditDeliverableQuality(args.slug, contentHtml, expectedSections)
+  const boundaryViolations = sourceBoundaryViolations(args, contentHtml)
+  if (boundaryViolations.length) {
+    quality.violations.push(...boundaryViolations)
+    quality.passed = false
+    quality.score = Math.max(0, quality.score - boundaryViolations.length * 18)
+  }
   if (!quality.passed) {
     warnings.push(`First-pass workmanship audit scored ${quality.score}; running focused quality repair.`)
-    const repairBlocks: AnthropicContentBlock[] = [{
+    const repairBlocks: AnthropicContentBlock[] = [...promptBlocks, {
       type: 'text',
       text: [
         'Your structured output passed its JSON schema but failed APOLLO workmanship review:',
@@ -704,7 +785,7 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
       ].join('\n'),
     }]
     try {
-      output = await callClaudeWithTool(client, args, systemPrompt, repairBlocks, MAX_TOKENS_RETRY, modelFor('repair'))
+      output = await callClaudeWithTool(client, args, systemPrompt, repairBlocks, outputTokenBudget(args, true), modelFor('repair'))
     } catch (err) {
       throw new OrchestrateError('Workmanship repair pass failed: ' + (err instanceof Error ? err.message : String(err)), 'claude_invocation', err)
     }
@@ -712,7 +793,7 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
     if (!validator(output) || contractViolations.length) {
       const errorSummary = [describeAjvErrors(validator.errors), ...contractViolations.map(item => `- ${item}`)].filter(item => item !== 'unknown validation error').join('\n')
       warnings.push('Workmanship repair changed the output shape; running one bounded schema recovery pass.')
-      const recoveryBlocks: AnthropicContentBlock[] = [{
+      const recoveryBlocks: AnthropicContentBlock[] = [...promptBlocks, {
         type:'text',
         text:[
           'Your workmanship repair improved the content but broke the required JSON schema:',
@@ -723,7 +804,7 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
         ].join('\n'),
       }]
       try {
-        output = await callClaudeWithTool(client, args, systemPrompt, recoveryBlocks, MAX_TOKENS_RETRY, modelFor('repair'))
+        output = await callClaudeWithTool(client, args, systemPrompt, recoveryBlocks, outputTokenBudget(args, true), modelFor('repair'))
       } catch (err) {
         throw new OrchestrateError('Post-workmanship schema recovery failed: ' + (err instanceof Error ? err.message : String(err)), 'claude_invocation', err)
       }
@@ -732,16 +813,22 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
     }
     contentHtml = renderContentHtml(output, args.module, args.deliverableLabel, allowedSectionKeys)
     quality = auditDeliverableQuality(args.slug, contentHtml, expectedSections)
+    const repairedBoundaryViolations = sourceBoundaryViolations(args, contentHtml)
+    if (repairedBoundaryViolations.length) {
+      quality.violations.push(...repairedBoundaryViolations)
+      quality.passed = false
+      quality.score = Math.max(0, quality.score - repairedBoundaryViolations.length * 18)
+    }
     if (!quality.passed) {
       warnings.push(`Focused workmanship repair scored ${quality.score}; running one final bounded recovery pass.`)
-      const finalBlocks:AnthropicContentBlock[] = [{ type:'text', text:[
+      const finalBlocks:AnthropicContentBlock[] = [...promptBlocks, { type:'text', text:[
         'The prior repair remains below APOLLO publication quality:',
         ...workmanshipRepairGuidance(args.slug, quality.violations),
         'Re-emit the complete schema-valid deliverable. Correct every listed violation using concrete, source-grounded structures. Do not insert placeholders, omit required sections, or invent facts.',
         'Prior output:', '```json', JSON.stringify(output).slice(0, 20000), '```',
       ].join('\n') }]
       try {
-        output = await callClaudeWithTool(client, args, systemPrompt, finalBlocks, MAX_TOKENS_RETRY, modelFor('repair'))
+        output = await callClaudeWithTool(client, args, systemPrompt, finalBlocks, outputTokenBudget(args, true), modelFor('repair'))
       } catch (err) {
         throw new OrchestrateError('Final workmanship recovery failed: ' + (err instanceof Error ? err.message : String(err)), 'claude_invocation', err)
       }
@@ -749,6 +836,12 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
       if (!validator(output) || contractViolations.length) throw new OrchestrateError('Final workmanship recovery broke the deliverable schema', 'schema_invalid', { schema:validator.errors, sections:contractViolations })
       contentHtml = renderContentHtml(output, args.module, args.deliverableLabel, allowedSectionKeys)
       quality = auditDeliverableQuality(args.slug, contentHtml, expectedSections)
+      const finalBoundaryViolations = sourceBoundaryViolations(args, contentHtml)
+      if (finalBoundaryViolations.length) {
+        quality.violations.push(...finalBoundaryViolations)
+        quality.passed = false
+        quality.score = Math.max(0, quality.score - finalBoundaryViolations.length * 18)
+      }
       if (!quality.passed) throw new OrchestrateError('Deliverable remained below the APOLLO workmanship floor after bounded recovery', 'quality_invalid', quality)
     }
   }

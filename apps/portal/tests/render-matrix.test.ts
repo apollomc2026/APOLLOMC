@@ -77,6 +77,9 @@ describe('complete catalog rendering matrix', () => {
       expect(html).toContain('column-count:2')
       expect(html).toContain('Northstar Fabrication')
     }
+    if (['business-plan','market-analysis','investor-memo','investor-update','audit-readiness','legal-memo','compliance-report','board-report','discovery-summary'].includes(deliverable.slug)) {
+      expect(html).toContain('class="body-content editorial-report"')
+    }
     if (['pitch-deck','exec-presentation'].includes(deliverable.slug)) {
       expect(html).toContain('class="presentation-cover"')
       expect(html).toMatch(/class="presentation-slide\s+(?:sparse|standard|dense)"/)

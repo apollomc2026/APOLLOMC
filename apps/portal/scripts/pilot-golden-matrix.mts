@@ -15,6 +15,9 @@ const { findDeliverable, getModule, getSchema, getStylesForIndustry } = packageE
 const { orchestrate, chooseLayoutForSlug, shouldRenderToc } = orchestrateExports as typeof import('../lib/apollo/orchestrate')
 
 const FIXTURES: Record<string, Record<string, unknown>> = {
+  'contract-intelligence-review': {
+    review_perspective:'Customer purchasing a vehicle service contract', review_goal:'Understand current coverage, preserve every claim right, identify exclusions and deadlines, and obtain the full value of the purchased protection.', as_of_date:'2026-09-15', jurisdiction:'Massachusetts',
+  },
   'contract-package': {
     contract_type:'Professional Services Agreement', party_a_name:'Northstar Fabrication LLC', party_a_role:'Client', party_b_name:'On Spot Solutions LLC', party_b_role:'Consultant',
     scope_of_agreement:'Field inspection, corrective-work documentation, and final quality-control reporting for the Northstar facility modernization program.', governing_law:'Commonwealth of Massachusetts', term_length:'September 14, 2026 through December 31, 2026',
@@ -61,6 +64,57 @@ const FIXTURES: Record<string, Record<string, unknown>> = {
   },
   'board-report': {
     organization_name:'Northstar Fabrication LLC', reporting_period:'Third Quarter 2026', report_type:'Pilot authorization and operating review', financial_highlights:'Revenue: $18.4M, 4.2% above plan\nOperating margin: 12.8%, 0.6 points below plan\nAvailable cash: $2.94M\nPilot authorization requested: $97,750 including contingency', strategic_initiatives:'East Plant modernization | On schedule | Electrical corrective work in progress\nField-intelligence pilot | Decision required | 90-day controlled deployment ready\nSupplier resilience | At risk | Secondary-source qualification due October 31', key_risks:'Electrical turnover delay | Medium | Operations Director | Weekly critical-path review\nEvidence fragmentation | High | CIO | Approve controlled pilot\nSingle-source controls supplier | High | Procurement Director | Qualify alternate supplier',
+  },
+  'business-plan': {
+    company_name:'Northstar Field Intelligence Inc.', industry_sector:'Enterprise field-operations software',
+    business_description:'A controlled enterprise platform that converts mixed field evidence into approved, decision-ready operational publications with durable source, approval, delivery, and revision lineage.',
+    target_market:'Industrial operators, infrastructure contractors, regulated field-service organizations, and government program teams with high-consequence reporting workflows.',
+    revenue_model:'Usage-priced professional deliverables, enterprise control-plane subscriptions, implementation services, and optional private-cloud or dedicated-environment support.',
+    competitive_advantage:'Deliverable-specific specialist orchestration; evidence-before-assertion controls; durable approved specifications; brand-locked publication; owner-scoped external custody; and auditable regeneration rather than disposable chat output.',
+    funding_stage:'Pre-seed internal pilot; seeking $2.5 million to complete enterprise security, design-partner pilots, and specialist catalog validation over 18 months.',
+    team_overview:'Jordan Lee | Chief Executive Officer | Industrial operations and commercial delivery\nMorgan Reed | Chief Product Officer | Enterprise workflow systems\nAvery Chen | Field Operations Lead | Quality, safety, and compliance',
+    current_revenue:'Pre-revenue product; parent-company professional services revenue is not attributed to this venture.', current_customers:'One internal design partner and three planned external pilot organizations.',
+    key_metrics:'37 controlled deliverable classes\n24 live golden archetypes validated before this batch\n100% version lineage across tested regeneration flights\n35% target reduction in administrative cycle time', geographic_focus:'United States industrial and infrastructure market, beginning in the Northeast.', projection_timeframe:'2027–2031',
+  },
+  'market-analysis': {
+    target_market:'United States industrial field-operations and regulated infrastructure organizations with 250–10,000 employees.',
+    analysis_purpose:'Determine whether Northstar should authorize a design-partner launch for a controlled field-intelligence publication platform and identify the most defensible initial buyer segment.',
+    company_name:'Northstar Field Intelligence Inc.', product_or_service:'Enterprise mission workflow that ingests mixed field evidence and produces governed, branded, decision-ready reports with approval and revision lineage.', geographic_scope:'United States, with initial emphasis on Massachusetts, New England, and Mid-Atlantic industrial corridors.',
+    key_questions:'Which buyer has the highest cost of delayed field reporting?\nWhich workflows require evidence provenance and accountable approval?\nWhich alternatives are already funded?\nWhat entry wedge supports a 90-day paid pilot?',
+    known_competitors:'General-purpose AI assistants; field-management suites; document automation vendors; manual internal reporting teams.', current_market_position:'Internal-pilot product with validated publication mechanics but no external commercial deployment.', budget_for_entry:'$500,000 controlled launch budget.', timeline_for_decision:'Pilot authorization by October 31, 2026; first external design partner by January 2027.',
+    data_sources:'Management-provided pilot observations and planning assumptions only. Market-size figures must be labeled as estimates pending third-party validation.',
+  },
+  'investor-memo': {
+    target_company:'Northstar Field Intelligence Inc.', sector:'Enterprise AI workflow and field operations', deal_type:'Series Seed preferred equity',
+    investment_thesis:'A governed mission system can occupy the gap between general-purpose AI and systems of record by turning high-consequence field evidence into approved deliverables with provenance, brand control, and immutable revision history.',
+    financial_overview:'Pre-revenue. Proposed raise: $2.5M. Planned 18-month use: 45% engineering and security, 25% customer pilots and implementation, 15% specialist validation, 10% operations, 5% contingency. No valuation or return assumptions have been approved.',
+    risk_factors:'Pre-revenue product and unproven willingness to pay\nDependency on external AI, storage, and hosting providers\nEnterprise security and procurement requirements are not yet complete\nDocument-quality expectations vary by profession\nPotential liability from unsupported or stale source material',
+    fund_name:'Example Industrial Systems Fund I', deal_size:'Potential $750,000 participation in a $2.5 million round.', management_assessment:'Founder-market fit is strong in field delivery and high-quality client documentation; enterprise software scaling experience requires augmentation.', due_diligence_status:'Product architecture and internal-pilot artifacts reviewed; security audit, reference calls, cap table, and customer discovery remain open.', investment_committee_date:'2026-10-15',
+  },
+  'investor-update': {
+    company_name:'Northstar Field Intelligence Inc.', reporting_period:'September 2026',
+    key_metrics:'37 deliverable classes in active catalog\n30 live golden archetypes validated including this batch target\n26 browser journeys passing\n280 unit and contract tests passing\n$2.94M illustrative customer cash position is test data, not company cash',
+    highlights:'Completed governed regeneration and telemetry lineage\nValidated Google Drive owner-scoped custody\nAdded secure ZIP field-evidence intake\nConverted field, financial, legal, commercial, and executive formats to specialist publication layouts',
+    challenges:'External design-partner evidence is not yet available\nEnterprise security review remains ahead of public launch\nProvider dependency advisories require upstream Workflow remediation\nCommercial pricing requires measured production cost data',
+    priorities_next_period:'Complete remaining golden deliverable classes\nRun two controlled external design-partner missions\nCommission security and privacy readiness review\nInstrument per-deployment cost and cycle time',
+    ceo_name:'Jordan Lee', cash_position:'Runway and company cash are not yet reported; pre-seed planning only.', product_updates:'Mission Control, evidence custody, approval, durable execution, telemetry, revision, and notification recovery are operating in the internal pilot.', team_updates:'Enterprise security and implementation leadership searches are planned after financing.', fundraising_status:'Preparing a $2.5 million seed process after completion of the internal pilot gate.', asks_of_investors:'Introduce two industrial design partners with regulated field-reporting workflows\nRecommend an enterprise security advisor experienced in AI systems',
+  },
+  'audit-readiness': {
+    organization_name:'Northstar Fabrication LLC', audit_type:'SOC 2 Type I readiness assessment', audit_framework:'AICPA Trust Services Criteria — Security, Availability, and Confidentiality', target_audit_date:'2027-03-31',
+    scope_description:'APOLLO mission intake, evidence custody, approved specification, document generation, review, notification, telemetry, administrative access, and supporting cloud services.',
+    current_readiness:'Core owner-scoped access, durable approval state, artifact lineage, secret separation, and failure recovery are implemented. Formal control ownership, periodic access review evidence, vendor-risk files, incident exercises, and policy approval records remain incomplete.',
+    prior_audit_results:'No prior SOC examination. Internal technical controls were reviewed during the September 2026 pilot.', auditor_firm:'To be selected through a controlled request for proposal.',
+    key_controls:'Logical access | Owner-scoped authorization and row-level security | Operating\nChange management | Git-reviewed deployment lineage | Operating\nEvidence custody | Immutable source metadata and checksums | Operating\nIncident response | Failure notification and recovery workflow | Partially operating\nVendor management | Provider inventory and review | Design required',
+    known_gaps:'No approved control matrix owner roster\nAccess-review cadence not evidenced\nVendor risk assessments incomplete\nIncident tabletop not yet performed\nPolicy approval and annual review workflow not established',
+    system_landscape:'Vercel application and workflows\nSupabase database, authentication, and storage\nAnthropic model API\nGoogle Drive owner-scoped artifact custody\nGitHub source and deployment integration', classification:'Confidential — internal readiness planning',
+  },
+  'legal-memo': {
+    client_name:'On Spot Solutions LLC', opposing_party:'Northstar Fabrication LLC — hypothetical counterparty', jurisdiction:'Commonwealth of Massachusetts',
+    legal_issue:'For internal issue spotting only: whether a hypothetical services agreement permits suspension of disputed work and recovery of undisputed invoices after a client withholds all payment based on a documented but limited deliverable objection.',
+    relevant_statutes:'Massachusetts General Laws chapter 30, section 39G may inform prompt-payment concepts for certain public works but applicability to this hypothetical private services agreement is unverified. Contract text, common-law breach principles, waiver, notice, cure, and any applicable consumer or licensing rules require licensed Massachusetts counsel review.',
+    desired_outcome:'Identify the contract facts, legal questions, risk-preserving immediate actions, and records counsel needs before advising whether to continue, suspend, negotiate, or pursue collection. Do not provide a definitive legal conclusion.',
+    deadline:'2026-09-18', audience:'Internal executive team and retained Massachusetts counsel.', confidentiality_level:'Attorney review draft — privileged status not established merely by this label.',
+    prior_proceedings:'No complaint, demand, lien, arbitration, or court filing. One written objection was received; the company has not yet issued a reservation-of-rights notice.',
   },
   'financial-statements-package': {
     entity_name:'Northstar Fabrication LLC', fiscal_year_end:'December 31, 2026', basis_of_accounting:'us-gaap', opinion_type:'compilation',
@@ -130,6 +184,34 @@ const FIXTURES: Record<string, Record<string, unknown>> = {
   },
 }
 
+const UPLOAD_FIXTURES:Record<string, Array<{ id:string; upload_kind:string; original_filename:string; content_type:string; size_bytes:number; caption:string|null; extracted_text:string; bytes:null }>> = {
+  'contract-intelligence-review': [{
+    id:'northstar-warranty-contract', upload_kind:'reference_doc', original_filename:'Northstar_Vehicle_Service_Contract.pdf', content_type:'text/plain', size_bytes:6400, caption:'Synthetic pilot contract — not a real customer agreement', bytes:null,
+    extracted_text:`NORTHSTAR VEHICLE SERVICE CONTRACT — SAMPLE PILOT EVIDENCE
+Contract No. NS-VSC-2026-0915. Customer: Jordan Example. Administrator: Northstar Protection LLC. Selling Dealer: Example Motors LLC. Covered Vehicle: 2024 Example Utility, VIN TEST000000000001. Purchase Date and Effective Date: September 15, 2026. Contract Price: $2,495. This synthetic agreement is for APOLLO testing only.
+
+SECTION 1 — TERM AND MILEAGE. Coverage begins September 15, 2026 and expires at the earlier of September 15, 2031 or 75,000 vehicle miles. Odometer at purchase: 12,500 miles. Benefits apply only while the contract is active and all eligibility requirements are satisfied.
+
+SECTION 2 — COVERED COMPONENTS. The Administrator will pay reasonable parts and labor for a covered mechanical breakdown of the engine, transmission, transfer case, drive axle, steering, suspension, electrical, air conditioning, fuel system, cooling system, and factory-installed navigation display, subject to exclusions and limits. The per-visit deductible is $100. If repairs are performed by the Selling Dealer, the deductible is reduced to $0. Aggregate benefits shall not exceed the vehicle's actual cash value immediately before the covered breakdown.
+
+SECTION 3 — ADDITIONAL BENEFITS. Towing reimbursement is limited to $150 per covered breakdown. Rental vehicle reimbursement is limited to $50 per day for up to five days when approved covered labor exceeds eight hours. Trip interruption is limited to $100 per day for up to three days when a covered breakdown occurs more than 100 miles from the Customer's residence. Receipts are required and reimbursement requests must be submitted within 30 days after completion of the covered repair.
+
+SECTION 4 — CUSTOMER DUTIES AND CLAIM PROCEDURE. The Customer must maintain the vehicle according to the manufacturer's schedule and retain itemized maintenance records and receipts. Before teardown or repair, the Customer or repair facility must call 800-555-0147 and obtain an authorization number. Emergency repairs when the office is closed may proceed only to prevent further damage and are limited to $500 without prior authorization; notice and receipts must be submitted within five business days. The Administrator may inspect the vehicle and request maintenance records. Failure to obtain authorization or provide requested records may result in denial.
+
+SECTION 5 — EXCLUSIONS. This contract does not cover routine maintenance; pre-existing conditions; collision, theft, vandalism, fire, flood, or environmental damage; misuse, racing, commercial delivery use, or modifications not approved by the manufacturer; diagnostic charges when no covered breakdown is found; shop supplies; consequential damage; or repairs covered by a manufacturer's warranty, recall, insurance policy, or other service contract. Seals and gaskets are covered only when required in connection with a covered component repair.
+
+SECTION 6 — CANCELLATION. The Customer may cancel at any time by written request delivered to the Selling Dealer. Cancellation within 30 days of purchase, if no claim has been paid, receives a full refund. Later cancellation receives a pro-rata refund based on elapsed time or mileage, whichever produces the lesser refund, less paid claims and a $50 administrative fee. If a financed contract is cancelled, the refund may be paid to the lienholder. The Administrator may cancel only for nonpayment, material misrepresentation, or substantial breach of duties and must provide at least 15 days' written notice stating the reason and effective date.
+
+SECTION 7 — TRANSFER. The contract may be transferred once to a private purchaser of the covered vehicle. A transfer form, proof of sale, maintenance records, and a $75 fee must be received by the Administrator within 30 days after the vehicle sale. The contract may not be transferred to a dealer or in connection with a commercial resale.
+
+SECTION 8 — DISPUTES AND GOVERNING LAW. Massachusetts law governs. The parties will first attempt informal resolution by written notice describing the dispute and requested remedy. If unresolved after 30 days, either party may pursue available remedies. Nothing in this section waives rights that cannot lawfully be waived. Notices to the Administrator must be sent by certified mail to 100 Sample Plaza, Boston, MA 02110, with a copy by email to claims@example.invalid.
+
+SECTION 9 — ENTIRE AGREEMENT AND AMENDMENTS. This contract, the declarations page, and listed endorsements form the entire agreement. Changes are effective only in a written endorsement issued by the Administrator. Endorsement A, if attached, controls over conflicting terms. No Endorsement A was included in the supplied pilot evidence.
+
+SECTION 10 — PRIVACY AND RECORDS. Claim and maintenance records may be retained for seven years after contract expiration. The Customer should retain the contract, declarations, authorization numbers, estimates, invoices, receipts, maintenance records, and all notices for the same period.`,
+  }],
+}
+
 const requested = process.argv.slice(2)
 const slugs = requested.length ? requested : Object.keys(FIXTURES)
 const unknown = slugs.filter(slug => !FIXTURES[slug])
@@ -151,7 +233,7 @@ for (const slug of slugs) {
   const style = getStylesForIndustry(summary.industry_slug)[0]
   if (!style) throw new Error(`No style available for ${slug}`)
   const started = Date.now()
-  const generated = await orchestrate({ slug, deliverableLabel:summary.label, industryLabel:summary.industry_label, module, schema, style, brand, fields:FIXTURES[slug], uploads:[] })
+  const generated = await orchestrate({ slug, deliverableLabel:summary.label, industryLabel:summary.industry_label, module, schema, style, brand, fields:FIXTURES[slug], uploads:UPLOAD_FIXTURES[slug] ?? [] })
   const template: Template = { slug, label:summary.label, description:summary.description, category:summary.industry_slug, supports_images:true, has_signature_block:['sow','proposal','contract-package','engagement-letter','nda','change-order'].includes(slug), has_toc:shouldRenderToc(slug), layout:chooseLayoutForSlug(slug), fields:[], sections:module.sections.map(section => ({ id:section.key, title:section.label })), generation_notes:'' }
   const pdf = await buildPdf({ template, brand, inputs:FIXTURES[slug], contentHtml:generated.contentHtml, documentId:`PILOT-${slug.toUpperCase()}-20260914`, preparedDate:'September 14, 2026', palette })
   await writeFile(path.join(outputDir, `${slug}.pdf`), pdf)

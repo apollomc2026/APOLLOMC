@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as XLSX from 'xlsx'
 import sharp from 'sharp'
-import { batchEvidenceSources, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, normalizeEvidenceMime, prepareEvidenceRetrieval, sanitizeEvidenceBytes } from '../lib/mission-control/evidence'
+import { batchEvidenceSources, chunkEvidenceSources, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, normalizeEvidenceMime, prepareEvidenceRetrieval, sanitizeEvidenceBytes } from '../lib/mission-control/evidence'
 import { createMissionFact, mergeMissionFacts, type DeliverableSpecification } from '../lib/mission-control/contracts'
 import { buildContentBlocks, inlineEvidenceByteLimit, OrchestrateError } from '../lib/apollo/orchestrate'
 import { mergeEvidenceIntoSpecification } from '../lib/mission-control/evidence-specification'
@@ -134,6 +134,15 @@ describe('mission evidence custody', () => {
     expect(batches).toHaveLength(4)
     expect(batches.flat()).toEqual(sources)
     expect(batchEvidenceSources(sources, 3).flat()).toEqual(sources)
+  })
+
+  it('segments long contracts with overlap so clauses beyond the opening pages reach extraction', () => {
+    const text='A'.repeat(35_000)
+    const chunks=chunkEvidenceSources([{ id:'contract', name:'Warranty.pdf', text }], 16_000, 800)
+    expect(chunks).toHaveLength(3)
+    expect(chunks.every(chunk => chunk.id === 'contract')).toBe(true)
+    expect(chunks[2].text).toBe(text.slice(30_400,46_400))
+    expect(chunks.map(chunk => chunk.name)).toEqual(['Warranty.pdf · segment 1/3','Warranty.pdf · segment 2/3','Warranty.pdf · segment 3/3'])
   })
 
   it('rebases a concurrent evidence upload onto the latest specification without losing earlier custody', () => {

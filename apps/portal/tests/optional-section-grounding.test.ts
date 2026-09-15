@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activeSections, buildUserPromptText, sectionContractViolations, workmanshipRepairGuidance, type OrchestrateArgs } from '../lib/apollo/orchestrate'
+import { activeSections, buildUserPromptText, normalizeSectionCollection, outputTokenBudget, sectionContractViolations, sourceBoundaryViolations, workmanshipRepairGuidance, type OrchestrateArgs } from '../lib/apollo/orchestrate'
 import { getModule } from '../lib/apollo/packages-loader'
 
 function args(slug:string, fields:Record<string,unknown> = {}, uploads:OrchestrateArgs['uploads'] = []):OrchestrateArgs {
@@ -93,6 +93,25 @@ describe('optional section evidence boundaries', () => {
     expect(prompt).toContain('do not add a cover, table of contents, appendix, or duplicate identification section')
   })
 
+  it('reserves a complete structured-output budget for long professional publications', () => {
+    expect(outputTokenBudget(args('business-plan'))).toBe(16384)
+    expect(outputTokenBudget(args('business-plan'), true)).toBe(14336)
+    expect(outputTokenBudget(args('legal-memo'))).toBeGreaterThan(8192)
+    expect(outputTokenBudget(args('quote'))).toBe(8192)
+  })
+
+  it('rejects strategic figures and legal authorities that are not in the approved source corpus', () => {
+    expect(sourceBoundaryViolations(args('market-analysis', { budget_for_entry:'$500,000' }), '<p>Budget $500,000; invented TAM $3.1 billion and growth 19%.</p>').join(' ')).toContain('money:3100000000')
+    expect(sourceBoundaryViolations(args('market-analysis', { budget_for_entry:'$500,000' }), '<p>Budget $500,000.</p>')).toEqual([])
+    expect(sourceBoundaryViolations(args('market-analysis', { budget_for_entry:'$500,000' }), '<p>The $500,000 management-approved budget is available.</p>')).toEqual([])
+    expect(sourceBoundaryViolations(args('legal-memo', { relevant_statutes:'Mass. Gen. Laws ch. 30, § 39G' }), '<p>Invented Party v. Example, 2026 WL 123.</p>').join(' ')).toContain('Unsupported case authority')
+  })
+
+  it('tells long-form publications to use source-bound figures and authorities', () => {
+    expect(buildUserPromptText(args('business-plan'))).toContain('never create a management estimate')
+    expect(buildUserPromptText(args('legal-memo'))).toContain('Never invent or recall a citation from model memory')
+  })
+
   it('identifies the exact missing, duplicate, or reordered section key while safely ignoring extras', () => {
     const mission = args('nda')
     const keys = activeSections(mission).map(section => section.key)
@@ -102,5 +121,14 @@ describe('optional section evidence boundaries', () => {
     expect(violations).not.toContain('unsupported')
     expect(violations).toContain(`Duplicate section keys: ${keys[1]}`)
     expect(violations).toContain('Section order must be:')
+  })
+
+  it('deterministically normalizes a keyed section map without rewriting its source-grounded content', () => {
+    const mission=args('contract-intelligence-review')
+    const keyed=Object.fromEntries(activeSections(mission).map(section => [section.key, { content:`Verified ${section.label}` }]))
+    const normalized=normalizeSectionCollection(mission, { metadata:{ title:'Review' }, sections:keyed })
+    expect(Array.isArray(normalized.sections)).toBe(true)
+    expect((normalized.sections as Array<Record<string,unknown>>).map(section => section.key)).toEqual(activeSections(mission).map(section => section.key))
+    expect((normalized.sections as Array<Record<string,unknown>>)[0].content).toBe('Verified Contract Command Summary')
   })
 })

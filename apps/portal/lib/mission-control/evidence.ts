@@ -2,6 +2,7 @@ export interface EvidenceExtraction { text?: string; safeForDirectRetrieval: boo
 export interface EvidenceRetrievalArtifact { bytes: Buffer; mime: string; derived: boolean }
 export const MAX_EVIDENCE_BYTES = 20 * 1024 * 1024
 export const MAX_EXECUTABLE_IMAGE_BYTES = 5 * 1024 * 1024
+export const MAX_EXTRACTED_TEXT_CHARS = 1_000_000
 
 const EVIDENCE_MIME_BY_EXTENSION: Record<string, string> = {
   pdf: 'application/pdf',
@@ -69,25 +70,25 @@ export function evidenceZipTooLarge(bytes: Buffer, limit = 200 * 1024 * 1024): b
 }
 
 export async function extractEvidence(bytes: Buffer, mime: string): Promise<EvidenceExtraction> {
-  if (mime === 'text/plain' || mime === 'text/csv') return { text: bytes.toString('utf8').slice(0, 200000), safeForDirectRetrieval: true }
+  if (mime === 'text/plain' || mime === 'text/csv') return { text: bytes.toString('utf8').slice(0, MAX_EXTRACTED_TEXT_CHARS), safeForDirectRetrieval: true }
   if (mime.startsWith('image/')) return { safeForDirectRetrieval: true }
   if (mime === 'application/pdf') {
     try {
       const { PDFParse } = await import('pdf-parse')
       const parser = new PDFParse({ data: new Uint8Array(bytes) })
-      try { return { text: (await parser.getText()).text?.slice(0, 200000), safeForDirectRetrieval: true } }
+      try { return { text: (await parser.getText()).text?.slice(0, MAX_EXTRACTED_TEXT_CHARS), safeForDirectRetrieval: true } }
       finally { await parser.destroy().catch(() => {}) }
     } catch { return { safeForDirectRetrieval: true } }
   }
   if (mime.includes('wordprocessingml')) {
     const mammoth = await import('mammoth')
     const result = await mammoth.extractRawText({ buffer: bytes })
-    return { text: result.value.slice(0, 200000), safeForDirectRetrieval: false }
+    return { text: result.value.slice(0, MAX_EXTRACTED_TEXT_CHARS), safeForDirectRetrieval: false }
   }
   if (mime.includes('spreadsheetml')) {
     const xlsx = await import('xlsx')
     const workbook = xlsx.read(bytes, { type: 'buffer' })
-    const text = workbook.SheetNames.flatMap(name => [`=== ${name} ===`, xlsx.utils.sheet_to_csv(workbook.Sheets[name])]).join('\n').slice(0, 200000)
+    const text = workbook.SheetNames.flatMap(name => [`=== ${name} ===`, xlsx.utils.sheet_to_csv(workbook.Sheets[name])]).join('\n').slice(0, MAX_EXTRACTED_TEXT_CHARS)
     return { text, safeForDirectRetrieval: false }
   }
   return { safeForDirectRetrieval: false }
@@ -126,11 +127,28 @@ export function batchEvidenceSources<T>(sources:T[], batchSize:number):T[][] {
   return Array.from({ length:Math.ceil(sources.length / batchSize) }, (_, index) => sources.slice(index * batchSize, (index + 1) * batchSize))
 }
 
+export function chunkEvidenceSources(
+  sources:Array<{ id:string; name:string; text:string }>,
+  chunkSize=16_000,
+  overlap=800,
+):Array<{ id:string; name:string; text:string }> {
+  if (!Number.isInteger(chunkSize) || chunkSize < 1) throw new Error('Evidence chunk size must be a positive integer')
+  if (!Number.isInteger(overlap) || overlap < 0 || overlap >= chunkSize) throw new Error('Evidence chunk overlap must be smaller than the chunk size')
+  return sources.flatMap(source => {
+    if (source.text.length <= chunkSize) return [source]
+    const chunks:Array<{ id:string; name:string; text:string }> = []
+    const step=chunkSize-overlap
+    const total=Math.ceil((source.text.length-overlap)/step)
+    for (let offset=0,index=0;offset<source.text.length;offset+=step,index+=1) chunks.push({ id:source.id, name:`${source.name} · segment ${index+1}/${total}`, text:source.text.slice(offset,offset+chunkSize) })
+    return chunks
+  })
+}
+
 export async function extractEvidenceFactsFromSources(
   sources: Array<{ id: string; name: string; text?: string }>,
   moduleSlug: string | null,
 ): Promise<MissionFact[]> {
-  const readable = sources.filter(source => source.text?.trim()) as Array<{ id: string; name: string; text: string }>
+  const readable = chunkEvidenceSources(sources.filter(source => source.text?.trim()) as Array<{ id: string; name: string; text: string }>)
   if (!readable.length || !moduleSlug || !process.env.ANTHROPIC_API_KEY) return []
   const documentModule = getModule(moduleSlug)
   if (!documentModule) return []
@@ -138,7 +156,7 @@ export async function extractEvidenceFactsFromSources(
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   const facts: MissionFact[] = []
   for (const batch of batchEvidenceSources(readable, 4)) {
-    const sourceIds = batch.map(source => source.id)
+    const sourceIds = [...new Set(batch.map(source => source.id))]
     const properties = evidenceToolProperties(fields, sourceIds, 'source')
     const evidenceText = batch.map(source => `=== SOURCE ${source.id}: ${source.name} ===\n${source.text.slice(0, 16000)}`).join('\n\n')
     const response = await client.messages.create({ model:modelFor('extraction'), max_tokens:6000, system:'Extract only values explicitly present in the labeled evidence sources. Never infer, calculate, default, or fabricate. Use the exact field keys and cite the source ID that directly supports each value. For each field, return every distinct source-supported candidate; never choose between contradictory sources. Extract every supported required field before including optional fields.', tools:[{ name:'extract_evidence', description:'Return all explicitly supported specialist-field candidates with their source IDs, preserving contradictions for reconciliation.', input_schema:{ type:'object', properties } }], tool_choice:{ type:'tool', name:'extract_evidence' }, messages:[{ role:'user', content:evidenceText }] })

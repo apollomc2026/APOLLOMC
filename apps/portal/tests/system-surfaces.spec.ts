@@ -81,7 +81,9 @@ test('mission control presents a command deck with immediate reflight and enviro
     }, ...fixture.missions.slice(1)] },
   }))
   await page.goto('/dashboard')
+  await expect(page.getByRole('heading', { level:1, name:'Mission Control' })).toBeVisible()
   const commandDeck = page.locator('.dashboard-command-deck')
+  await expect(commandDeck.getByText('MISSION QUICK ACTIONS')).toBeVisible()
   await expect(commandDeck.getByText('Field Operations Proposal')).toBeVisible()
   await expect(commandDeck.getByText('LATEST SUCCESSFUL MISSION')).toBeVisible()
   await expect(commandDeck.getByRole('button', { name:/Regenerate deliverable/i })).toBeVisible()

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Contract Intelligence Review",
+  "description": "Clause-linked operational review of an existing agreement.",
+  "type": "object",
+  "required": ["metadata", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["deliverable_type", "title", "client_name", "date", "prepared_by"],
+      "properties": {
+        "deliverable_type": { "type": "string", "const": "contract-intelligence-review" },
+        "title": { "type": "string", "minLength": 5 },
+        "client_name": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "prepared_by": { "type": "string" },
+        "confidentiality_notice": { "type": "string" }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "content"],
+        "properties": {
+          "key": { "type": "string", "enum": ["command_summary", "status_dashboard", "plain_english_map", "obligation_matrix", "money_value", "missed_items", "leverage_playbook", "risk_escalation", "action_calendar", "source_index"] },
+          "label": { "type": "string" },
+          "content": { "type": "string", "minLength": 50 },
+          "citations": { "type": "array", "items": { "type": "object", "properties": { "reference": { "type": "string" }, "pin_cite": { "type": "string" } } } }
+        }
+      }
+    }
+  }
+}

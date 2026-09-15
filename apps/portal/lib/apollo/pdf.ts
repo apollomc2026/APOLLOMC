@@ -1173,6 +1173,7 @@ function buildContractHtml(args: BuildPdfArgs): string {
     ? `<section class="preamble">${preamble}</section>`
     : ''
   const signaturesHtml = renderSignatureBlock(args)
+  const isEditorialReport = new Set(['business-plan','market-analysis','investor-memo','investor-update','audit-readiness','legal-memo','compliance-report','board-report','discovery-summary']).has(args.template.slug)
   const wordmark = brandWordmark(args.brand.slug) || args.brand.label
   const docTitle = args.template.label
   const preparedFor = args.preparedFor
@@ -1465,6 +1466,17 @@ hr.hairline, .hairline {
 }
 .body-content tbody tr:nth-child(even) td { background: rgba(10, 20, 28, .025); }
 
+.body-content.editorial-report { font-size:9.5pt; line-height:1.45; }
+.body-content.editorial-report p { margin-bottom:7pt; }
+.body-content.editorial-report ol,.body-content.editorial-report ul { margin:6pt 0 10pt; }
+.body-content.editorial-report li { margin-bottom:3pt; }
+.body-content.editorial-report table { margin:10pt 0 15pt; font-size:8pt; line-height:1.3; table-layout:auto; }
+.body-content.editorial-report th { padding:6pt 5pt; font-size:7pt; }
+.body-content.editorial-report td { padding:6pt 5pt; }
+.body-content.editorial-report .section-opener { margin-top:30pt; }
+.body-content.editorial-report .section-opener:first-of-type { margin-top:12pt; }
+.body-content.editorial-report .section-opener h2 { font-size:19pt; }
+
 .section-opener {
   break-inside: avoid;
   break-after: avoid;
@@ -1599,7 +1611,7 @@ ${sigMarkCss()}
 ${tocHtml}
 
 <!-- BODY -->
-<main class="body-content">
+<main class="body-content${isEditorialReport ? ' editorial-report' : ''}">
 ${preambleHtml}
 ${numberedBody}
 </main>

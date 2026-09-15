@@ -8,6 +8,7 @@ const golden = [
   ['field-service proposal', 'Prepare a proposal for the client site work.', 'proposal'],
   ['inspection proposal', 'Prepare a decisive field service proposal using the attached inspection evidence.', 'proposal'],
   ['balanced agreement', 'Prepare a balanced service agreement with termination terms.', 'contract-package'],
+  ['contract intelligence', 'Review this warranty contract and tell me what is active, what expires, and how to use every available benefit.', 'contract-intelligence-review'],
   ['site report', 'Prepare the daily construction site report with photos.', 'daily-construction-report'],
   ['capability statement', 'Prepare our concise capability statement for an executive audience.', 'capability-statement'],
   ['financial package', 'Prepare a cash flow budget forecast with variance analysis.', 'cash-flow-budget-package'],
