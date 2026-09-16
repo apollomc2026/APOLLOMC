@@ -175,6 +175,13 @@ describe('mission interpreter', () => {
     expect(isMissionControlDirective('Reconcile the complete secured evidence set against the selected deliverable before asking questions.')).toBe(true)
   })
 
+  it('does not send evidence rescan control text through AI fact interpretation', async () => {
+    const prior=interpretMission('Create a customer quote for site repairs.').specification
+    const result=await interpretMissionWithClaude('Re-read every secured evidence source using multipass extraction. Reconcile all source-supported facts.',prior,50)
+    expect(result.acknowledgement).toContain('Evidence recalibration completed')
+    expect(result.specification.audience.primary).toEqual(prior.audience.primary)
+  })
+
   it('fills exact quote validity and payment keys in expert recommendation mode', () => {
     const base = interpretMission('Create a customer quote for site repairs.')
     base.specification.content.facts.push({

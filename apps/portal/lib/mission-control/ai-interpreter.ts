@@ -156,6 +156,11 @@ export async function interpretMissionWithClaude(text: string, prior?: Deliverab
         : 'Directed control engaged. Houston will request granular confirmation before consequential decisions.'
     return result
   }
+  if (/^(?:Re-read every secured evidence source\b|Reconcile the complete secured evidence set\b)/i.test(text.trim())) {
+    const result=safeFallback()
+    result.acknowledgement='Evidence recalibration completed. Houston reconciled the secured sources before recomputing the remaining required decisions.'
+    return result
+  }
   if (!process.env.ANTHROPIC_API_KEY) return safeFallback()
   try {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
