@@ -7,7 +7,7 @@ vi.mock('@/lib/integrations/google-drive-auth', () => ({
   }),
 }))
 
-import { uploadDriveDraft } from '../lib/executor/google-drive'
+import { downloadDriveArtifact, uploadDriveDraft } from '../lib/executor/google-drive'
 
 const folderId = 'drive-folder-123'
 const workOrderId = '00000000-0000-4000-8000-000000000301'
@@ -89,5 +89,16 @@ describe('Google Drive draft custody', () => {
     await expect(uploadDriveDraft({
       userId: '', folderId, workOrderId, filename: 'report.pdf', contentSha256: 'a'.repeat(64), pdf: Buffer.from('pdf'),
     })).rejects.toThrow(/authenticated APOLLO user/)
+  })
+
+  it('streams an owned PDF through APOLLO without relying on the browser Google session', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(json({ access_token:'token' }))
+      .mockResolvedValueOnce(json({ id:'drive-file-1', name:'report.pdf', mimeType:'application/pdf', trashed:false }))
+      .mockResolvedValueOnce(new Response(Buffer.from('%PDF-test'), { status:200, headers:{ 'content-type':'application/pdf' } }))
+    const result = await downloadDriveArtifact({ userId:'user-1', fileId:'drive-file-1' })
+    expect(result.name).toBe('report.pdf')
+    expect(Buffer.from(result.bytes).toString()).toBe('%PDF-test')
+    expect(String(fetchMock.mock.calls[2]?.[0])).toContain('alt=media')
   })
 })

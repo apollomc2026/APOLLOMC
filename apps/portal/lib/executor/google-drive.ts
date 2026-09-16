@@ -61,6 +61,19 @@ async function accessToken(userId: string): Promise<string> {
   return body.access_token
 }
 
+export async function downloadDriveArtifact(input: { userId: string; fileId: string }): Promise<{ bytes: ArrayBuffer; mimeType: string; name: string }> {
+  if (!input.fileId) throw new Error('A Google Drive file is required')
+  const token = await accessToken(input.userId)
+  const metadataFields = encodeURIComponent('id,name,mimeType,trashed')
+  const metadataResponse = await driveFetch(`${DRIVE_API}/files/${encodeURIComponent(input.fileId)}?fields=${metadataFields}&supportsAllDrives=true`, token)
+  const metadata = await metadataResponse.json() as DriveFile & { error?: { message?: string } }
+  if (!metadataResponse.ok || metadata.trashed) throw new Error(`Google Drive artifact is unavailable (${metadataResponse.status})`)
+  if (metadata.mimeType !== 'application/pdf') throw new Error('Only APOLLO PDF artifacts can be viewed here')
+  const contentResponse = await driveFetch(`${DRIVE_API}/files/${encodeURIComponent(input.fileId)}?alt=media&supportsAllDrives=true`, token)
+  if (!contentResponse.ok) throw new Error(`Google Drive artifact download failed (${contentResponse.status})`)
+  return { bytes: await contentResponse.arrayBuffer(), mimeType:metadata.mimeType, name:metadata.name }
+}
+
 async function driveFetch(path: string, token: string, init: RequestInit = {}): Promise<Response> {
   return fetch(path, {
     ...init,
