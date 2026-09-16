@@ -4097,7 +4097,14 @@ export const MODULES_RAW: Record<string, unknown> = {
       {
         "key": "equipment_make_model",
         "label": "Equipment make and model",
-        "type": "text"
+        "type": "text",
+        "evidence_aliases": [
+          "Primary Equipment",
+          "Equipment",
+          "Equipment Model",
+          "Operator & Control Equipment",
+          "Make / Model"
+        ]
       },
       {
         "key": "issue_reported",

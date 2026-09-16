@@ -24,7 +24,7 @@ import { modelFor } from '@/lib/ai/models'
 import { getModule } from '@/lib/apollo/packages-loader'
 import { createMissionFact, type MissionFact } from './contracts'
 
-type EvidenceField = { key:string; label:string; type?:string; help?:string; options?:Array<{ value:string; label:string }> }
+type EvidenceField = { key:string; label:string; type?:string; help?:string; evidence_aliases?:string[]; options?:Array<{ value:string; label:string }> }
 
 export function evidenceMagicMatches(bytes: Buffer, mime: string): boolean {
   const at = (signature: number[], offset = 0) => signature.every((value, index) => bytes[offset + index] === value)
@@ -128,6 +128,28 @@ export function deduplicateEvidenceFacts(facts:MissionFact[]):MissionFact[] {
   return [...new Map(facts.map(fact => [`${fact.key}:${fact.source_reference ?? ''}:${(fact.normalized_value ?? fact.value).trim().toLocaleLowerCase()}`, fact])).values()]
 }
 
+export function extractLabeledEvidenceFacts(
+  sources:Array<{ id:string; name:string; text:string }>,
+  fields:EvidenceField[],
+):MissionFact[] {
+  return sources.flatMap(source => {
+    const lines=source.text.split(/\r?\n/).map(line=>line.trim()).filter(Boolean)
+    return fields.flatMap(field => {
+      const aliases=[field.label,...(field.evidence_aliases??[])].map(alias=>alias.trim().toLocaleLowerCase())
+      for(let index=0;index<lines.length;index+=1){
+        const line=lines[index]
+        const normalized=line.replace(/[:\s]+$/,'').toLocaleLowerCase()
+        const alias=aliases.find(candidate=>normalized===candidate || normalized.startsWith(`${candidate}:`))
+        if(!alias)continue
+        const inline=line.slice(alias.length).replace(/^\s*:\s*/,'').trim()
+        const value=inline || lines[index+1]?.trim() || ''
+        if(value && !aliases.includes(value.toLocaleLowerCase())) return [createMissionFact({key:field.key,label:field.label,value:value.slice(0,2000),source:'evidence',source_reference:source.id,confidence:1,sensitivity:'confidential'})]
+      }
+      return []
+    })
+  })
+}
+
 function parseClock(value:string):number|null {
   const match=value.trim().match(/\b(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?\b/i)
   if(!match)return null
@@ -182,7 +204,7 @@ export async function extractEvidenceFactsFromSources(
   const requiredFields = documentModule.required_fields as EvidenceField[]
   const optionalFields = documentModule.optional_fields as EvidenceField[]
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-  const facts: MissionFact[] = []
+  const facts: MissionFact[] = extractLabeledEvidenceFacts(readable, [...requiredFields,...optionalFields])
   for (const batch of batchEvidenceSources(readable, 4)) {
     const sourceIds = [...new Set(batch.map(source => source.id))]
     const evidenceText = batch.map(source => `=== SOURCE ${source.id}: ${source.name} ===\n${source.text.slice(0, 16000)}`).join('\n\n')
@@ -208,7 +230,8 @@ export async function extractEvidenceFactsFromSources(
 
 function fieldDescriptor(field:EvidenceField):string {
   const options=field.options?.length?` Options: ${field.options.map(option=>`${option.value} (${option.label})`).join(', ')}.`:''
-  return `- ${field.key}: ${field.label}${field.type?` [${field.type}]`:''}.${field.help?` ${field.help}`:''}${options}`
+  const aliases=field.evidence_aliases?.length?` Evidence may label this as: ${field.evidence_aliases.join(', ')}.`:''
+  return `- ${field.key}: ${field.label}${field.type?` [${field.type}]`:''}.${field.help?` ${field.help}`:''}${aliases}${options}`
 }
 
 function evidenceToolProperties(fields: EvidenceField[], sourceIds:string[], sourceLabel:'source'|'PDF') {

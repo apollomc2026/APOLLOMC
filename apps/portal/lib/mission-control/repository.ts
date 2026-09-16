@@ -32,6 +32,7 @@ async function reconcileSecuredEvidence(input: {
   conversationId: string
   specification: DeliverableSpecification
 }) {
+  console.info('[mission-control] Evidence recalibration started', { conversationId:input.conversationId, moduleSlug:input.specification.artifact.recommended_type })
   const query = await input.db
     .from('apollo_conversation_evidence')
     .select('id, original_name, retrieval_storage_key, retrieval_mime_type')
@@ -42,7 +43,10 @@ async function reconcileSecuredEvidence(input: {
   if (query.error) throw new MissionPersistenceError('Secured mission evidence could not be reconciled')
 
   const rows = (query.data ?? []) as ReprocessableEvidenceRow[]
-  if (!rows.length) return [] as MissionFact[]
+  if (!rows.length) {
+    console.warn('[mission-control] Evidence recalibration found no verified sources', { conversationId:input.conversationId })
+    return [] as MissionFact[]
+  }
 
   const recoveredSources = (await Promise.all(rows.map(async row => {
     if (!row.retrieval_storage_key || !row.retrieval_mime_type) return null

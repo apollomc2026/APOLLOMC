@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as XLSX from 'xlsx'
 import sharp from 'sharp'
-import { batchEvidenceSources, chunkEvidenceSources, deduplicateEvidenceFacts, deriveEvidenceFacts, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, normalizeEvidenceMime, prepareEvidenceRetrieval, sanitizeEvidenceBytes } from '../lib/mission-control/evidence'
+import { batchEvidenceSources, chunkEvidenceSources, deduplicateEvidenceFacts, deriveEvidenceFacts, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractLabeledEvidenceFacts, normalizeEvidenceMime, prepareEvidenceRetrieval, sanitizeEvidenceBytes } from '../lib/mission-control/evidence'
 import { createMissionFact, mergeMissionFacts, type DeliverableSpecification } from '../lib/mission-control/contracts'
 import { buildContentBlocks, inlineEvidenceByteLimit, OrchestrateError } from '../lib/apollo/orchestrate'
 import { mergeEvidenceIntoSpecification } from '../lib/mission-control/evidence-specification'
@@ -156,6 +156,11 @@ describe('mission evidence custody', () => {
       createMissionFact({ key:'departure_time',label:'Departure time',value:'2:30 PM',source:'evidence',source_reference:'service-record',confidence:1 }),
     ]
     expect(deriveEvidenceFacts(facts,'fsr')).toEqual([expect.objectContaining({ key:'time_on_site_hours',value:'2',source:'evidence',verification_state:'verified' })])
+  })
+
+  it('recovers schema facts from explicit evidence label aliases before model extraction', () => {
+    const facts=extractLabeledEvidenceFacts([{id:'report',name:'Service record',text:'Primary Equipment\nDoorKing 6500/6550 Swing Gate Operator'}],[{key:'equipment_make_model',label:'Equipment make and model',evidence_aliases:['Primary Equipment']}])
+    expect(facts).toEqual([expect.objectContaining({key:'equipment_make_model',value:'DoorKing 6500/6550 Swing Gate Operator',source_reference:'report'})])
   })
 
   it('rebases a concurrent evidence upload onto the latest specification without losing earlier custody', () => {
