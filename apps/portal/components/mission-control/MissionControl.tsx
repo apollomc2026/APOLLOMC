@@ -284,6 +284,7 @@ export function MissionControl() {
       : readiness;
   const facts = specification?.content.facts ?? [];
   const evidenceFacts = facts.filter((fact) => fact.source === "evidence" && fact.verification_state !== "conflict");
+  const verifiedSources = specification?.sources.filter((source) => source.status === "verified") ?? [];
   const questions = specification?.content.open_questions ?? [];
   const addressQuestion=questions.find(question=>/complete street address|site address/i.test(question));
   const confirmedSiteName=facts.find(fact=>fact.key==="site_name"&&fact.verification_state!=="conflict")?.value;
@@ -1032,7 +1033,8 @@ export function MissionControl() {
         <div className="mc-deliverable-actions"><button type="button" onClick={()=>void submit(`I approve ${title} as the intended deliverable type. Continue calibrating this deliverable.`)} disabled={working}><Check size={15}/>Approve deliverable type</button><button type="button" onClick={correctDeliverableType} disabled={working}>Tell Houston what you need</button></div>
       </section>:null}
       {specification ? <section className={`mc-evidence-confirmations${specification.sources.length?'':' missing'}`} aria-label="Evidence confirmations">
-        <header><div><span>{specification.sources.length?'EVIDENCE READ COMPLETE':'EVIDENCE REQUIRED'}</span><strong>{specification.sources.length?`${evidenceFacts.length} source-supported fact${evidenceFacts.length===1?'':'s'} recovered`:'No evidence is secured to this mission'}</strong></div>{specification.sources.length?<button type="button" onClick={()=>void submit("Re-read every secured evidence source using multipass extraction. Reconcile all source-supported facts against the selected deliverable, derive only deterministic values, preserve conflicts, and ask only for required facts absent from every source.")} disabled={working}>Re-scan evidence</button>:<button type="button" onClick={()=>fileRef.current?.click()} disabled={working}>Attach evidence now</button>}</header>
+        <header><div><span>{specification.sources.length?'EVIDENCE CUSTODY':'EVIDENCE REQUIRED'}</span><strong>{specification.sources.length?`${specification.sources.length} file${specification.sources.length===1?'':'s'} secured · ${verifiedSources.length} verified`:'No evidence is secured to this mission'}</strong></div>{specification.sources.length?<button type="button" onClick={()=>void submit("Re-read every secured evidence source using multipass extraction. Reconcile all source-supported facts against the selected deliverable, derive only deterministic values, preserve conflicts, and ask only for required facts absent from every source.")} disabled={working}>Re-scan evidence</button>:<label htmlFor="mission-evidence-upload" aria-disabled={working}>Attach evidence now</label>}</header>
+        {specification.sources.length?<ol className="mc-evidence-ledger" aria-label="Attached evidence files">{specification.sources.map(source=><li key={source.id}><Paperclip size={14}/><strong title={source.name}>{source.name}</strong><span className={`status-${source.status}`}>{source.status}</span></li>)}</ol>:null}
         {specification.sources.length?(evidenceFacts.length ? <div>{evidenceFacts.slice(0,8).map(fact=><article key={fact.key}><Check size={13}/><span>{fact.label}</span><strong>{fact.value}</strong><small>Source confirmed</small></article>)}</div> : <p>No schema-matched facts were recovered yet. Re-scan before answering questions manually.</p>):<p>APOLLO cannot reconcile the source or suppress already-answered questions until the file is attached. Add it here; you do not need to restart this mission.</p>}
         {evidenceFacts.length>8?<small>+ {evidenceFacts.length-8} additional confirmed facts in the mission brief</small>:null}
       </section>:null}
@@ -1168,6 +1170,7 @@ export function MissionControl() {
             <div className="mc-composer-tools">
               <div className="mc-input-tools">
                 <input
+                  id="mission-evidence-upload"
                   ref={fileRef}
                   type="file"
                   multiple

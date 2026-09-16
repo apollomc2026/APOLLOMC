@@ -464,6 +464,8 @@ test('advanced intake hands evidence-derived readiness and specification version
   await expect(page.getByRole('heading', { name:/Evidence record/ })).toContainText('1')
   await expect(page.getByText('site-notes.txt')).toBeVisible()
   await expect(page.getByRole('region',{ name:'Evidence confirmations' })).toContainText('Acme Facility')
+  await expect(page.getByRole('region',{ name:'Evidence confirmations' })).toContainText('1 file secured · 1 verified')
+  await expect(page.getByRole('region',{ name:'Evidence confirmations' }).getByRole('list',{ name:'Attached evidence files' })).toContainText('site-notes.txt')
   await expect(page.getByRole('button',{ name:'Re-scan evidence' })).toBeVisible()
   await expect(page.getByText(/1 rejected without discarding the mission: mislabeled.pdf/)).toBeVisible()
   const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('apollo:mission-control:v1') ?? '{}'))
