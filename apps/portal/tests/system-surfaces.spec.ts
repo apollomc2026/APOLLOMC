@@ -191,6 +191,26 @@ test('durable mission URLs restore the server record without browser cache', asy
   await expect(page.getByRole('button', { name:'REGENERATE DELIVERABLE' })).toBeVisible()
 })
 
+test('pre-launch mission can be cleared or cancelled with durable archival', async ({ page }) => {
+  let archivedConversation:string|null=null
+  const fixture = await (await page.request.get('/api/mission-control/conversation?id=mission-demo')).json()
+  await page.route('**/api/mission-control/conversation?id=mission-demo', route => route.fulfill({ status:200, contentType:'application/json', json:{ ...fixture, job:null, jobs:[] } }))
+  await page.route('**/api/mission-control/draft', async route => {
+    const body=route.request().postDataJSON()
+    archivedConversation=body.conversation_id
+    await route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ conversation_id:body.conversation_id, status:'archived' }) })
+  })
+  await page.goto('/new-mission?mission=mission-demo&edit=1')
+  await page.getByRole('button',{ name:'Cancel or clear mission' }).click()
+  await expect(page.getByRole('dialog',{ name:'Clear this mission draft?' })).toBeVisible()
+  await expect(page.getByRole('button',{ name:'Clear & start over' })).toBeVisible()
+  await expect(page.getByRole('button',{ name:'Cancel mission' })).toBeVisible()
+  await page.getByRole('button',{ name:'Clear & start over' }).click()
+  await expect.poll(()=>archivedConversation).toBe('mission-demo')
+  await expect(page).toHaveURL(/\/new-mission$/)
+  await expect(page.getByText('Standing by')).toBeVisible()
+})
+
 test('restored voice turns retain visible confidence and review provenance', async ({ page }) => {
   const fixture = await (await page.request.get('/api/mission-control/conversation?id=mission-demo')).json()
   await page.route('**/api/mission-control/conversation?id=mission-demo', async route => {

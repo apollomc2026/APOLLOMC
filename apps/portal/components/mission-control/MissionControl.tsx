@@ -11,6 +11,8 @@ import {
   RefreshCw,
   ShieldCheck,
   Sparkles,
+  Trash2,
+  X,
 } from "lucide-react";
 import type {
   ConversationTurn,
@@ -55,6 +57,7 @@ export function MissionControl() {
   const [launchPromptDismissed, setLaunchPromptDismissed] = useState(false);
   const [reviewAcknowledged, setReviewAcknowledged] = useState(false);
   const [reviewScrolled, setReviewScrolled] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
@@ -405,7 +408,7 @@ export function MissionControl() {
     } : metadata);
   }
 
-  function resetMission() {
+  function clearMissionState() {
     setTurns([opening]);
     setVoiceMetadata(null);
     setSpecification(null);
@@ -425,6 +428,35 @@ export function MissionControl() {
     setError(null);
     window.localStorage.removeItem(STORAGE_KEY);
     window.history.replaceState(window.history.state, "", "/new-mission");
+  }
+
+  async function discardMission(destination: "new" | "dashboard") {
+    if (working || jobId) return;
+    setWorking(true);
+    setError(null);
+    try {
+      if (conversationId) {
+        const response = await fetch("/api/mission-control/draft", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ conversation_id: conversationId }),
+        });
+        const result = (await response.json()) as { error?: string };
+        if (!response.ok)
+          throw new Error(result.error ?? "Mission draft could not be cancelled.");
+      }
+      clearMissionState();
+      setDiscardOpen(false);
+      if (destination === "dashboard") window.location.assign("/dashboard");
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Mission draft could not be cancelled.",
+      );
+    } finally {
+      setWorking(false);
+    }
   }
 
   function submitDecisionAnswers(useRecommendations: boolean) {
@@ -922,6 +954,20 @@ export function MissionControl() {
               <strong aria-live="polite">{launchCountdown !== null ? launchCountdown : "INITIATE LAUNCH"}</strong>
             </button>
             <button className="mc-launch-review" type="button" onClick={() => setLaunchPromptDismissed(true)} disabled={working || launchCountdown !== null}>Review mission brief first</button>
+            <button className="mc-launch-abort" type="button" onClick={() => setDiscardOpen(true)} disabled={working || launchCountdown !== null}><X size={14} />Cancel or clear mission</button>
+          </section>
+        </div>
+      ) : null}
+      {discardOpen && !jobId ? (
+        <div className="mc-discard-overlay" role="dialog" aria-modal="true" aria-labelledby="discard-title">
+          <section>
+            <button type="button" className="mc-discard-close" aria-label="Close discard mission dialog" onClick={() => setDiscardOpen(false)}><X size={18} /></button>
+            <Trash2 size={28} />
+            <span>PRE-LAUNCH CONTROL</span>
+            <h2 id="discard-title">Clear this mission draft?</h2>
+            <p>The active draft will be archived with its evidence record. Nothing has launched, and no deliverable will be generated.</p>
+            <div><button type="button" onClick={() => void discardMission("new")} disabled={working}>Clear &amp; start over</button><button type="button" onClick={() => void discardMission("dashboard")} disabled={working}>Cancel mission</button></div>
+            <button type="button" className="mc-discard-keep" onClick={() => setDiscardOpen(false)} disabled={working}>Keep working</button>
           </section>
         </div>
       ) : null}
@@ -933,9 +979,7 @@ export function MissionControl() {
           <h1>What are we building?</h1>
           <p>Begin with the outcome. APOLLO will engineer the deliverable.</p>
         </div>
-        <button className="mc-secondary" onClick={resetMission}>
-          New mission
-        </button>
+        {!jobId ? <div className="mc-header-actions"><button className="mc-secondary" type="button" onClick={() => setDiscardOpen(true)}>Clear mission</button><button className="mc-cancel-mission" type="button" onClick={() => setDiscardOpen(true)}><X size={14} />Cancel</button></div> : null}
       </header>
       {jobState === "failed" ? (
         <section className="mc-failure-banner" role="alert" aria-live="assertive">
