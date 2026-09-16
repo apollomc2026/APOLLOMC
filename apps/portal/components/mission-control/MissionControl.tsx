@@ -21,6 +21,7 @@ import type {
   VoiceTranscriptMetadata,
 } from "@/lib/mission-control/contracts";
 import { EVIDENCE_FILE_ACCEPT, expandEvidencePackages } from "@/lib/mission-control/zip-evidence";
+import { uploadMissionEvidence } from "@/lib/mission-control/evidence-upload-client";
 import { VoiceControl } from "./VoiceControl";
 
 const STORAGE_KEY = "apollo:mission-control:v1";
@@ -611,25 +612,8 @@ export function MissionControl() {
       rejected.push(...expanded.rejected);
       for (const file of expanded.files) {
         try {
-          const form = new FormData();
-          form.set("conversation_id", conversationId);
-          form.set("file", file);
-          const response = await fetch("/api/mission-control/evidence", {
-            method: "POST",
-            body: form,
-          });
-          const uploaded = (await response.json()) as {
-            id?: string;
-            name?: string;
-            status?: "pending" | "verified" | "conflict" | "failed";
-            facts?: DeliverableSpecification["content"]["facts"];
-            specification?: DeliverableSpecification;
-            specification_version?: number;
-            readiness?: number;
-            error?: string;
-          };
+          const uploaded = await uploadMissionEvidence(conversationId,file);
           if (
-            !response.ok ||
             !uploaded.id ||
             !uploaded.name ||
             !uploaded.status

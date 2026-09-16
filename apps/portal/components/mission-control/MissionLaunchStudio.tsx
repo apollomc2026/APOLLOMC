@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowRight, FileUp, Orbit, Palette, SlidersHorizontal, Users } from 'lucide-react'
 import type { ConversationTurn, DeliverableSpecification, MissionTurnResult } from '@/lib/mission-control/contracts'
 import { EVIDENCE_FILE_ACCEPT, expandEvidencePackages } from '@/lib/mission-control/zip-evidence'
+import { uploadMissionEvidence } from '@/lib/mission-control/evidence-upload-client'
 
 type Brand = { id:string; name:string; source:string; primary_color?:string|null; accent_color?:string|null }
 const STORAGE_KEY='apollo:mission-control:v1'
@@ -29,7 +30,7 @@ export function MissionLaunchStudio(){
       if(missionObjectiveExpectsEvidence(objective)&&files.length===0)throw new Error('This mission refers to evidence, but no file is queued. Add the source file before initializing so APOLLO can read it before asking questions.')
       const response=await fetch('/api/mission-control/interpret',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message,brand_profile_id:brand,aura})});let result=await response.json() as MissionTurnResult&{error?:string};if(!response.ok)throw new Error(result.error||'Mission could not be initialized')
       let specification:DeliverableSpecification=result.specification;let version=result.specification_version??1;let readiness=result.readiness;const securedFiles:string[]=[];const rejectedFiles:string[]=[]
-      if(result.conversation_id){for(const file of files){try{const upload=new FormData();upload.set('conversation_id',result.conversation_id);upload.set('file',file);const secured=await fetch('/api/mission-control/evidence',{method:'POST',body:upload});const body=await secured.json();if(!secured.ok)throw new Error(body.error||'upload rejected');specification=body.specification??specification;version=body.specification_version??version;readiness=body.readiness??readiness;securedFiles.push(file.name)}catch(cause){rejectedFiles.push(`${file.name}: ${cause instanceof Error?cause.message:'upload rejected'}`)}}}
+      if(result.conversation_id){for(const file of files){try{const body=await uploadMissionEvidence(result.conversation_id,file);specification=body.specification??specification;version=body.specification_version??version;readiness=body.readiness??readiness;securedFiles.push(file.name)}catch(cause){rejectedFiles.push(`${file.name}: ${cause instanceof Error?cause.message:'upload rejected'}`)}}}
       if(files.length&&securedFiles.length===0)throw new Error(`The mission was preserved, but its evidence was not secured. Retry the upload before calibration. ${rejectedFiles.join('; ')}`)
       if(result.conversation_id&&securedFiles.length){
         const recalibration=await fetch('/api/mission-control/interpret',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({conversation_id:result.conversation_id,specification,message:'Reconcile the complete secured evidence set against the selected deliverable before asking the operator any questions. Preserve source-supported facts, identify conflicts, and ask only for required facts that are absent from every source.',brand_profile_id:brand,aura})})
