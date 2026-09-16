@@ -21,14 +21,16 @@ export async function GET() {
   const conversations = await db.from('apollo_conversations').select('id,title,status,readiness,current_spec_version,updated_at').eq('user_id', auth.user.userId).order('updated_at', { ascending:false })
   if (conversations.error) return NextResponse.json({ error:conversations.error.message }, { status:500 })
   const service = await createServiceClient()
-  const jobs = await service.from('apollo_document_jobs').select('id,conversation_id,state,progress_percent,status_message,artifacts,created_at').eq('requested_by', auth.user.userId).order('created_at', { ascending:false })
+  const jobs = await service.from('apollo_document_jobs').select('id,conversation_id,deliverable_type,state,progress_percent,status_message,artifacts,created_at').eq('requested_by', auth.user.userId).order('created_at', { ascending:false })
   if (jobs.error) return NextResponse.json({ error:jobs.error.message }, { status:500 })
   const jobsByMission = new Map<string, typeof jobs.data>()
   for (const job of jobs.data ?? []) jobsByMission.set(job.conversation_id, [...(jobsByMission.get(job.conversation_id) ?? []), job])
   const missions = (conversations.data ?? []).map(mission => {
     const missionJobs = jobsByMission.get(mission.id) ?? []
-    const normalizedJobs = missionJobs.map(job => ({ id:job.id, state:job.state, progress_percent:job.progress_percent, message:job.status_message, artifacts:job.artifacts ?? [], created_at:job.created_at }))
-    return { ...mission, job:normalizedJobs[0] ?? null, jobs:normalizedJobs }
+    const normalizedJobs = missionJobs.map(job => ({ id:job.id, deliverable_type:job.deliverable_type, state:job.state, progress_percent:job.progress_percent, message:job.status_message, artifacts:job.artifacts ?? [], created_at:job.created_at }))
+    const authoritativeType=normalizedJobs[0]?.deliverable_type
+    const authoritativeTitle=authoritativeType?String(authoritativeType).split('-').map((part:string)=>part.charAt(0).toUpperCase()+part.slice(1)).join(' '):mission.title
+    return { ...mission, title:authoritativeTitle, job:normalizedJobs[0] ?? null, jobs:normalizedJobs }
   })
   const allJobs = missions.flatMap(mission => mission.jobs)
   const delivered = allJobs.filter(job => job.state === 'delivered').length

@@ -9,6 +9,12 @@ describe('deterministic commercial verification',()=>{
     expect(verifyCommercialDocument(order,html)).toEqual({required:true,verified_rows:2,verified_figures:0})
   })
 
+  it('verifies semicolon-delimited quote line items as separate rows',()=>{
+    const order={deliverable_type:'quote',fields:{line_items:'Field labor: 4 planned field days × $2,000/day = $8,000; Deployment charges: 4 deployments × $150 = $600; Materials allowance: Concrete, reinforcing steel, anchors = $1,200; Working Project Total = $9,800'}} as unknown as DocumentWorkOrder
+    const html='<table><tr><td>Field labor</td><td>4 planned field days</td><td>$2,000/day</td><td>$8,000</td></tr><tr><td>Deployment charges</td><td>4 deployments</td><td>$150</td><td>$600</td></tr><tr><td>Materials allowance</td><td>Concrete, reinforcing steel, anchors</td><td>$1,200</td></tr><tr><td>Working Project Total</td><td>$9,800</td></tr></table>'
+    expect(verifyCommercialDocument(order,html)).toEqual({required:true,verified_rows:4,verified_figures:0})
+  })
+
   it('fails closed when an invoice row changes',()=>{
     const order={deliverable_type:'invoice',fields:{line_items:'LAB-01 | Field labor | 16 | $125.00 | No | $2,000.00'}} as unknown as DocumentWorkOrder
     expect(()=>verifyCommercialDocument(order,'<table><tr><td>LAB-01</td><td>Field labor</td><td>18</td><td>$125.00</td><td>No</td><td>$2,250.00</td></tr></table>')).toThrow(/line_items row 1 was changed or omitted/)

@@ -35,6 +35,15 @@ function outputNumbers(contentHtml:string):number[] {
 
 function containsFigure(figures:number[],expected:number){return figures.some(value=>Math.abs(value-expected)<0.005)}
 
+function approvedRows(raw:string):string[]{
+  const lines=raw.split(/\r?\n/).map(value=>value.trim()).filter(Boolean)
+  if(lines.length>1)return lines
+  // Evidence extraction commonly serializes quote rows as one semicolon-delimited
+  // value. Preserve each commercial item as its own verification boundary.
+  const segments=raw.split(/\s*;\s*/).map(value=>value.trim()).filter(Boolean)
+  return segments.length>1?segments:lines
+}
+
 /** Commercial documents may format approved data, but may not rewrite it. */
 export function verifyCommercialDocument(order:DocumentWorkOrder,contentHtml:string):CommercialVerificationReport {
   const rowFields=ROW_FIELDS[order.deliverable_type]
@@ -44,7 +53,7 @@ export function verifyCommercialDocument(order:DocumentWorkOrder,contentHtml:str
   for(const key of rowFields){
     const raw=order.fields[key]
     if(typeof raw!=='string'||!raw.trim())throw new Error(`Commercial verification failed: approved ${key} was empty`)
-    for(const [index,line] of raw.split(/\r?\n/).map(value=>value.trim()).filter(Boolean).entries()){
+    for(const [index,line] of approvedRows(raw).entries()){
       const approved=searchable(line.replace(/\|/g,' '))
       if(!approved||!documentText.includes(approved))throw new Error(`Commercial verification failed: ${key} row ${index+1} was changed or omitted`)
       verifiedRows+=1
