@@ -392,12 +392,21 @@ test('New Mission expands a ZIP evidence package into individually reviewable fi
 
 test('advanced intake hands evidence-derived readiness and specification version to Mission Control', async ({ page }) => {
   let interpretedSpecification: Record<string, unknown> | null = null
+  let interpretCount = 0
   let uploadCount = 0
   await page.route('**/api/mission-control/interpret', async route => {
+    interpretCount += 1
     const response = await route.fetch()
     const body = await response.json()
-    interpretedSpecification = body.specification
-    await route.fulfill({ response, json: { ...body, conversation_id: 'mission-evidence', specification_version: 1, readiness: 58 } })
+    if (interpretCount === 1) {
+      interpretedSpecification = body.specification
+      await route.fulfill({ response, json: { ...body, conversation_id: 'mission-evidence', specification_version: 1, readiness: 58 } })
+      return
+    }
+    const request = route.request().postDataJSON()
+    expect(request.conversation_id).toBe('mission-evidence')
+    expect(request.message).toContain('Reconcile the complete secured evidence set')
+    await route.fulfill({ response, json: { ...body, conversation_id:'mission-evidence', specification:request.specification, specification_version:3, readiness:82, question:null, question_reason:null } })
   })
   await page.route('**/api/mission-control/evidence', async route => {
     uploadCount += 1
@@ -435,5 +444,6 @@ test('advanced intake hands evidence-derived readiness and specification version
   await expect(page.getByText('site-notes.txt')).toBeVisible()
   await expect(page.getByText(/1 rejected without discarding the mission: mislabeled.pdf/)).toBeVisible()
   const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('apollo:mission-control:v1') ?? '{}'))
-  expect(stored).toMatchObject({ readiness: 82, specificationVersion: 2, conversationId: 'mission-evidence' })
+  expect(interpretCount).toBe(2)
+  expect(stored).toMatchObject({ readiness: 82, specificationVersion: 3, conversationId: 'mission-evidence' })
 })
