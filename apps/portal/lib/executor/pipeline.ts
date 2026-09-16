@@ -102,11 +102,9 @@ export async function generateStructuredDocument(order: DocumentWorkOrder) {
   const { brand } = await loadExecutionBrand(order)
   if (!moduleData || !schema || !style || !brand) throw new Error('document module, schema, style, or brand is unavailable')
   const cleanedFields = cleanExecutionFields(order.fields)
-  if (order.deliverable_type === 'fsr') {
-    cleanedFields.work_order_number ??= 'Not provided in source record; APOLLO service record ID controls.'
-    cleanedFields.equipment_asset_id ??= 'No asset tag provided; equipment identified by verified location and make/model.'
-  }
+  const internallyControlledFsrFields=new Set(order.deliverable_type==='fsr'?['work_order_number','equipment_asset_id']:[])
   const missing = moduleData.required_fields.filter((field) => {
+    if(internallyControlledFsrFields.has(field.key))return false
     const value = cleanedFields[field.key]
     return value === undefined || value === null || (typeof value === 'string' && value.trim() === '')
   }).map((field) => field.key)

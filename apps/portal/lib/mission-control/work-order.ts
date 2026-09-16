@@ -20,10 +20,6 @@ function factMap(specification: DeliverableSpecification): Record<string, string
 
 export function executionFields(spec: DeliverableSpecification, now = new Date()): Record<string, unknown> {
   const fields: Record<string, unknown> = cleanExecutionFields(factMap(spec))
-  if (spec.artifact.recommended_type === 'fsr') {
-    fields.work_order_number ??= 'Not provided in source record; APOLLO service record ID controls.'
-    fields.equipment_asset_id ??= 'No asset tag provided; equipment identified by verified location and make/model.'
-  }
   if (spec.artifact.recommended_type === 'proposal') {
     fields.prospect_organization ??= spec.audience.primary[0]
     fields.proposal_date ??= now.toISOString().slice(0, 10)
@@ -41,7 +37,8 @@ export function executionGaps(spec: DeliverableSpecification, now = new Date()) 
   const requiredKeys = new Set(documentModule.required_fields.map(field => field.key))
   const conflicts = spec.content.facts.filter(fact => requiredKeys.has(fact.key) && fact.verification_state === 'conflict').map(fact => ({ key: fact.key, label: fact.label, reason: 'Conflicting values must be resolved before controlled execution.' }))
   const fields = executionFields(spec, now)
-  const missing = documentModule.required_fields.filter(field => fields[field.key] === undefined || fields[field.key] === null || String(fields[field.key]).trim() === '').map(field => ({ key: field.key, label: field.label, reason: 'Required by the selected specialist document module.' }))
+  const internallyControlledFsrFields=new Set(spec.artifact.recommended_type==='fsr'?['work_order_number','equipment_asset_id']:[])
+  const missing = documentModule.required_fields.filter(field => !internallyControlledFsrFields.has(field.key) && (fields[field.key] === undefined || fields[field.key] === null || String(fields[field.key]).trim() === '')).map(field => ({ key: field.key, label: field.label, reason: 'Required by the selected specialist document module.' }))
   return [...conflicts, ...missing.filter(gap => !conflicts.some(conflict => conflict.key === gap.key))]
 }
 

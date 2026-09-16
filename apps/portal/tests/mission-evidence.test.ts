@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as XLSX from 'xlsx'
 import sharp from 'sharp'
-import { batchEvidenceSources, chunkEvidenceSources, deduplicateEvidenceFacts, deriveEvidenceFacts, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractLabeledEvidenceFacts, normalizeEvidenceMime, prepareEvidenceRetrieval, sanitizeEvidenceBytes } from '../lib/mission-control/evidence'
+import { batchEvidenceSources, chunkEvidenceSources, deduplicateEvidenceFacts, deriveEvidenceFacts, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractLabeledEvidenceFacts, filterSemanticallyUnsupportedEvidenceFacts, normalizeEvidenceMime, prepareEvidenceRetrieval, sanitizeEvidenceBytes } from '../lib/mission-control/evidence'
 import { createMissionFact, mergeMissionFacts, type DeliverableSpecification } from '../lib/mission-control/contracts'
 import { buildContentBlocks, inlineEvidenceByteLimit, OrchestrateError } from '../lib/apollo/orchestrate'
 import { mergeEvidenceIntoSpecification } from '../lib/mission-control/evidence-specification'
@@ -161,6 +161,15 @@ describe('mission evidence custody', () => {
   it('recovers schema facts from explicit evidence label aliases before model extraction', () => {
     const facts=extractLabeledEvidenceFacts([{id:'report',name:'Service record',text:'Primary Equipment\nDoorKing 6500/6550 Swing Gate Operator'}],[{key:'equipment_make_model',label:'Equipment make and model',evidence_aliases:['Primary Equipment']}])
     expect(facts).toEqual([expect.objectContaining({key:'equipment_make_model',value:'DoorKing 6500/6550 Swing Gate Operator',source_reference:'report'})])
+  })
+
+  it('rejects message recipients as on-site contacts and recommendations as placed parts orders', () => {
+    const facts=[
+      createMissionFact({key:'customer_contact_onsite',label:'Customer contact on site',value:'Sam Barrette',source:'evidence',source_reference:'report',confidence:1}),
+      createMissionFact({key:'follow_up_required',label:'Follow-up required',value:'parts-order',source:'evidence',source_reference:'report',confidence:1}),
+    ]
+    const source='A text message was sent to Sam Barrette requesting access. Recommend replacement of damaged arms on a future visit.'
+    expect(filterSemanticallyUnsupportedEvidenceFacts(facts,[{id:'report',text:source}],'fsr')).toEqual([])
   })
 
   it('rebases a concurrent evidence upload onto the latest specification without losing earlier custody', () => {

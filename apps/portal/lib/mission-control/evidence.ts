@@ -171,6 +171,26 @@ export function deriveEvidenceFacts(facts:MissionFact[],moduleSlug:string|null):
   return derived
 }
 
+export function filterSemanticallyUnsupportedEvidenceFacts(
+  facts:MissionFact[],
+  sources:Array<{ id:string; text:string }>,
+  moduleSlug:string|null,
+):MissionFact[] {
+  if(moduleSlug!=='fsr')return facts
+  const textBySource=new Map(sources.map(source=>[source.id,source.text]))
+  return facts.filter(fact=>{
+    const sourceText=fact.source_reference?textBySource.get(fact.source_reference)??'':''
+    if(fact.key==='customer_contact_onsite'){
+      const escaped=fact.value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')
+      return new RegExp(`(?:met|on[- ]?site contact|onsite contact|present (?:at|on) (?:the )?site|escorted by|accompanied by)[^.!?\\n]{0,100}${escaped}|${escaped}[^.!?\\n]{0,100}(?:met (?:the )?technician|was present (?:at|on) (?:the )?site|served as (?:the )?on[- ]?site contact)`,'i').test(sourceText)
+    }
+    if(fact.key==='follow_up_required'&&fact.value==='parts-order'){
+      return /\b(?:parts? (?:were |are |has been |have been )?(?:ordered|on order)|purchase order|pending parts receipt|awaiting parts)\b/i.test(sourceText)
+    }
+    return true
+  })
+}
+
 export function batchEvidenceSources<T>(sources:T[], batchSize:number):T[][] {
   if (!Number.isInteger(batchSize) || batchSize < 1) throw new Error('Evidence batch size must be a positive integer')
   return Array.from({ length:Math.ceil(sources.length / batchSize) }, (_, index) => sources.slice(index * batchSize, (index + 1) * batchSize))
@@ -224,7 +244,8 @@ export async function extractEvidenceFactsFromSources(
       if(block?.type==='tool_use')facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,missing,sourceIds))
     }
   }
-  const deduplicated=deduplicateEvidenceFacts(facts)
+  const supported=filterSemanticallyUnsupportedEvidenceFacts(facts,readable,moduleSlug)
+  const deduplicated=deduplicateEvidenceFacts(supported)
   return deduplicateEvidenceFacts([...deduplicated,...deriveEvidenceFacts(deduplicated,moduleSlug)])
 }
 

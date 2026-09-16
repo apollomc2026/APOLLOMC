@@ -21,7 +21,7 @@
       "key": "customer_contact_onsite",
       "label": "Customer contact on site",
       "type": "text",
-      "help": "Name and role of the person who met the technician."
+      "help": "Only a person explicitly documented as present on site or as the on-site contact. A person who received a call, text, email, or access request does not qualify."
     },
     {
       "key": "visit_date",
@@ -217,7 +217,7 @@
       "required": true,
       "min_words": 80,
       "max_words": 250,
-      "instructions": "VISIT SUMMARY: One paragraph (3–5 sentences). Format: \"Work Order [work_order_number] — [site_name]. Technician [technician_name] performed service on [visit_date], arriving at [arrival_time] and departing at [departure_time] (total time on site: [computed]). Customer contact on site: [customer_contact_onsite]. Outcome: [one-sentence summary tied to follow_up_required selection — 'No follow-up required; equipment operating normally' / 'Parts ordered; return visit pending receipt' / 'Issue requires escalation; details below'].\""
+      "instructions": "VISIT SUMMARY: One paragraph (3–5 sentences). If a real customer work-order number is supplied, begin \"Work Order [work_order_number] — [site_name].\" Otherwise begin \"Service Record — [site_name].\" Never print an internal APOLLO identifier, fallback explanation, or the words \"no work order provided\" in client narrative. State technician, service date, arrival, departure, and time on site only when supplied. Name a customer contact only when customer_contact_onsite is explicitly supplied; a message recipient or requested approver is not an on-site contact. The outcome must match follow_up_required exactly. Never say parts were ordered unless follow_up_required is parts-order and the evidence explicitly says an order was placed. Recommendations to replace parts are not proof that parts were ordered."
     },
     {
       "key": "equipment_identification",
