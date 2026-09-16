@@ -701,6 +701,22 @@ function decorateOperationalStatuses(html: string): string {
   })
 }
 
+function renderFsrControlPanel(args: BuildPdfArgs): string {
+  if (args.template.slug !== 'fsr') return ''
+  const value = (key:string, fallback='Not recorded') => escapeHtml(readString(args.inputs,key) || fallback)
+  const followUp = readString(args.inputs,'follow_up_required')
+  const status = followUp === 'none' ? 'Service complete' : followUp === 'parts-order' ? 'Parts pending' : followUp === 'escalation' ? 'Escalation required' : followUp === 'return-visit' ? 'Return visit required' : 'Disposition documented below'
+  return `<section class="fsr-control-panel">
+    <div class="fsr-disposition"><span>Service disposition</span><strong>${escapeHtml(status)}</strong></div>
+    <table aria-label="Service control record"><tbody>
+      <tr><th>Work order</th><td>${value('work_order_number')}</td><th>Service date</th><td>${value('visit_date')}</td></tr>
+      <tr><th>Customer / site</th><td>${value('site_name')}</td><th>On site</th><td>${value('arrival_time')} - ${value('departure_time')}</td></tr>
+      <tr><th>Site address</th><td>${value('site_address')}</td><th>Time on site</th><td>${value('time_on_site_hours')} hours</td></tr>
+      <tr><th>Technician</th><td>${value('technician_name')}</td><th>Customer contact</th><td>${value('customer_contact_onsite')}</td></tr>
+    </tbody></table>
+  </section>`
+}
+
 // contractor_form genre primitive (WS2). Dense, tabular field-documentation
 // layout: a compact masthead (typeset wordmark + title + meta), then the
 // section body rendered tight — ALL-CAPS ruled headings, markdown tables and
@@ -744,6 +760,7 @@ function buildContractorFormHtml(args: BuildPdfArgs): string {
     const name = readString(args.inputs, p.nameField) || readString(args.inputs, fallbackField) || (p.label === 'Provider' ? args.brand.label : '')
     return `<div><b>${escapeHtml(p.label)}</b><strong>${escapeHtml(name)}</strong><i></i><span>Signature</span><i class="date-line"></i><span>Date</span></div>`
   }).join('')}</div>` : ''
+  const fsrControlPanel = renderFsrControlPanel(args)
 
   return `<!doctype html>
 <html lang="en">${sharedHead(palette, preset, docTitle)}
@@ -798,6 +815,23 @@ body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.42; color
 .cf-body.compact-closeout p { margin-bottom:3pt; }
 .cf-body.compact-closeout ul { margin:2pt 0 4pt; }
 .cf-body.compact-closeout li { margin:.5pt 0; }
+.cf-body.fsr-technical { counter-reset:fsr-section; font-size:9.2pt; line-height:1.36; }
+.cf-body.fsr-technical .fsr-control-panel { margin-bottom:12pt; }
+.cf-body.fsr-technical .fsr-control-panel table { table-layout:fixed; margin:0; }
+.cf-body.fsr-technical .fsr-control-panel th { width:17%; background:#2b2b2b; color:#fff; }
+.cf-body.fsr-technical .fsr-control-panel td { width:33%; background:#f4f4f4; font-weight:600; }
+.cf-body.fsr-technical .fsr-disposition { display:flex; justify-content:space-between; align-items:center; gap:12pt; padding:7pt 9pt; border-left:4pt solid var(--accent); background:#f2f2f2; text-transform:uppercase; }
+.cf-body.fsr-technical .fsr-disposition span { color:var(--metadata); font-size:7.5pt; font-weight:700; letter-spacing:.13em; }
+.cf-body.fsr-technical .fsr-disposition strong { color:var(--ink); font-size:10pt; letter-spacing:.05em; }
+.cf-body.fsr-technical h2 { counter-increment:fsr-section; display:flex; align-items:center; gap:8pt; margin:12pt 0 6pt; padding:5pt 8pt; border:0; background:#2b2b2b; color:#fff; letter-spacing:.07em; }
+.cf-body.fsr-technical h2::before { content:counter(fsr-section,decimal-leading-zero); display:inline-grid; place-items:center; align-self:stretch; min-width:25pt; margin:-5pt 0 -5pt -8pt; background:var(--accent); color:#fff; font-size:8pt; }
+.cf-body.fsr-technical h3 { color:var(--accent); border-bottom:.6pt solid var(--hairline); padding-bottom:2pt; }
+.cf-body.fsr-technical table { font-size:8.25pt; }
+.cf-body.fsr-technical th { text-transform:uppercase; letter-spacing:.035em; }
+.cf-body.fsr-technical td:first-child { font-weight:600; }
+.cf-body.fsr-technical blockquote { margin:6pt 0 9pt; padding:7pt 9pt; border-left:3pt solid var(--accent); background:#f6f6f6; break-inside:avoid; }
+.cf-body.fsr-technical blockquote p:last-child { margin-bottom:0; }
+.cf-body.fsr-technical .cf-signatures { margin-top:14pt; }
 </style>
 </head>
 <body>
@@ -805,7 +839,8 @@ body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.42; color
     <div class="cf-identity">${brandMark}<div>${brandLine}<div class="cf-title">${escapeHtml(docTitle)}</div></div></div>
     <div class="cf-meta">${meta}</div>
   </div>
-  <div class="cf-body${isCompactCloseout ? ' compact-closeout' : ''}">
+  <div class="cf-body${isCompactCloseout ? ' compact-closeout' : ''}${args.template.slug === 'fsr' ? ' fsr-technical' : ''}">
+${fsrControlPanel}
 ${body}
 ${signoffHtml}
   </div>

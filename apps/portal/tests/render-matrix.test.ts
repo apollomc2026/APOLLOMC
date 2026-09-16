@@ -66,6 +66,12 @@ describe('complete catalog rendering matrix', () => {
       expect(html).not.toContain('class="toc-page"')
       expect(html).not.toContain('class="cover"')
     }
+    if (deliverable.slug === 'fsr') {
+      expect(html).toContain('class="cf-body fsr-technical"')
+      expect(html).toContain('class="fsr-control-panel"')
+      expect(html).toContain('Service disposition')
+      expect(html).toContain('counter-reset:fsr-section')
+    }
     if (['project-completion-notice','tool-box-talk'].includes(deliverable.slug)) {
       expect(html).toContain('class="cf-body compact-closeout"')
       expect(html).toContain('white-space:nowrap')

@@ -93,6 +93,16 @@ describe('optional section evidence boundaries', () => {
     expect(prompt).toContain('do not add a cover, table of contents, appendix, or duplicate identification section')
   })
 
+  it('treats field service reports as auditable technical service records', () => {
+    const mission = args('fsr', Object.fromEntries(getModule('fsr')!.required_fields.map(field => [field.key, `Verified ${field.label}`])))
+    const prompt = buildUserPromptText(mission)
+    expect(prompt).toContain('technical service record, not an administrative visit summary')
+    expect(prompt).toContain('diagnostic chronology')
+    expect(prompt).toContain('Never upgrade an uncertain or incomplete result to PASS')
+    expect(prompt).toContain('root cause is not proven')
+    expect(prompt).toContain('chain-of-custody identifiers or hashes only when present')
+  })
+
   it('reserves a complete structured-output budget for long professional publications', () => {
     expect(outputTokenBudget(args('business-plan'))).toBe(16384)
     expect(outputTokenBudget(args('business-plan'), true)).toBe(14336)

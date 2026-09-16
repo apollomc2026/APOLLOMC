@@ -360,6 +360,16 @@ export function buildUserPromptText(args: OrchestrateArgs): string {
       '- Prefer compact tables, checklists, labeled facts, and short chronology rows over explanatory paragraphs.',
       '- State none/not reported once where applicable; do not expand an absent injury, witness, damage, or photo record into boilerplate.',
       '- Preserve measured facts and required sign-off, but do not add a cover, table of contents, appendix, or duplicate identification section.',
+      ...(args.slug === 'fsr' ? [
+        '- Treat this as a technical service record, not an administrative visit summary. A technician must be able to resume the work, a supervisor must be able to audit the diagnosis, and a customer must be able to validate billing and disposition from the same record.',
+        '- Use tables for equipment/assets in scope, diagnostic chronology, controlled changes, verification tests, parts/materials, labor, follow-up actions, and evidence inventory whenever the source provides those facts. Do not bury three or more comparable facts in prose.',
+        '- For every serviced asset or location, show a concise disposition such as PASS, RESTORED, OPERATING WITH LIMITATIONS, PENDING VALIDATION, OUT OF SERVICE, or ACTION REQUIRED. Never upgrade an uncertain or incomplete result to PASS.',
+        '- Separate: reported symptom; observed pre-work state; tests performed; findings; corrective action; post-work verification; unresolved conditions; and exact closure criteria. Preserve negative diagnostic evidence and ruled-out causes when supplied.',
+        '- Distinguish customer statements, technician observations, measured results, and analytical conclusions. If a root cause is not proven, say so plainly and identify what remains untested.',
+        '- Group multi-device or multi-location work by asset, lane, machine, system, or location. Do not collapse distinct machines or service events into a single generic equipment paragraph.',
+        '- Give follow-up work an owner, timing or trigger, operational impact, and acceptance test when the evidence supports them. Include explicit do-not-repeat or change-control cautions when supplied.',
+        '- Reference photos and diagnostic artifacts by exhibit or filename. Include chain-of-custody identifiers or hashes only when present in the evidence; never invent them.',
+      ] : []),
       '',
     ] : []),
     ...(LONG_FORM_EDITORIAL_SLUGS.has(args.slug) ? [
