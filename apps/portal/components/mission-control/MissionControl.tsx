@@ -281,6 +281,7 @@ export function MissionControl() {
       ? (jobProgress ?? readiness)
       : readiness;
   const facts = specification?.content.facts ?? [];
+  const evidenceFacts = facts.filter((fact) => fact.source === "evidence" && fact.verification_state !== "conflict");
   const questions = specification?.content.open_questions ?? [];
   const title =
     specification?.artifact.recommended_type.replace(/-/g, " ") ??
@@ -1012,6 +1013,11 @@ export function MissionControl() {
         <div><span>INTENDED DELIVERABLE</span><strong>{title}</strong><small>{specification.artifact.recommended_family}</small></div>
         <p>Confirm APOLLO interpreted the requested output correctly before calibrating its contents.</p>
         <div className="mc-deliverable-actions"><button type="button" onClick={()=>void submit(`I approve ${title} as the intended deliverable type. Continue calibrating this deliverable.`)} disabled={working}><Check size={15}/>Approve deliverable type</button><button type="button" onClick={correctDeliverableType} disabled={working}>Tell Houston what you need</button></div>
+      </section>:null}
+      {specification && specification.sources.length ? <section className="mc-evidence-confirmations" aria-label="Evidence confirmations">
+        <header><div><span>EVIDENCE READ COMPLETE</span><strong>{evidenceFacts.length} source-supported fact{evidenceFacts.length===1?"":"s"} recovered</strong></div><button type="button" onClick={()=>void submit("Re-read every secured evidence source using multipass extraction. Reconcile all source-supported facts against the selected deliverable, derive only deterministic values, preserve conflicts, and ask only for required facts absent from every source.")} disabled={working}>Re-scan evidence</button></header>
+        {evidenceFacts.length ? <div>{evidenceFacts.slice(0,8).map(fact=><article key={fact.key}><Check size={13}/><span>{fact.label}</span><strong>{fact.value}</strong><small>Source confirmed</small></article>)}</div> : <p>No schema-matched facts were recovered yet. Re-scan before answering questions manually.</p>}
+        {evidenceFacts.length>8?<small>+ {evidenceFacts.length-8} additional confirmed facts in the mission brief</small>:null}
       </section>:null}
       {specification ? <ol className="mc-mission-sequence" aria-label="Mission launch sequence">
         <li className="complete"><b>1</b><span><strong>Confirm deliverable</strong><small>{title}</small></span></li>

@@ -24,6 +24,8 @@ import { modelFor } from '@/lib/ai/models'
 import { getModule } from '@/lib/apollo/packages-loader'
 import { createMissionFact, type MissionFact } from './contracts'
 
+type EvidenceField = { key:string; label:string; type?:string; help?:string; options?:Array<{ value:string; label:string }> }
+
 export function evidenceMagicMatches(bytes: Buffer, mime: string): boolean {
   const at = (signature: number[], offset = 0) => signature.every((value, index) => bytes[offset + index] === value)
   if (mime === 'application/pdf') return at([0x25, 0x50, 0x44, 0x46])
@@ -106,7 +108,7 @@ export async function extractEvidenceFacts(text: string | undefined, moduleSlug:
 
 export function evidenceFactsFromToolInput(
   input: Record<string, unknown>,
-  fields: Array<{ key: string; label: string }>,
+  fields: EvidenceField[],
   sourceIds: string[],
 ): MissionFact[] {
   const labels = new Map(fields.map(field => [field.key, field.label]))
@@ -120,6 +122,31 @@ export function evidenceFactsFromToolInput(
       return value && sourceReference ? [createMissionFact({ key, label: labels.get(key)!, value:value.slice(0, 2000), source:'evidence', source_reference:sourceReference, confidence:1, sensitivity:'confidential' })] : []
     })
   })
+}
+
+export function deduplicateEvidenceFacts(facts:MissionFact[]):MissionFact[] {
+  return [...new Map(facts.map(fact => [`${fact.key}:${fact.source_reference ?? ''}:${(fact.normalized_value ?? fact.value).trim().toLocaleLowerCase()}`, fact])).values()]
+}
+
+function parseClock(value:string):number|null {
+  const match=value.trim().match(/\b(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?\b/i)
+  if(!match)return null
+  let hour=Number(match[1]);const minute=Number(match[2]??0);const meridiem=match[3]?.toLowerCase().startsWith('p')?'pm':match[3]?'am':null
+  if(hour>23||minute>59)return null
+  if(meridiem){hour%=12;if(meridiem==='pm')hour+=12}
+  return hour*60+minute
+}
+
+export function deriveEvidenceFacts(facts:MissionFact[],moduleSlug:string|null):MissionFact[] {
+  if(moduleSlug!=='fsr')return []
+  const byKey=new Map(facts.filter(fact=>fact.verification_state!=='conflict').map(fact=>[fact.key,fact]))
+  const derived:MissionFact[]=[]
+  if(!byKey.has('time_on_site_hours')){
+    const arrival=byKey.get('arrival_time');const departure=byKey.get('departure_time')
+    const start=arrival?parseClock(arrival.value):null;const end=departure?parseClock(departure.value):null
+    if(start!==null&&end!==null){const duration=((end<start?end+1440:end)-start)/60;if(duration>=0&&duration<=24)derived.push(createMissionFact({ key:'time_on_site_hours',label:'Time on site (hours)',value:String(Number(duration.toFixed(2))),source:'evidence',source_reference:arrival?.source_reference??departure?.source_reference??null,confidence:1,sensitivity:'confidential' }))}
+  }
+  return derived
 }
 
 export function batchEvidenceSources<T>(sources:T[], batchSize:number):T[][] {
@@ -152,23 +179,41 @@ export async function extractEvidenceFactsFromSources(
   if (!readable.length || !moduleSlug || !process.env.ANTHROPIC_API_KEY) return []
   const documentModule = getModule(moduleSlug)
   if (!documentModule) return []
-  const fields = [...documentModule.required_fields, ...documentModule.optional_fields]
+  const requiredFields = documentModule.required_fields as EvidenceField[]
+  const optionalFields = documentModule.optional_fields as EvidenceField[]
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   const facts: MissionFact[] = []
   for (const batch of batchEvidenceSources(readable, 4)) {
     const sourceIds = [...new Set(batch.map(source => source.id))]
-    const properties = evidenceToolProperties(fields, sourceIds, 'source')
     const evidenceText = batch.map(source => `=== SOURCE ${source.id}: ${source.name} ===\n${source.text.slice(0, 16000)}`).join('\n\n')
-    const response = await client.messages.create({ model:modelFor('extraction'), max_tokens:6000, system:'Extract only values explicitly present in the labeled evidence sources. Never infer, calculate, default, or fabricate. Use the exact field keys and cite the source ID that directly supports each value. For each field, return every distinct source-supported candidate; never choose between contradictory sources. Extract every supported required field before including optional fields.', tools:[{ name:'extract_evidence', description:'Return all explicitly supported specialist-field candidates with their source IDs, preserving contradictions for reconciliation.', input_schema:{ type:'object', properties } }], tool_choice:{ type:'tool', name:'extract_evidence' }, messages:[{ role:'user', content:evidenceText }] })
-    const block = response.content.find(item => item.type === 'tool_use' && item.name === 'extract_evidence')
-    if (block?.type === 'tool_use') facts.push(...evidenceFactsFromToolInput(block.input as Record<string, unknown>, fields, sourceIds))
+    const fieldPasses=[...batchEvidenceSources(requiredFields,5),optionalFields]
+    for(const passFields of fieldPasses){
+      if(!passFields.length)continue
+      const properties=evidenceToolProperties(passFields,sourceIds,'source')
+      const response=await client.messages.create({ model:modelFor('extraction'),max_tokens:5000,system:'You are one pass in APOLLO multipass evidence ingestion. Extract every requested value explicitly supported by the labeled sources. Never fabricate or silently omit a supported requested field. Return option VALUES exactly when options are provided. Cite the source ID. Preserve contradictions as separate candidates. Do not derive or calculate in this extraction pass.',tools:[{name:'extract_evidence',description:'Return every supported candidate for the requested field group.',input_schema:{type:'object',properties}}],tool_choice:{type:'tool',name:'extract_evidence'},messages:[{role:'user',content:`REQUESTED FIELD PASS:\n${passFields.map(field=>fieldDescriptor(field)).join('\n')}\n\n${evidenceText}`}]})
+      const block=response.content.find(item=>item.type==='tool_use'&&item.name==='extract_evidence')
+      if(block?.type==='tool_use')facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,passFields,sourceIds))
+    }
+    const found=new Set(facts.map(fact=>fact.key));const missing=requiredFields.filter(field=>!found.has(field.key))
+    if(missing.length){
+      const properties=evidenceToolProperties(missing,sourceIds,'source')
+      const response=await client.messages.create({model:modelFor('extraction'),max_tokens:5000,system:'This is APOLLO required-field recovery. Search the complete labeled evidence carefully for each missing field, including headings, tables, timelines, conclusions, and recommendations. Return all explicitly supported values with source IDs. Return option VALUES exactly. Leave a field absent only when no source supports it. Never fabricate.',tools:[{name:'extract_evidence',description:'Recover supported required fields missed by earlier extraction passes.',input_schema:{type:'object',properties}}],tool_choice:{type:'tool',name:'extract_evidence'},messages:[{role:'user',content:`MISSING REQUIRED FIELDS:\n${missing.map(field=>fieldDescriptor(field)).join('\n')}\n\n${evidenceText}`}]})
+      const block=response.content.find(item=>item.type==='tool_use'&&item.name==='extract_evidence')
+      if(block?.type==='tool_use')facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,missing,sourceIds))
+    }
   }
-  return facts
+  const deduplicated=deduplicateEvidenceFacts(facts)
+  return deduplicateEvidenceFacts([...deduplicated,...deriveEvidenceFacts(deduplicated,moduleSlug)])
 }
 
-function evidenceToolProperties(fields: Array<{ key:string; label:string }>, sourceIds:string[], sourceLabel:'source'|'PDF') {
+function fieldDescriptor(field:EvidenceField):string {
+  const options=field.options?.length?` Options: ${field.options.map(option=>`${option.value} (${option.label})`).join(', ')}.`:''
+  return `- ${field.key}: ${field.label}${field.type?` [${field.type}]`:''}.${field.help?` ${field.help}`:''}${options}`
+}
+
+function evidenceToolProperties(fields: EvidenceField[], sourceIds:string[], sourceLabel:'source'|'PDF') {
   return Object.fromEntries(fields.map(field => [field.key, {
-    type:'array', description:`${field.label}. Return one candidate per directly supporting ${sourceLabel}, including every contradictory value.`,
+    type:'array', description:`${fieldDescriptor(field)} Return one candidate per directly supporting ${sourceLabel}, including every contradictory value.`,
     items:{ type:'object', properties:{ value:{ type:'string', description:`Exact evidence-supported value for ${field.label}` }, source_id:{ type:'string', enum:sourceIds, description:`ID of the ${sourceLabel} that directly supports this candidate` } }, required:['value','source_id'] },
   }]))
 }
@@ -180,17 +225,30 @@ export async function extractEvidenceFactsFromPdfs(
   if (!sources.length || !moduleSlug || !process.env.ANTHROPIC_API_KEY) return []
   const documentModule = getModule(moduleSlug)
   if (!documentModule) return []
-  const fields = [...documentModule.required_fields, ...documentModule.optional_fields]
+  const requiredFields=documentModule.required_fields as EvidenceField[]
+  const optionalFields=documentModule.optional_fields as EvidenceField[]
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   const facts: MissionFact[] = []
   for (const batch of batchEvidenceSources(sources, 3)) {
     const sourceIds = batch.map(source => source.id)
-    const properties = evidenceToolProperties(fields, sourceIds, 'PDF')
     const content: ContentBlockParam[] = batch.flatMap(source => [{ type:'text' as const, text:`SOURCE ID: ${source.id} — ${source.name}` }, { type:'document' as const, title:source.name, source:{ type:'base64' as const, media_type:'application/pdf' as const, data:source.bytes.toString('base64') } }])
-    content.push({ type:'text', text:'Extract every explicitly supported required field from these PDFs. Return every conflicting candidate and do not infer missing client facts.' })
-    const response = await client.messages.create({ model:modelFor('extraction'), max_tokens:6000, system:'Extract only values explicitly present in the labeled PDF evidence. Never infer, calculate, default, or fabricate. Use the exact field keys and cite the source ID that directly supports each value. For each field, return every distinct source-supported candidate; never choose between contradictory PDFs.', tools:[{ name:'extract_evidence', description:'Return all explicitly supported specialist-field candidates with their PDF source IDs, preserving contradictions for reconciliation.', input_schema:{ type:'object', properties } }], tool_choice:{ type:'tool', name:'extract_evidence' }, messages:[{ role:'user', content }] })
-    const block = response.content.find(item => item.type === 'tool_use' && item.name === 'extract_evidence')
-    if (block?.type === 'tool_use') facts.push(...evidenceFactsFromToolInput(block.input as Record<string, unknown>, fields, sourceIds))
+    for(const passFields of [...batchEvidenceSources(requiredFields,5),optionalFields]){
+      if(!passFields.length)continue
+      const properties=evidenceToolProperties(passFields,sourceIds,'PDF')
+      const passContent=[...content,{type:'text' as const,text:`REQUESTED FIELD PASS:\n${passFields.map(field=>fieldDescriptor(field)).join('\n')}\nExtract every explicitly supported value for this field group. Return option VALUES exactly and preserve contradictions.`}]
+      const response=await client.messages.create({model:modelFor('extraction'),max_tokens:5000,system:'You are one pass in APOLLO multipass PDF ingestion. Extract every requested value explicitly supported by the PDFs. Never fabricate or silently omit a supported requested field. Cite the source ID, preserve contradictions, return option VALUES exactly, and do not calculate in this pass.',tools:[{name:'extract_evidence',description:'Return every supported candidate for the requested PDF field group.',input_schema:{type:'object',properties}}],tool_choice:{type:'tool',name:'extract_evidence'},messages:[{role:'user',content:passContent}]})
+      const block=response.content.find(item=>item.type==='tool_use'&&item.name==='extract_evidence')
+      if(block?.type==='tool_use')facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,passFields,sourceIds))
+    }
+    const found=new Set(facts.map(fact=>fact.key));const missing=requiredFields.filter(field=>!found.has(field.key))
+    if(missing.length){
+      const properties=evidenceToolProperties(missing,sourceIds,'PDF')
+      const recoveryContent=[...content,{type:'text' as const,text:`REQUIRED-FIELD RECOVERY PASS:\n${missing.map(field=>fieldDescriptor(field)).join('\n')}\nSearch headings, tables, timelines, conclusions, and recommendations. Leave absent only when unsupported.`}]
+      const response=await client.messages.create({model:modelFor('extraction'),max_tokens:5000,system:'Recover every explicitly supported required field missed by earlier PDF passes. Never fabricate. Return option VALUES exactly, cite source IDs, and preserve contradictions.',tools:[{name:'extract_evidence',description:'Recover supported required fields missed by prior PDF extraction.',input_schema:{type:'object',properties}}],tool_choice:{type:'tool',name:'extract_evidence'},messages:[{role:'user',content:recoveryContent}]})
+      const block=response.content.find(item=>item.type==='tool_use'&&item.name==='extract_evidence')
+      if(block?.type==='tool_use')facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,missing,sourceIds))
+    }
   }
-  return facts
+  const deduplicated=deduplicateEvidenceFacts(facts)
+  return deduplicateEvidenceFacts([...deduplicated,...deriveEvidenceFacts(deduplicated,moduleSlug)])
 }

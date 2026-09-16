@@ -442,6 +442,7 @@ test('advanced intake hands evidence-derived readiness and specification version
         specification: {
           ...interpretedSpecification,
           sources: [{ id: 'evidence-1', name: 'site-notes.txt', status: 'verified' }],
+          content:{ ...(interpretedSpecification as { content:Record<string,unknown> }).content, facts:[{ key:'site_name',label:'Site name',value:'Acme Facility',normalized_value:'Acme Facility',source:'evidence',source_reference:'evidence-1',capture_method:'file_extraction',confidence:1,verification_state:'verified',sensitivity:'confidential',last_editor:'apollo',updated_at:'2026-09-16T12:00:00.000Z' }] },
         },
         specification_version: 2,
         readiness: 82,
@@ -462,6 +463,8 @@ test('advanced intake hands evidence-derived readiness and specification version
   await expect(page.getByText('82%')).toBeVisible()
   await expect(page.getByRole('heading', { name:/Evidence record/ })).toContainText('1')
   await expect(page.getByText('site-notes.txt')).toBeVisible()
+  await expect(page.getByRole('region',{ name:'Evidence confirmations' })).toContainText('Acme Facility')
+  await expect(page.getByRole('button',{ name:'Re-scan evidence' })).toBeVisible()
   await expect(page.getByText(/1 rejected without discarding the mission: mislabeled.pdf/)).toBeVisible()
   const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('apollo:mission-control:v1') ?? '{}'))
   expect(interpretCount).toBe(2)

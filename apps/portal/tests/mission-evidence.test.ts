@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as XLSX from 'xlsx'
 import sharp from 'sharp'
-import { batchEvidenceSources, chunkEvidenceSources, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, normalizeEvidenceMime, prepareEvidenceRetrieval, sanitizeEvidenceBytes } from '../lib/mission-control/evidence'
+import { batchEvidenceSources, chunkEvidenceSources, deduplicateEvidenceFacts, deriveEvidenceFacts, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, normalizeEvidenceMime, prepareEvidenceRetrieval, sanitizeEvidenceBytes } from '../lib/mission-control/evidence'
 import { createMissionFact, mergeMissionFacts, type DeliverableSpecification } from '../lib/mission-control/contracts'
 import { buildContentBlocks, inlineEvidenceByteLimit, OrchestrateError } from '../lib/apollo/orchestrate'
 import { mergeEvidenceIntoSpecification } from '../lib/mission-control/evidence-specification'
@@ -143,6 +143,19 @@ describe('mission evidence custody', () => {
     expect(chunks.every(chunk => chunk.id === 'contract')).toBe(true)
     expect(chunks[2].text).toBe(text.slice(30_400,46_400))
     expect(chunks.map(chunk => chunk.name)).toEqual(['Warranty.pdf · segment 1/3','Warranty.pdf · segment 2/3','Warranty.pdf · segment 3/3'])
+  })
+
+  it('deduplicates repeated multipass findings without losing source custody', () => {
+    const repeated=createMissionFact({ key:'technician_name',label:'Technician name',value:'Jon Sargent / On Spot Solutions LLC',source:'evidence',source_reference:'service-record',confidence:1 })
+    expect(deduplicateEvidenceFacts([repeated,{...repeated}])).toHaveLength(1)
+  })
+
+  it('derives time on site deterministically from evidence-backed arrival and departure', () => {
+    const facts=[
+      createMissionFact({ key:'arrival_time',label:'Arrival time',value:'12:30 PM',source:'evidence',source_reference:'service-record',confidence:1 }),
+      createMissionFact({ key:'departure_time',label:'Departure time',value:'2:30 PM',source:'evidence',source_reference:'service-record',confidence:1 }),
+    ]
+    expect(deriveEvidenceFacts(facts,'fsr')).toEqual([expect.objectContaining({ key:'time_on_site_hours',value:'2',source:'evidence',verification_state:'verified' })])
   })
 
   it('rebases a concurrent evidence upload onto the latest specification without losing earlier custody', () => {
