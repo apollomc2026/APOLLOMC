@@ -176,6 +176,12 @@ export function filterSemanticallyUnsupportedEvidenceFacts(
   sources:Array<{ id:string; text:string }>,
   moduleSlug:string|null,
 ):MissionFact[] {
+  if(moduleSlug==='quote')return facts.filter(fact=>{
+    const value=fact.value.trim()
+    if(/^(?:<unknown>|unknown|not provided|not specified|n\/a|none)$/i.test(value))return false
+    if(fact.key==='line_items')return /(?:\$\s?\d|\b(?:usd|dollars?)\b|\d[\d,]*(?:\.\d{2})?\s*(?:each|\/\s*(?:day|hour|unit|deployment)))/i.test(value)
+    return true
+  })
   if(moduleSlug!=='fsr')return facts
   const textBySource=new Map(sources.map(source=>[source.id,source.text]))
   return facts.filter(fact=>{
