@@ -667,7 +667,7 @@ export function MissionControl() {
       ]);
       if (rejected.length)
         setError(
-          "Some files were rejected. Secured evidence and specification progress were preserved.",
+          `Evidence rejected: ${rejected.join("; ")}`,
         );
     } finally {
       setWorking(false);

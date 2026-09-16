@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { requireAllowedUser } from '@/lib/apollo/auth'
 import { createClient } from '@/lib/supabase/server'
-import { deleteFromS3, getFromS3, getUploadPresignedUrl, uploadToS3 } from '@/lib/s3/client'
+import { deleteFromS3, ensureUploadCors, getFromS3, getUploadPresignedUrl, uploadToS3 } from '@/lib/s3/client'
 import { evidenceMagicMatches, extractEvidence, extractEvidenceFacts, MAX_EVIDENCE_BYTES, normalizeEvidenceMime, prepareEvidenceRetrieval, sanitizeEvidenceBytes } from '@/lib/mission-control/evidence'
 import { mergeEvidenceIntoSpecification } from '@/lib/mission-control/evidence-specification'
 import type { DeliverableSpecification } from '@/lib/mission-control/contracts'
@@ -18,6 +18,7 @@ export async function POST(request:Request){
   if(!conversationId||!name||!mime||!ALLOWED.has(mime)||!Number.isFinite(size)||size<=0||size>MAX_EVIDENCE_BYTES)return NextResponse.json({error:'Unsupported file type or file exceeds 20 MB'},{status:415})
   const db=await createClient();const owner=await db.from('apollo_conversations').select('id').eq('id',conversationId).eq('user_id',allowed.user.userId).single()
   if(owner.error||!owner.data)return NextResponse.json({error:'Mission conversation was not found'},{status:404})
+  try{await ensureUploadCors(new URL(request.url).origin)}catch(cause){return NextResponse.json({error:`Secure evidence storage is not ready for direct upload: ${cause instanceof Error?cause.message:'configuration failed'}`},{status:503})}
   const id=randomUUID();const safeName=name.replace(/[^a-zA-Z0-9._-]/g,'_');const storageKey=`mission-evidence/${conversationId}/${id}-${safeName}`
   const inserted=await db.from('apollo_conversation_evidence').insert({id,conversation_id:conversationId,user_id:allowed.user.userId,original_name:name,storage_key:storageKey,mime_type:mime,size_bytes:size,extraction_status:'pending',extracted_facts:[]}).select('id').single()
   if(inserted.error)return NextResponse.json({error:inserted.error.message},{status:500})

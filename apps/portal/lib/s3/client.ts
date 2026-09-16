@@ -1,4 +1,5 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, GetBucketCorsCommand, PutBucketCorsCommand } from '@aws-sdk/client-s3'
+import type { CORSRule } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 const s3 = new S3Client({
@@ -49,6 +50,21 @@ export async function getUploadPresignedUrl(key: string, contentType: string, ex
     new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: contentType }),
     { expiresIn }
   )
+}
+
+export async function ensureUploadCors(origin:string){
+  const parsed=new URL(origin)
+  const permitted=parsed.protocol==='https:'&&(parsed.hostname==='apollomc.ai'||parsed.hostname.endsWith('.apollomc.ai')||parsed.hostname.endsWith('.vercel.app'))
+  if(!permitted)throw new Error('Upload origin is not permitted')
+  let rules:CORSRule[]=[]
+  try{rules=(await s3.send(new GetBucketCorsCommand({Bucket:BUCKET}))).CORSRules??[]}catch(cause){if(!(cause instanceof Error)||!['NoSuchCORSConfiguration','NoSuchCORS'].includes(cause.name))throw cause}
+  const index=rules.findIndex(rule=>rule.ID==='apollo-evidence-direct-upload')
+  const existing=index>=0?rules[index]:undefined
+  const origins=[...new Set([...(existing?.AllowedOrigins??[]),origin,'https://portal.apollomc.ai'])]
+  if(existing&&origins.length===existing.AllowedOrigins?.length)return
+  const rule={ID:'apollo-evidence-direct-upload',AllowedOrigins:origins,AllowedMethods:['PUT'],AllowedHeaders:['content-type'],ExposeHeaders:['etag'],MaxAgeSeconds:3600}
+  if(index>=0)rules[index]=rule;else rules.push(rule)
+  await s3.send(new PutBucketCorsCommand({Bucket:BUCKET,CORSConfiguration:{CORSRules:rules}}))
 }
 
 export async function deleteFromS3(key: string) {
