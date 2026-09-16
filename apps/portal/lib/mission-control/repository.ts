@@ -19,7 +19,7 @@ function questionForGap(gap:{key:string;label:string},specification:DeliverableS
 
 function isControlMessageFact(fact: MissionFact) {
   if (fact.key === 'deliverable_type') return false
-  return /^(?:Use (?:your )?expert recommendations\b|Operator involvement override:|I approve .+ as the intended deliverable type\b|(?:The intended deliverable is|Set the intended deliverable exactly to)|every unresolved decision that can be responsibly inferred)/i.test(fact.value.trim())
+  return /^(?:Use (?:your )?expert recommendations\b|Operator involvement override:|Re-read every secured evidence source\b|Reconcile the complete secured evidence set\b|I approve .+ as the intended deliverable type\b|(?:The intended deliverable is|Set the intended deliverable exactly to)|every unresolved decision that can be responsibly inferred)/i.test(fact.value.trim())
 }
 
 interface ReprocessableEvidenceRow {

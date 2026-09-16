@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { interpretMission } from '../lib/mission-control/interpreter'
-import { applyClaudeInterpretation, applyExpertRecommendationMode, applyExplicitMissionDirectives, interpretMissionWithClaude, promoteAcknowledgedGap } from '../lib/mission-control/ai-interpreter'
+import { applyClaudeInterpretation, applyExpertRecommendationMode, applyExplicitMissionDirectives, interpretMissionWithClaude, isMissionControlDirective, promoteAcknowledgedGap } from '../lib/mission-control/ai-interpreter'
 import { executionGaps } from '../lib/mission-control/work-order'
 
 describe('mission interpreter', () => {
@@ -168,6 +168,23 @@ describe('mission interpreter', () => {
       expect.objectContaining({ key: 'pricing_model', value: 'fixed-fee' }),
     ]))
     expect(result.specification.content.open_questions).not.toEqual(expect.arrayContaining([expect.stringContaining('proposed methodology'), expect.stringContaining('risks and mitigations')]))
+  })
+
+  it('treats evidence rescans as control messages instead of mission facts', () => {
+    expect(isMissionControlDirective('Re-read every secured evidence source using multipass extraction.')).toBe(true)
+    expect(isMissionControlDirective('Reconcile the complete secured evidence set against the selected deliverable before asking questions.')).toBe(true)
+  })
+
+  it('fills exact quote validity and payment keys in expert recommendation mode', () => {
+    const base = interpretMission('Create a customer quote for site repairs.')
+    base.specification.content.facts.push({
+      key:'quote_date',label:'Quote date',value:'September 16, 2026',normalized_value:'September 16, 2026',source:'evidence',source_reference:'source-1',capture_method:'file_extraction',confidence:1,verification_state:'verified',sensitivity:'confidential',last_editor:'apollo',updated_at:new Date().toISOString(),
+    })
+    const patch = applyExpertRecommendationMode({}, 'Use your expert recommendations for every unresolved decision.', base.specification)
+    expect(patch.inferred_facts).toEqual(expect.arrayContaining([
+      expect.objectContaining({ key:'valid_until', value:'2026-10-16' }),
+      expect.objectContaining({ key:'payment_terms', value:'50% deposit / 50% on completion' }),
+    ]))
   })
 
   it('does not fail expert mode when the model returns malformed inferred facts', () => {

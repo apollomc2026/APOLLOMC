@@ -14,8 +14,20 @@ export function uuidFromDigest(digest: string, offset = 0) {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`
 }
 
+function controllingConflictValue(fact:DeliverableSpecification['content']['facts'][number],deliverableType:string):string|null {
+  if(fact.verification_state!=='conflict')return fact.value
+  if(deliverableType==='quote'&&fact.key==='scope_summary')return fact.value
+  const active=(fact.conflicts??[]).filter(candidate=>! /\b(?:superseded|obsolete|replaced by|no longer current)\b/i.test(candidate.value))
+  const unique=[...new Map(active.map(candidate=>[(candidate.normalized_value??candidate.value).normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase(),candidate.value])).values()]
+  return unique.length===1?unique[0]:null
+}
+
 function factMap(specification: DeliverableSpecification): Record<string, string> {
-  return Object.fromEntries(specification.content.facts.filter(fact => fact.verification_state !== 'conflict' && (fact.source === 'user' || fact.source === 'evidence' || fact.confidence >= .75)).map(fact => [fact.key, fact.value]))
+  return Object.fromEntries(specification.content.facts.flatMap(fact => {
+    if(!(fact.source === 'user' || fact.source === 'evidence' || fact.confidence >= .75))return []
+    const value=controllingConflictValue(fact,specification.artifact.recommended_type)
+    return value===null?[]:[[fact.key,value]]
+  }))
 }
 
 export function executionFields(spec: DeliverableSpecification, now = new Date()): Record<string, unknown> {
@@ -28,6 +40,13 @@ export function executionFields(spec: DeliverableSpecification, now = new Date()
     fields.pricing_detail ??= spec.content.commercial_terms.value
     fields.assumptions ??= spec.content.assumptions.join('\n') || 'This proposal is based solely on the scope and facts stated in the approved mission brief. Changes to scope, access, schedule, site conditions, or client requirements require written review and may affect price and schedule.'
   }
+  if(spec.artifact.recommended_type==='quote'){
+    if(!fields.customer_name&&typeof fields.customer_address==='string')fields.customer_name=fields.customer_address.split(/\s+[—–-]\s+|,/)[0]?.trim()
+    if(!fields.valid_until&&typeof fields.quote_date==='string'){
+      const days=Number(fields.validity_period_days??30);const date=new Date(fields.quote_date)
+      if(Number.isFinite(days)&&!Number.isNaN(date.getTime())){date.setUTCDate(date.getUTCDate()+days);fields.valid_until=date.toISOString().slice(0,10)}
+    }
+  }
   return fields
 }
 
@@ -35,7 +54,7 @@ export function executionGaps(spec: DeliverableSpecification, now = new Date()) 
   const documentModule = getModule(spec.artifact.recommended_type)
   if (!documentModule) return [{ key: 'deliverable', label: 'Supported deliverable', reason: 'The recommendation is not mapped to an active document module.' }]
   const requiredKeys = new Set(documentModule.required_fields.map(field => field.key))
-  const conflicts = spec.content.facts.filter(fact => requiredKeys.has(fact.key) && fact.verification_state === 'conflict').map(fact => ({ key: fact.key, label: fact.label, reason: 'Conflicting values must be resolved before controlled execution.' }))
+  const conflicts = spec.content.facts.filter(fact => requiredKeys.has(fact.key) && fact.verification_state === 'conflict' && controllingConflictValue(fact,spec.artifact.recommended_type)===null).map(fact => ({ key: fact.key, label: fact.label, reason: 'Conflicting values must be resolved before controlled execution.' }))
   const fields = executionFields(spec, now)
   const internallyControlledFsrFields=new Set(spec.artifact.recommended_type==='fsr'?['work_order_number','equipment_asset_id']:[])
   const missing = documentModule.required_fields.filter(field => !internallyControlledFsrFields.has(field.key) && (fields[field.key] === undefined || fields[field.key] === null || String(fields[field.key]).trim() === '')).map(field => ({ key: field.key, label: field.label, reason: 'Required by the selected specialist document module.' }))

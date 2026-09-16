@@ -11,6 +11,21 @@ import type { DocumentWorkOrder } from '../lib/executor/contracts'
 const ids = { specificationId: '11111111-1111-4111-8111-111111111111', specificationHash: 'a'.repeat(64), conversationId: '22222222-2222-4222-8222-222222222222', requestedBy: '33333333-3333-4333-8333-333333333333', driveFolderId: 'drive-folder', now: new Date('2026-09-06T12:00:00Z') }
 
 describe('approved specification compiler', () => {
+  it('uses quote evidence to resolve identity, validity, narrative variants, and superseded pricing', () => {
+    const specification = interpretMission('Create a customer quote for site repairs.').specification
+    const now = new Date('2026-09-16T12:00:00Z')
+    const facts = [
+      createMissionFact({key:'customer_address',label:'Customer address',value:'US Foods — Seabrook, New Hampshire',source:'evidence',source_reference:'source-1',confidence:1},now),
+      createMissionFact({key:'quote_date',label:'Quote date',value:'September 16, 2026',source:'evidence',source_reference:'source-1',confidence:1},now),
+      createMissionFact({key:'scope_summary',label:'Scope summary',value:'Reconstruct three equipment foundations and reseal five vehicle-detection loops.',source:'evidence',source_reference:'source-2',confidence:1,verification_state:'conflict',conflicts:[{value:'Concrete pedestal reconstruction and loop resealing.',normalized_value:'Concrete pedestal reconstruction and loop resealing.',source:'evidence',source_reference:'source-1'},{value:'Reconstruct three equipment foundations and reseal five vehicle-detection loops.',normalized_value:'Reconstruct three equipment foundations and reseal five vehicle-detection loops.',source:'evidence',source_reference:'source-2'}]},now),
+      createMissionFact({key:'line_items',label:'Line items',value:'Foundations | 3 | each | $2,400 | $7,200\nLoop reseal | 5 | each | $350 | $1,750',source:'evidence',source_reference:'source-2',confidence:1,verification_state:'conflict',conflicts:[{value:'Working total $10,800 (superseded)',normalized_value:'Working total $10,800 (superseded)',source:'evidence',source_reference:'source-1'},{value:'Foundations | 3 | each | $2,400 | $7,200\nLoop reseal | 5 | each | $350 | $1,750',normalized_value:'Foundations | 3 | each | $2,400 | $7,200 Loop reseal | 5 | each | $350 | $1,750',source:'evidence',source_reference:'source-2'}]},now),
+      createMissionFact({key:'payment_terms',label:'Payment terms',value:'50% deposit / 50% on completion',source:'default',confidence:.84},now),
+    ]
+    specification.content.facts=facts
+    const gaps=executionGaps(specification,now)
+    expect(gaps.map(gap=>gap.key)).not.toEqual(expect.arrayContaining(['customer_name','valid_until','scope_summary','line_items','payment_terms']))
+  })
+
   it('refuses an unapproved specification', () => {
     const specification = interpretMission('I need a proposal for a client.').specification
     expect(compileApprovedSpecification({ specification, ...ids })).toEqual(expect.objectContaining({ ok: false, missing: [expect.objectContaining({ key: 'approval' })] }))

@@ -42,13 +42,22 @@ export function applyExpertRecommendationMode(patch: ClaudeInterpretation, text:
     { key: 'validity_period_days', label: 'Proposal validity (days)', value: '30', confidence: .8 },
     { key: 'next_steps_call_to_action', label: 'Next steps / call to action', value: 'Confirm acceptance of scope and commercial terms, execute the controlling agreement, satisfy mobilization requirements, designate the client coordinator, and schedule kickoff.', confidence: .84 },
   ]
+  if (specification.artifact.recommended_type === 'quote') {
+    const quoteDate = specification.content.facts.find(fact => fact.key === 'quote_date' && fact.verification_state !== 'conflict')?.value
+    const parsedDate = quoteDate ? new Date(quoteDate) : null
+    if (parsedDate && !Number.isNaN(parsedDate.getTime())) {
+      parsedDate.setUTCDate(parsedDate.getUTCDate() + 30)
+      recommendations.push({ key:'valid_until', label:'Valid until', value:parsedDate.toISOString().slice(0,10), confidence:.9 })
+    }
+    recommendations.push({ key:'payment_terms', label:'Payment terms', value:'50% deposit / 50% on completion', confidence:.84 })
+  }
   if (Object.keys(specification.content.commercial_terms).length || /fixed[- ]fee/i.test(specification.mission.objective)) recommendations.push({ key: 'pricing_model', label: 'Pricing model', value: 'fixed-fee', confidence: .95 })
   const inferredFacts = Array.isArray(patch.inferred_facts) ? patch.inferred_facts : []
   return { ...patch, stated_facts: [], acknowledgement: 'Expert recommendation mode applied. I resolved every professional default supported by the mission and preserved genuinely client-specific facts for explicit confirmation.', inferred_facts: [...inferredFacts, ...recommendations.filter(fact => !existing.has(fact.key))] }
 }
 
 export function isMissionControlDirective(text: string) {
-  return /^(?:Use (?:your )?expert recommendations\b|Operator involvement override:)/i.test(text.trim())
+  return /^(?:Use (?:your )?expert recommendations\b|Operator involvement override:|Re-read every secured evidence source\b|Reconcile the complete secured evidence set\b)/i.test(text.trim())
 }
 
 const SYSTEM = `You are APOLLO's mission interpreter. Convert a natural professional request into evidence-aware mission state.
