@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildDocumentIdentity } from '@/lib/executor/pipeline'
-import { cleanDisplayAddress, cleanExecutionFields, isUsableExternalReference } from '@/lib/mission-control/field-quality'
+import { cleanDisplayAddress, cleanExecutionFields, isUsableExternalReference, isUsableSiteAddress } from '@/lib/mission-control/field-quality'
 import type { DocumentWorkOrder } from '@/lib/executor/contracts'
 
 function order(fields:Record<string,unknown>):DocumentWorkOrder {
@@ -18,6 +18,9 @@ describe('controlled document identity', () => {
 
   it('cleans conversational address prefixes without inventing an address', () => {
     expect(cleanDisplayAddress('address is 1 Broadway Everett ma')).toBe('1 Broadway Everett MA')
+    expect(isUsableSiteAddress('1 Broadway, Everett, MA 02149')).toBe(true)
+    expect(isUsableSiteAddress('Encore Boston Harbor')).toBe(false)
+    expect(cleanExecutionFields({site_address:'Not provided in source record'})).not.toHaveProperty('site_address')
   })
 
   it('uses a labeled service-record identity and a human-readable filename when no customer work order exists', () => {

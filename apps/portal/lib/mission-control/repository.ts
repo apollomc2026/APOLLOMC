@@ -9,6 +9,14 @@ import { executionGaps } from './work-order'
 
 export class MissionPersistenceError extends Error {}
 
+function questionForGap(gap:{key:string;label:string},specification:DeliverableSpecification):string {
+  if(gap.key==='site_address'){
+    const site=specification.content.facts.find(fact=>fact.key==='site_name'&&fact.verification_state!=='conflict')?.value.trim()
+    return site?`Confirm the complete street address for ${site}. APOLLO did not find a usable postal address in the secured evidence.`:'Confirm the complete street address for this service location.'
+  }
+  return `What should APOLLO use for ${gap.label.toLowerCase()}?`
+}
+
 function isControlMessageFact(fact: MissionFact) {
   if (fact.key === 'deliverable_type') return false
   return /^(?:Use (?:your )?expert recommendations\b|Operator involvement override:|I approve .+ as the intended deliverable type\b|(?:The intended deliverable is|Set the intended deliverable exactly to)|every unresolved decision that can be responsibly inferred)/i.test(fact.value.trim())
@@ -118,7 +126,7 @@ export async function persistMissionTurn(input: {
       const nonEvidenceFacts = result.specification.content.facts.filter(fact => fact.source !== 'evidence' && !(evidenceKeys.has(fact.key) && isEvidenceDirective(fact.value)))
       result.specification.content.facts = mergeMissionFacts(nonEvidenceFacts, evidenceFacts)
       const gaps = executionGaps(result.specification)
-      result.specification.content.open_questions = gaps.map(gap => `What should APOLLO use for ${gap.label.toLowerCase()}?`)
+      result.specification.content.open_questions = gaps.map(gap => questionForGap(gap,result.specification))
       result.specification.content.assumptions = gaps.map(gap => `${gap.label} remains unresolved`)
       result.readiness = gaps.length ? Math.min(70, Math.max(50, 82 - gaps.length * 8)) : 82
       result.readiness_state = result.readiness >= 75 ? 'ready' : 'calibrating'
@@ -131,7 +139,7 @@ export async function persistMissionTurn(input: {
   result.specification.content.facts = result.specification.content.facts.filter(fact => !isControlMessageFact(fact))
   result.changed_facts = result.changed_facts.filter(fact => !isControlMessageFact(fact))
   const sanitizedGaps = executionGaps(result.specification)
-  result.specification.content.open_questions = sanitizedGaps.map(gap => `What should APOLLO use for ${gap.label.toLowerCase()}?`)
+  result.specification.content.open_questions = sanitizedGaps.map(gap => questionForGap(gap,result.specification))
   result.specification.content.assumptions = sanitizedGaps.map(gap => `${gap.label} remains unresolved`)
   if (sanitizedGaps.length) {
     result.readiness = Math.min(result.readiness, 70)

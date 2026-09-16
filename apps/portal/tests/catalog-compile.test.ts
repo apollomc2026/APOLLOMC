@@ -41,7 +41,7 @@ describe('complete active deliverable catalog', () => {
     specification.content.facts = documentModule!.required_fields.map(field => createMissionFact({
       key:field.key,
       label:field.label,
-      value:field.type === 'date' ? '2026-09-14' : field.type === 'number' ? '100' : `Verified ${field.label}`,
+      value:field.key === 'site_address' ? '1 Broadway, Everett, MA 02149' : field.type === 'date' ? '2026-09-14' : field.type === 'number' ? '100' : `Verified ${field.label}`,
       source:'user',
       confidence:1,
       sensitivity:'confidential',
