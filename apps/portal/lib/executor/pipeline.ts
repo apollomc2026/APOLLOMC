@@ -12,6 +12,7 @@ import { uploadDriveDraft } from './google-drive'
 import { BUCKET, getFromS3 } from '@/lib/s3/client'
 import { createServiceClient } from '@/lib/supabase/server'
 import { MAX_EVIDENCE_BYTES } from '@/lib/mission-control/evidence'
+import { cleanExecutionFields, isUsableExternalReference } from '@/lib/mission-control/field-quality'
 
 
 async function loadExecutionBrand(order: DocumentWorkOrder): Promise<{ brand:LoadedBrand|null; palette:BrandPalette }> {
@@ -38,6 +39,22 @@ async function loadExecutionBrand(order: DocumentWorkOrder): Promise<{ brand:Loa
 
 function safeCode(value: string, length: number): string {
   return value.replace(/[^a-z0-9]/gi, '').toUpperCase().slice(0, length)
+}
+
+function filenamePart(value: unknown, fallback: string): string {
+  const normalized = String(value ?? '').trim().replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '')
+  return normalized.slice(0, 48) || fallback
+}
+
+export function buildDocumentIdentity(args: { order:DocumentWorkOrder; brandLabel:string; generatedAt:Date; artifactVersion:number }) {
+  const stamp = args.generatedAt.toISOString().slice(0, 10)
+  const brandCode = safeCode(args.brandLabel, 3) || 'APL'
+  const typeCode = safeCode(args.order.deliverable_type, 6) || 'DOC'
+  const customerReference = isUsableExternalReference(args.order.fields.work_order_number) ? String(args.order.fields.work_order_number).trim() : null
+  const serviceRecordReference = `${brandCode}-${typeCode}-${stamp.replace(/-/g, '')}-SR-${safeCode(args.order.work_order_id, 6)}`
+  const referenceSegment = customerReference ? `WO-${filenamePart(customerReference, 'SOURCE')}` : `SR-${safeCode(args.order.work_order_id, 6)}`
+  const filename = [filenamePart(args.brandLabel, brandCode), typeCode, filenamePart(args.order.fields.site_name, 'Site'), filenamePart(args.order.fields.visit_date, stamp), referenceSegment, `V${args.artifactVersion}`].join('_') + '.pdf'
+  return { documentId:customerReference || serviceRecordReference, customerReference, filename }
 }
 
 function shouldHaveSignatureBlock(slug: string): boolean {
@@ -84,8 +101,13 @@ export async function generateStructuredDocument(order: DocumentWorkOrder) {
   const style = getStyleById(order.style_id)
   const { brand } = await loadExecutionBrand(order)
   if (!moduleData || !schema || !style || !brand) throw new Error('document module, schema, style, or brand is unavailable')
+  const cleanedFields = cleanExecutionFields(order.fields)
+  if (order.deliverable_type === 'fsr') {
+    cleanedFields.work_order_number ??= 'Not provided in source record; APOLLO service record ID controls.'
+    cleanedFields.equipment_asset_id ??= 'No asset tag provided; equipment identified by verified location and make/model.'
+  }
   const missing = moduleData.required_fields.filter((field) => {
-    const value = order.fields[field.key]
+    const value = cleanedFields[field.key]
     return value === undefined || value === null || (typeof value === 'string' && value.trim() === '')
   }).map((field) => field.key)
   if (missing.length) {
@@ -102,7 +124,7 @@ export async function generateStructuredDocument(order: DocumentWorkOrder) {
     schema: schema as Record<string, unknown>,
     style,
     brand,
-    fields: order.fields,
+    fields: cleanedFields,
     uploads,
   })
   return { output: generated.output, contentHtml: generated.contentHtml, warnings: generated.warnings, quality: generated.quality }
@@ -129,20 +151,21 @@ export async function renderAndStorePdf(order: DocumentWorkOrder, contentHtml: s
   const now = new Date()
   const requestedVersion = Number(order.fields.artifact_version ?? 1)
   const artifactVersion = Number.isSafeInteger(requestedVersion) && requestedVersion > 0 ? requestedVersion : 1
-  const stamp = now.toISOString().slice(0, 10)
+  const cleanedFields = cleanExecutionFields(order.fields)
+  const identity = buildDocumentIdentity({ order:{ ...order, fields:cleanedFields }, brandLabel:brand.label, generatedAt:now, artifactVersion })
   const pdf = await buildPdf({
     template,
     brand,
-    inputs: order.fields,
+    inputs: { ...cleanedFields, apollo_service_record_id:identity.documentId, customer_work_order_number:identity.customerReference ?? '' },
     contentHtml,
-    documentId: `${safeCode(order.brand_id, 3)}-${safeCode(order.deliverable_type, 6)}-${stamp}-${order.work_order_id.slice(0, 6)}`,
+    documentId: identity.documentId,
     preparedDate: now.toISOString(),
     palette: applyPaletteOverride(palette, undefined),
     fontPreset: resolvePreset(undefined),
     logoPlacement: resolvePlacement(undefined),
   })
   const digest = createHash('sha256').update(pdf).digest('hex')
-  const filename = `${order.deliverable_type}_${order.project_id}_${stamp}_${order.work_order_id.slice(0, 6)}.pdf`
+  const filename = identity.filename
   await uploadSubmissionOutput({
     submissionId: order.work_order_id,
     pdfBuffer: pdf,

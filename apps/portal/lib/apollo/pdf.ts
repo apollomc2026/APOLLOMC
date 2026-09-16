@@ -704,12 +704,15 @@ function decorateOperationalStatuses(html: string): string {
 function renderFsrControlPanel(args: BuildPdfArgs): string {
   if (args.template.slug !== 'fsr') return ''
   const value = (key:string, fallback='Not recorded') => escapeHtml(readString(args.inputs,key) || fallback)
+  const customerWorkOrder = readString(args.inputs,'customer_work_order_number')
+  const recordLabel = customerWorkOrder ? 'Customer work order' : 'APOLLO service record'
+  const recordValue = customerWorkOrder || readString(args.inputs,'apollo_service_record_id') || args.documentId
   const followUp = readString(args.inputs,'follow_up_required')
   const status = followUp === 'none' ? 'Service complete' : followUp === 'parts-order' ? 'Parts pending' : followUp === 'escalation' ? 'Escalation required' : followUp === 'return-visit' ? 'Return visit required' : 'Disposition documented below'
   return `<section class="fsr-control-panel">
     <div class="fsr-disposition"><span>Service disposition</span><strong>${escapeHtml(status)}</strong></div>
     <table aria-label="Service control record"><tbody>
-      <tr><th>Work order</th><td>${value('work_order_number')}</td><th>Service date</th><td>${value('visit_date')}</td></tr>
+      <tr><th>${escapeHtml(recordLabel)}</th><td>${escapeHtml(recordValue)}</td><th>Service date</th><td>${value('visit_date')}</td></tr>
       <tr><th>Customer / site</th><td>${value('site_name')}</td><th>On site</th><td>${value('arrival_time')} - ${value('departure_time')}</td></tr>
       <tr><th>Site address</th><td>${value('site_address')}</td><th>Time on site</th><td>${value('time_on_site_hours')} hours</td></tr>
       <tr><th>Technician</th><td>${value('technician_name')}</td><th>Customer contact</th><td>${value('customer_contact_onsite')}</td></tr>

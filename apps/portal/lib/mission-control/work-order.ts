@@ -3,6 +3,7 @@ import { findDeliverable, getModule, getStylesForIndustry } from '@/lib/apollo/p
 import type { DocumentWorkOrder } from '@/lib/executor/contracts'
 import type { DocumentSource } from '@/lib/executor/contracts'
 import type { DeliverableSpecification } from './contracts'
+import { cleanExecutionFields } from './field-quality'
 
 export type WorkOrderCompilation =
   | { ok: true; order: DocumentWorkOrder }
@@ -18,7 +19,11 @@ function factMap(specification: DeliverableSpecification): Record<string, string
 }
 
 export function executionFields(spec: DeliverableSpecification, now = new Date()): Record<string, unknown> {
-  const fields: Record<string, unknown> = { ...factMap(spec) }
+  const fields: Record<string, unknown> = cleanExecutionFields(factMap(spec))
+  if (spec.artifact.recommended_type === 'fsr') {
+    fields.work_order_number ??= 'Not provided in source record; APOLLO service record ID controls.'
+    fields.equipment_asset_id ??= 'No asset tag provided; equipment identified by verified location and make/model.'
+  }
   if (spec.artifact.recommended_type === 'proposal') {
     fields.prospect_organization ??= spec.audience.primary[0]
     fields.proposal_date ??= now.toISOString().slice(0, 10)
