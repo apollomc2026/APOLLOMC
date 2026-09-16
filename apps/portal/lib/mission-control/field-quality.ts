@@ -16,7 +16,13 @@ export function isUsableExternalReference(value: unknown): value is string {
 
 export function cleanDisplayAddress(value: unknown): string {
   if (typeof value !== 'string') return ''
-  return value.trim().replace(/^address\s+is\s+/i, '').replace(/\s+/g, ' ').replace(/\b([a-z]{2})$/i, (_, state:string) => state.toUpperCase())
+  return value
+    .trim()
+    .replace(/^address\s+is\s+/i, '')
+    .replace(/^use\s+/i, '')
+    .replace(/\s+as\s+the\s+confirmed\s+site\s+address[.!]?$/i, '')
+    .replace(/\s+/g, ' ')
+    .replace(/\b([a-z]{2})$/i, (_, state:string) => state.toUpperCase())
 }
 
 export function isUsableSiteAddress(value: unknown): value is string {

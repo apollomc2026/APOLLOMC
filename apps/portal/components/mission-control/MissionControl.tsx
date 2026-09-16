@@ -1127,7 +1127,7 @@ export function MissionControl() {
                 </ol>
                 {addressQuestion?<div className="mc-address-lookup">
                   <button type="button" onClick={()=>void searchAddress()} disabled={working||addressSearching||!confirmedSiteName}>{addressSearching?'Searching public sources…':'Search public sources'}</button>
-                  {addressCandidates.length?<div>{addressCandidates.map(candidate=><article key={`${candidate.address}:${candidate.source_url}`}><strong>{candidate.address}</strong><a href={candidate.source_url} target="_blank" rel="noreferrer">{candidate.source_title}</a><button type="button" onClick={()=>void submit(`Use ${candidate.address} as the confirmed site address.`)} disabled={working}>Use this address</button></article>)}</div>:null}
+                  {addressCandidates.length?<div>{addressCandidates.map(candidate=><article key={`${candidate.address}:${candidate.source_url}`}><strong>{candidate.address}</strong><a href={candidate.source_url} target="_blank" rel="noreferrer">{candidate.source_title}</a><button type="button" onClick={()=>void submit(`Site address: ${candidate.address}`)} disabled={working}>Use this address</button></article>)}</div>:null}
                   <small>Nothing is saved until you confirm a result. You can also enter the address manually below.</small>
                 </div>:null}
                 <button

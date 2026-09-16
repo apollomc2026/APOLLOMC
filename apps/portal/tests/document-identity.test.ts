@@ -18,6 +18,7 @@ describe('controlled document identity', () => {
 
   it('cleans conversational address prefixes without inventing an address', () => {
     expect(cleanDisplayAddress('address is 1 Broadway Everett ma')).toBe('1 Broadway Everett MA')
+    expect(cleanDisplayAddress('Use 1 Broadway, Everett, MA 02149 as the confirmed site address.')).toBe('1 Broadway, Everett, MA 02149')
     expect(isUsableSiteAddress('1 Broadway, Everett, MA 02149')).toBe(true)
     expect(isUsableSiteAddress('Encore Boston Harbor')).toBe(false)
     expect(cleanExecutionFields({site_address:'Not provided in source record'})).not.toHaveProperty('site_address')
