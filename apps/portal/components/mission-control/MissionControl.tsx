@@ -59,6 +59,8 @@ export function MissionControl() {
   const [reviewScrolled, setReviewScrolled] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [addressSearching,setAddressSearching]=useState(false);
+  const [addressCandidates,setAddressCandidates]=useState<Array<{address:string;source_url:string;source_title:string}>>([]);
   const [hydrated, setHydrated] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
@@ -283,6 +285,8 @@ export function MissionControl() {
   const facts = specification?.content.facts ?? [];
   const evidenceFacts = facts.filter((fact) => fact.source === "evidence" && fact.verification_state !== "conflict");
   const questions = specification?.content.open_questions ?? [];
+  const addressQuestion=questions.find(question=>/complete street address|site address/i.test(question));
+  const confirmedSiteName=facts.find(fact=>fact.key==="site_name"&&fact.verification_state!=="conflict")?.value;
   const title =
     specification?.artifact.recommended_type.replace(/-/g, " ") ??
     "Mission strategy pending";
@@ -397,6 +401,19 @@ export function MissionControl() {
     } finally {
       setWorking(false);
     }
+  }
+
+  async function searchAddress(){
+    if(!confirmedSiteName||addressSearching)return;
+    setAddressSearching(true);setError(null);setAddressCandidates([]);
+    try{
+      const response=await fetch('/api/mission-control/site-address',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({site_name:confirmedSiteName})});
+      const body=await response.json() as {candidates?:Array<{address:string;source_url:string;source_title:string}>;error?:string};
+      if(!response.ok)throw new Error(body.error??'Address search failed');
+      setAddressCandidates(body.candidates??[]);
+      if(!body.candidates?.length)setError(`No trustworthy public address was found for ${confirmedSiteName}. Enter it manually.`);
+    }catch(cause){setError(cause instanceof Error?cause.message:'Address search failed');}
+    finally{setAddressSearching(false);}
   }
 
   function acceptVoiceTranscript(text: string, metadata: VoiceTranscriptMetadata) {
@@ -1108,6 +1125,11 @@ export function MissionControl() {
                     <li key={question}>{question}</li>
                   ))}
                 </ol>
+                {addressQuestion?<div className="mc-address-lookup">
+                  <button type="button" onClick={()=>void searchAddress()} disabled={working||addressSearching||!confirmedSiteName}>{addressSearching?'Searching public sources…':'Search public sources'}</button>
+                  {addressCandidates.length?<div>{addressCandidates.map(candidate=><article key={`${candidate.address}:${candidate.source_url}`}><strong>{candidate.address}</strong><a href={candidate.source_url} target="_blank" rel="noreferrer">{candidate.source_title}</a><button type="button" onClick={()=>void submit(`Use ${candidate.address} as the confirmed site address.`)} disabled={working}>Use this address</button></article>)}</div>:null}
+                  <small>Nothing is saved until you confirm a result. You can also enter the address manually below.</small>
+                </div>:null}
                 <button
                   type="button"
                   onClick={() =>
