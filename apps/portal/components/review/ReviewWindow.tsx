@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, CheckCircle2, ExternalLink, FileClock, LoaderCircle, RefreshCw, Rocket, ShieldCheck, TriangleAlert } from 'lucide-react'
 import type { DeliverableSpecification } from '@/lib/mission-control/contracts'
 import { missionDisplayIdentity } from '@/lib/mission-control/display-identity'
@@ -20,12 +20,17 @@ export default function ReviewWindow({ missionId }:{ missionId:string }) {
   const [section,setSection] = useState('Entire document')
   const [instruction,setInstruction] = useState('')
   const [countdown,setCountdown] = useState<number|'LIFTOFF'|null>(null)
+  const loadPending=useRef(false)
 
   const load = useCallback(async () => {
-    const response = await fetch(`/api/mission-control/conversation?id=${encodeURIComponent(missionId)}`, { cache:'no-store' })
-    const body = await response.json()
-    if (!response.ok) throw new Error(body.error ?? 'Review record could not be loaded')
-    setRecord(body)
+    if(loadPending.current)return
+    loadPending.current=true
+    try {
+      const response = await fetch(`/api/mission-control/conversation?id=${encodeURIComponent(missionId)}`, { cache:'no-store' })
+      const body = await response.json()
+      if (!response.ok) throw new Error(body.error ?? 'Review record could not be loaded')
+      setRecord(body)
+    } finally { loadPending.current=false }
   },[missionId])
 
   useEffect(() => {
@@ -35,8 +40,10 @@ export default function ReviewWindow({ missionId }:{ missionId:string }) {
   const jobState = record?.job?.state
   useEffect(() => {
     if (!jobState || terminal.has(jobState)) return
-    const timer = window.setInterval(() => void load().catch(()=>undefined),3000)
-    return () => window.clearInterval(timer)
+    const refresh=()=>{if(document.visibilityState==='visible')void load().catch(()=>undefined)}
+    const timer = window.setInterval(refresh,8000)
+    document.addEventListener('visibilitychange',refresh)
+    return () => {window.clearInterval(timer);document.removeEventListener('visibilitychange',refresh)}
   },[jobState,load])
 
   const specification = record?.specification

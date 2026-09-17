@@ -1,14 +1,10 @@
 import { createServerClient as createSsrServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-// In production the Apollo app is served from `apollomc.ai/apollo/` but the
-// API lives at `portal.apollomc.ai`. Cross-subdomain credentialed fetches
-// require the auth cookie to be writable on the apex. We merge these options
-// into every cookie the Supabase SSR client sets, in addition to whatever
-// options the lib already supplied.
+// APOLLO's application and API are same-origin at app.apollomc.ai. Keep auth
+// cookies host-only so sibling projects/subdomains cannot receive them.
 const PROD_COOKIE_OPTIONS = {
-  domain: '.apollomc.ai',
-  sameSite: 'none' as const,
+  sameSite: 'lax' as const,
   secure: true,
   path: '/',
 }

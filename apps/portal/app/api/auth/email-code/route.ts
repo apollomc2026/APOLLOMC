@@ -3,6 +3,7 @@ import { isAllowedApolloEmail } from '@/lib/apollo/auth'
 import { clientIp, rateLimit } from '@/lib/apollo/ratelimit'
 import { sendEmail } from '@/lib/email/ses'
 import { createServiceClient } from '@/lib/supabase/server'
+import { appUrl } from '@/lib/app-origin'
 
 export const dynamic='force-dynamic'
 
@@ -20,7 +21,7 @@ export async function POST(request:Request){
   if(!byIp.ok||!byEmail.ok)return NextResponse.json({error:'Too many access-code requests. Wait ten minutes and try again.'},{status:429})
 
   const supabase=await createServiceClient()
-  const generated=await supabase.auth.admin.generateLink({type:'magiclink',email,options:{redirectTo:'https://app.apollomc.ai/auth/confirm'}})
+  const generated=await supabase.auth.admin.generateLink({type:'magiclink',email,options:{redirectTo:appUrl('/auth/confirm')}})
   if(generated.error)throw generated.error
   const code=generated.data.properties?.email_otp
   if(!code)throw new Error('Supabase did not return an email OTP')

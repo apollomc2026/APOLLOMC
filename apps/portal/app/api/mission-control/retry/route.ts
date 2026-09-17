@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAllowedUser } from '@/lib/apollo/auth'
 import { acceptWorkOrder, WorkOrderAcceptanceError } from '@/lib/executor/accept'
-import { getJob } from '@/lib/executor/ledger'
+import { getOwnedJob } from '@/lib/executor/ledger'
 import type { DocumentWorkOrder } from '@/lib/executor/contracts'
 import { driveConnectionStatus } from '@/lib/integrations/google-drive-auth'
 import { buildRetryOrder } from '@/lib/mission-control/retry'
@@ -13,8 +13,8 @@ export async function POST(request: Request) {
   if (process.env.PLAYWRIGHT_TESTING === 'true') return NextResponse.json({ accepted: true, job_id: 'job-retry-demo', state: 'queued' }, { status: 202 })
   const allowed = await requireAllowedUser()
   if (!allowed.ok) return NextResponse.json({ error: allowed.error }, { status: allowed.status })
-  const existing = await getJob(body.job_id)
-  if (!existing || existing.requested_by !== allowed.user.userId) return NextResponse.json({ error: 'Document job was not found' }, { status: 404 })
+  const existing = await getOwnedJob(body.job_id,allowed.user.userId)
+  if (!existing) return NextResponse.json({ error: 'Document job was not found' }, { status: 404 })
   if (!['blocked', 'failed'].includes(String(existing.state))) return NextResponse.json({ error: 'Only a blocked or safely failed document job can be retried' }, { status: 409 })
   const drive = await driveConnectionStatus(allowed.user.userId)
   if (!drive.connected || !drive.folderId) return NextResponse.json({ error: 'Reconnect customer-owned Google Drive before retrying execution' }, { status: 409 })

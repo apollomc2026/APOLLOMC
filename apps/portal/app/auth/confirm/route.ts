@@ -10,10 +10,14 @@ export async function GET(request: Request) {
   const tokenHash = searchParams.get('token_hash')
   const type = searchParams.get('type') as EmailOtpType | null
 
-  console.log('[auth/confirm] Full URL:', url.toString())
-  console.log('[auth/confirm] code:', code ? `${code.substring(0, 8)}...` : 'MISSING')
-  console.log('[auth/confirm] token_hash:', tokenHash ?? 'MISSING')
-  console.log('[auth/confirm] type:', type ?? 'MISSING')
+  // Authorization codes and OTP token hashes are bearer credentials. Never
+  // emit either value (or the full callback URL containing them) to runtime
+  // logs. Presence-only telemetry is sufficient to diagnose callback shape.
+  console.info('[auth/confirm] callback received', {
+    hasCode: Boolean(code),
+    hasTokenHash: Boolean(tokenHash),
+    type: type ?? 'missing',
+  })
 
   if (!code && !tokenHash) {
     console.log('[auth/confirm] EARLY EXIT: no code or token_hash')

@@ -1,30 +1,16 @@
 import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/apollo/auth'
+import { corsHeaders, preflight } from '@/lib/apollo/cors'
 
 export const dynamic = 'force-dynamic'
 
-const CORS = {
-  'Access-Control-Allow-Origin': 'https://apollomc.ai',
-  'Access-Control-Allow-Credentials': 'true',
-  Vary: 'Origin',
-}
+export async function OPTIONS(request:Request) { return preflight(request) }
 
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 204,
-    headers: {
-      ...CORS,
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-      'Access-Control-Max-Age': '86400',
-    },
-  })
-}
-
-export async function GET() {
+export async function GET(request:Request) {
+  const headers=corsHeaders(request)
   const current = await getCurrentUser()
   if (!current.authenticated) {
-    return NextResponse.json({ authenticated: false }, { headers: CORS })
+    return NextResponse.json({ authenticated: false }, { headers })
   }
   return NextResponse.json(
     {
@@ -34,6 +20,6 @@ export async function GET() {
       name: current.name,
       avatar: current.avatar,
     },
-    { headers: CORS }
+    { headers }
   )
 }

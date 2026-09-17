@@ -60,7 +60,7 @@ export async function ensureUploadCors(origin:string){
   try{rules=(await s3.send(new GetBucketCorsCommand({Bucket:BUCKET}))).CORSRules??[]}catch(cause){if(!(cause instanceof Error)||!['NoSuchCORSConfiguration','NoSuchCORS'].includes(cause.name))throw cause}
   const index=rules.findIndex(rule=>rule.ID==='apollo-evidence-direct-upload')
   const existing=index>=0?rules[index]:undefined
-  const origins=[...new Set([...(existing?.AllowedOrigins??[]),origin,'https://portal.apollomc.ai'])]
+  const origins=[...new Set([...(existing?.AllowedOrigins??[]).filter(value=>value!=='https://portal.apollomc.ai'),origin,'https://app.apollomc.ai'])]
   if(existing&&origins.length===existing.AllowedOrigins?.length)return
   const rule={ID:'apollo-evidence-direct-upload',AllowedOrigins:origins,AllowedMethods:['PUT'],AllowedHeaders:['content-type'],ExposeHeaders:['etag'],MaxAgeSeconds:3600}
   if(index>=0)rules[index]=rule;else rules.push(rule)

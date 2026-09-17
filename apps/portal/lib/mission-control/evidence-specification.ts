@@ -1,6 +1,6 @@
 import { createMissionFact, mergeMissionFacts, specificationProvenance, type DeliverableSpecification, type MissionFact } from './contracts'
-import { executionGaps } from './work-order'
 import { canonicalizeSpecificationIdentity } from './identity'
+import { calibrateMissionSpecification } from './calibration'
 
 export function mergeEvidenceIntoSpecification(input: {
   prior: DeliverableSpecification
@@ -16,14 +16,12 @@ export function mergeEvidenceIntoSpecification(input: {
     approval: { status:'draft', approved_by:null, approved_at:null, unresolved_items_accepted:[] },
     provenance: specificationProvenance(mergedFacts, priorProvenance.created_at, priorProvenance.model_versions),
   }
-  let gaps = executionGaps(specification)
-  const blockingConflict = gaps.some(gap => /Conflicting values/.test(gap.reason))
+  let calibration=calibrateMissionSpecification(specification)
+  const blockingConflict = calibration.gaps.some(gap => /Conflicting values/.test(gap.reason))
   const effectiveStatus = blockingConflict ? 'conflict' as const : evidence.status
   if(blockingConflict){
     specification={...specification,sources:specification.sources.map(source=>source.id===evidence.id?{...source,status:effectiveStatus}:source)}
-    gaps=executionGaps(specification)
+    calibration=calibrateMissionSpecification(specification)
   }
-  const readiness = gaps.length ? Math.min(70, Math.max(50, mergedFacts.length * 8)) : 82
-  specification.approval.status = readiness >= 75 ? 'ready' : 'draft'
-  return { specification:canonicalizeSpecificationIdentity(specification), readiness, effectiveStatus }
+  return { specification:canonicalizeSpecificationIdentity(calibration.specification), readiness:calibration.readiness, effectiveStatus }
 }

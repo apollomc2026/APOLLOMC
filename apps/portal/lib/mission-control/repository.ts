@@ -1,25 +1,16 @@
 import { createHash } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { interpretMissionWithClaude } from './ai-interpreter'
-import { assumptionLedger, createMissionFact, mergeMissionFacts, missionFactSourceReferences, specificationProvenance, type DeliverableSpecification, type MissionFact, type MissionTurnResult, type VoiceTranscriptMetadata } from './contracts'
+import { createMissionFact, mergeMissionFacts, missionFactSourceReferences, specificationProvenance, type DeliverableSpecification, type MissionFact, type MissionTurnResult, type VoiceTranscriptMetadata } from './contracts'
 import type { DocumentSource } from '@/lib/executor/contracts'
 import { getFromS3, getPresignedUrl } from '@/lib/s3/client'
 import { completeEvidenceExtractionTrace, createEvidenceExtractionTrace, extractEvidence, extractEvidenceFactsFromImages, extractEvidenceFactsFromPdfs, extractEvidenceFactsFromSources, extractionTracesCoverSources, reconcileEvidenceSupersessions, type EvidenceExtractionTrace } from './evidence'
-import { executionGaps, materializeSpecificationDefaults } from './work-order'
+import { materializeSpecificationDefaults } from './work-order'
 import { canonicalizeSpecificationIdentity } from './identity'
 import { pricingResearchFact, requestsMarketPricingResearch, researchQuotePricing } from './quote-pricing-research'
+import { calibrateMissionSpecification } from './calibration'
 
 export class MissionPersistenceError extends Error {}
-
-function questionForGap(gap:{key:string;label:string},specification:DeliverableSpecification):string {
-  if(gap.key==='market_pricing_approval')return 'Review APOLLO’s cited market pricing basis and approve the current quote line items, or revise the commercial figures.'
-  if(gap.key==='market_pricing_basis')return 'APOLLO has not completed the requested cited market-pricing research. Retry calibration; launch will remain safely blocked until verified benchmarks are available.'
-  if(gap.key==='site_address'){
-    const site=specification.content.facts.find(fact=>fact.key==='site_name'&&fact.verification_state!=='conflict')?.value.trim()
-    return site?`Confirm the complete street address for ${site}. APOLLO did not find a usable postal address in the secured evidence.`:'Confirm the complete street address for this service location.'
-  }
-  return `What should APOLLO use for ${gap.label.toLowerCase()}?`
-}
 
 function isControlMessageFact(fact: MissionFact) {
   if (fact.key === 'deliverable_type') return false
@@ -145,6 +136,37 @@ async function reconcileSecuredEvidence(input: {
   return evidenceFacts
 }
 
+export function missionTurnRequestsEvidenceRecalibration(message:string):boolean {
+  return /^(?:Re-read every secured evidence source\b|Reconcile the complete secured evidence set\b)/i.test(message.trim())
+}
+
+/**
+ * Ordinary mission turns consume the durable evidence ledger already written
+ * at upload/rescan time. Re-running model extraction for a recommendation,
+ * answer, aura change, or approval makes mission facts nondeterministic and
+ * was the source of questions reappearing after "use recommendations".
+ */
+async function loadSecuredEvidenceLedger(input:{
+  db:Awaited<ReturnType<typeof createClient>>
+  userId:string
+  conversationId:string
+}) {
+  const query=await input.db
+    .from('apollo_conversation_evidence')
+    .select('id, original_name, extraction_status, extracted_facts')
+    .eq('conversation_id',input.conversationId)
+    .eq('user_id',input.userId)
+    .in('extraction_status',['verified','conflict'])
+    .order('created_at')
+  if(query.error)throw new MissionPersistenceError('Secured mission evidence ledger could not be read')
+  const rows=(query.data??[]) as Array<{id:string;original_name:string;extraction_status:'verified'|'conflict';extracted_facts:MissionFact[]|null}>
+  const facts=reconcileEvidenceSupersessions(rows.flatMap(row=>Array.isArray(row.extracted_facts)?row.extracted_facts:[]))
+  return {
+    facts,
+    sources:rows.map(row=>({id:row.id,name:row.original_name,status:row.extraction_status})),
+  }
+}
+
 async function enrichQuotePricingResearch(specification:DeliverableSpecification,message:string):Promise<DeliverableSpecification> {
   if(specification.artifact.recommended_type!=='quote')return specification
   const alreadyRequired=specification.content.facts.some(fact=>fact.key==='market_pricing_research_required'&&fact.value==='true')
@@ -188,20 +210,17 @@ export async function persistMissionTurn(input: {
   if (input.brandProfileId !== undefined) result.specification.presentation.brand_profile_id = input.brandProfileId
   if (input.aura) result.specification.aura = { ...result.specification.aura, ...input.aura }
   if (input.conversationId) {
-    const evidenceFacts = await reconcileSecuredEvidence({ db, userId: input.userId, conversationId: input.conversationId, specification: result.specification })
+    const recalibrating=missionTurnRequestsEvidenceRecalibration(input.message)
+    const ledger=recalibrating
+      ? {facts:await reconcileSecuredEvidence({ db, userId: input.userId, conversationId: input.conversationId, specification: result.specification }),sources:null}
+      : await loadSecuredEvidenceLedger({db,userId:input.userId,conversationId:input.conversationId})
+    const evidenceFacts=ledger.facts
+    if(ledger.sources)result.specification.sources=ledger.sources
     if (evidenceFacts.length) {
       const evidenceKeys = new Set(evidenceFacts.map(fact => fact.key))
       const isEvidenceDirective = (value: string) => /\b(?:use|extract|read|pull|take)\b[\s\S]{0,180}\b(?:attached|uploaded|workbook|brief|evidence|source files?)\b/i.test(value)
       const nonEvidenceFacts = result.specification.content.facts.filter(fact => fact.source !== 'evidence' && !(evidenceKeys.has(fact.key) && isEvidenceDirective(fact.value)))
       result.specification.content.facts = mergeMissionFacts(nonEvidenceFacts, evidenceFacts)
-      const gaps = executionGaps(result.specification)
-      result.specification.content.open_questions = gaps.map(gap => questionForGap(gap,result.specification))
-      result.specification.content.assumptions = assumptionLedger(result.specification.content.facts,gaps)
-      result.readiness = gaps.length ? Math.min(70, Math.max(50, 82 - gaps.length * 8)) : 82
-      result.readiness_state = result.readiness >= 75 ? 'ready' : 'calibrating'
-      result.question = result.specification.content.open_questions[0] ?? null
-      result.question_reason = result.question ? 'This required field was not found in the secured evidence.' : null
-      result.specification.approval = { status: gaps.length ? 'draft' : 'ready', approved_by: null, approved_at: null, unresolved_items_accepted: [] }
       result.specification.provenance = specificationProvenance(result.specification.content.facts, result.specification.provenance.created_at, result.specification.provenance.model_versions)
     }
   }
@@ -209,20 +228,12 @@ export async function persistMissionTurn(input: {
   result.specification=await enrichQuotePricingResearch(result.specification,input.message)
   result.specification.content.facts = result.specification.content.facts.filter(fact => !isControlMessageFact(fact))
   result.changed_facts = result.changed_facts.filter(fact => !isControlMessageFact(fact))
-  const sanitizedGaps = executionGaps(result.specification)
-  result.specification.content.open_questions = sanitizedGaps.map(gap => questionForGap(gap,result.specification))
-  result.specification.content.assumptions = assumptionLedger(result.specification.content.facts,sanitizedGaps)
-  if (sanitizedGaps.length) {
-    result.readiness = Math.min(result.readiness, 70)
-    result.readiness_state = 'calibrating'
-    result.question = result.specification.content.open_questions[0] ?? null
-  } else {
-    result.readiness = Math.max(result.readiness, 82)
-    result.readiness_state = 'ready'
-    result.question = null
-    result.question_reason = null
-  }
-  result.specification.approval = { status: sanitizedGaps.length ? 'draft' : 'ready', approved_by: null, approved_at: null, unresolved_items_accepted: [] }
+  const calibration=calibrateMissionSpecification(result.specification,result.readiness)
+  result.specification=calibration.specification
+  result.readiness=calibration.readiness
+  result.readiness_state=calibration.readinessState
+  result.question=calibration.question
+  result.question_reason=calibration.questionReason
   result.specification.provenance = specificationProvenance(result.specification.content.facts, result.specification.provenance.created_at, result.specification.provenance.model_versions)
   result.specification = canonicalizeSpecificationIdentity(result.specification)
   const apolloContent = [result.acknowledgement, result.question].filter(Boolean).join('\n\n')

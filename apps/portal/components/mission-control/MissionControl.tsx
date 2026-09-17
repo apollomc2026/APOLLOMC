@@ -235,6 +235,7 @@ export function MissionControl() {
     )
       return;
     const timer = window.setInterval(async () => {
+      if (document.visibilityState !== "visible") return;
       const response = await fetch(
         `/api/mission-control/job?id=${encodeURIComponent(jobId)}`,
       );
@@ -247,7 +248,7 @@ export function MissionControl() {
       setJobState(result.state ?? null);
       setJobProgress(result.progress_percent ?? null);
       setArtifactUrl(result.artifacts?.[0]?.web_view_url ?? null);
-    }, 3000);
+    }, 8000);
     return () => window.clearInterval(timer);
   }, [jobId, jobState]);
 

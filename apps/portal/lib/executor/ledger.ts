@@ -25,11 +25,22 @@ export async function createJob(order: DocumentWorkOrder) {
     return { job: inserted.data, duplicate: false }
   }
   if (inserted.error.code !== '23505') throw new Error(inserted.error.message)
-  const existing = await db.from('apollo_document_jobs').select('*').eq('idempotency_key', order.idempotency_key).single()
-  if (existing.error || !existing.data) throw new Error(existing.error?.message ?? 'idempotent job lookup failed')
-  const existingOrder = existing.data.work_order as DocumentWorkOrder
-  if (canonicalOrder(existingOrder) !== canonicalOrder(order)) throw new Error('idempotency key reused with a different work order')
-  return { job: existing.data, duplicate: true }
+  const existing = await db.from('apollo_document_jobs').select('*').eq('idempotency_key', order.idempotency_key).maybeSingle()
+  if (existing.error) throw new Error(existing.error.message)
+  if(existing.data){
+    const existingOrder = existing.data.work_order as DocumentWorkOrder
+    if (canonicalOrder(existingOrder) !== canonicalOrder(order)) throw new Error('idempotency key reused with a different work order')
+    return { job: existing.data, duplicate: true }
+  }
+  // The database also enforces one active flight per mission. If two launch
+  // requests race with different request IDs, return the controlling flight
+  // instead of converting the unique-index protection into a false failure.
+  const active=await db.from('apollo_document_jobs').select('*')
+    .eq('conversation_id',order.conversation_id).eq('requested_by',order.requested_by)
+    .in('state',['accepted','queued','validating','generating','verifying','rendering','delivering'])
+    .order('created_at',{ascending:false}).limit(1).maybeSingle()
+  if(active.error||!active.data)throw new Error(active.error?.message??'active mission flight lookup failed')
+  return {job:active.data,duplicate:true}
 }
 
 function canonicalOrder(order: DocumentWorkOrder) {
@@ -45,6 +56,13 @@ export async function getJob(jobId: string) {
 
 export async function setWorkflowRun(jobId: string, runId: string) {
   await updateJob(jobId, 'queued', 1, 'Queued', { workflow_run_id: runId })
+}
+
+export async function getOwnedJob(jobId:string,requestedBy:string) {
+  const db=await createServiceClient()
+  const result=await db.from('apollo_document_jobs').select('*').eq('id',jobId).eq('requested_by',requestedBy).maybeSingle()
+  if(result.error)throw new Error(result.error.message)
+  return result.data??null
 }
 
 export async function failStaleAcceptedJob(jobId:string,cutoff:string):Promise<boolean>{
@@ -119,9 +137,14 @@ export async function completeJob(jobId: string, artifacts: ArtifactManifest[]) 
 
 async function appendEvent(jobId: string, state: JobState, progress: number, message: string, payload: Record<string, unknown> = {}) {
   const db = await createServiceClient()
-  const latest = await db.from('apollo_document_job_events').select('sequence').eq('job_id', jobId).order('sequence', { ascending: false }).limit(1).maybeSingle()
-  if (latest.error) throw new Error(latest.error.message)
-  const sequence = ((latest.data?.sequence as number | undefined) ?? -1) + 1
-  const result = await db.from('apollo_document_job_events').insert({ id: randomUUID(), job_id: jobId, sequence, state, progress_percent: progress, message, payload })
-  if (result.error) throw new Error(result.error.message)
+  // Cancellation and workflow checkpoints can arrive together. Sequence
+  // allocation is retry-safe against the (job_id, sequence) unique constraint.
+  for(let attempt=0;attempt<3;attempt+=1){
+    const latest = await db.from('apollo_document_job_events').select('sequence').eq('job_id', jobId).order('sequence', { ascending: false }).limit(1).maybeSingle()
+    if (latest.error) throw new Error(latest.error.message)
+    const sequence = ((latest.data?.sequence as number | undefined) ?? -1) + 1
+    const result = await db.from('apollo_document_job_events').insert({ id: randomUUID(), job_id: jobId, sequence, state, progress_percent: progress, message, payload })
+    if(!result.error)return
+    if(result.error.code!=='23505'||attempt===2)throw new Error(result.error.message)
+  }
 }

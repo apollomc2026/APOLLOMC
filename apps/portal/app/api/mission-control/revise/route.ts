@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAllowedUser } from '@/lib/apollo/auth'
 import { acceptWorkOrder, WorkOrderAcceptanceError } from '@/lib/executor/accept'
-import { getActiveJobForConversation, getJob } from '@/lib/executor/ledger'
+import { getActiveJobForConversation, getOwnedJob } from '@/lib/executor/ledger'
 import type { DocumentWorkOrder } from '@/lib/executor/contracts'
 import { buildRevisionOrder } from '@/lib/mission-control/revision'
 import { MissionPersistenceError, refreshExecutionEvidence } from '@/lib/mission-control/repository'
@@ -19,8 +19,8 @@ export async function POST(request: Request) {
   const instruction = body.instruction?.trim()
   if (!body.job_id || !instruction || instruction.length > 4000) return NextResponse.json({ error: 'A job and revision instruction are required' }, { status: 400 })
   if(body.request_id&&!/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(body.request_id))return NextResponse.json({error:'Revision request identity is invalid'},{status:400})
-  const existing = await getJob(body.job_id)
-  if (!existing || existing.requested_by !== allowed.user.userId) return NextResponse.json({ error: 'Document job was not found' }, { status: 404 })
+  const existing = await getOwnedJob(body.job_id,allowed.user.userId)
+  if (!existing) return NextResponse.json({ error: 'Document job was not found' }, { status: 404 })
   if (existing.state !== 'delivered') return NextResponse.json({ error: 'Only a delivered draft can be revised' }, { status: 409 })
   const prior = existing.work_order as DocumentWorkOrder
   try {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { interpretMission } from '../lib/mission-control/interpreter'
 import { applyClaudeInterpretation, applyExpertRecommendationMode, applyExplicitMissionDirectives, interpretMissionWithClaude, isMissionControlDirective, promoteAcknowledgedGap } from '../lib/mission-control/ai-interpreter'
+import { missionTurnRequestsEvidenceRecalibration } from '../lib/mission-control/repository'
 import { executionGaps } from '../lib/mission-control/work-order'
 
 describe('mission interpreter', () => {
@@ -198,6 +199,14 @@ describe('mission interpreter', () => {
   it('treats evidence rescans as control messages instead of mission facts', () => {
     expect(isMissionControlDirective('Re-read every secured evidence source using multipass extraction.')).toBe(true)
     expect(isMissionControlDirective('Reconcile the complete secured evidence set against the selected deliverable before asking questions.')).toBe(true)
+  })
+
+  it('re-extracts evidence only for an explicit recalibration command', () => {
+    expect(missionTurnRequestsEvidenceRecalibration('Re-read every secured evidence source using multipass extraction.')).toBe(true)
+    expect(missionTurnRequestsEvidenceRecalibration('Reconcile the complete secured evidence set against the selected deliverable before asking questions.')).toBe(true)
+    expect(missionTurnRequestsEvidenceRecalibration('Use your expert recommendations for every unresolved decision.')).toBe(false)
+    expect(missionTurnRequestsEvidenceRecalibration('Confirm the technician is Jon Sargent.')).toBe(false)
+    expect(missionTurnRequestsEvidenceRecalibration('Operator involvement override: 0% (Fully Autonomous).')).toBe(false)
   })
 
   it('does not send evidence rescan control text through AI fact interpretation', async () => {

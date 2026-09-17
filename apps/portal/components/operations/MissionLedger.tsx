@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Activity, Archive, CheckCircle2, ExternalLink, FileText, Gauge, PencilLine, Plus, Rocket, RotateCcw, Search, ShieldAlert } from 'lucide-react'
 
@@ -22,20 +22,24 @@ function latestDeliveredFlight(mission:Mission) {
 
 export function MissionLedger({ view }:{ view:'archive'|'telemetry'|'dashboard' }) {
   const [data,setData] = useState<Overview|null>(null); const [error,setError] = useState(''); const [query,setQuery] = useState('')
+  const refreshPending=useRef(false)
   const [launchingId,setLaunchingId] = useState<string|null>(null); const [countdown,setCountdown] = useState<number|'LIFTOFF'|null>(null); const [actionError,setActionError] = useState('')
   const refresh = useCallback(async () => {
+    if(refreshPending.current)return
+    refreshPending.current=true
     try {
       const response = await fetch('/api/mission-control/overview', { cache:'no-store' })
       const body = await response.json()
       if (!response.ok) throw new Error(body.error)
       setData(body); setError('')
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Mission ledger could not be loaded') }
+    finally { refreshPending.current=false }
   },[])
   useEffect(() => {
     let active = true
-    const guardedRefresh = () => { if (active) void refresh() }
+    const guardedRefresh = () => { if (active&&document.visibilityState==='visible') void refresh() }
     guardedRefresh()
-    const timer = window.setInterval(guardedRefresh, 5000)
+    const timer = window.setInterval(guardedRefresh, 15_000)
     const onVisible = () => { if (document.visibilityState === 'visible') guardedRefresh() }
     document.addEventListener('visibilitychange', onVisible)
     window.addEventListener('focus', guardedRefresh)

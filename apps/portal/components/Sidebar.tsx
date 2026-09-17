@@ -38,6 +38,7 @@ export function Sidebar({ userName = 'Commander', tier = 'MERCURY' }: SidebarPro
   useEffect(() => {
     let active = true
     async function refreshNotices() {
+      if(document.visibilityState!=='visible')return
       const response = await fetch('/api/mission-control/overview', { cache:'no-store' }).catch(() => null)
       if (!response?.ok) return
       const overview = await response.json() as { missions?:Array<{ job?:{ id?:string; state?:string } | null }> }
@@ -61,8 +62,9 @@ export function Sidebar({ userName = 'Commander', tier = 'MERCURY' }: SidebarPro
       })
     }
     void refreshNotices()
-    const timer = window.setInterval(refreshNotices, 15_000)
-    return () => { active = false; window.clearInterval(timer) }
+    const timer = window.setInterval(refreshNotices, 60_000)
+    document.addEventListener('visibilitychange',refreshNotices)
+    return () => { active = false; window.clearInterval(timer); document.removeEventListener('visibilitychange',refreshNotices) }
   }, [pathname])
 
   return (

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
+import { appOrigin } from '@/lib/app-origin'
 
-const PROD_ORIGIN = 'https://apollomc.ai'
 const DEV_ORIGINS = new Set(['http://localhost:8080', 'http://localhost:3000'])
 
 export function resolveAllowedOrigin(request: Request): string {
@@ -8,7 +8,7 @@ export function resolveAllowedOrigin(request: Request): string {
   if (process.env.NODE_ENV === 'development' && DEV_ORIGINS.has(origin)) {
     return origin
   }
-  return PROD_ORIGIN
+  return appOrigin()
 }
 
 export function corsHeaders(request: Request): Record<string, string> {
