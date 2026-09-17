@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compileApprovedSpecification, continueApprovedMissionLineage, executionGaps } from '../lib/mission-control/work-order'
+import { compileApprovedSpecification, continueApprovedMissionLineage, executionGaps, materializeSpecificationDefaults } from '../lib/mission-control/work-order'
 import { interpretMission } from '../lib/mission-control/interpreter'
 import { getModule } from '../lib/apollo/packages-loader'
 import { buildRevisionOrder } from '../lib/mission-control/revision'
@@ -166,5 +166,18 @@ describe('approved specification compiler', () => {
     for (const field of getModule('proposal')!.required_fields) specification.content.facts.push(createMissionFact({ key: field.key, label: field.label, value: `Confirmed ${field.label}`, source: 'user', confidence: 1 }))
     specification.content.facts.push({ ...createMissionFact({ key: 'party_a_name', label: 'Party A', value: 'On Spot', source: 'inferred', confidence: .8 }), verification_state: 'conflict' })
     expect(executionGaps(specification)).not.toEqual(expect.arrayContaining([expect.objectContaining({ key: 'party_a_name' })]))
+  })
+
+  it('materializes publication defaults in the specification before approval',()=>{
+    const now=new Date('2026-09-17T01:00:00Z')
+    const quote=interpretMission('Create a quote for Acme.').specification;quote.artifact.recommended_type='quote'
+    const materialized=materializeSpecificationDefaults(quote,now)
+    expect(materialized.content.facts).toEqual(expect.arrayContaining([
+      expect.objectContaining({key:'quote_date',value:'2026-09-17',source:'default'}),
+      expect.objectContaining({key:'valid_until',value:'2026-10-17',source:'default'}),
+    ]))
+    expect(materialized.provenance.defaults).toEqual(expect.arrayContaining([expect.objectContaining({key:'quote_date',value:'2026-09-17'})]))
+    const reviewed=materializeSpecificationDefaults(materialized,new Date('2026-09-18T01:00:00Z'))
+    expect(reviewed.content.facts.find(fact=>fact.key==='quote_date')?.value).toBe('2026-09-17')
   })
 })

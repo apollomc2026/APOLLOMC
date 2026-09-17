@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { findDeliverable, getModule, getStylesForIndustry } from '@/lib/apollo/packages-loader'
 import type { DocumentWorkOrder } from '@/lib/executor/contracts'
 import type { DocumentSource } from '@/lib/executor/contracts'
-import type { DeliverableSpecification } from './contracts'
+import { createMissionFact, mergeMissionFacts, specificationProvenance, type DeliverableSpecification } from './contracts'
 import { cleanExecutionFields } from './field-quality'
 import { hasCurrentQuotePricingApproval } from './quote-pricing-research'
 
@@ -60,6 +60,33 @@ export function executionFields(spec: DeliverableSpecification, now = new Date()
     fields.as_of_date ??=now.toISOString().slice(0,10)
   }
   return fields
+}
+
+/** Defaults that affect publication must be visible in the approved spec. */
+export function materializeSpecificationDefaults(spec:DeliverableSpecification,now=new Date()):DeliverableSpecification {
+  const existing=new Set(spec.content.facts.filter(fact=>fact.verification_state!=='conflict').map(fact=>fact.key))
+  const today=now.toISOString().slice(0,10)
+  const defaults:Array<ReturnType<typeof createMissionFact>>=[]
+  const add=(key:string,label:string,value:string,confidence=1)=>{if(!existing.has(key))defaults.push(createMissionFact({key,label,value,source:'default',confidence},now))}
+  if(spec.artifact.recommended_type==='proposal'){
+    add('proposal_date','Proposal date',today)
+    add('problem_statement',"Problem statement (in client's words)",spec.mission.objective,.9)
+    add('our_understanding','Our understanding of the problem',spec.mission.objective,.9)
+  }
+  if(spec.artifact.recommended_type==='quote'){
+    add('quote_date','Quote date',today)
+    const quoteDate=spec.content.facts.find(fact=>fact.key==='quote_date'&&fact.verification_state!=='conflict')?.value??today
+    const date=new Date(quoteDate)
+    if(!Number.isNaN(date.getTime())){date.setUTCDate(date.getUTCDate()+30);add('valid_until','Valid until',date.toISOString().slice(0,10),.9)}
+  }
+  if(spec.artifact.recommended_type==='contract-intelligence-review'){
+    add('review_perspective','Review perspective','Document owner',.9)
+    add('review_goal','Review goal','Perform a complete operational review of the supplied agreement and related materials, identify rights, duties, deadlines, exclusions, value opportunities, risks, and actions with exact source anchors.',.9)
+    add('as_of_date','Review as-of date',today)
+  }
+  if(!defaults.length)return spec
+  const facts=mergeMissionFacts(spec.content.facts,defaults,now)
+  return {...spec,content:{...spec.content,facts},provenance:specificationProvenance(facts,spec.provenance.created_at,spec.provenance.model_versions)}
 }
 
 export function executionGaps(spec: DeliverableSpecification, now = new Date()) {

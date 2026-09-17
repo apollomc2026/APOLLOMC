@@ -5,7 +5,7 @@ import { createMissionFact, mergeMissionFacts, missionFactSourceReferences, spec
 import type { DocumentSource } from '@/lib/executor/contracts'
 import { getFromS3, getPresignedUrl } from '@/lib/s3/client'
 import { extractEvidence, extractEvidenceFactsFromPdfs, extractEvidenceFactsFromSources } from './evidence'
-import { executionGaps } from './work-order'
+import { executionGaps, materializeSpecificationDefaults } from './work-order'
 import { canonicalizeSpecificationIdentity } from './identity'
 import { pricingResearchFact, requestsMarketPricingResearch, researchQuotePricing } from './quote-pricing-research'
 
@@ -157,6 +157,7 @@ export async function persistMissionTurn(input: {
       result.specification.provenance = specificationProvenance(result.specification.content.facts, result.specification.provenance.created_at, result.specification.provenance.model_versions)
     }
   }
+  result.specification=materializeSpecificationDefaults(result.specification)
   result.specification=await enrichQuotePricingResearch(result.specification,input.message)
   result.specification.content.facts = result.specification.content.facts.filter(fact => !isControlMessageFact(fact))
   result.changed_facts = result.changed_facts.filter(fact => !isControlMessageFact(fact))
