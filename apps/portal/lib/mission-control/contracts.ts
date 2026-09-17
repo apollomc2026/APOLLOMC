@@ -36,6 +36,12 @@ export interface MissionFact {
   supersession?: FactSupersession
 }
 
+export function assumptionLedger(facts:MissionFact[],unresolved:Array<{label:string}>|string[]=[]):string[]{
+  const inferred=facts.filter(fact=>fact.source==='inferred').map(fact=>`${fact.label}: ${fact.value} — expert recommendation (${Math.round(fact.confidence*100)}% confidence)`)
+  const gaps=unresolved.map(item=>`${typeof item==='string'?item:item.label} remains unresolved`)
+  return [...new Set([...inferred,...gaps])]
+}
+
 const COMPOSITIONAL_EVIDENCE_KEYS = new Set([
   'scope_summary', 'work_performed', 'findings', 'observations', 'recommendations',
   'exclusions', 'assumptions', 'risks_and_mitigations', 'methodology',

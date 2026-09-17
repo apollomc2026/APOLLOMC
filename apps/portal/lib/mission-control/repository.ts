@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { interpretMissionWithClaude } from './ai-interpreter'
-import { createMissionFact, mergeMissionFacts, missionFactSourceReferences, specificationProvenance, type DeliverableSpecification, type MissionFact, type MissionTurnResult, type VoiceTranscriptMetadata } from './contracts'
+import { assumptionLedger, createMissionFact, mergeMissionFacts, missionFactSourceReferences, specificationProvenance, type DeliverableSpecification, type MissionFact, type MissionTurnResult, type VoiceTranscriptMetadata } from './contracts'
 import type { DocumentSource } from '@/lib/executor/contracts'
 import { getFromS3, getPresignedUrl } from '@/lib/s3/client'
 import { completeEvidenceExtractionTrace, createEvidenceExtractionTrace, extractEvidence, extractEvidenceFactsFromImages, extractEvidenceFactsFromPdfs, extractEvidenceFactsFromSources, extractionTracesCoverSources, reconcileEvidenceSupersessions, type EvidenceExtractionTrace } from './evidence'
@@ -169,7 +169,7 @@ export async function persistMissionTurn(input: {
       result.specification.content.facts = mergeMissionFacts(nonEvidenceFacts, evidenceFacts)
       const gaps = executionGaps(result.specification)
       result.specification.content.open_questions = gaps.map(gap => questionForGap(gap,result.specification))
-      result.specification.content.assumptions = gaps.map(gap => `${gap.label} remains unresolved`)
+      result.specification.content.assumptions = assumptionLedger(result.specification.content.facts,gaps)
       result.readiness = gaps.length ? Math.min(70, Math.max(50, 82 - gaps.length * 8)) : 82
       result.readiness_state = result.readiness >= 75 ? 'ready' : 'calibrating'
       result.question = result.specification.content.open_questions[0] ?? null
@@ -184,7 +184,7 @@ export async function persistMissionTurn(input: {
   result.changed_facts = result.changed_facts.filter(fact => !isControlMessageFact(fact))
   const sanitizedGaps = executionGaps(result.specification)
   result.specification.content.open_questions = sanitizedGaps.map(gap => questionForGap(gap,result.specification))
-  result.specification.content.assumptions = sanitizedGaps.map(gap => `${gap.label} remains unresolved`)
+  result.specification.content.assumptions = assumptionLedger(result.specification.content.facts,sanitizedGaps)
   if (sanitizedGaps.length) {
     result.readiness = Math.min(result.readiness, 70)
     result.readiness_state = 'calibrating'

@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { modelFor } from '@/lib/ai/models'
 import { explicitMissionArtifact, interpretMission, recommendMissionArtifact } from './interpreter'
-import { createMissionFact, specificationProvenance, type DeliverableSpecification, type MissionFact, type MissionTurnResult } from './contracts'
+import { assumptionLedger, createMissionFact, specificationProvenance, type DeliverableSpecification, type MissionFact, type MissionTurnResult } from './contracts'
 import { executionGaps } from './work-order'
 import { getCatalog, getModule } from '@/lib/apollo/packages-loader'
 import { applyQuotePricingApproval } from './quote-pricing-research'
@@ -136,7 +136,7 @@ export function applyClaudeInterpretation(base: MissionTurnResult, patch: Claude
   // words and creates phantom work for the operator.
   const openQuestions = gaps.length ? [...new Set(gapQuestions)] : modelQuestion ? [modelQuestion] : []
   specification.content.open_questions = openQuestions
-  specification.content.assumptions = openQuestions.map(item => item.replace(/\?$/, ' remains unresolved'))
+  specification.content.assumptions = assumptionLedger([...merged.values()],gaps)
   specification.provenance = specificationProvenance([...merged.values()], specification.provenance.created_at, specification.provenance.model_versions)
   if (!gaps.length) question = modelQuestion ?? null
   specification.approval.status = readiness >= 75 ? 'ready' : 'draft'

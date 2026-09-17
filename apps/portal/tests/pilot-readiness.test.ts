@@ -3,9 +3,10 @@ import { auditPilotRelease,PILOT_DELIVERABLES,type PilotAuditInput } from '../li
 import { interpretMission } from '../lib/mission-control/interpreter'
 import { REVISION_SCOPE,revisionDirectiveDigest } from '../lib/mission-control/revision'
 import type { DocumentWorkOrder } from '../lib/executor/contracts'
+import { assumptionLedger } from '../lib/mission-control/contracts'
 
 function fixture(slug:(typeof PILOT_DELIVERABLES)[number]){
-  const spec=interpretMission(`Create a ${slug}.`).specification;spec.artifact.recommended_type=slug;spec.aura.operator_involvement=0;spec.approval={status:'approved',approved_by:'user',approved_at:'2026-09-16T12:00:00Z',unresolved_items_accepted:[]};spec.content.open_questions=[]
+  const spec=interpretMission(`Create a ${slug}.`).specification;spec.artifact.recommended_type=slug;spec.aura.operator_involvement=0;spec.approval={status:'approved',approved_by:'user',approved_at:'2026-09-16T12:00:00Z',unresolved_items_accepted:[]};spec.content.open_questions=[];spec.content.assumptions=assumptionLedger(spec.content.facts)
   if(slug==='quote')spec.content.facts.push({key:'market_pricing_basis',label:'Market pricing basis',value:'Field labor | USD 110.00–165.00 per hour | typical USD 135.00',normalized_value:'Field labor | USD 110.00–165.00 per hour | typical USD 135.00',source:'research',source_reference:'https://official.example/rates',source_references:['https://official.example/rates'],capture_method:'system_lookup',confidence:.9,verification_state:'verified',sensitivity:'internal',last_editor:'apollo',updated_at:'2026-09-16T12:00:00Z'})
   const conversationId=`mission-${slug}`;const specId=`spec-${slug}`;const evidenceId=`evidence-${slug}`;const failedId=`10000000-0000-5000-a000-${String(PILOT_DELIVERABLES.indexOf(slug)+1).padStart(12,'0')}`;const firstId=`20000000-0000-5000-a000-${String(PILOT_DELIVERABLES.indexOf(slug)+1).padStart(12,'0')}`;const secondId=`30000000-0000-5000-a000-${String(PILOT_DELIVERABLES.indexOf(slug)+1).padStart(12,'0')}`
   const evidenceFact={key:'reference_documents',label:'Reference documents / standards',value:`${slug} source.pdf`,normalized_value:`${slug} source.pdf`,source:'evidence' as const,source_reference:evidenceId,capture_method:'file_extraction' as const,confidence:1,verification_state:'verified' as const,sensitivity:'confidential' as const,last_editor:'apollo',updated_at:'2026-09-16T12:00:00Z'}
@@ -194,5 +195,15 @@ describe('pilot release auditor',()=>{
     expect(gate).toMatchObject({passed:false})
     expect(gate.evidence).toContain('Operator involvement=80%')
     expect(gate.evidence).toContain('1 unresolved item(s) accepted')
+  })
+
+  it('rejects an expert recommendation that is not visible in the assumptions ledger',()=>{
+    const item=fixture('proposal')
+    item.specification.specification.content.facts.push({key:'win_themes',label:'Win themes',value:'Traceable execution',normalized_value:'Traceable execution',source:'inferred',source_reference:null,capture_method:'model_inference',confidence:.86,verification_state:'unverified',sensitivity:'internal',last_editor:'apollo',updated_at:'2026-09-16T12:00:00Z'})
+    item.jobs[2].work_order.fields.win_themes='Traceable execution'
+    const report=auditPilotRelease({conversations:[item.conversation],specifications:[item.specification],evidence:[item.evidence],jobs:item.jobs,events:item.events})
+    const gate=report.classes.find(entry=>entry.deliverable_type==='proposal')!.gates.find(entry=>entry.key==='calibration')!
+    expect(gate).toMatchObject({passed:false})
+    expect(gate.evidence).toContain('1 unlabeled inference(s)')
   })
 })

@@ -182,6 +182,10 @@ describe('mission interpreter', () => {
       expect.objectContaining({ key: 'pricing_model', value: 'fixed-fee' }),
     ]))
     expect(result.specification.content.open_questions).not.toEqual(expect.arrayContaining([expect.stringContaining('proposed methodology'), expect.stringContaining('risks and mitigations')]))
+    expect(result.specification.content.assumptions).toEqual(expect.arrayContaining([
+      expect.stringContaining('Proposed methodology / phases:'),
+      expect.stringContaining('expert recommendation'),
+    ]))
   })
 
   it('treats evidence rescans as control messages instead of mission facts', () => {
