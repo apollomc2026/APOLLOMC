@@ -90,6 +90,13 @@ export interface ArtifactManifest {
   conversation_id: string
   task_id: string
   title: string
+  filename?: string
+  document_id?: string
+  deliverable_type?: string
+  brand_id?: string
+  style_id?: string
+  specification_id?: string
+  specification_hash?: string
   artifact_type: 'document'
   lifecycle: 'draft'
   storage_provider: 's3' | 'google-drive'
