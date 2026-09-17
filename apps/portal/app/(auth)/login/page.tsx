@@ -24,8 +24,9 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
-    const { error: authError } = await createClient().auth.signInWithOtp({ email, options: { shouldCreateUser:false, emailRedirectTo: `${window.location.origin}/auth/confirm` } })
-    if (authError) setError(authError.message)
+    const request=await fetch('/api/auth/email-code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})})
+    const result=await request.json().catch(()=>({})) as {error?:string}
+    if(!request.ok)setError(result.error||'Unable to send an access code. Try again shortly.')
     else setSent(true)
     setLoading(false)
   }
