@@ -13,6 +13,10 @@ const ROW_FIELDS:Record<string,string[]> = {
 }
 
 const PROPOSAL_ANCHORS=['prospect_organization','pricing_model']
+const PRESERVED_FIELDS:Record<string,string[]>={
+  quote:['customer_name','customer_address','quote_date','valid_until','scope_summary','payment_terms'],
+  proposal:['proposal_date','problem_statement','our_understanding','win_themes','proposed_methodology','risks_and_mitigations','assumptions','validity_period_days','next_steps_call_to_action'],
+}
 
 function searchable(value:unknown,containsHtml=false) {
   let text=String(value??'')
@@ -75,6 +79,10 @@ export function verifyCommercialDocument(order:DocumentWorkOrder,contentHtml:str
   if(!rowFields&&!isProposal)return{required:false,verified_rows:0,verified_figures:0}
   const documentText=searchable(contentHtml,true)
   let verifiedRows=0
+  const preserved=(PRESERVED_FIELDS[order.deliverable_type]??[]).filter(key=>searchable(order.fields[key]))
+  const missingPreserved=preserved.filter(key=>!documentText.includes(searchable(order.fields[key])))
+  if(missingPreserved.length)throw new Error(`Commercial verification failed: approved ${missingPreserved.join(', ')} ${missingPreserved.length===1?'was':'were'} changed or omitted`)
+  verifiedRows+=preserved.length
   for(const key of rowFields??[]){
     const raw=order.fields[key]
     if(typeof raw!=='string'||!raw.trim())throw new Error(`Commercial verification failed: approved ${key} was empty`)

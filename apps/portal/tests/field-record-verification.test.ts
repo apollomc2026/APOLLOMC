@@ -26,20 +26,20 @@ describe('deterministic field-record verification', () => {
   })
 
   it('retains exact QC criteria and measured results', () => {
-    const order = { deliverable_type:'final-qc-report', fields:{ project_name:'Nashua Garage Loop Installation',job_number:'WT 3154',project_period:'May 11–13, 2026',inspector:'Jonathan Sargent — QC Inspector',completion_statement:'All 19 loops verified PASS',acceptance_criteria:'DC Resistance | < 5 Ω | 5–8 Ω | > 8 Ω',test_results:'P1-L1 | Garden St S | ~3 Ω | PASS' } } as unknown as DocumentWorkOrder
-    const html='<p>Nashua Garage Loop Installation WT 3154 May 11–13, 2026 Jonathan Sargent — QC Inspector All 19 loops verified PASS</p><table><tr><td>DC Resistance</td><td>&lt; 5 Ω</td><td>5–8 Ω</td><td>&gt; 8 Ω</td></tr></table><table><tr><td>P1-L1</td><td>Garden St S</td><td>~3 Ω</td><td>PASS</td></tr></table>'
-    expect(verifyFieldRecord(order,html).verified_rows).toBe(2)
+    const order = { deliverable_type:'final-qc-report', fields:{ project_name:'Nashua Garage Loop Installation',job_number:'WT 3154',project_period:'May 11–13, 2026',report_date:'2026-05-13',inspector:'Jonathan Sargent — QC Inspector',reference_documents:'Nashua_AHA.pdf',completion_statement:'All 19 loops verified PASS',acceptance_criteria:'DC Resistance | < 5 Ω | 5–8 Ω | > 8 Ω',test_results:'P1-L1 | Garden St S | ~3 Ω | PASS' } } as unknown as DocumentWorkOrder
+    const html='<p>Nashua Garage Loop Installation WT 3154 May 11–13, 2026 2026-05-13 Jonathan Sargent — QC Inspector All 19 loops verified PASS</p><p>Nashua_AHA.pdf</p><table><tr><td>DC Resistance</td><td>&lt; 5 Ω</td><td>5–8 Ω</td><td>&gt; 8 Ω</td></tr></table><table><tr><td>P1-L1</td><td>Garden St S</td><td>~3 Ω</td><td>PASS</td></tr></table>'
+    expect(verifyFieldRecord(order,html).verified_rows).toBe(3)
   })
 
   it('retains approved FSR identity, equipment, follow-up, and chronological work', () => {
-    const order = { deliverable_type:'fsr', fields:{ site_name:'Encore Boston Harbor',site_address:'1 Broadway, Everett, MA 02149',customer_contact_onsite:'Sam Barrette',visit_date:'2026-09-15',technician_name:'Jon Sargent',equipment_make_model:'SKIDATA Power.Gate',follow_up_required:'parts-order',work_performed:'12:30 | Inspected lane controller and documented fault E14\n13:20 | Tested barrier through three complete cycles' } } as unknown as DocumentWorkOrder
-    const html='<p>Encore Boston Harbor · 1 Broadway, Everett, MA 02149 · Sam Barrette · 2026-09-15 · Jon Sargent · SKIDATA Power.Gate · Parts order — return visit pending parts</p><ol><li>12:30 — Inspected lane controller and documented fault E14</li><li>13:20 — Tested barrier through three complete cycles</li></ol>'
+    const order = { deliverable_type:'fsr', fields:{ work_order_number:'SR-7C0FF0',site_name:'Encore Boston Harbor',site_address:'1 Broadway, Everett, MA 02149',customer_contact_onsite:'Sam Barrette',visit_date:'2026-09-15',arrival_time:'12:30 PM',departure_time:'2:30 PM',technician_name:'Jon Sargent',equipment_asset_id:'LANE-03',equipment_make_model:'SKIDATA Power.Gate',issue_reported:'Barrier fault E14',warranty_status:'Out of warranty',time_on_site_hours:'2.0',follow_up_required:'parts-order',work_performed:'12:30 | Inspected lane controller and documented fault E14\n13:20 | Tested barrier through three complete cycles' } } as unknown as DocumentWorkOrder
+    const html='<p>SR-7C0FF0 · Encore Boston Harbor · 1 Broadway, Everett, MA 02149 · Sam Barrette · 2026-09-15 · 12:30 PM · 2:30 PM · Jon Sargent · LANE-03 · SKIDATA Power.Gate · Barrier fault E14 · Out of warranty · 2.0 hours · Parts order — return visit pending parts</p><ol><li>12:30 — Inspected lane controller and documented fault E14</li><li>13:20 — Tested barrier through three complete cycles</li></ol>'
     expect(verifyFieldRecord(order,html)).toMatchObject({required:true,verified_rows:2})
   })
 
   it('fails closed when an FSR equipment fact is altered', () => {
-    const order = { deliverable_type:'fsr', fields:{ site_name:'Encore Boston Harbor',site_address:'1 Broadway, Everett, MA 02149',customer_contact_onsite:'Sam Barrette',visit_date:'2026-09-15',technician_name:'Jon Sargent',equipment_make_model:'SKIDATA Power.Gate',follow_up_required:'none',work_performed:'12:30 | Inspected lane controller' } } as unknown as DocumentWorkOrder
-    const html='<p>Encore Boston Harbor 1 Broadway Everett MA 02149 Sam Barrette 2026-09-15 Jon Sargent FAAC B680H None</p><p>12:30 Inspected lane controller</p>'
+    const order = { deliverable_type:'fsr', fields:{ work_order_number:'SR-7C0FF0',site_name:'Encore Boston Harbor',site_address:'1 Broadway, Everett, MA 02149',customer_contact_onsite:'Sam Barrette',visit_date:'2026-09-15',arrival_time:'12:30',departure_time:'14:30',technician_name:'Jon Sargent',equipment_asset_id:'LANE-03',equipment_make_model:'SKIDATA Power.Gate',issue_reported:'Barrier fault E14',warranty_status:'Out of warranty',time_on_site_hours:'2.0',follow_up_required:'none',work_performed:'12:30 | Inspected lane controller' } } as unknown as DocumentWorkOrder
+    const html='<p>SR-7C0FF0 Encore Boston Harbor 1 Broadway Everett MA 02149 Sam Barrette 2026-09-15 12:30 14:30 Jon Sargent LANE-03 FAAC B680H Barrier fault E14 Out of warranty 2.0 None</p><p>12:30 Inspected lane controller</p>'
     expect(()=>verifyFieldRecord(order,html)).toThrow(/equipment_make_model/)
   })
 

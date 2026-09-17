@@ -34,6 +34,11 @@ describe('deterministic agreement verification', () => {
     expect(()=>verifyAgreementDocument(review,html)).toThrow(/commercial_rights_and_limits item 1 was changed or omitted/)
   })
 
+  it('fails closed when approved review jurisdiction disappears',()=>{
+    const review={deliverable_type:'contract-intelligence-review',fields:{contract_title:'Service Agreement',jurisdiction:'Massachusetts state courts'},sources:[{name:'Service_Agreement.pdf'}]} as unknown as DocumentWorkOrder
+    expect(()=>verifyAgreementDocument(review,'<p>Service Agreement. Source: Service Agreement. This is not legal advice.</p>')).toThrow(/jurisdiction/)
+  })
+
   it('does not impose contract checks on unrelated deliverables', () => {
     expect(verifyAgreementDocument({ ...order, deliverable_type:'proposal' }, '')).toEqual({ required:false, verified_fields:[] })
   })

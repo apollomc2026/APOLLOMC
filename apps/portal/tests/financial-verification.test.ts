@@ -53,6 +53,12 @@ describe('deterministic financial verification', () => {
     expect(()=>verifyFinancialDocument(order,html)).toThrow(/changed, reordered, or omitted base_case_lines row 1/)
   })
 
+  it('fails closed when approved forecast assumptions disappear',()=>{
+    const order={...base,deliverable_type:'cash-flow-budget-package',fields:{entity_name:'Northstar Manufacturing',forecast_period:'January–February 2027',base_case_lines:'Jan | 100 | 50 | (20) | 30 | 130',scenario_summary:'Base | 130 | 100 | 50 | 20',key_assumptions:'Customer receipts arrive within 30 days'}} as unknown as DocumentWorkOrder
+    const html='<p>Northstar Manufacturing January–February 2027 Base 130 100 50 20</p><p>Jan 100 50 (20) 30 130</p>'
+    expect(()=>verifyFinancialDocument(order,html)).toThrow(/key_assumptions item 1/)
+  })
+
   it('requires both source figures and the professional boundary for tax estimates', () => {
     const order = { ...base, deliverable_type:'tax-estimate', fields:{ gross_income_w2:'125000', withholdings_ytd:'22000', prior_year_tax_liability:'23500' } } as unknown as DocumentWorkOrder
     expect(() => verifyFinancialDocument(order, '<p>$125,000 $22,000 $23,500</p>')).toThrow(/planning-only/)

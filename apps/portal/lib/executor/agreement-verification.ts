@@ -22,7 +22,7 @@ function searchable(value:unknown) {
 export function verifyAgreementDocument(order:DocumentWorkOrder, contentHtml:string):AgreementVerificationReport {
   if (order.deliverable_type === 'contract-intelligence-review') {
     const documentText = searchable(contentHtml)
-    const candidateFields = ['contract_title','contracting_parties','effective_date','expiration_date','current_status','governing_law']
+    const candidateFields = ['contract_title','contracting_parties','effective_date','expiration_date','current_status','governing_law','review_perspective','review_goal','as_of_date','jurisdiction','related_documents']
     const materialFields=['material_obligations','commercial_rights_and_limits']
     const approvedFields = candidateFields.filter(key => searchable(order.fields[key]))
     const missingFields = approvedFields.filter(key => !documentText.includes(searchable(order.fields[key])))

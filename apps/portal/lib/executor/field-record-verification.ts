@@ -12,11 +12,11 @@ const FIELD_RULES:Record<string,{ anchors:string[]; rowFields:string[] }> = {
     rowFields:['crew_roster','work_performed','work_status'],
   },
   'final-qc-report': {
-    anchors:['project_name','job_number','project_period','inspector','completion_statement'],
-    rowFields:['acceptance_criteria','test_results'],
+    anchors:['project_name','job_number','project_period','report_date','inspector','completion_statement'],
+    rowFields:['reference_documents','acceptance_criteria','test_results'],
   },
   fsr: {
-    anchors:['site_name','site_address','customer_contact_onsite','visit_date','technician_name','equipment_make_model','follow_up_required'],
+    anchors:['work_order_number','site_name','site_address','customer_contact_onsite','visit_date','arrival_time','departure_time','technician_name','equipment_asset_id','equipment_make_model','issue_reported','warranty_status','time_on_site_hours','follow_up_required'],
     rowFields:['work_performed'],
   },
 }

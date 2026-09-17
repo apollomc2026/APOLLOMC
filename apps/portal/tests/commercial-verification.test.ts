@@ -35,6 +35,12 @@ describe('deterministic commercial verification',()=>{
     expect(()=>verifyCommercialDocument(order,html)).toThrow(/market pricing source/)
   })
 
+  it('fails closed when approved quote scope or payment terms disappear',()=>{
+    const order={deliverable_type:'quote',fields:{line_items:'Field labor | 4 | day | $2,000 | $8,000',scope_summary:'Rebuild three foundations and reseal five detection loops.',payment_terms:'50% deposit; balance due at completion'}} as unknown as DocumentWorkOrder
+    const html='<p>Field labor 4 day $2,000 $8,000. Rebuild three foundations and reseal five detection loops.</p>'
+    expect(()=>verifyCommercialDocument(order,html)).toThrow(/payment_terms/)
+  })
+
   it('fails closed when an invoice row changes',()=>{
     const order={deliverable_type:'invoice',fields:{line_items:'LAB-01 | Field labor | 16 | $125.00 | No | $2,000.00'}} as unknown as DocumentWorkOrder
     expect(()=>verifyCommercialDocument(order,'<table><tr><td>LAB-01</td><td>Field labor</td><td>18</td><td>$125.00</td><td>No</td><td>$2,250.00</td></tr></table>')).toThrow(/line_items row 1 was changed or omitted/)
@@ -67,6 +73,11 @@ describe('deterministic commercial verification',()=>{
     const order={deliverable_type:'proposal',fields:{prospect_organization:'Riverfront Center',pricing_model:'milestone-based',pricing_detail:'Mobilization: $4,500; Closeout: $3,250; Total: $7,750'}} as unknown as DocumentWorkOrder
     const html='<h2>Riverfront Center</h2><p>Milestone-based pricing.</p><table><tr><td>Mobilization</td><td>$3,250</td></tr><tr><td>Closeout</td><td>$4,500</td></tr><tr><td>Total</td><td>$7,750</td></tr></table><p>Approved figures include $4,500 and $3,250.</p>'
     expect(()=>verifyCommercialDocument(order,html)).toThrow(/pricing_detail row 1 was changed, reassigned, or omitted/)
+  })
+
+  it('fails closed when an approved proposal methodology disappears',()=>{
+    const order={deliverable_type:'proposal',fields:{prospect_organization:'Riverfront Center',pricing_model:'fixed-fee',pricing_detail:'Total: $26,500',proposed_methodology:'Mobilize | Execute | Verify | Close out'}} as unknown as DocumentWorkOrder
+    expect(()=>verifyCommercialDocument(order,'<p>Riverfront Center fixed-fee Total $26,500.</p>')).toThrow(/proposed_methodology/)
   })
 
   it('does not impose commercial checks on unrelated deliverables',()=>{
