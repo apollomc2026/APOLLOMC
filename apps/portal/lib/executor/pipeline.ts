@@ -14,6 +14,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { MAX_EVIDENCE_BYTES } from '@/lib/mission-control/evidence'
 import { cleanExecutionFields, isUsableExternalReference } from '@/lib/mission-control/field-quality'
 import { verifyRenderedPdf } from './pdf-integrity'
+import { verifyDocumentContent } from './document-verification'
 
 
 async function loadExecutionBrand(order: DocumentWorkOrder): Promise<{ brand:LoadedBrand|null; palette:BrandPalette }> {
@@ -199,7 +200,12 @@ export async function renderAndStorePdf(order: DocumentWorkOrder, contentHtml: s
   })
   // Parse the exact bytes that will be stored and delivered. HTML workmanship
   // cannot prove that Chromium emitted a complete, readable PDF artifact.
-  const integrity=await verifyRenderedPdf(pdf)
+  const verifiedPdf=await verifyRenderedPdf(pdf)
+  // Re-run every specialist factual gate against text parsed from the exact
+  // bytes that will be stored. Passing generated HTML is not proof that the
+  // renderer preserved the approved content in the delivered artifact.
+  verifyDocumentContent(order,verifiedPdf.text)
+  const integrity=verifiedPdf.integrity
   const digest = createHash('sha256').update(pdf).digest('hex')
   const filename = identity.filename
   await uploadSubmissionOutput({
