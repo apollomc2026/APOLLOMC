@@ -34,7 +34,7 @@ export default function LoginPage() {
 
   async function handleVerify(event:React.FormEvent){
     event.preventDefault()
-    if(!/^\d{6}$/.test(code)){setError('Enter the six-digit access code from your email.');return}
+    if(!/^\d{6,8}$/.test(code)){setError('Enter the access code from your email.');return}
     setLoading(true);setError('')
     const { error:authError }=await createClient().auth.verifyOtp({email,token:code,type:'email'})
     if(authError)setError(authError.message)
@@ -43,12 +43,12 @@ export default function LoginPage() {
   }
 
   if (sent) return (
-    <AuthShell eyebrow="Identity verification / 02" title="Enter access code." description="Use the six-digit code sent to your email. Stay on this screen—no external sign-in is required." footer={<button type="button" className="auth-link-button" onClick={()=>{setSent(false);setCode('');setError('')}}>Use a different email</button>}>
+    <AuthShell eyebrow="Identity verification / 02" title="Enter access code." description="Use the one-time code sent to your email. Stay on this screen—no external sign-in is required." footer={<button type="button" className="auth-link-button" onClick={()=>{setSent(false);setCode('');setError('')}}>Use a different email</button>}>
       <form onSubmit={handleVerify} className="auth-form">
         <div className="auth-confirm"><span>Transmission destination</span><strong>{email}</strong></div>
-        <label htmlFor="access-code"><span>Six-digit access code</span><input id="access-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={code} onChange={event=>setCode(event.target.value.replace(/\D/g,'').slice(0,6))} placeholder="000000" autoFocus /></label>
+        <label htmlFor="access-code"><span>One-time access code</span><input id="access-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6,8}" maxLength={8} required value={code} onChange={event=>setCode(event.target.value.replace(/\D/g,'').slice(0,8))} placeholder="00000000" autoFocus /></label>
         {error?<div className="auth-error" role="alert">{error}</div>:null}
-        <button type="submit" disabled={loading||code.length!==6} className="auth-submit auth-launch-submit"><Rocket aria-hidden="true"/><span>{loading?'Verifying…':'Enter Mission Control'}</span><b aria-hidden="true">IGNITE</b></button>
+        <button type="submit" disabled={loading||code.length<6} className="auth-submit auth-launch-submit"><Rocket aria-hidden="true"/><span>{loading?'Verifying…':'Enter Mission Control'}</span><b aria-hidden="true">IGNITE</b></button>
       </form>
     </AuthShell>
   )
