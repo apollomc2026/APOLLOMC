@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk'
+import { createAnthropicClient } from '@/lib/ai/client'
 import { modelFor } from '@/lib/ai/models'
 import { explicitMissionArtifact, interpretMission, recommendMissionArtifact } from './interpreter'
 import { assumptionLedger, createMissionFact, specificationProvenance, type DeliverableSpecification, type MissionFact, type MissionTurnResult } from './contracts'
@@ -184,7 +184,7 @@ export async function interpretMissionWithClaude(text: string, prior?: Deliverab
   }
   if (!process.env.ANTHROPIC_API_KEY) return safeFallback()
   try {
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    const client = createAnthropicClient()
     const fieldGuide = getModule(base.specification.artifact.recommended_type)?.required_fields.map(field => `${field.key}: ${field.label}`).join(', ') ?? ''
     const deliverableGuide = getCatalog().industries.filter(industry => industry.status === 'active').flatMap(industry => industry.deliverables.map(deliverable => `${deliverable.slug} (${deliverable.label})`)).join(', ')
     // Sonnet 5 can spend part of the output allowance on adaptive thinking.

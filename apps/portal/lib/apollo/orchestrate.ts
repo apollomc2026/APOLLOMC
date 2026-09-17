@@ -25,6 +25,7 @@
 
 import { createHash } from 'node:crypto'
 import Anthropic from '@anthropic-ai/sdk'
+import { createAnthropicClient } from '@/lib/ai/client'
 import Ajv2020 from 'ajv/dist/2020.js'
 import addFormats from 'ajv-formats'
 import { marked } from 'marked'
@@ -731,7 +732,7 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
   if (!apiKey) {
     throw new OrchestrateError('ANTHROPIC_API_KEY is not set', 'no_api_key')
   }
-  const client = new Anthropic({ apiKey })
+  const client = createAnthropicClient(apiKey)
 
   const systemPrompt = buildSystemPrompt(args)
   const userPromptText = buildUserPromptText(args)

@@ -81,6 +81,24 @@ export async function failStaleAcceptedJob(jobId:string,cutoff:string):Promise<b
   return true
 }
 
+export async function failStaleExecutionJob(jobId:string,cutoff:string):Promise<boolean>{
+  const db=await createServiceClient()
+  const extra={
+    error_code:'WORKFLOW_EXECUTION_STALE',
+    error_message:'The mission stopped reporting progress and exceeded the execution safety window.',
+  }
+  const result=await db.from('apollo_document_jobs').update({
+    state:'failed',status_message:'Mission execution stalled and was released for a safe retry',
+    completed_at:new Date().toISOString(),updated_at:new Date().toISOString(),...extra,
+  }).eq('id',jobId)
+    .in('state',['queued','validating','generating','verifying','rendering','delivering'])
+    .lt('updated_at',cutoff).select('id,progress_percent').maybeSingle()
+  if(result.error)throw new Error(result.error.message)
+  if(!result.data)return false
+  await appendEvent(jobId,'failed',Number(result.data.progress_percent??0),'Mission execution stalled and was released for a safe retry',extra)
+  return true
+}
+
 export async function requestCancellation(jobId: string) {
   const db = await createServiceClient()
   const result = await db.from('apollo_document_jobs').update({ cancel_requested_at: new Date().toISOString(), status_message: 'Cancellation requested', updated_at: new Date().toISOString() }).eq('id', jobId).select('*').single()

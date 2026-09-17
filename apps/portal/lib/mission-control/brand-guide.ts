@@ -1,4 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk'
+import type Anthropic from '@anthropic-ai/sdk'
+import { createAnthropicClient } from '@/lib/ai/client'
 import { modelFor } from '@/lib/ai/models'
 import { extractEvidence } from './evidence'
 
@@ -47,7 +48,7 @@ export async function interpretBrandGuide(bytes: Buffer, mime: string, filename:
     throw new Error('The uploaded guide could not be interpreted; use a text-searchable PDF, DOCX, PNG, or JPG')
   }
 
-  const client = new Anthropic({ apiKey:process.env.ANTHROPIC_API_KEY })
+  const client = createAnthropicClient()
   const response = await client.messages.create({
     model:modelFor('extraction'),
     max_tokens:1200,

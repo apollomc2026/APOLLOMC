@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk'
+import { createAnthropicClient } from '@/lib/ai/client'
 import { modelFor } from '@/lib/ai/models'
 import { isUsableSiteAddress } from './field-quality'
 
@@ -17,7 +17,7 @@ export function verifiedAddressCandidates(input:unknown,allowedUrls:Set<string>)
 
 export async function searchPublicSiteAddresses(siteName:string):Promise<SiteAddressCandidate[]> {
   if(!process.env.ANTHROPIC_API_KEY)return []
-  const client=new Anthropic({apiKey:process.env.ANTHROPIC_API_KEY})
+  const client=createAnthropicClient()
   const response=await client.messages.create({
     model:modelFor('extraction'),max_tokens:1800,
     system:'Find the public street address for the named service site. Search first. Return only complete postal-address candidates directly supported by a search result. Do not infer an address from the site name, city, or model memory. Prefer the organization’s official site or an authoritative government/business listing. If locations are ambiguous, return up to three candidates.',

@@ -18,7 +18,8 @@ export function normalizeEvidenceMime(name: string, declaredMime: string): strin
   if (!declaredMime || declaredMime === 'application/octet-stream') return expected
   return declaredMime === expected ? expected : null
 }
-import Anthropic from '@anthropic-ai/sdk'
+import type Anthropic from '@anthropic-ai/sdk'
+import { createAnthropicClient } from '@/lib/ai/client'
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages/messages'
 import { modelFor } from '@/lib/ai/models'
 import { getModule } from '@/lib/apollo/packages-loader'
@@ -437,7 +438,7 @@ export async function extractEvidenceFactsFromSources(
   if (!documentModule) return []
   const requiredFields = documentModule.required_fields as EvidenceField[]
   const optionalFields = documentModule.optional_fields as EvidenceField[]
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  const client = createAnthropicClient()
   const facts: MissionFact[] = extractLabeledEvidenceFacts(readable, [...requiredFields,...optionalFields])
   for (const batch of batchEvidenceSources(readable, 4)) {
     const sourceIds = [...new Set(batch.map(source => source.id))]
@@ -495,7 +496,7 @@ export async function extractEvidenceFactsFromPdfs(
   if (!documentModule) return []
   const requiredFields=documentModule.required_fields as EvidenceField[]
   const optionalFields=documentModule.optional_fields as EvidenceField[]
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  const client = createAnthropicClient()
   const facts: MissionFact[] = []
   for (const batch of batchEvidenceSources(sources, 3)) {
     const sourceIds = batch.map(source => source.id)
@@ -538,7 +539,7 @@ export async function extractEvidenceFactsFromImages(
   if(!sources.length||!moduleSlug||!process.env.ANTHROPIC_API_KEY)return []
   const documentModule=getModule(moduleSlug);if(!documentModule)return []
   const requiredFields=documentModule.required_fields as EvidenceField[];const optionalFields=documentModule.optional_fields as EvidenceField[]
-  const client=new Anthropic({apiKey:process.env.ANTHROPIC_API_KEY});const facts:MissionFact[]=[]
+  const client=createAnthropicClient();const facts:MissionFact[]=[]
   for(const batch of batchEvidenceSources(sources,4)){
     const sourceIds=batch.map(source=>source.id)
     const content:ContentBlockParam[]=batch.flatMap(source=>[

@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk'
+import { createAnthropicClient } from '@/lib/ai/client'
 import { createHash } from 'node:crypto'
 import { modelFor } from '@/lib/ai/models'
 import { createMissionFact, type DeliverableSpecification, type MissionFact } from './contracts'
@@ -86,7 +86,7 @@ export function applyQuotePricingApproval(specification:DeliverableSpecification
 
 export async function researchQuotePricing(input:{scopeSummary:string;lineItems?:string;geography?:string}):Promise<QuotePricingResearch|null> {
   if(!process.env.ANTHROPIC_API_KEY)return null
-  const client=new Anthropic({apiKey:process.env.ANTHROPIC_API_KEY})
+  const client=createAnthropicClient()
   const response=await client.messages.create({
     model:modelFor('extraction'),max_tokens:5000,
     system:'Research current public market pricing for the supplied quote scope. Search the web first. Return benchmark ranges only when supported by returned search results. Distinguish labor, equipment, material, mobilization, and specialty-service units where the public evidence permits. Never present a benchmark as an approved customer price, never invent a margin, and never change supplied quantities or amounts. Prefer current primary sources, public rate sheets, government schedules, manufacturer/distributor pricing, and reputable published cost data. State limitations when geography, exact specification, freight, taxes, prevailing wage, union conditions, access, or site conditions can materially change price.',

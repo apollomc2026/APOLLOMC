@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { createAnthropicClient } from '@/lib/ai/client'
 import { modelFor } from '@/lib/ai/models'
 import type { Template } from './templates'
 import type { LoadedBrand } from './brands'
@@ -111,7 +112,7 @@ export async function generateDocumentHtml(args: GenerateArgs): Promise<string> 
   if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY is not set')
   }
-  const client = new Anthropic({ apiKey })
+  const client = createAnthropicClient(apiKey)
 
   // System prefix = static rules + stable per-(template,brand) context, with a
   // cache breakpoint on the stable block. SYSTEM_PROMPT alone measures ~674
