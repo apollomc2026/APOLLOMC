@@ -115,6 +115,7 @@ export interface EvidenceExtractionTrace {
   planned_passes:number
   completed_passes:number
   recovery_passes:number
+  reconciliation_passes:number
   started_at:string
   completed_at:string|null
   status:'processing'|'complete'|'failed'
@@ -122,11 +123,11 @@ export interface EvidenceExtractionTrace {
 }
 
 export function createEvidenceExtractionTrace(mode:EvidenceExtractionMode,sourceIds:string[],now=new Date()):EvidenceExtractionTrace {
-  return {schema_version:'1.0',mode,source_ids:[...new Set(sourceIds)],planned_passes:0,completed_passes:0,recovery_passes:0,started_at:now.toISOString(),completed_at:null,status:'processing'}
+  return {schema_version:'1.0',mode,source_ids:[...new Set(sourceIds)],planned_passes:0,completed_passes:0,recovery_passes:0,reconciliation_passes:0,started_at:now.toISOString(),completed_at:null,status:'processing'}
 }
 
 function planExtractionPass(trace?:EvidenceExtractionTrace){if(trace)trace.planned_passes+=1}
-function completeExtractionPass(trace?:EvidenceExtractionTrace,recovery=false){if(trace){trace.completed_passes+=1;if(recovery)trace.recovery_passes+=1}}
+function completeExtractionPass(trace?:EvidenceExtractionTrace,stage:'field'|'recovery'|'reconciliation'='field'){if(trace){trace.completed_passes+=1;if(stage==='recovery')trace.recovery_passes+=1;if(stage==='reconciliation')trace.reconciliation_passes+=1}}
 function finishExtractionTrace(trace:EvidenceExtractionTrace,status:'complete'|'failed',reason?:string){trace.status=status;trace.completed_at=new Date().toISOString();if(reason)trace.failure_reason=reason.slice(0,500);return trace}
 export function completeEvidenceExtractionTrace(trace:EvidenceExtractionTrace){
   if(trace.planned_passes<1||trace.completed_passes!==trace.planned_passes)return finishExtractionTrace(trace,'failed','Not every planned evidence extraction pass completed')
@@ -134,7 +135,7 @@ export function completeEvidenceExtractionTrace(trace:EvidenceExtractionTrace){
 }
 
 export function extractionTracesCoverSources(sourceIds:string[],traces:EvidenceExtractionTrace[]){
-  return sourceIds.every(sourceId=>traces.some(trace=>trace.schema_version==='1.0'&&trace.status==='complete'&&Boolean(trace.completed_at)&&trace.planned_passes>=1&&trace.completed_passes===trace.planned_passes&&trace.source_ids.includes(sourceId)))
+  return sourceIds.every(sourceId=>traces.some(trace=>trace.schema_version==='1.0'&&trace.status==='complete'&&Boolean(trace.completed_at)&&trace.planned_passes>=2&&trace.completed_passes===trace.planned_passes&&trace.reconciliation_passes>=1&&trace.source_ids.includes(sourceId)))
 }
 
 export function evidenceExtractionMode(input:{mime:string;text?:string}):EvidenceExtractionMode {
@@ -433,14 +434,17 @@ export async function extractEvidenceFactsFromSources(
       planExtractionPass(trace)
       const properties=evidenceToolProperties(missing,sourceIds,'source')
       const response=await client.messages.create({model:modelFor('extraction'),max_tokens:5000,system:'This is APOLLO required-field recovery. Search the complete labeled evidence carefully for each missing field, including headings, tables, timelines, conclusions, and recommendations. Return all explicitly supported values with source IDs. Return option VALUES exactly. Leave a field absent only when no source supports it. Never fabricate.',tools:[{name:'extract_evidence',description:'Recover supported required fields missed by earlier extraction passes.',input_schema:{type:'object',properties}}],tool_choice:{type:'tool',name:'extract_evidence'},messages:[{role:'user',content:`MISSING REQUIRED FIELDS:\n${missing.map(field=>fieldDescriptor(field)).join('\n')}\n\n${evidenceText}`}]})
-      completeExtractionPass(trace,true)
+      completeExtractionPass(trace,'recovery')
       const block=response.content.find(item=>item.type==='tool_use'&&item.name==='extract_evidence')
       if(block?.type==='tool_use')facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,missing,sourceIds))
     }
   }
   const supported=filterSemanticallyUnsupportedEvidenceFacts(facts,readable,moduleSlug)
   const deduplicated=deduplicateEvidenceFacts(supported)
-  return reconcileEvidencePrecedenceAcrossSources(deduplicateEvidenceFacts([...deduplicated,...deriveEvidenceFacts(deduplicated,moduleSlug)]),readable,client)
+  planExtractionPass(trace)
+  const reconciled=await reconcileEvidencePrecedenceAcrossSources(deduplicateEvidenceFacts([...deduplicated,...deriveEvidenceFacts(deduplicated,moduleSlug)]),readable,client)
+  completeExtractionPass(trace,'reconciliation')
+  return reconciled
 }
 
 function fieldDescriptor(field:EvidenceField):string {
@@ -487,13 +491,16 @@ export async function extractEvidenceFactsFromPdfs(
       const properties=evidenceToolProperties(missing,sourceIds,'PDF')
       const recoveryContent=[...content,{type:'text' as const,text:`REQUIRED-FIELD RECOVERY PASS:\n${missing.map(field=>fieldDescriptor(field)).join('\n')}\nSearch headings, tables, timelines, conclusions, and recommendations. Leave absent only when unsupported.`}]
       const response=await client.messages.create({model:modelFor('extraction'),max_tokens:5000,system:'Recover every explicitly supported required field missed by earlier PDF passes. Never fabricate. Return option VALUES exactly, cite source IDs, and preserve contradictions.',tools:[{name:'extract_evidence',description:'Recover supported required fields missed by prior PDF extraction.',input_schema:{type:'object',properties}}],tool_choice:{type:'tool',name:'extract_evidence'},messages:[{role:'user',content:recoveryContent}]})
-      completeExtractionPass(trace,true)
+      completeExtractionPass(trace,'recovery')
       const block=response.content.find(item=>item.type==='tool_use'&&item.name==='extract_evidence')
       if(block?.type==='tool_use')facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,missing,sourceIds))
     }
   }
   const deduplicated=deduplicateEvidenceFacts(facts)
-  return reconcileEvidenceSupersessions(deduplicateEvidenceFacts([...deduplicated,...deriveEvidenceFacts(deduplicated,moduleSlug)]))
+  planExtractionPass(trace)
+  const reconciled=reconcileEvidenceSupersessions(deduplicateEvidenceFacts([...deduplicated,...deriveEvidenceFacts(deduplicated,moduleSlug)]))
+  completeExtractionPass(trace,'reconciliation')
+  return reconciled
 }
 
 export async function extractEvidenceFactsFromImages(
@@ -525,12 +532,15 @@ export async function extractEvidenceFactsFromImages(
       planExtractionPass(trace)
       const properties=evidenceToolProperties(missing,sourceIds,'source')
       const response=await client.messages.create({model:modelFor('extraction'),max_tokens:5000,system:'This is APOLLO image required-field recovery. Reinspect every labeled image, including headers, footers, tables, form boxes, captions, and handwritten notes. Return only legible, directly supported values with source IDs. Never fabricate.',tools:[{name:'extract_evidence',description:'Recover supported required fields missed by prior image passes.',input_schema:{type:'object',properties}}],tool_choice:{type:'tool',name:'extract_evidence'},messages:[{role:'user',content:[...content,{type:'text' as const,text:`MISSING REQUIRED FIELDS:\n${missing.map(field=>fieldDescriptor(field)).join('\n')}`}]}]})
-      completeExtractionPass(trace,true)
+      completeExtractionPass(trace,'recovery')
       const block=response.content.find(item=>item.type==='tool_use'&&item.name==='extract_evidence')
       if(block?.type==='tool_use')facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,missing,sourceIds))
     }
   }
   const supported=moduleSlug==='quote'?filterSemanticallyUnsupportedEvidenceFacts(facts,sources.map(source=>({id:source.id,text:''})),moduleSlug):facts
   const deduplicated=deduplicateEvidenceFacts(supported)
-  return reconcileEvidenceSupersessions(deduplicateEvidenceFacts([...deduplicated,...deriveEvidenceFacts(deduplicated,moduleSlug)]))
+  planExtractionPass(trace)
+  const reconciled=reconcileEvidenceSupersessions(deduplicateEvidenceFacts([...deduplicated,...deriveEvidenceFacts(deduplicated,moduleSlug)]))
+  completeExtractionPass(trace,'reconciliation')
+  return reconciled
 }
