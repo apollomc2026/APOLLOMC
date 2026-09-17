@@ -4,6 +4,8 @@ import { explicitMissionArtifact, interpretMission, recommendMissionArtifact } f
 import { createMissionFact, specificationProvenance, type DeliverableSpecification, type MissionFact, type MissionTurnResult } from './contracts'
 import { executionGaps } from './work-order'
 import { getCatalog, getModule } from '@/lib/apollo/packages-loader'
+import { applyQuotePricingApproval } from './quote-pricing-research'
+import { PRICING_APPROVAL_DIRECTIVE } from './commercial-directives'
 
 interface ClaudeInterpretation {
   acknowledgement?: string
@@ -63,7 +65,13 @@ export function applyExpertRecommendationMode(patch: ClaudeInterpretation, text:
 }
 
 export function isMissionControlDirective(text: string) {
-  return /^(?:Use (?:your )?expert recommendations\b|Operator involvement override:|Re-read every secured evidence source\b|Reconcile the complete secured evidence set\b)/i.test(text.trim())
+  return /^(?:Use (?:your )?expert recommendations\b|Operator involvement override:|Re-read every secured evidence source\b|Reconcile the complete secured evidence set\b)/i.test(text.trim())||text.trim()===PRICING_APPROVAL_DIRECTIVE
+}
+
+function finalizePricingApproval(result:MissionTurnResult,text:string):MissionTurnResult {
+  const specification=applyQuotePricingApproval(result.specification,text)
+  if(specification===result.specification)return result
+  return {...result,acknowledgement:'Market-informed pricing approved. Houston locked this exact research basis and line-item set into the mission specification; any later commercial change will require renewed approval.',specification}
 }
 
 const SYSTEM = `You are APOLLO's mission interpreter. Convert a natural professional request into evidence-aware mission state.
@@ -152,7 +160,7 @@ export async function interpretMissionWithClaude(text: string, prior?: Deliverab
   const base = interpretMission(isMissionControlDirective(text) ? '' : text, prior)
   base.specification.aura.operator_involvement = operatorInvolvement
   const autonomous = operatorInvolvement <= 33
-  const safeFallback = () => applyExplicitMissionDirectives(applyClaudeInterpretation(base, applyExpertRecommendationMode({}, text, base.specification, autonomous)), text)
+  const safeFallback = () => finalizePricingApproval(applyExplicitMissionDirectives(applyClaudeInterpretation(base, applyExpertRecommendationMode({}, text, base.specification, autonomous)), text),text)
   if (/^Operator involvement override:/i.test(text.trim())) {
     const result = safeFallback()
     result.acknowledgement = autonomous
@@ -184,7 +192,7 @@ export async function interpretMissionWithClaude(text: string, prior?: Deliverab
     const patch = promoteAcknowledgedGap(applyExpertRecommendationMode(parsed, text, base.specification, autonomous), text, prior)
     const explicit = explicitMissionArtifact(text)
     if (explicit) patch.recommendation = explicit
-    const result = applyExplicitMissionDirectives(applyClaudeInterpretation(base, patch), text)
+    const result = finalizePricingApproval(applyExplicitMissionDirectives(applyClaudeInterpretation(base, patch), text),text)
     result.specification.provenance = specificationProvenance(result.specification.content.facts, result.specification.provenance.created_at, [...result.specification.provenance.model_versions, `anthropic:${modelFor('mission_interpretation')}`])
     return result
   } catch (error) {

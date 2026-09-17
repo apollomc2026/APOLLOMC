@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { createHash } from 'node:crypto'
 import { modelFor } from '@/lib/ai/models'
-import { createMissionFact, type MissionFact } from './contracts'
+import { createMissionFact, type DeliverableSpecification, type MissionFact } from './contracts'
+import { PRICING_APPROVAL_DIRECTIVE } from './commercial-directives'
 
 export interface PricingBenchmark {
   item:string
@@ -59,6 +61,27 @@ export function pricingResearchFact(research:QuotePricingResearch):MissionFact {
 
 export function requestsMarketPricingResearch(text:string):boolean {
   return /\b(?:fair[- ]market|market[- ]informed|market research|competitive pricing|pricing research|benchmark (?:the )?(?:price|pricing|rates?)|research (?:the )?(?:price|pricing|rates?))\b/i.test(text)
+}
+
+export function quotePricingApprovalToken(specification:DeliverableSpecification):string|null {
+  if(specification.artifact.recommended_type!=='quote')return null
+  const values=new Map(specification.content.facts.filter(fact=>fact.verification_state!=='conflict').map(fact=>[fact.key,fact.value.trim()]))
+  const research=values.get('market_pricing_basis');const lineItems=values.get('line_items')
+  if(!research||!lineItems)return null
+  return createHash('sha256').update(`${research}\n---APPROVED-LINE-ITEMS---\n${lineItems}`).digest('hex')
+}
+
+export function hasCurrentQuotePricingApproval(specification:DeliverableSpecification):boolean {
+  const token=quotePricingApprovalToken(specification)
+  return Boolean(token&&specification.content.facts.some(fact=>fact.key==='market_pricing_approval'&&fact.source==='user'&&fact.value===token))
+}
+
+export function applyQuotePricingApproval(specification:DeliverableSpecification,text:string):DeliverableSpecification {
+  if(text.trim()!==PRICING_APPROVAL_DIRECTIVE)return specification
+  const token=quotePricingApprovalToken(specification)
+  if(!token)return specification
+  const approval=createMissionFact({key:'market_pricing_approval',label:'Market-informed pricing approval',value:token,source:'user',confidence:1,sensitivity:'confidential'})
+  return {...specification,content:{...specification.content,facts:[...specification.content.facts.filter(fact=>fact.key!=='market_pricing_approval'),approval]}}
 }
 
 export async function researchQuotePricing(input:{scopeSummary:string;lineItems?:string;geography?:string}):Promise<QuotePricingResearch|null> {

@@ -23,6 +23,7 @@ import type {
 import { EVIDENCE_FILE_ACCEPT, expandEvidencePackages } from "@/lib/mission-control/zip-evidence";
 import { uploadMissionEvidence } from "@/lib/mission-control/evidence-upload-client";
 import { VoiceControl } from "./VoiceControl";
+import { PRICING_APPROVAL_DIRECTIVE } from "@/lib/mission-control/commercial-directives";
 
 const STORAGE_KEY = "apollo:mission-control:v1";
 const opening: ConversationTurn = {
@@ -288,6 +289,8 @@ export function MissionControl() {
   const verifiedSources = specification?.sources.filter((source) => source.status === "verified") ?? [];
   const questions = specification?.content.open_questions ?? [];
   const addressQuestion=questions.find(question=>/complete street address|site address/i.test(question));
+  const pricingApprovalQuestion=questions.find(question=>/market pricing basis|market-informed pricing/i.test(question));
+  const pricingBasis=facts.find(fact=>fact.key==="market_pricing_basis"&&fact.verification_state==="verified");
   const confirmedSiteName=facts.find(fact=>fact.key==="site_name"&&fact.verification_state!=="conflict")?.value;
   const title =
     specification?.artifact.recommended_type.replace(/-/g, " ") ??
@@ -1116,7 +1119,13 @@ export function MissionControl() {
                   {addressCandidates.length?<div>{addressCandidates.map(candidate=><article key={`${candidate.address}:${candidate.source_url}`}><strong>{candidate.address}</strong><a href={candidate.source_url} target="_blank" rel="noreferrer">{candidate.source_title}</a><button type="button" onClick={()=>void submit(`Site address: ${candidate.address}`)} disabled={working}>Use this address</button></article>)}</div>:null}
                   <small>Nothing is saved until you confirm a result. You can also enter the address manually below.</small>
                 </div>:null}
-                <button
+                {pricingApprovalQuestion&&pricingBasis?<div className="mc-pricing-approval">
+                  <span>CITED MARKET BASIS</span>
+                  <p>{pricingBasis.value.split("\n").slice(0,4).join("\n")}</p>
+                  <small>This research is private calibration context. APOLLO will preserve the current quote figures exactly and will require renewed approval if either the research basis or line items change.</small>
+                  <button type="button" onClick={()=>void submit(PRICING_APPROVAL_DIRECTIVE)} disabled={working}><ShieldCheck size={14}/>Approve current pricing</button>
+                </div>:null}
+                {!pricingApprovalQuestion||questions.length>1?<button
                   type="button"
                   onClick={() =>
                     void submit(
@@ -1126,7 +1135,7 @@ export function MissionControl() {
                   disabled={working}
                 >
                   Use expert recommendations
-                </button>
+                </button>:null}
               </section>
             ) : null}
             <div className="mc-prompt-label">

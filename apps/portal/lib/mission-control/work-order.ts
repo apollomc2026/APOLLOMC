@@ -4,6 +4,7 @@ import type { DocumentWorkOrder } from '@/lib/executor/contracts'
 import type { DocumentSource } from '@/lib/executor/contracts'
 import type { DeliverableSpecification } from './contracts'
 import { cleanExecutionFields } from './field-quality'
+import { hasCurrentQuotePricingApproval } from './quote-pricing-research'
 
 export type WorkOrderCompilation =
   | { ok: true; order: DocumentWorkOrder }
@@ -72,7 +73,10 @@ export function executionGaps(spec: DeliverableSpecification, now = new Date()) 
   const evidenceMissing=spec.artifact.recommended_type==='contract-intelligence-review'&&!spec.sources.some(source=>source.status==='verified'||source.status==='conflict')
     ? [{key:'contract_evidence',label:'Complete contract evidence',reason:'Attach at least one verified agreement, amendment, schedule, exhibit, warranty, or incorporated policy before contract review.'}]
     : []
-  return [...evidenceMissing,...conflicts, ...missing.filter(gap => !conflicts.some(conflict => conflict.key === gap.key))]
+  const pricingApprovalMissing=spec.artifact.recommended_type==='quote'&&spec.content.facts.some(fact=>fact.key==='market_pricing_basis'&&fact.verification_state==='verified')&&!hasCurrentQuotePricingApproval(spec)
+    ? [{key:'market_pricing_approval',label:'Market-informed pricing approval',reason:'The operator must approve the current quote figures after reviewing the cited market basis.'}]
+    : []
+  return [...evidenceMissing,...conflicts,...pricingApprovalMissing, ...missing.filter(gap => !conflicts.some(conflict => conflict.key === gap.key))]
 }
 
 export function compileApprovedSpecification(input: {

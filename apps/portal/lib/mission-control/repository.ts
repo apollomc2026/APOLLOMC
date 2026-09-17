@@ -12,6 +12,7 @@ import { pricingResearchFact, requestsMarketPricingResearch, researchQuotePricin
 export class MissionPersistenceError extends Error {}
 
 function questionForGap(gap:{key:string;label:string},specification:DeliverableSpecification):string {
+  if(gap.key==='market_pricing_approval')return 'Review APOLLO’s cited market pricing basis and approve the current quote line items, or revise the commercial figures.'
   if(gap.key==='site_address'){
     const site=specification.content.facts.find(fact=>fact.key==='site_name'&&fact.verification_state!=='conflict')?.value.trim()
     return site?`Confirm the complete street address for ${site}. APOLLO did not find a usable postal address in the secured evidence.`:'Confirm the complete street address for this service location.'
@@ -21,7 +22,7 @@ function questionForGap(gap:{key:string;label:string},specification:DeliverableS
 
 function isControlMessageFact(fact: MissionFact) {
   if (fact.key === 'deliverable_type') return false
-  return /^(?:Use (?:your )?expert recommendations\b|Operator involvement override:|Re-read every secured evidence source\b|Reconcile the complete secured evidence set\b|required facts absent from every source\b|I approve .+ as the intended deliverable type\b|(?:The intended deliverable is|Set the intended deliverable exactly to)|every unresolved decision that can be responsibly inferred)/i.test(fact.value.trim())
+  return /^(?:Use (?:your )?expert recommendations\b|Operator involvement override:|Re-read every secured evidence source\b|Reconcile the complete secured evidence set\b|required facts absent from every source\b|I approve the current quote line items after reviewing APOLLO's cited market pricing basis\.|I approve .+ as the intended deliverable type\b|(?:The intended deliverable is|Set the intended deliverable exactly to)|every unresolved decision that can be responsibly inferred)/i.test(fact.value.trim())
 }
 
 interface ReprocessableEvidenceRow {
