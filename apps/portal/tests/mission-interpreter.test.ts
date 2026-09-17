@@ -188,6 +188,13 @@ describe('mission interpreter', () => {
     ]))
   })
 
+  it('applies recommendations after operator answers in the same batched response', () => {
+    const base=interpretMission('Create a fixed-fee proposal for Acme Facilities at $18,750.')
+    const patch=applyExpertRecommendationMode({stated_facts:[{key:'team_lead_name',label:'Team lead',value:'Jon Sargent'}]},`My answers to the mission checkpoint:\n\n1. Team lead?\nAnswer: Jon Sargent\n\nUse your expert recommendations for the remaining decisions wherever they can be responsibly inferred.`,base.specification)
+    expect(patch.stated_facts).toEqual([expect.objectContaining({key:'team_lead_name',value:'Jon Sargent'})])
+    expect(patch.inferred_facts).toEqual(expect.arrayContaining([expect.objectContaining({key:'proposed_methodology'}),expect.objectContaining({key:'risks_and_mitigations'})]))
+  })
+
   it('treats evidence rescans as control messages instead of mission facts', () => {
     expect(isMissionControlDirective('Re-read every secured evidence source using multipass extraction.')).toBe(true)
     expect(isMissionControlDirective('Reconcile the complete secured evidence set against the selected deliverable before asking questions.')).toBe(true)

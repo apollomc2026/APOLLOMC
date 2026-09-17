@@ -40,7 +40,8 @@ export function promoteAcknowledgedGap(patch: ClaudeInterpretation, text: string
 }
 
 export function applyExpertRecommendationMode(patch: ClaudeInterpretation, text: string, specification: DeliverableSpecification, force = false): ClaudeInterpretation {
-  const explicitRecommendationDirective=/^Use your expert recommendations\b/i.test(text.trim())
+  const explicitRecommendationDirective=/(?:^|\n\n)Use your expert recommendations\b/i.test(text.trim())
+  const bareRecommendationDirective=/^Use your expert recommendations\b/i.test(text.trim())
   if (!force && !explicitRecommendationDirective) return patch
   const existing = new Set(specification.content.facts.filter(fact => fact.source === 'user' || fact.source === 'evidence' || fact.source === 'research' || fact.confidence >= .75).map(fact => fact.key))
   const recommendations = [
@@ -66,7 +67,7 @@ export function applyExpertRecommendationMode(patch: ClaudeInterpretation, text:
   // to promote it into a stated mission fact must be discarded. Autonomous
   // mode is different: it runs alongside an ordinary operator turn, whose
   // explicitly stated names, addresses, dates, and instructions must survive.
-  const statedFacts=explicitRecommendationDirective?[]:Array.isArray(patch.stated_facts)?patch.stated_facts:undefined
+  const statedFacts=bareRecommendationDirective?[]:Array.isArray(patch.stated_facts)?patch.stated_facts:undefined
   return { ...patch, stated_facts:statedFacts, acknowledgement: 'Expert recommendation mode applied. I resolved every professional default supported by the mission and preserved genuinely client-specific facts for explicit confirmation.', inferred_facts: [...inferredFacts, ...recommendations.filter(fact => !existing.has(fact.key))] }
 }
 

@@ -33,6 +33,19 @@ interface ReprocessableEvidenceRow {
   retrieval_mime_type: string | null
 }
 
+export function preserveHistoricalEvidenceFacts(input:{current:MissionFact[];history:DeliverableSpecification[];securedSourceIds:Set<string>}){
+  const currentKeys=new Set(input.current.map(fact=>fact.key))
+  const preserved=new Map<string,MissionFact>()
+  for(const specification of input.history){
+    for(const fact of specification.content?.facts??[]){
+      if(currentKeys.has(fact.key)||preserved.has(fact.key)||fact.source!=='evidence'||fact.verification_state==='conflict')continue
+      if(!missionFactSourceReferences(fact).some(sourceId=>input.securedSourceIds.has(sourceId)))continue
+      preserved.set(fact.key,fact)
+    }
+  }
+  return [...input.current,...preserved.values()]
+}
+
 /**
  * Evidence is interpreted against a specialist schema. If Mission Control
  * changes that schema, re-read every secured source before asking the operator
@@ -59,6 +72,19 @@ async function reconcileSecuredEvidence(input: {
     console.warn('[mission-control] Evidence recalibration found no verified sources', { conversationId:input.conversationId })
     return [] as MissionFact[]
   }
+
+  // Re-extraction is probabilistic. A later pass must never erase a verified
+  // fact that an earlier complete pass recovered from the same secured source.
+  // Load immutable specification history so a temporarily missed field can be
+  // retained even when the current specification has already lost it.
+  const historyQuery=await input.db
+    .from('apollo_specification_versions')
+    .select('version,specification')
+    .eq('conversation_id',input.conversationId)
+    .order('version',{ascending:false})
+  if(historyQuery.error)throw new MissionPersistenceError('Mission evidence history could not be reconciled')
+  const securedSourceIds=new Set(rows.map(row=>row.id))
+  const historicalSpecifications=(historyQuery.data??[]).map(version=>version.specification as DeliverableSpecification)
 
   const recoveredSources = (await Promise.all(rows.map(async row => {
     if (!row.retrieval_storage_key || !row.retrieval_mime_type) return null
@@ -104,8 +130,9 @@ async function reconcileSecuredEvidence(input: {
   if(completedRuns.some(run=>run.trace.status!=='complete')||!extractionTracesCoverSources(rows.map(row=>row.id),completedRuns.map(run=>run.trace)))throw new MissionPersistenceError('Not every secured source completed multipass evidence extraction')
   const traceBySource=new Map(completedRuns.flatMap(run=>run.trace.source_ids.map(sourceId=>[sourceId,run.trace] as const)))
   const extracted = reconcileEvidenceSupersessions(completedRuns.flatMap(run=>run.facts))
-  const evidenceFacts = extracted
+  const currentEvidenceFacts = extracted
     .map(fact => createMissionFact({ ...fact, last_editor: input.userId }))
+  const evidenceFacts=preserveHistoricalEvidenceFacts({current:currentEvidenceFacts,history:historicalSpecifications,securedSourceIds})
   if (moduleSlug === 'final-qc-report' && !evidenceFacts.some(fact => fact.key === 'reference_documents')) {
     evidenceFacts.push(createMissionFact({ key: 'reference_documents', label: 'Reference documents / standards', value: rows.map(row => row.original_name).join('; '), source: 'evidence', source_reference: rows[0]?.id ?? null, confidence: 1, sensitivity: 'confidential', last_editor: input.userId }))
   }
