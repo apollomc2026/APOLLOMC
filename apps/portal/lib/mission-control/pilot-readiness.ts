@@ -23,6 +23,9 @@ function asRecord(value:unknown):Record<string,unknown>{return value&&typeof val
 function extractionTraceIsComplete(row:EvidenceRow){return Boolean(row.extraction_trace&&extractionTracesCoverSources([row.id],[row.extraction_trace]))}
 function artifactIsControlled(artifact:ArtifactManifest,order:DocumentWorkOrder){return artifact.mime_type==='application/pdf'&&/^[a-f0-9]{64}$/.test(artifact.content_sha256)&&artifact.source_engine_id==='apollo-documents'&&artifact.lifecycle==='draft'&&Boolean(artifact.storage_file_id)&&Number(artifact.integrity?.bytes)>=1024&&Number(artifact.integrity?.pages)>=1&&Number(artifact.integrity?.text_characters)>=40&&Boolean(artifact.integrity?.verified_at)&&/^[a-f0-9]{64}$/.test(artifact.integrity?.factual_content_sha256??'')&&artifact.integrity?.verification_profile==='specialist-pdf-v1'&&Boolean(artifact.filename?.endsWith('.pdf'))&&Boolean(artifact.document_id)&&artifact.project_id===order.project_id&&artifact.conversation_id===order.conversation_id&&artifact.task_id===order.task_id&&artifact.source_run_id===order.work_order_id&&artifact.version===Number(order.fields.artifact_version??1)&&artifact.deliverable_type===order.deliverable_type&&artifact.brand_id===order.brand_id&&artifact.style_id===order.style_id&&artifact.specification_id===order.trace?.specification_id&&artifact.specification_hash===order.trace?.specification_hash}
 function governedSourceIdentity(order:DocumentWorkOrder){return order.sources.map(source=>`${source.source_id}:${source.media_type}:${source.content_sha256.toLowerCase()}`).sort()}
+const REVISION_OVERLAY_FIELDS=new Set(['revision_instruction','revision_directive_sha256','revision_scope','revision_of','artifact_version'])
+function governedFields(order:DocumentWorkOrder){return Object.fromEntries(Object.entries(order.fields).filter(([key])=>!REVISION_OVERLAY_FIELDS.has(key)).sort(([left],[right])=>left.localeCompare(right)))}
+function stableValue(value:unknown):unknown{return Array.isArray(value)?value.map(stableValue):value&&typeof value==='object'?Object.fromEntries(Object.entries(value as Record<string,unknown>).sort(([left],[right])=>left.localeCompare(right)).map(([key,nested])=>[key,stableValue(nested)])):value}
 function revisionPreservesAuthority(prior:DocumentWorkOrder,revision:DocumentWorkOrder){
   const instruction=typeof revision.fields.revision_instruction==='string'?revision.fields.revision_instruction:''
   return revision.deliverable_type===prior.deliverable_type
@@ -39,6 +42,7 @@ function revisionPreservesAuthority(prior:DocumentWorkOrder,revision:DocumentWor
     &&Boolean(instruction)
     &&revision.fields.revision_directive_sha256===revisionDirectiveDigest(instruction)
     &&JSON.stringify(governedSourceIdentity(revision))===JSON.stringify(governedSourceIdentity(prior))
+    &&JSON.stringify(stableValue(governedFields(revision)))===JSON.stringify(stableValue(governedFields(prior)))
 }
 function sequencePresent(events:EventRow[]){let cursor=-1;return REQUIRED_EVENT_SEQUENCE.every(state=>{const index=events.findIndex((event,position)=>position>cursor&&event.state===state);if(index<0)return false;cursor=index;return true})}
 function specialistVerification(deliverableType:PilotDeliverable,payload:Record<string,unknown>):{passed:boolean;evidence:string}{
@@ -78,7 +82,9 @@ export function auditPilotRelease(input:PilotAuditInput):{passed:boolean;passed_
     const latestOrder=latest?.work_order;const artifacts=latest?.artifacts??[]
     const unsafeInferences=spec.content.facts.filter(fact=>fact.source==='inferred'&&!inferredFactMayControlExecution(fact.key))
     const unsafeInferredExecution=unsafeInferences.filter(fact=>latestOrder&&latestOrder.fields[fact.key]===fact.value)
-    const revision=delivered.find(job=>Boolean(job.work_order.fields.revision_of)&&job.work_order.fields.revision_of!==job.id)
+    // The newest delivered reflight is authoritative. An earlier valid revision
+    // must never hide later state corruption.
+    const revision=[...delivered].reverse().find(job=>Boolean(job.work_order.fields.revision_of)&&job.work_order.fields.revision_of!==job.id)
     const revisionParent=revision?jobs.find(job=>job.id===revision.work_order.fields.revision_of):undefined
     const revisionAuthority=Boolean(revision&&revisionParent&&revisionPreservesAuthority(revisionParent.work_order,revision.work_order))
     const failedAttempts=jobs.map((job,index)=>({job,index})).filter(({job})=>['failed','blocked'].includes(job.state))
