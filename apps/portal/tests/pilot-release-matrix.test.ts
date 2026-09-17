@@ -43,6 +43,23 @@ describe.each(PILOT_CLASSES)('$slug pilot mechanics', ({ slug,request }) => {
     expect(result.specification.content.facts.filter(fact=>fact.source==='inferred').every(fact=>!['customer_name','line_items','pricing_detail','test_results','base_case_lines','contracting_parties'].includes(fact.key))).toBe(true)
   })
 
+  it('resolves every noncritical default in one full-autonomy action without inventing protected facts',()=>{
+    const module=getModule(slug)!
+    const safelyDelegated=new Set(slug==='proposal'
+      ? ['win_themes','proposed_methodology','risks_and_mitigations','assumptions','validity_period_days','next_steps_call_to_action']
+      : slug==='quote'?['valid_until','payment_terms']:[])
+    const base=interpretMission(request)
+    base.specification.aura.operator_involvement=0
+    const evidenceFacts=module.required_fields.filter(field=>!safelyDelegated.has(field.key)).map((field,index)=>createMissionFact({key:field.key,label:field.label,value:supportedValue(field.key,field.label,index),source:'evidence',source_reference:'pilot-evidence',confidence:1},new Date('2026-09-16T12:00:00.000Z')))
+    base.specification.content.facts=mergeMissionFacts(base.specification.content.facts,evidenceFacts)
+    base.specification.sources=[{id:'pilot-evidence',name:'pilot-evidence.pdf',status:'verified'}]
+    const patch=applyExpertRecommendationMode({stated_facts:[{key:'operator_note',label:'Operator note',value:'Preserve this explicit instruction'}]},'Continue the mission autonomously.',base.specification,true)
+    const result=applyClaudeInterpretation(base,patch)
+    expect(executionGaps(result.specification)).toEqual([])
+    expect(result.specification.content.facts).toContainEqual(expect.objectContaining({key:'operator_note',value:'Preserve this explicit instruction',source:'user'}))
+    expect(result.specification.content.facts.filter(fact=>fact.source==='inferred').every(fact=>!['customer_name','line_items','pricing_detail','test_results','base_case_lines','contracting_parties'].includes(fact.key))).toBe(true)
+  })
+
   it('carries one specification identity through evidence, launch, duplicate submission, and regeneration', () => {
     const module=getModule(slug)
     expect(module).not.toBeNull()
