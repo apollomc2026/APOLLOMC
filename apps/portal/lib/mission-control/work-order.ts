@@ -22,7 +22,8 @@ export function uuidFromDigest(digest: string, offset = 0) {
 
 function controllingConflictValue(fact:DeliverableSpecification['content']['facts'][number]):string|null {
   if(fact.verification_state!=='conflict')return fact.value
-  const active=(fact.conflicts??[]).filter(candidate=>! /\b(?:superseded|obsolete|replaced by|no longer current)\b/i.test(candidate.value))
+  const superseded=new Set(fact.supersession?.superseded_source_references??[])
+  const active=(fact.conflicts??[]).filter(candidate=>!superseded.has(candidate.source_reference??''))
   const unique=[...new Map(active.map(candidate=>[(candidate.normalized_value??candidate.value).normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase(),candidate.value])).values()]
   return unique.length===1?unique[0]:null
 }

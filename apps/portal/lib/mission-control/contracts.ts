@@ -5,6 +5,19 @@ export type FactCaptureMethod = 'user' | 'file_extraction' | 'system_lookup' | '
 export type FactVerificationState = 'stated' | 'verified' | 'unverified' | 'conflict'
 export type Sensitivity = 'public' | 'internal' | 'confidential' | 'restricted'
 
+export interface FactCandidate {
+  value: string
+  normalized_value: string | null
+  source: FactSource
+  source_reference: string | null
+}
+
+export interface FactSupersession {
+  controlling_source_reference: string
+  superseded_source_references: string[]
+  reason: string
+}
+
 export interface MissionFact {
   key: string
   label: string
@@ -19,7 +32,8 @@ export interface MissionFact {
   sensitivity: Sensitivity
   last_editor: string
   updated_at: string
-  conflicts?: Array<{ value: string; normalized_value: string | null; source: FactSource; source_reference: string | null }>
+  conflicts?: FactCandidate[]
+  supersession?: FactSupersession
 }
 
 const COMPOSITIONAL_EVIDENCE_KEYS = new Set([
@@ -45,7 +59,7 @@ export function mergeMissionFacts(priorFacts: MissionFact[], incomingFacts: Miss
     // evidence. Without this rule, answering the surfaced decision simply
     // appended another candidate and left the mission permanently blocked.
     if (prior?.verification_state === 'conflict' && incoming.source === 'user') {
-      merged.set(incoming.key, { ...incoming, verification_state:'stated', conflicts:undefined })
+      merged.set(incoming.key, { ...incoming, verification_state:'stated', conflicts:undefined, supersession:undefined })
       continue
     }
     if (!prior || comparableFactValue(prior) === comparableFactValue(incoming)) {
@@ -70,6 +84,7 @@ export function mergeMissionFacts(priorFacts: MissionFact[], incomingFacts: Miss
         source_references:[...new Set([...factSourceReferences(prior),...factSourceReferences(incoming)])],
         updated_at:now.toISOString(),
         conflicts:undefined,
+        supersession:undefined,
       })
       continue
     }

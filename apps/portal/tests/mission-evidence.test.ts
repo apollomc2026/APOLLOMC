@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as XLSX from 'xlsx'
 import sharp from 'sharp'
-import { batchEvidenceSources, chunkEvidenceSources, deduplicateEvidenceFacts, deriveEvidenceFacts, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractLabeledEvidenceFacts, filterSemanticallyUnsupportedEvidenceFacts, normalizeEvidenceMime, prepareEvidenceRetrieval, sanitizeEvidenceBytes } from '../lib/mission-control/evidence'
+import { batchEvidenceSources, chunkEvidenceSources, deduplicateEvidenceFacts, deriveEvidenceFacts, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractLabeledEvidenceFacts, filterSemanticallyUnsupportedEvidenceFacts, normalizeEvidenceMime, prepareEvidenceRetrieval, reconcileEvidenceSupersessions, sanitizeEvidenceBytes } from '../lib/mission-control/evidence'
 import { createMissionFact, mergeMissionFacts, specificationProvenance, type DeliverableSpecification } from '../lib/mission-control/contracts'
 import { buildContentBlocks, inlineEvidenceByteLimit, OrchestrateError } from '../lib/apollo/orchestrate'
 import { mergeEvidenceIntoSpecification } from '../lib/mission-control/evidence-specification'
@@ -100,6 +100,33 @@ describe('mission evidence custody', () => {
       expect.objectContaining({ value:'$18,500', source_reference:'proposal' }),
       expect.objectContaining({ value:'$19,250', source_reference:'work-order' }),
     ]))
+  })
+
+  it('selects an explicitly controlling amendment while preserving every superseded candidate', () => {
+    const extracted=evidenceFactsFromToolInput({contract_value:[
+      {value:'$18,500',source_id:'agreement'},
+      {value:'$21,000',source_id:'amendment-1',supersedes_source_ids:['agreement'],supersession_reason:'Amendment 1 expressly replaces Section 4 pricing effective September 1, 2026.'},
+    ]},[{key:'contract_value',label:'Contract value'}],['agreement','amendment-1'])
+    const reconciled=reconcileEvidenceSupersessions(extracted,new Date('2026-09-16T12:00:00.000Z'))
+    expect(reconciled).toEqual([expect.objectContaining({
+      value:'$21,000',verification_state:'verified',source_reference:'amendment-1',source_references:['agreement','amendment-1'],
+      supersession:{controlling_source_reference:'amendment-1',superseded_source_references:['agreement'],reason:'Amendment 1 expressly replaces Section 4 pricing effective September 1, 2026.'},
+      conflicts:expect.arrayContaining([expect.objectContaining({value:'$18,500',source_reference:'agreement'}),expect.objectContaining({value:'$21,000',source_reference:'amendment-1'})]),
+    })])
+  })
+
+  it('refuses unsupported or ambiguous supersession claims', () => {
+    const unsupported=evidenceFactsFromToolInput({contract_value:[
+      {value:'$21,000',source_id:'amendment-1',supersedes_source_ids:['missing-source'],supersession_reason:'Purports to replace missing evidence.'},
+    ]},[{key:'contract_value',label:'Contract value'}],['agreement','amendment-1'])
+    expect(unsupported[0].supersession).toBeUndefined()
+
+    const competing=[
+      createMissionFact({key:'contract_value',label:'Contract value',value:'$18,500',source:'evidence',source_reference:'agreement',confidence:1}),
+      createMissionFact({key:'contract_value',label:'Contract value',value:'$21,000',source:'evidence',source_reference:'amendment-1',confidence:1,supersession:{controlling_source_reference:'amendment-1',superseded_source_references:['agreement'],reason:'Replaces original price.'}}),
+      createMissionFact({key:'contract_value',label:'Contract value',value:'$22,000',source:'evidence',source_reference:'amendment-2',confidence:1}),
+    ]
+    expect(reconcileEvidenceSupersessions(competing)).toHaveLength(3)
   })
 
   it('combines complementary narrative evidence with complete source provenance', () => {

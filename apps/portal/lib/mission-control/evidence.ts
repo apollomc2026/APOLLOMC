@@ -22,7 +22,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages/messages'
 import { modelFor } from '@/lib/ai/models'
 import { getModule } from '@/lib/apollo/packages-loader'
-import { createMissionFact, type MissionFact } from './contracts'
+import { createMissionFact, type FactSupersession, type MissionFact } from './contracts'
 
 type EvidenceField = { key:string; label:string; type?:string; help?:string; evidence_aliases?:string[]; options?:Array<{ value:string; label:string }> }
 
@@ -119,13 +119,52 @@ export function evidenceFactsFromToolInput(
       if (!candidate || typeof candidate !== 'object') return []
       const value = 'value' in candidate && typeof candidate.value === 'string' ? candidate.value.trim() : ''
       const sourceReference = 'source_id' in candidate && typeof candidate.source_id === 'string' && sourceIds.includes(candidate.source_id) ? candidate.source_id : null
-      return value && sourceReference ? [createMissionFact({ key, label: labels.get(key)!, value:value.slice(0, 2000), source:'evidence', source_reference:sourceReference, confidence:1, sensitivity:'confidential' })] : []
+      const rawSupersededSourceReferences:unknown[] = 'supersedes_source_ids' in candidate && Array.isArray(candidate.supersedes_source_ids) ? candidate.supersedes_source_ids : []
+      const supersededSourceReferences:string[] = [...new Set(rawSupersededSourceReferences.filter((sourceId):sourceId is string => typeof sourceId === 'string' && sourceIds.includes(sourceId) && sourceId !== sourceReference))]
+      const supersessionReason = 'supersession_reason' in candidate && typeof candidate.supersession_reason === 'string' ? candidate.supersession_reason.trim() : ''
+      const supersession:FactSupersession|undefined = sourceReference && supersededSourceReferences.length && supersessionReason
+        ? { controlling_source_reference:sourceReference, superseded_source_references:supersededSourceReferences, reason:supersessionReason.slice(0,1000) }
+        : undefined
+      return value && sourceReference ? [createMissionFact({ key, label: labels.get(key)!, value:value.slice(0, 2000), source:'evidence', source_reference:sourceReference, confidence:1, sensitivity:'confidential', supersession })] : []
     })
   })
 }
 
 export function deduplicateEvidenceFacts(facts:MissionFact[]):MissionFact[] {
   return [...new Map(facts.map(fact => [`${fact.key}:${fact.source_reference ?? ''}:${(fact.normalized_value ?? fact.value).trim().toLocaleLowerCase()}`, fact])).values()]
+}
+
+export function reconcileEvidenceSupersessions(facts:MissionFact[], now=new Date()):MissionFact[] {
+  const byKey=new Map<string,MissionFact[]>()
+  for(const fact of facts)byKey.set(fact.key,[...(byKey.get(fact.key)??[]),fact])
+  return [...byKey.values()].flatMap(group=>{
+    const declarations=group.filter(fact=>fact.supersession)
+    if(!declarations.length)return group
+    const referencedSources=new Set(group.map(fact=>fact.source_reference).filter((value):value is string=>Boolean(value)))
+    const valid=declarations.filter(fact=>{
+      const declaration=fact.supersession!
+      return fact.source_reference===declaration.controlling_source_reference
+        && referencedSources.has(declaration.controlling_source_reference)
+        && declaration.superseded_source_references.every(source=>referencedSources.has(source))
+    })
+    const controllingSources=[...new Set(valid.map(fact=>fact.supersession!.controlling_source_reference))]
+    if(controllingSources.length!==1)return group
+    const controlling=group.find(fact=>fact.source_reference===controllingSources[0]&&fact.supersession)
+    if(!controlling)return group
+    const supersession=controlling.supersession!
+    const superseded=new Set(supersession.superseded_source_references)
+    const unresolved=group.filter(fact=>fact.source_reference!==controlling.source_reference&&!superseded.has(fact.source_reference??''))
+    const controllingValue=(controlling.normalized_value??controlling.value).normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase()
+    if(unresolved.some(fact=>(fact.normalized_value??fact.value).normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase()!==controllingValue))return group
+    return [{
+      ...controlling,
+      verification_state:'verified' as const,
+      source_references:[...referencedSources],
+      conflicts:group.map(fact=>({ value:fact.value, normalized_value:fact.normalized_value, source:fact.source, source_reference:fact.source_reference })),
+      supersession,
+      updated_at:now.toISOString(),
+    }]
+  })
 }
 
 export function extractLabeledEvidenceFacts(
@@ -252,7 +291,7 @@ export async function extractEvidenceFactsFromSources(
   }
   const supported=filterSemanticallyUnsupportedEvidenceFacts(facts,readable,moduleSlug)
   const deduplicated=deduplicateEvidenceFacts(supported)
-  return deduplicateEvidenceFacts([...deduplicated,...deriveEvidenceFacts(deduplicated,moduleSlug)])
+  return reconcileEvidenceSupersessions(deduplicateEvidenceFacts([...deduplicated,...deriveEvidenceFacts(deduplicated,moduleSlug)]))
 }
 
 function fieldDescriptor(field:EvidenceField):string {
@@ -264,7 +303,7 @@ function fieldDescriptor(field:EvidenceField):string {
 function evidenceToolProperties(fields: EvidenceField[], sourceIds:string[], sourceLabel:'source'|'PDF') {
   return Object.fromEntries(fields.map(field => [field.key, {
     type:'array', description:`${fieldDescriptor(field)} Return one candidate per directly supporting ${sourceLabel}, including every contradictory value.`,
-    items:{ type:'object', properties:{ value:{ type:'string', description:`Exact evidence-supported value for ${field.label}` }, source_id:{ type:'string', enum:sourceIds, description:`ID of the ${sourceLabel} that directly supports this candidate` } }, required:['value','source_id'] },
+    items:{ type:'object', properties:{ value:{ type:'string', description:`Exact evidence-supported value for ${field.label}` }, source_id:{ type:'string', enum:sourceIds, description:`ID of the ${sourceLabel} that directly supports this candidate` }, supersedes_source_ids:{type:'array',items:{type:'string',enum:sourceIds},description:'Only when this source explicitly amends, replaces, overrides, or supersedes another labeled source for this exact field, list those source IDs.'}, supersession_reason:{type:'string',description:'Exact evidence-grounded reason this candidate controls, including the amendment/replacement language or effective-date relationship. Required when supersedes_source_ids is present.'} }, required:['value','source_id'] },
   }]))
 }
 
@@ -300,5 +339,5 @@ export async function extractEvidenceFactsFromPdfs(
     }
   }
   const deduplicated=deduplicateEvidenceFacts(facts)
-  return deduplicateEvidenceFacts([...deduplicated,...deriveEvidenceFacts(deduplicated,moduleSlug)])
+  return reconcileEvidenceSupersessions(deduplicateEvidenceFacts([...deduplicated,...deriveEvidenceFacts(deduplicated,moduleSlug)]))
 }
