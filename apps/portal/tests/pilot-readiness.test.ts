@@ -111,6 +111,7 @@ describe('pilot release auditor',()=>{
 
   it('rejects an artifact whose durable identity drifts from the approved work order',()=>{
     const item=fixture('proposal')
+    item.jobs[2].artifacts[0].conversation_id='wrong-mission'
     item.jobs[2].artifacts[0].deliverable_type='fsr'
     item.jobs[2].artifacts[0].specification_hash='c'.repeat(64)
     const report=auditPilotRelease({conversations:[item.conversation],specifications:[item.specification],evidence:[item.evidence],jobs:item.jobs,events:item.events})
