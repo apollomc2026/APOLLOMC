@@ -40,7 +40,8 @@ export function promoteAcknowledgedGap(patch: ClaudeInterpretation, text: string
 }
 
 export function applyExpertRecommendationMode(patch: ClaudeInterpretation, text: string, specification: DeliverableSpecification, force = false): ClaudeInterpretation {
-  if (!force && !/^Use your expert recommendations\b/i.test(text.trim())) return patch
+  const explicitRecommendationDirective=/^Use your expert recommendations\b/i.test(text.trim())
+  if (!force && !explicitRecommendationDirective) return patch
   const existing = new Set(specification.content.facts.filter(fact => fact.source === 'user' || fact.source === 'evidence' || fact.source === 'research' || fact.confidence >= .75).map(fact => fact.key))
   const recommendations = [
     { key: 'win_themes', label: 'Win themes (3–4)', value: 'Operational clarity; safety-controlled execution; decision-ready prioritization; commercial certainty', confidence: .86 },
@@ -61,7 +62,12 @@ export function applyExpertRecommendationMode(patch: ClaudeInterpretation, text:
   }
   if (Object.keys(specification.content.commercial_terms).length || /fixed[- ]fee/i.test(specification.mission.objective)) recommendations.push({ key: 'pricing_model', label: 'Pricing model', value: 'fixed-fee', confidence: .95 })
   const inferredFacts = Array.isArray(patch.inferred_facts) ? patch.inferred_facts.filter(fact=>fact&&typeof fact==='object'&&EXPERT_RECOMMENDATION_KEYS.has(fact.key)) : []
-  return { ...patch, stated_facts: [], acknowledgement: 'Expert recommendation mode applied. I resolved every professional default supported by the mission and preserved genuinely client-specific facts for explicit confirmation.', inferred_facts: [...inferredFacts, ...recommendations.filter(fact => !existing.has(fact.key))] }
+  // A bare recommendation command is control-plane text, so any model attempt
+  // to promote it into a stated mission fact must be discarded. Autonomous
+  // mode is different: it runs alongside an ordinary operator turn, whose
+  // explicitly stated names, addresses, dates, and instructions must survive.
+  const statedFacts=explicitRecommendationDirective?[]:Array.isArray(patch.stated_facts)?patch.stated_facts:undefined
+  return { ...patch, stated_facts:statedFacts, acknowledgement: 'Expert recommendation mode applied. I resolved every professional default supported by the mission and preserved genuinely client-specific facts for explicit confirmation.', inferred_facts: [...inferredFacts, ...recommendations.filter(fact => !existing.has(fact.key))] }
 }
 
 export function isMissionControlDirective(text: string) {

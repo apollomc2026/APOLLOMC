@@ -229,6 +229,24 @@ describe('mission interpreter', () => {
     expect(result.specification.content.open_questions).not.toEqual(expect.arrayContaining([expect.stringContaining('win themes'), expect.stringContaining('proposed methodology')]))
   })
 
+  it('preserves explicit operator facts while autonomous defaults are applied', () => {
+    const base=interpretMission('Create a field service report.')
+    const patch=applyExpertRecommendationMode({stated_facts:[
+      {key:'technician_name',label:'Technician name',value:'Jon Sargent'},
+      {key:'site_address',label:'Site address',value:'1 Broadway, Everett, MA 02149'},
+    ]},'Technician Jon Sargent completed service at 1 Broadway, Everett, MA 02149.',base.specification,true)
+    expect(patch.stated_facts).toEqual([
+      {key:'technician_name',label:'Technician name',value:'Jon Sargent'},
+      {key:'site_address',label:'Site address',value:'1 Broadway, Everett, MA 02149'},
+    ])
+    const result=applyClaudeInterpretation(base,patch)
+    expect(result.specification.content.facts).toEqual(expect.arrayContaining([
+      expect.objectContaining({key:'technician_name',value:'Jon Sargent',source:'user'}),
+      expect.objectContaining({key:'site_address',value:'1 Broadway, Everett, MA 02149',source:'user'}),
+      expect.objectContaining({key:'proposed_methodology',source:'inferred'}),
+    ]))
+  })
+
   it('changes active mission control without consuming the outstanding factual answer', async () => {
     const prior = interpretMission('Create a fixed-fee proposal for Acme Facilities at $18,750.').specification
     const activeQuestion = prior.content.open_questions[0]
