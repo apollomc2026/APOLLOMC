@@ -108,7 +108,7 @@ export interface ArtifactManifest {
   mime_type: string
   source_engine_id: string
   source_run_id: string
-  integrity?: { bytes:number; pages:number; text_characters:number; verified_at:string }
+  integrity?: { bytes:number; pages:number; text_characters:number; verified_at:string; factual_content_sha256:string; verification_profile:'specialist-pdf-v1' }
   created_at: string
 }
 

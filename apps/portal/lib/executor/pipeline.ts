@@ -206,6 +206,7 @@ export async function renderAndStorePdf(order: DocumentWorkOrder, contentHtml: s
   // renderer preserved the approved content in the delivered artifact.
   verifyDocumentContent(order,verifiedPdf.text)
   const integrity=verifiedPdf.integrity
+  const factualContentSha256=createHash('sha256').update(verifiedPdf.text.replace(/\s+/g,' ').trim()).digest('hex')
   const digest = createHash('sha256').update(pdf).digest('hex')
   const filename = identity.filename
   await uploadSubmissionOutput({
@@ -246,7 +247,7 @@ export async function renderAndStorePdf(order: DocumentWorkOrder, contentHtml: s
     mime_type: 'application/pdf',
     source_engine_id: 'apollo-documents',
     source_run_id: order.work_order_id,
-    integrity:{...integrity,verified_at:now.toISOString()},
+    integrity:{...integrity,verified_at:now.toISOString(),factual_content_sha256:factualContentSha256,verification_profile:'specialist-pdf-v1'},
     created_at: now.toISOString(),
   }
 }
