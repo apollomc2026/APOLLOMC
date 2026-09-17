@@ -14,6 +14,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { MAX_EVIDENCE_BYTES } from '@/lib/mission-control/evidence'
 import { cleanExecutionFields, isUsableExternalReference } from '@/lib/mission-control/field-quality'
 import { verifyRenderedPdf } from './pdf-integrity'
+import { normalizedPdfTextSha256 } from './artifact-access'
 import { verifyDocumentContent } from './document-verification'
 
 
@@ -206,7 +207,7 @@ export async function renderAndStorePdf(order: DocumentWorkOrder, contentHtml: s
   // renderer preserved the approved content in the delivered artifact.
   verifyDocumentContent(order,verifiedPdf.text)
   const integrity=verifiedPdf.integrity
-  const factualContentSha256=createHash('sha256').update(verifiedPdf.text.replace(/\s+/g,' ').trim()).digest('hex')
+  const factualContentSha256=normalizedPdfTextSha256(verifiedPdf.text)
   const digest = createHash('sha256').update(pdf).digest('hex')
   const filename = identity.filename
   await uploadSubmissionOutput({

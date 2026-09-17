@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
 import { requireAllowedUser } from '@/lib/apollo/auth'
 import { downloadDriveArtifact } from '@/lib/executor/google-drive'
-import { assertControlledPdfDownload } from '@/lib/executor/artifact-access'
+import { assertControlledPdfDownload, verifyControlledPdfDownload } from '@/lib/executor/artifact-access'
 import { createServiceClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
-type Artifact = { storage_file_id?: string; mime_type?: string; title?: string; filename?:string; content_sha256?:string; version?: number }
+type Artifact = { storage_file_id?: string; mime_type?: string; title?: string; filename?:string; content_sha256?:string; version?: number; integrity?:{ factual_content_sha256?:string; verification_profile?:string } }
 
 function safeFilename(value: string) {
   const stem = value.replace(/[^a-z0-9._ -]+/gi, '').trim().replace(/\s+/g, '-') || 'apollo-deliverable'
@@ -26,7 +26,9 @@ export async function GET(_request: Request, context: { params: Promise<{ jobId:
   try {
     const file = await downloadDriveArtifact({ userId:auth.user.userId, fileId:artifact.storage_file_id })
     const bytes=Buffer.from(file.bytes)
-    assertControlledPdfDownload({bytes,mimeType:file.mimeType,contentSha256:artifact.content_sha256})
+    const factualDigest=artifact.integrity?.verification_profile==='specialist-pdf-v1' ? artifact.integrity.factual_content_sha256 : undefined
+    if(factualDigest)await verifyControlledPdfDownload({bytes,mimeType:file.mimeType,contentSha256:artifact.content_sha256,factualContentSha256:factualDigest})
+    else assertControlledPdfDownload({bytes,mimeType:file.mimeType,contentSha256:artifact.content_sha256})
     return new Response(bytes, { headers:{
       'Content-Type':'application/pdf',
       'Content-Disposition':`inline; filename="${safeFilename(artifact.filename || artifact.title || 'apollo-deliverable')}"`,

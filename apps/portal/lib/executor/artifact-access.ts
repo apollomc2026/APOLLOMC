@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import type { ArtifactManifest } from './contracts'
+import { verifyRenderedPdf } from './pdf-integrity'
 
 export function controlledArtifactPath(jobId:string){
   const normalized=jobId.trim()
@@ -27,4 +28,25 @@ export function assertControlledPdfDownload(input:{bytes:Buffer;mimeType:string;
   if(input.bytes.length<5||input.bytes.subarray(0,5).toString('ascii')!=='%PDF-')throw new Error('Controlled artifact custody returned invalid PDF bytes')
   const actual=createHash('sha256').update(input.bytes).digest('hex')
   if(actual!==input.contentSha256.toLowerCase())throw new Error('Controlled artifact custody failed integrity verification')
+}
+
+export function normalizedPdfTextSha256(text:string){
+  return createHash('sha256').update(text.replace(/\s+/g,' ').trim()).digest('hex')
+}
+
+/** Reparse custody bytes at the moment of delivery. The byte digest protects
+ * immutability; this second proof protects readable factual content and binds
+ * pickup to the same normalized-text fingerprint recorded after rendering. */
+export async function verifyControlledPdfDownload(input:{
+  bytes:Buffer
+  mimeType:string
+  contentSha256:string
+  factualContentSha256:string
+}){
+  assertControlledPdfDownload(input)
+  if(!/^[a-f0-9]{64}$/i.test(input.factualContentSha256))throw new Error('Controlled artifact manifest has no valid factual-content digest')
+  const verified=await verifyRenderedPdf(input.bytes)
+  const actual=normalizedPdfTextSha256(verified.text)
+  if(actual!==input.factualContentSha256.toLowerCase())throw new Error('Controlled artifact custody failed factual-content verification')
+  return verified.integrity
 }
