@@ -1,5 +1,7 @@
 import { failedEmail, sendEmail } from '@/lib/email/ses'
 import { createServiceClient } from '@/lib/supabase/server'
+import { findDeliverable } from '@/lib/apollo/packages-loader'
+import type { DocumentWorkOrder } from './contracts'
 
 export async function sendFailureNotification(jobId: string) {
   const db = await createServiceClient()
@@ -14,7 +16,7 @@ export async function sendFailureNotification(jobId: string) {
     .eq('id', jobId)
     .eq('state', 'failed')
     .or(`failure_email_status.in.(pending,failed),and(failure_email_status.eq.sending,updated_at.lt.${staleBefore})`)
-    .select('id,conversation_id,requested_by,deliverable_type')
+    .select('id,conversation_id,requested_by,deliverable_type,work_order')
     .maybeSingle()
 
   if (claim.error) throw new Error(claim.error.message)
@@ -29,7 +31,9 @@ export async function sendFailureNotification(jobId: string) {
     if (profile.error || !profile.data?.email)
       throw new Error(profile.error?.message ?? 'Mission owner email is unavailable')
 
-    const deliverableName = String(claim.data.deliverable_type || 'document').replace(/-/g, ' ')
+    const workOrder=claim.data.work_order as DocumentWorkOrder|null
+    const deliverableType=workOrder?.deliverable_type||String(claim.data.deliverable_type||'')
+    const deliverableName=findDeliverable(deliverableType)?.label||deliverableType.replace(/-/g,' ')||'document'
     await sendEmail({
       to: profile.data.email,
       ...failedEmail(deliverableName, claim.data.conversation_id),

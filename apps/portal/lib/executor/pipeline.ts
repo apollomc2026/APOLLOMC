@@ -46,15 +46,49 @@ function filenamePart(value: unknown, fallback: string): string {
   return normalized.slice(0, 48) || fallback
 }
 
-export function buildDocumentIdentity(args: { order:DocumentWorkOrder; brandLabel:string; generatedAt:Date; artifactVersion:number }) {
+const IDENTITY_FIELDS={
+  subject:['site_name','project_name','customer_name','prospect_organization','entity_name','contract_title'],
+  date:['visit_date','report_date','quote_date','proposal_date','as_of_date','effective_date'],
+  reference:['work_order_number','job_number','quote_number','rfp_reference','contract_number','policy_number'],
+} as const
+
+function firstIdentityField(order:DocumentWorkOrder,keys:readonly string[]):string|null{
+  for(const key of keys){
+    const value=String(order.fields[key]??'').trim()
+    if(value)return value
+  }
+  return null
+}
+
+function deliverableLabelFallback(slug:string){
+  if(slug==='fsr')return 'FSR'
+  return slug.split('-').filter(Boolean).map(part=>part.charAt(0).toUpperCase()+part.slice(1)).join(' ')||'Deliverable'
+}
+
+export function buildDocumentIdentity(args: { order:DocumentWorkOrder; brandLabel:string; deliverableLabel?:string; generatedAt:Date; artifactVersion:number }) {
   const stamp = args.generatedAt.toISOString().slice(0, 10)
   const brandCode = safeCode(args.brandLabel, 3) || 'APL'
   const typeCode = safeCode(args.order.deliverable_type, 6) || 'DOC'
-  const customerReference = isUsableExternalReference(args.order.fields.work_order_number) ? String(args.order.fields.work_order_number).trim() : null
-  const serviceRecordReference = `${brandCode}-${typeCode}-${stamp.replace(/-/g, '')}-SR-${safeCode(args.order.work_order_id, 6)}`
-  const referenceSegment = customerReference ? `WO-${filenamePart(customerReference, 'SOURCE')}` : `SR-${safeCode(args.order.work_order_id, 6)}`
-  const filename = [filenamePart(args.brandLabel, brandCode), typeCode, filenamePart(args.order.fields.site_name, 'Site'), filenamePart(args.order.fields.visit_date, stamp), referenceSegment, `V${args.artifactVersion}`].join('_') + '.pdf'
-  return { documentId:customerReference || serviceRecordReference, customerReference, filename }
+  const deliverableLabel=args.deliverableLabel?.trim()||deliverableLabelFallback(args.order.deliverable_type)
+  const subject=firstIdentityField(args.order,IDENTITY_FIELDS.subject)
+  const date=firstIdentityField(args.order,IDENTITY_FIELDS.date)||stamp
+  const candidateReference=firstIdentityField(args.order,IDENTITY_FIELDS.reference)
+  const customerReference=candidateReference&&isUsableExternalReference(candidateReference)?candidateReference:null
+  const isFsr=args.order.deliverable_type==='fsr'
+  const internalPrefix=isFsr?'SR':'DOC'
+  const internalReference=`${brandCode}-${typeCode}-${stamp.replace(/-/g,'')}-${internalPrefix}-${safeCode(args.order.work_order_id,6)}`
+  const referenceSegment=customerReference
+    ? `${isFsr?'WO':'REF'}-${filenamePart(customerReference,'SOURCE')}`
+    : `${internalPrefix}-${safeCode(args.order.work_order_id,6)}`
+  const filename=[
+    filenamePart(args.brandLabel,brandCode),
+    filenamePart(deliverableLabel,args.order.deliverable_type),
+    filenamePart(subject,isFsr?'Site':'Mission'),
+    filenamePart(date,stamp),
+    referenceSegment,
+    `V${args.artifactVersion}`,
+  ].join('_')+'.pdf'
+  return { documentId:customerReference||internalReference,customerReference,filename }
 }
 
 function shouldHaveSignatureBlock(slug: string): boolean {
@@ -150,7 +184,7 @@ export async function renderAndStorePdf(order: DocumentWorkOrder, contentHtml: s
   const requestedVersion = Number(order.fields.artifact_version ?? 1)
   const artifactVersion = Number.isSafeInteger(requestedVersion) && requestedVersion > 0 ? requestedVersion : 1
   const cleanedFields = cleanExecutionFields(order.fields)
-  const identity = buildDocumentIdentity({ order:{ ...order, fields:cleanedFields }, brandLabel:brand.label, generatedAt:now, artifactVersion })
+  const identity = buildDocumentIdentity({ order:{ ...order, fields:cleanedFields }, brandLabel:brand.label, deliverableLabel:summary.label, generatedAt:now, artifactVersion })
   const pdf = await buildPdf({
     template,
     brand,

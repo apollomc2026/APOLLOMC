@@ -9,6 +9,10 @@ function order(fields:Record<string,unknown>):DocumentWorkOrder {
   }
 }
 
+function typedOrder(deliverable_type:string,fields:Record<string,unknown>):DocumentWorkOrder{
+  return {...order(fields),deliverable_type}
+}
+
 describe('controlled document identity', () => {
   it('rejects conversational text masquerading as a work-order reference', () => {
     const bad = 'all of the above is answered in the original doc i uploaded please scan and check for the needed information'
@@ -35,5 +39,22 @@ describe('controlled document identity', () => {
     const identity = buildDocumentIdentity({ order:order({ site_name:'Encore Boston Harbor', visit_date:'2026-09-15', work_order_number:'GTI-2026-0814' }), brandLabel:'On Spot Solutions', generatedAt:new Date('2026-09-16T12:00:00Z'), artifactVersion:1 })
     expect(identity.documentId).toBe('GTI-2026-0814')
     expect(identity.filename).toContain('WO-GTI-2026-0814')
+  })
+
+  it('gives every pilot class a descriptive identity instead of FSR-shaped placeholders',()=>{
+    const generatedAt=new Date('2026-09-16T12:00:00Z')
+    const cases=[
+      [typedOrder('final-qc-report',{project_name:'Nashua Garage Loop Installation',report_date:'2026-05-13',job_number:'WT-3154'}),'Final QC Report','On-Spot-Solutions_Final-QC-Report_Nashua-Garage-Loop-Installation_2026-05-13_REF-WT-3154_V1.pdf'],
+      [typedOrder('quote',{customer_name:'US Foods Seabrook',quote_date:'2026-09-16',quote_number:'Q-1042'}),'Quote / Estimate','On-Spot-Solutions_Quote-Estimate_US-Foods-Seabrook_2026-09-16_REF-Q-1042_V1.pdf'],
+      [typedOrder('proposal',{prospect_organization:'Riverfront Center',proposal_date:'2026-09-12',rfp_reference:'RFP-22-17'}),'Consulting / Services Proposal','On-Spot-Solutions_Consulting-Services-Proposal_Riverfront-Center_2026-09-12_REF-RFP-22-17_V1.pdf'],
+      [typedOrder('cash-flow-budget-package',{entity_name:'Northstar Manufacturing',forecast_period:'FY 2027'}),'Cash Flow Budget Package','On-Spot-Solutions_Cash-Flow-Budget-Package_Northstar-Manufacturing_2026-09-16_DOC-4BBE68_V1.pdf'],
+      [typedOrder('contract-intelligence-review',{contract_title:'Platinum Vehicle Service Agreement',as_of_date:'2026-09-16'}),'Contract Intelligence Review','On-Spot-Solutions_Contract-Intelligence-Review_Platinum-Vehicle-Service-Agreement_2026-09-16_DOC-4BBE68_V1.pdf'],
+    ] as const
+    for(const [documentOrder,label,expected] of cases){
+      const identity=buildDocumentIdentity({order:documentOrder,brandLabel:'On Spot Solutions',deliverableLabel:label,generatedAt,artifactVersion:1})
+      expect(identity.filename).toBe(expected)
+      expect(identity.filename).not.toContain('_Site_')
+      expect(identity.documentId).not.toContain('-SR-')
+    }
   })
 })
