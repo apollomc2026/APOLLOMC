@@ -7,7 +7,7 @@ export type PilotDeliverable=(typeof PILOT_DELIVERABLES)[number]
 type ConversationRow={id:string;status:string;readiness:number;current_spec_version:number;updated_at:string}
 type SpecificationRow={id:string;conversation_id:string;version:number;status:string;content_hash:string;specification:DeliverableSpecification}
 type EvidenceRow={id:string;conversation_id:string;extraction_status:string;content_sha256:string|null;retrieval_sha256:string|null;extracted_facts:MissionFact[]}
-type JobRow={id:string;conversation_id:string;deliverable_type:string;state:string;progress_percent:number;work_order:DocumentWorkOrder;artifacts:ArtifactManifest[];error_code:string|null;created_at:string;completed_at:string|null}
+type JobRow={id:string;conversation_id:string;deliverable_type:string;state:string;progress_percent:number;work_order:DocumentWorkOrder;artifacts:ArtifactManifest[];error_code:string|null;completion_email_status:string;failure_email_status:string;created_at:string;completed_at:string|null}
 type EventRow={job_id:string;sequence:number;state:string;payload:Record<string,unknown>}
 
 export interface PilotAuditInput { conversations:ConversationRow[]; specifications:SpecificationRow[]; evidence:EvidenceRow[]; jobs:JobRow[]; events:EventRow[] }
@@ -75,6 +75,8 @@ export function auditPilotRelease(input:PilotAuditInput):{passed:boolean;passed_
     const failedAttempts=jobs.map((job,index)=>({job,index})).filter(({job})=>['failed','blocked'].includes(job.state))
     const recovered=failedAttempts.length>0&&failedAttempts.every(({index})=>jobs.slice(index+1).some(candidate=>candidate.state==='delivered'))
     const currentDelivered=current?.state==='delivered'
+    const completionNotificationSent=currentDelivered&&current?.completion_email_status==='sent'
+    const failedNotificationsSent=failedAttempts.length>0&&failedAttempts.every(({job})=>job.failure_email_status==='sent')
     const gates:PilotGate[]=[
       {key:'evidence',label:'Evidence inventory and custody',passed:evidence.length>0&&evidence.every(row=>['verified','conflict'].includes(row.extraction_status)&&/^[a-f0-9]{64}$/.test(row.content_sha256??'')&&/^[a-f0-9]{64}$/.test(row.retrieval_sha256??'')),evidence:`${evidence.length} source(s); ${evidence.filter(row=>row.extraction_status==='failed').length} failed.`},
       {key:'provenance',label:'Complete evidence provenance',passed:evidence.length===inventoryIds.size&&evidence.every(row=>inventoryIds.has(row.id))&&malformedExtractedFacts.length===0&&missingReconciledFacts.length===0&&evidence.filter(row=>(row.extracted_facts??[]).length>0).every(row=>specificationEvidenceReferences.has(row.id)),evidence:`${inventoryIds.size}/${evidence.length} inventoried; ${malformedExtractedFacts.length} malformed extracted fact(s); ${missingReconciledFacts.length} fact(s) lost during reconciliation.`},
@@ -84,6 +86,7 @@ export function auditPilotRelease(input:PilotAuditInput):{passed:boolean;passed_
       {key:'verification',label:'Deterministic verification and workmanship',passed:Boolean(validation)&&specialist.passed&&workmanship.passed===true&&Number(workmanship.score)>=80,evidence:`Workmanship ${String(workmanship.score??'missing')}/100; ${specialist.evidence}; validation=${validation?'recorded':'missing'}.`},
       {key:'market-pricing',label:'Cited market-informed pricing',passed:deliverableType!=='quote'||Boolean(pricingResearch)&&pricingSources.length>0&&pricingSources.every(source=>/^https:\/\//i.test(source)),evidence:deliverableType!=='quote'?'Not applicable to this pilot class.':`${pricingResearch?'Verified benchmark record':'Missing benchmark record'}; ${pricingSources.length} cited source(s).`},
       {key:'artifact',label:'Controlled branded PDF artifact',passed:artifacts.length>0&&artifacts.every(artifactIsControlled)&&Boolean(latestOrder?.brand_id)&&Boolean(latestOrder?.style_id),evidence:`${artifacts.length} artifact(s); brand=${latestOrder?.brand_id??'missing'}; style=${latestOrder?.style_id??'missing'}; parsed PDF integrity=${artifacts.every(artifact=>Boolean(artifact.integrity))?'recorded':'missing'}.`},
+      {key:'notifications',label:'Terminal notifications delivered',passed:completionNotificationSent&&failedNotificationsSent,evidence:`Completion email=${current?.completion_email_status??'missing'}; ${failedAttempts.length} failure alert(s), ${failedAttempts.filter(({job})=>job.failure_email_status==='sent').length} sent.`},
       {key:'recovery',label:'Failure recovery proven',passed:recovered,evidence:recovered?`${failedAttempts.length} failed/blocked attempt(s) were followed by successful delivery.`:failedAttempts.length?'A failed/blocked attempt remains unrecovered.':'No controlled failure-to-success recovery is recorded.'},
       {key:'regeneration',label:'Regeneration lineage proven',passed:Boolean(revision)&&delivered.length>=2&&Number(revision?.artifacts?.[0]?.version??0)>=2&&revisionAuthority,evidence:`${delivered.length} delivered deployment(s); revision=${revision?.id??'missing'}; approved authority=${revisionAuthority?'preserved':'unproven'}.`},
     ]

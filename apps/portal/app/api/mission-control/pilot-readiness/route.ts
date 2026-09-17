@@ -17,7 +17,7 @@ export async function GET(){
   const [specifications,evidence,jobs]=await Promise.all([
     db.from('apollo_specification_versions').select('id,conversation_id,version,status,content_hash,specification').in('conversation_id',ids),
     db.from('apollo_conversation_evidence').select('id,conversation_id,extraction_status,content_sha256,retrieval_sha256,extracted_facts').eq('user_id',auth.user.userId).in('conversation_id',ids),
-    db.from('apollo_document_jobs').select('id,conversation_id,deliverable_type,state,progress_percent,work_order,artifacts,error_code,created_at,completed_at').eq('requested_by',auth.user.userId).in('conversation_id',ids),
+    db.from('apollo_document_jobs').select('id,conversation_id,deliverable_type,state,progress_percent,work_order,artifacts,error_code,completion_email_status,failure_email_status,created_at,completed_at').eq('requested_by',auth.user.userId).in('conversation_id',ids),
   ])
   const error=specifications.error??evidence.error??jobs.error;if(error)return NextResponse.json({error:error.message},{status:500})
   const jobIds=(jobs.data??[]).map(row=>row.id)
