@@ -1,7 +1,20 @@
 import { missionCompleteEmail, sendEmail } from '@/lib/email/ses'
 import { createServiceClient } from '@/lib/supabase/server'
-import type { ArtifactManifest } from './contracts'
+import { findDeliverable } from '@/lib/apollo/packages-loader'
+import type { ArtifactManifest, DocumentWorkOrder } from './contracts'
 import { controlledArtifactUrl } from './artifact-access'
+
+export function artifactMatchesNotificationAuthority(artifact:ArtifactManifest,order:DocumentWorkOrder){
+  return artifact.project_id===order.project_id
+    &&artifact.conversation_id===order.conversation_id
+    &&artifact.task_id===order.task_id
+    &&artifact.source_run_id===order.work_order_id
+    &&artifact.deliverable_type===order.deliverable_type
+    &&artifact.brand_id===order.brand_id
+    &&artifact.style_id===order.style_id
+    &&artifact.specification_id===order.trace?.specification_id
+    &&artifact.specification_hash===order.trace?.specification_hash
+}
 
 export async function sendCompletionNotification(jobId: string) {
   const db = await createServiceClient()
@@ -16,7 +29,7 @@ export async function sendCompletionNotification(jobId: string) {
     .eq('id', jobId)
     .eq('state', 'delivered')
     .or(`completion_email_status.in.(pending,failed),and(completion_email_status.eq.sending,updated_at.lt.${staleBefore})`)
-    .select('id,conversation_id,requested_by,artifacts')
+    .select('id,conversation_id,requested_by,artifacts,work_order')
     .maybeSingle()
 
   if (claim.error) throw new Error(claim.error.message)
@@ -34,11 +47,14 @@ export async function sendCompletionNotification(jobId: string) {
     const artifacts = (claim.data.artifacts as ArtifactManifest[] | null) ?? []
     const artifact = artifacts[0]
     if (!artifact?.storage_file_id) throw new Error('Delivered artifact is unavailable')
+    const workOrder=claim.data.work_order as DocumentWorkOrder|null
+    if(!workOrder||!artifactMatchesNotificationAuthority(artifact,workOrder))throw new Error('Delivered artifact authority does not match the approved work order')
+    const deliverableName=findDeliverable(workOrder.deliverable_type)?.label||workOrder.deliverable_type.replace(/-/g,' ')
 
     await sendEmail({
       to: profile.data.email,
       ...missionCompleteEmail(
-        artifact.title || 'document',
+        deliverableName,
         claim.data.conversation_id,
         controlledArtifactUrl(jobId),
       ),
