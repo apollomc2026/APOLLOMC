@@ -9,10 +9,20 @@ const pdfExports = exportsOf(await import('../lib/apollo/pdf') as RuntimeModule)
 const brandExports = exportsOf(await import('../lib/apollo/brands') as RuntimeModule)
 const packageExports = exportsOf(await import('../lib/apollo/packages-loader') as RuntimeModule)
 const orchestrateExports = exportsOf(await import('../lib/apollo/orchestrate') as RuntimeModule)
+const evidenceExports = exportsOf(await import('../lib/mission-control/evidence') as RuntimeModule)
+const interpreterExports = exportsOf(await import('../lib/mission-control/interpreter') as RuntimeModule)
+const aiInterpreterExports = exportsOf(await import('../lib/mission-control/ai-interpreter') as RuntimeModule)
+const contractExports = exportsOf(await import('../lib/mission-control/contracts') as RuntimeModule)
+const workOrderExports = exportsOf(await import('../lib/mission-control/work-order') as RuntimeModule)
 const { buildPdf } = pdfExports as typeof import('../lib/apollo/pdf')
 const { loadBrand, loadBrandPalette } = brandExports as typeof import('../lib/apollo/brands')
 const { findDeliverable, getModule, getSchema, getStylesForIndustry } = packageExports as typeof import('../lib/apollo/packages-loader')
 const { orchestrate, chooseLayoutForSlug, shouldRenderToc } = orchestrateExports as typeof import('../lib/apollo/orchestrate')
+const { extractEvidenceFactsWithTraceFromArtifact, extractionTracesCoverSources } = evidenceExports as typeof import('../lib/mission-control/evidence')
+const { interpretMission } = interpreterExports as typeof import('../lib/mission-control/interpreter')
+const { applyExpertRecommendationMode, applyClaudeInterpretation } = aiInterpreterExports as typeof import('../lib/mission-control/ai-interpreter')
+const { mergeMissionFacts, specificationProvenance } = contractExports as typeof import('../lib/mission-control/contracts')
+const { executionGaps } = workOrderExports as typeof import('../lib/mission-control/work-order')
 
 const FIXTURES: Record<string, Record<string, unknown>> = {
   'contract-intelligence-review': {
@@ -213,7 +223,9 @@ SECTION 10 — PRIVACY AND RECORDS. Claim and maintenance records may be retaine
 }
 
 const requested = process.argv.slice(2)
-const slugs = requested.length ? requested : Object.keys(FIXTURES)
+const evidenceMode = requested.includes('--evidence')
+const requestedSlugs = requested.filter(value=>value!=='--evidence')
+const slugs = requestedSlugs.length ? requestedSlugs : Object.keys(FIXTURES)
 const unknown = slugs.filter(slug => !FIXTURES[slug])
 if (unknown.length) throw new Error(`Unknown pilot fixtures: ${unknown.join(', ')}`)
 if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is required')
@@ -233,12 +245,49 @@ for (const slug of slugs) {
   const style = getStylesForIndustry(summary.industry_slug)[0]
   if (!style) throw new Error(`No style available for ${slug}`)
   const started = Date.now()
+  let evidenceAudit:Record<string,unknown>|undefined
+  if(evidenceMode){
+    const sourceId=`pilot-${slug}-evidence`
+    const supplied=FIXTURES[slug]
+    const moduleFields=[...module.required_fields,...module.optional_fields]
+    const evidenceLine=(key:string,label:string,value:unknown)=>{
+      if(slug==='fsr'&&key==='customer_contact_onsite')return `On-site contact:\n${String(value)} was present at the site and served as the on-site customer contact.`
+      if(slug==='fsr'&&key==='follow_up_required'&&String(value)==='none')return `Follow-up required:\nNone. The service record requires no return visit, parts order, or additional corrective action.`
+      return `${label}:\n${String(value)}`
+    }
+    const generatedEvidence=moduleFields
+      .filter(field=>supplied[field.key]!==undefined&&supplied[field.key]!==null&&String(supplied[field.key]).trim())
+      .map(field=>evidenceLine(field.key,field.label,supplied[field.key]))
+      .join('\n\n')
+    const uploadedEvidence=(UPLOAD_FIXTURES[slug]??[]).map(upload=>upload.extracted_text).filter(Boolean).join('\n\n')
+    const evidenceText=[`CONTROLLED PILOT EVIDENCE — ${summary.label}`,generatedEvidence,uploadedEvidence].filter(Boolean).join('\n\n')
+    const extracted=await extractEvidenceFactsWithTraceFromArtifact({id:sourceId,name:`${slug}-pilot-evidence.txt`,mime:'text/plain',bytes:Buffer.from(evidenceText),text:evidenceText},slug)
+    const expectedRequired=module.required_fields.filter(field=>supplied[field.key]!==undefined||slug==='contract-intelligence-review').map(field=>field.key)
+    const extractedKeys=new Set(extracted.facts.map(fact=>fact.key))
+    const missing=expectedRequired.filter(key=>!extractedKeys.has(key))
+    if(missing.length)throw new Error(`${slug} evidence extraction missed required fields: ${missing.join(', ')}`)
+    if(!extractionTracesCoverSources([sourceId],[extracted.trace]))throw new Error(`${slug} multipass trace did not cover its evidence source`)
+    const interpreted=interpretMission(`Create a ${summary.label}.`)
+    interpreted.specification.artifact.recommended_type=slug
+    interpreted.specification.aura.operator_involvement=0
+    interpreted.specification.sources=[{id:sourceId,name:`${slug}-pilot-evidence.txt`,status:'verified'}]
+    interpreted.specification.content.facts=mergeMissionFacts(interpreted.specification.content.facts,extracted.facts)
+    interpreted.specification.provenance=specificationProvenance(interpreted.specification.content.facts,interpreted.specification.provenance.created_at,interpreted.specification.provenance.model_versions)
+    const patch=applyExpertRecommendationMode({},'Use expert recommendations for every noncritical decision and continue fully autonomously.',interpreted.specification,true)
+    const calibrated=applyClaudeInterpretation(interpreted,patch)
+    const gaps=executionGaps(calibrated.specification)
+    if(gaps.length){
+      const unresolvedFacts=calibrated.specification.content.facts.filter(fact=>gaps.some(gap=>gap.key===fact.key)).map(fact=>({key:fact.key,value:fact.value,source:fact.source,source_reference:fact.source_reference,verification_state:fact.verification_state,conflicts:fact.conflicts}))
+      throw new Error(`${slug} full-autonomy calibration left ${gaps.length} execution gap(s): ${gaps.map(gap=>gap.key).join(', ')}; facts=${JSON.stringify(unresolvedFacts)}`)
+    }
+    evidenceAudit={source_id:sourceId,extracted_facts:extracted.facts.length,planned_passes:extracted.trace.planned_passes,completed_passes:extracted.trace.completed_passes,recovery_passes:extracted.trace.recovery_passes,reconciliation_passes:extracted.trace.reconciliation_passes,open_questions:calibrated.specification.content.open_questions.length,execution_gaps:gaps.length}
+  }
   const generated = await orchestrate({ slug, deliverableLabel:summary.label, industryLabel:summary.industry_label, module, schema, style, brand, fields:FIXTURES[slug], uploads:UPLOAD_FIXTURES[slug] ?? [] })
   const template: Template = { slug, label:summary.label, description:summary.description, category:summary.industry_slug, supports_images:true, has_signature_block:['sow','proposal','contract-package','engagement-letter','nda','change-order'].includes(slug), has_toc:shouldRenderToc(slug), layout:chooseLayoutForSlug(slug), fields:[], sections:module.sections.map(section => ({ id:section.key, title:section.label })), generation_notes:'' }
   const pdf = await buildPdf({ template, brand, inputs:FIXTURES[slug], contentHtml:generated.contentHtml, documentId:`PILOT-${slug.toUpperCase()}-20260914`, preparedDate:'September 14, 2026', palette })
   await writeFile(path.join(outputDir, `${slug}.pdf`), pdf)
   await writeFile(path.join(outputDir, `${slug}.html`), generated.contentHtml)
-  report.push({ slug, model:process.env.APOLLO_MODEL_STRUCTURED_FILL || 'claude-sonnet-5', elapsed_ms:Date.now()-started, pdf_bytes:pdf.length, quality:generated.quality, warnings:generated.warnings })
+  report.push({ slug, model:process.env.APOLLO_MODEL_STRUCTURED_FILL || 'claude-sonnet-5', elapsed_ms:Date.now()-started, pdf_bytes:pdf.length, quality:generated.quality, warnings:generated.warnings, evidence_audit:evidenceAudit })
   console.log(`${slug}: PASS (${pdf.length} bytes, score ${generated.quality.score})`)
 }
 await writeFile(path.join(outputDir, 'report.json'), JSON.stringify({ generated_at:new Date().toISOString(), output_dir:outputDir, results:report }, null, 2))
