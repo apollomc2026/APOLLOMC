@@ -4,17 +4,18 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Activity, Archive, CheckCircle2, ExternalLink, FileText, Gauge, PencilLine, Plus, Rocket, RotateCcw, Search, ShieldAlert } from 'lucide-react'
 
-type Job = { id:string; state:string; progress_percent:number; message:string; created_at?:string; artifacts:Array<{title?:string;web_view_url?:string;storage_file_id?:string;version?:number}> }
+type Job = { id:string; deliverable_type?:string; state:string; progress_percent:number; message:string; created_at?:string; is_current_specification?:boolean; artifacts:Array<{title?:string;web_view_url?:string;storage_file_id?:string;version?:number}> }
 type Mission = { id:string; title:string; status:string; readiness:number; current_spec_version:number; updated_at:string; job:Job|null; jobs?:Job[] }
 type Overview = { missions:Mission[]; metrics:{ total:number; active:number; delivered:number; failed:number; average_progress:number } }
 const TERMINAL_JOB_STATES = new Set(['delivered','failed','blocked','cancelled'])
 
-function missionFlights(mission:Mission) {
-  return mission.jobs?.length ? mission.jobs : mission.job ? [mission.job] : []
+function missionFlights(mission:Mission,currentOnly=false) {
+  const flights=mission.jobs?.length ? mission.jobs : mission.job ? [mission.job] : []
+  return currentOnly?flights.filter(job=>job.is_current_specification!==false):flights
 }
 
 function latestDeliveredFlight(mission:Mission) {
-  return missionFlights(mission)
+  return missionFlights(mission,true)
     .filter(job => job.state === 'delivered')
     .sort((a,b) => new Date(b.created_at ?? mission.updated_at).getTime() - new Date(a.created_at ?? mission.updated_at).getTime())[0] ?? null
 }
@@ -45,12 +46,12 @@ export function MissionLedger({ view }:{ view:'archive'|'telemetry'|'dashboard' 
   // successful immutable delivery. Feature the newest successful flight across
   // complete mission history so the command-deck actions never disappear.
   const commandSelection = useMemo(() => {
-    const active = missions.flatMap(mission => missionFlights(mission)
+    const active = missions.flatMap(mission => missionFlights(mission,true)
       .filter(job => !TERMINAL_JOB_STATES.has(job.state))
       .map(job => ({ mission, job })))
       .sort((a,b) => new Date(b.job.created_at ?? b.mission.updated_at).getTime() - new Date(a.job.created_at ?? a.mission.updated_at).getTime())[0]
     if (active) return active
-    const delivered = missions.flatMap(mission => missionFlights(mission)
+    const delivered = missions.flatMap(mission => missionFlights(mission,true)
       .filter(job => job.state === 'delivered')
       .map(job => ({ mission, job })))
       .sort((a,b) => new Date(b.job.created_at ?? b.mission.updated_at).getTime() - new Date(a.job.created_at ?? a.mission.updated_at).getTime())[0]
@@ -101,7 +102,7 @@ export function MissionLedger({ view }:{ view:'archive'|'telemetry'|'dashboard' 
   </div>
   if (view === 'telemetry') return <div className="ops-stack">
     <section className="telemetry-grid">{[['Total missions',data.metrics.total],['Active flights',data.metrics.active],['Delivered documents',data.metrics.delivered],['Average mission progress',`${data.metrics.average_progress}%`]].map(([label,value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}</section>
-    <section className="ops-panel"><header><span>EXECUTION CHANNELS</span><b>LIVE FLIGHT LEDGER</b></header>{missions.length ? missions.map(m => { const flights=m.jobs?.length ? m.jobs : m.job ? [m.job] : []; return <article className="telemetry-mission" key={m.id}><header className="telemetry-mission-header"><div><h2>{m.title}</h2><p>Specification v{m.current_spec_version} · {m.status.replace(/_/g,' ')}</p></div><Link href={`/telemetry?mission=${m.id}`}><RotateCcw/>Flight controls</Link></header>{flights.length ? <details className="telemetry-deployments"><summary><span>Deployment history</span><b>{flights.length} {flights.length===1?'flight':'flights'}</b></summary><div>{flights.map((job,index) => { const flightNumber=flights.length-index; const flightLabel=flightNumber===1?'Launch 01':`Reflight ${String(flightNumber-1).padStart(2,'0')}`; const artifact=job.artifacts?.[0]; return <div className="telemetry-flight" key={job.id}><div><span className="telemetry-flight-label">{flightLabel}</span><small>{job.created_at ? new Date(job.created_at).toLocaleString() : 'Execution record'}</small></div><div className="telemetry-progress"><i><b style={{width:`${job.progress_percent}%`}}/></i><span>{job.state}</span></div><div className="telemetry-actions">{job.state==='delivered'&&artifact?.storage_file_id?<a href={`/api/mission-control/artifact/${encodeURIComponent(job.id)}`} target="_blank" rel="noreferrer"><FileText/>View PDF</a>:null}{job.state==='delivered'&&artifact?.web_view_url?<a className="telemetry-drive-link" href={artifact.web_view_url} target="_blank" rel="noreferrer"><ExternalLink/>Drive</a>:null}</div></div> })}</div></details> : <div className="telemetry-flight"><div><span className="telemetry-flight-label">Preflight</span><small>Awaiting launch authorization</small></div><div className="telemetry-progress"><i><b style={{width:`${m.readiness}%`}}/></i><span>{m.readiness}% ready</span></div></div>}</article> }) : <div className="ops-empty"><Gauge/><p>No mission telemetry yet.</p></div>}</section>
+    <section className="ops-panel"><header><span>EXECUTION CHANNELS</span><b>LIVE FLIGHT LEDGER</b></header>{missions.length ? missions.map(m => { const flights=m.jobs?.length ? m.jobs : m.job ? [m.job] : []; return <article className="telemetry-mission" key={m.id}><header className="telemetry-mission-header"><div><h2>{m.title}</h2><p>Specification v{m.current_spec_version} · {m.status.replace(/_/g,' ')}</p></div><Link href={`/telemetry?mission=${m.id}`}><RotateCcw/>Flight controls</Link></header>{flights.length ? <details className="telemetry-deployments"><summary><span>Deployment history</span><b>{flights.length} {flights.length===1?'flight':'flights'}</b></summary><div>{flights.map((job,index) => { const flightNumber=flights.length-index; const flightLabel=flightNumber===1?'Launch 01':`Reflight ${String(flightNumber-1).padStart(2,'0')}`; const artifact=job.artifacts?.[0]; return <div className="telemetry-flight" key={job.id}><div><span className="telemetry-flight-label">{flightLabel}</span><small>{job.is_current_specification===false?'Prior specification · ':''}{job.created_at ? new Date(job.created_at).toLocaleString() : 'Execution record'}</small></div><div className="telemetry-progress"><i><b style={{width:`${job.progress_percent}%`}}/></i><span>{job.state}</span></div><div className="telemetry-actions">{job.state==='delivered'&&artifact?.storage_file_id?<a href={`/api/mission-control/artifact/${encodeURIComponent(job.id)}`} target="_blank" rel="noreferrer"><FileText/>View PDF</a>:null}</div></div> })}</div></details> : <div className="telemetry-flight"><div><span className="telemetry-flight-label">Preflight</span><small>Awaiting launch authorization</small></div><div className="telemetry-progress"><i><b style={{width:`${m.readiness}%`}}/></i><span>{m.readiness}% ready</span></div></div>}</article> }) : <div className="ops-empty"><Gauge/><p>No mission telemetry yet.</p></div>}</section>
   </div>
   return <div className="ops-stack"><label className="vault-search"><Search/><input aria-label="Search mission archive" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search the mission archive" /></label><section className="ops-panel"><header><span>MISSION LEDGER</span><b>{missions.length} RECORDS</b></header>{missions.length ? missions.map(m => <article className="archive-row" key={m.id}><div className="archive-icon">{m.job?.state==='delivered'?<CheckCircle2/>:<FileText/>}</div><div><h2>{m.title}</h2><p>{m.status.replace(/_/g,' ')} · brief v{m.current_spec_version} · {new Date(m.updated_at).toLocaleDateString()}</p></div><span className={`vault-status ${m.job?.state==='delivered'?'verified':''}`}>{m.job?.state ?? `${m.readiness}% ready`}</span><div className="archive-actions">{m.job?.artifacts?.[0]?.web_view_url ? <a href={m.job.artifacts[0].web_view_url} target="_blank" rel="noreferrer"><ExternalLink/> Open draft</a> : null}<Link href={m.job?.state==='delivered'?`/telemetry?mission=${m.id}`:`/new-mission?mission=${m.id}`}>{m.job?.state==='delivered'?<><RotateCcw/> Flight controls</>:<><Archive/> Resume mission</>}</Link></div></article>) : <div className="ops-empty"><Archive/><h2>No archived missions</h2><p>Mission versions and controlled drafts will appear here automatically.</p></div>}</section></div>
 }
