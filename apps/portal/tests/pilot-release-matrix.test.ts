@@ -3,7 +3,7 @@ import { getModule } from '../lib/apollo/packages-loader'
 import { createMissionFact, mergeMissionFacts, specificationProvenance } from '../lib/mission-control/contracts'
 import { interpretMission } from '../lib/mission-control/interpreter'
 import { canonicalDeliverableTitle, canonicalizeSpecificationIdentity } from '../lib/mission-control/identity'
-import { compileApprovedSpecification, executionGaps } from '../lib/mission-control/work-order'
+import { compileApprovedSpecification, executionFields, executionGaps, inferredFactMayControlExecution } from '../lib/mission-control/work-order'
 import { buildRevisionOrder } from '../lib/mission-control/revision'
 import { applyClaudeInterpretation, applyExpertRecommendationMode } from '../lib/mission-control/ai-interpreter'
 
@@ -40,7 +40,9 @@ describe.each(PILOT_CLASSES)('$slug pilot mechanics', ({ slug,request }) => {
     const result=applyClaudeInterpretation(base,patch)
     expect(executionGaps(result.specification)).toEqual([])
     for(const evidence of evidenceFacts)expect(result.specification.content.facts).toContainEqual(expect.objectContaining({key:evidence.key,value:evidence.value,source:'evidence'}))
-    expect(result.specification.content.facts.filter(fact=>fact.source==='inferred').every(fact=>!['customer_name','line_items','pricing_detail','test_results','base_case_lines','contracting_parties'].includes(fact.key))).toBe(true)
+    const fields=executionFields(result.specification)
+    const unauthorized=result.specification.content.facts.filter(fact=>fact.source==='inferred'&&!inferredFactMayControlExecution(fact.key)&&fields[fact.key]===fact.value)
+    expect(unauthorized,JSON.stringify(unauthorized)).toEqual([])
   })
 
   it('resolves every noncritical default in one full-autonomy action without inventing protected facts',()=>{
@@ -57,7 +59,9 @@ describe.each(PILOT_CLASSES)('$slug pilot mechanics', ({ slug,request }) => {
     const result=applyClaudeInterpretation(base,patch)
     expect(executionGaps(result.specification)).toEqual([])
     expect(result.specification.content.facts).toContainEqual(expect.objectContaining({key:'operator_note',value:'Preserve this explicit instruction',source:'user'}))
-    expect(result.specification.content.facts.filter(fact=>fact.source==='inferred').every(fact=>!['customer_name','line_items','pricing_detail','test_results','base_case_lines','contracting_parties'].includes(fact.key))).toBe(true)
+    const fields=executionFields(result.specification)
+    const unauthorized=result.specification.content.facts.filter(fact=>fact.source==='inferred'&&!inferredFactMayControlExecution(fact.key)&&fields[fact.key]===fact.value)
+    expect(unauthorized,JSON.stringify(unauthorized)).toEqual([])
   })
 
   it('carries one specification identity through evidence, launch, duplicate submission, and regeneration', () => {

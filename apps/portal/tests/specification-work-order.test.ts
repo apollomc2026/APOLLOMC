@@ -42,6 +42,16 @@ describe('approved specification compiler', () => {
     }
   })
 
+  it('never lets high-confidence model inference become an operational identity or measured fact',()=>{
+    const specification=interpretMission('Create a Field Service Report.').specification
+    for(const field of getModule('fsr')!.required_fields){
+      if(['work_order_number','equipment_asset_id','technician_name'].includes(field.key))continue
+      specification.content.facts.push(createMissionFact({key:field.key,label:field.label,value:`Confirmed ${field.label}`,source:'evidence',source_reference:'service-record',confidence:1}))
+    }
+    specification.content.facts.push(createMissionFact({key:'technician_name',label:'Technician name',value:'Model-guessed technician',source:'inferred',confidence:.99}))
+    expect(executionGaps(specification)).toContainEqual(expect.objectContaining({key:'technician_name'}))
+  })
+
   it('uses stable job identities when an approved version is submitted again', () => {
     const specification = interpretMission('Send a proposal to Acme Facilities for $18,500 before October 15, 2026.').specification
     specification.approval.status = 'approved'

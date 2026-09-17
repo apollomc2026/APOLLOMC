@@ -16,6 +16,14 @@ const CONSEQUENTIAL_CONFLICT_KEYS = new Set([
   'forecast_period','base_case_lines','scenario_summary','acceptance_criteria','test_results',
 ])
 
+const SAFE_INFERRED_EXECUTION_KEYS = new Set([
+  'win_themes','proposed_methodology','risks_and_mitigations','assumptions',
+  'validity_period_days','valid_until','next_steps_call_to_action','payment_terms','pricing_model',
+  'problem_statement','our_understanding','review_perspective','review_goal',
+])
+
+export function inferredFactMayControlExecution(key:string){return SAFE_INFERRED_EXECUTION_KEYS.has(key)}
+
 export function uuidFromDigest(digest: string, offset = 0) {
   const hex = digest.slice(offset, offset + 32).padEnd(32, '0')
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`
@@ -31,7 +39,8 @@ function controllingConflictValue(fact:DeliverableSpecification['content']['fact
 
 function factMap(specification: DeliverableSpecification): Record<string, string> {
   return Object.fromEntries(specification.content.facts.flatMap(fact => {
-    if(!(fact.source === 'user' || fact.source === 'evidence' || fact.source === 'research' || fact.confidence >= .75))return []
+    const authoritative=fact.source==='user'||fact.source==='evidence'||fact.source==='research'||fact.source==='default'
+    if(!authoritative&&!(fact.source==='inferred'&&fact.confidence>=.75&&inferredFactMayControlExecution(fact.key)))return []
     const value=controllingConflictValue(fact)
     return value===null?[]:[[fact.key,value]]
   }))

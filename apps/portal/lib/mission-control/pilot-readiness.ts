@@ -1,6 +1,7 @@
 import type { ArtifactManifest, DocumentWorkOrder } from '@/lib/executor/contracts'
 import { missionFactSourceReferences, type DeliverableSpecification, type MissionFact } from './contracts'
 import { extractionTracesCoverSources, type EvidenceExtractionTrace } from './evidence'
+import { inferredFactMayControlExecution } from './work-order'
 
 export const PILOT_DELIVERABLES=['fsr','final-qc-report','quote','proposal','cash-flow-budget-package','contract-intelligence-review'] as const
 export type PilotDeliverable=(typeof PILOT_DELIVERABLES)[number]
@@ -15,7 +16,6 @@ export interface PilotAuditInput { conversations:ConversationRow[]; specificatio
 export interface PilotGate { key:string; label:string; passed:boolean; evidence:string }
 export interface PilotClassAudit { deliverable_type:PilotDeliverable; conversation_id:string|null; passed:boolean; gates:PilotGate[] }
 
-const UNSAFE_INFERRED_KEYS=new Set(['customer_name','client_name','prospect_organization','line_items','pricing_detail','contract_value','commercial_value','test_results','base_case_lines','scenario_summary','contracting_parties','effective_date','expiration_date','governing_law'])
 const REQUIRED_EVENT_SEQUENCE=['accepted','queued','gathering-input','generating','validating','rendering','reviewing','delivered']
 
 function asRecord(value:unknown):Record<string,unknown>{return value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>: {}}
@@ -69,9 +69,10 @@ export function auditPilotRelease(input:PilotAuditInput):{passed:boolean;passed_
     const extractedKeysBySource=new Map<string,Set<string>>()
     for(const row of evidence)for(const fact of row.extracted_facts??[]){const keys=extractedKeysBySource.get(row.id)??new Set<string>();keys.add(fact.key);extractedKeysBySource.set(row.id,keys)}
     const missingReconciledFacts=evidence.flatMap(row=>[...(extractedKeysBySource.get(row.id)??[])].filter(key=>!spec.content.facts.some(fact=>fact.key===key&&missionFactSourceReferences(fact).includes(row.id))).map(key=>`${row.id}:${key}`))
-    const unsafeInferences=spec.content.facts.filter(fact=>fact.source==='inferred'&&UNSAFE_INFERRED_KEYS.has(fact.key))
     const unresolvedConflicts=spec.content.facts.filter(fact=>fact.verification_state==='conflict'&&!fact.supersession)
     const latestOrder=latest?.work_order;const artifacts=latest?.artifacts??[]
+    const unsafeInferences=spec.content.facts.filter(fact=>fact.source==='inferred'&&!inferredFactMayControlExecution(fact.key))
+    const unsafeInferredExecution=unsafeInferences.filter(fact=>latestOrder&&latestOrder.fields[fact.key]===fact.value)
     const revision=delivered.find(job=>Boolean(job.work_order.fields.revision_of)&&job.work_order.fields.revision_of!==job.id)
     const revisionParent=revision?jobs.find(job=>job.id===revision.work_order.fields.revision_of):undefined
     const revisionAuthority=Boolean(revision&&revisionParent&&revisionPreservesAuthority(revisionParent.work_order,revision.work_order))
@@ -86,7 +87,7 @@ export function auditPilotRelease(input:PilotAuditInput):{passed:boolean;passed_
     const gates:PilotGate[]=[
       {key:'evidence',label:'Evidence inventory, custody, and multipass completion',passed:evidence.length>0&&evidence.every(row=>['verified','conflict'].includes(row.extraction_status)&&/^[a-f0-9]{64}$/.test(row.content_sha256??'')&&/^[a-f0-9]{64}$/.test(row.retrieval_sha256??'')&&extractionTraceIsComplete(row)),evidence:`${evidence.length} source(s); ${evidence.filter(row=>row.extraction_status==='failed').length} failed; ${incompleteExtractionTraces.length} incomplete multipass trace(s).`},
       {key:'provenance',label:'Complete evidence provenance',passed:evidence.length===inventoryIds.size&&evidence.every(row=>inventoryIds.has(row.id))&&malformedExtractedFacts.length===0&&missingReconciledFacts.length===0&&evidence.filter(row=>(row.extracted_facts??[]).length>0).every(row=>specificationEvidenceReferences.has(row.id)),evidence:`${inventoryIds.size}/${evidence.length} inventoried; ${malformedExtractedFacts.length} malformed extracted fact(s); ${missingReconciledFacts.length} fact(s) lost during reconciliation.`},
-      {key:'calibration',label:'Minimal-friction calibrated specification',passed:spec.content.open_questions.length===0&&unresolvedConflicts.length===0&&unsafeInferences.length===0,evidence:`${spec.content.open_questions.length} open; ${unresolvedConflicts.length} unresolved conflicts; ${unsafeInferences.length} unsafe inferences.`},
+      {key:'calibration',label:'Minimal-friction calibrated specification',passed:spec.content.open_questions.length===0&&unresolvedConflicts.length===0&&unsafeInferredExecution.length===0,evidence:`${spec.content.open_questions.length} open; ${unresolvedConflicts.length} unresolved conflicts; ${unsafeInferredExecution.length} unauthorized inference(s) entered execution; ${unsafeInferences.length} labeled assumption(s) retained.`},
       {key:'autonomy',label:'Full-autonomy resolution proven',passed:Number(spec.aura.operator_involvement)<=33&&spec.content.open_questions.length===0&&(spec.approval.unresolved_items_accepted??[]).length===0,evidence:`Operator involvement=${String(spec.aura.operator_involvement??'missing')}%; ${spec.content.open_questions.length} open; ${(spec.approval.unresolved_items_accepted??[]).length} unresolved item(s) accepted.`},
       {key:'authority',label:'Approved specification is authoritative',passed:Boolean(latestOrder)&&specRow.status==='approved'&&spec.approval.status==='approved'&&latestOrder?.deliverable_type===deliverableType&&latestOrder.trace?.specification_id===specRow.id&&latestOrder.trace?.specification_hash===specRow.content_hash,evidence:`Spec v${specRow.version}; job=${latest?.id??'none'}.`},
       {key:'idempotency',label:'One canonical execution per launch',passed:jobs.length>0&&canonicalLaunches,evidence:`${jobs.length} attempt(s); ${new Set(launchKeys).size} launch key(s); ${new Set(workOrderIds).size} work-order ID(s); job identity=${jobs.every(job=>job.id===job.work_order.work_order_id)?'canonical':'mismatched'}.`},
