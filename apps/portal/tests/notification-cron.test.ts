@@ -1,25 +1,29 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-const mocks=vi.hoisted(()=>({ reconcile:vi.fn() }))
+const mocks=vi.hoisted(()=>({ reconcile:vi.fn(),launches:vi.fn() }))
 vi.mock('../lib/executor/notification-reconciler',()=>({ reconcileTerminalNotifications:mocks.reconcile }))
+vi.mock('../lib/executor/launch-reconciler',()=>({ reconcileStaleLaunches:mocks.launches }))
 import { GET } from '../app/api/cron/notifications/route'
 
 describe('notification reconciliation endpoint', () => {
-  afterEach(()=>{ delete process.env.CRON_SECRET; mocks.reconcile.mockReset() })
+  afterEach(()=>{ delete process.env.CRON_SECRET; mocks.reconcile.mockReset();mocks.launches.mockReset() })
 
   it('rejects requests without the private scheduler credential', async () => {
     process.env.CRON_SECRET='private-cron-secret'
     const response=await GET(new Request('https://apollo.example/api/cron/notifications'))
     expect(response.status).toBe(401)
     expect(mocks.reconcile).not.toHaveBeenCalled()
+    expect(mocks.launches).not.toHaveBeenCalled()
   })
 
   it('runs a bounded reconciliation for the authenticated scheduler', async () => {
     process.env.CRON_SECRET='private-cron-secret'
+    mocks.launches.mockResolvedValue({cutoff:'2026-09-16T11:45:00.000Z',checked:1,failed:1,job_ids:['stale-job']})
     mocks.reconcile.mockResolvedValue({ since:'2026-09-14T00:00:00.000Z',checked:1,sent:1,results:[] })
     const response=await GET(new Request('https://apollo.example/api/cron/notifications',{ headers:{ authorization:'Bearer private-cron-secret' } }))
     expect(response.status).toBe(200)
-    await expect(response.json()).resolves.toMatchObject({ checked:1,sent:1 })
+    await expect(response.json()).resolves.toMatchObject({ launches:{checked:1,failed:1},notifications:{checked:1,sent:1} })
+    expect(mocks.launches).toHaveBeenCalledOnce()
     expect(mocks.reconcile).toHaveBeenCalledOnce()
   })
 })

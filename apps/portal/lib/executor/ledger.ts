@@ -47,6 +47,22 @@ export async function setWorkflowRun(jobId: string, runId: string) {
   await updateJob(jobId, 'queued', 1, 'Queued', { workflow_run_id: runId })
 }
 
+export async function failStaleAcceptedJob(jobId:string,cutoff:string):Promise<boolean>{
+  const db=await createServiceClient()
+  const extra={
+    error_code:'WORKFLOW_START_STALE',
+    error_message:'The accepted mission did not acquire a workflow run within the launch safety window.',
+  }
+  const result=await db.from('apollo_document_jobs').update({
+    state:'failed',progress_percent:0,status_message:'Mission launch failed before workflow initialization',
+    completed_at:new Date().toISOString(),updated_at:new Date().toISOString(),...extra,
+  }).eq('id',jobId).eq('state','accepted').is('workflow_run_id',null).lt('created_at',cutoff).select('id').maybeSingle()
+  if(result.error)throw new Error(result.error.message)
+  if(!result.data)return false
+  await appendEvent(jobId,'failed',0,'Mission launch failed before workflow initialization',extra)
+  return true
+}
+
 export async function requestCancellation(jobId: string) {
   const db = await createServiceClient()
   const result = await db.from('apollo_document_jobs').update({ cancel_requested_at: new Date().toISOString(), status_message: 'Cancellation requested', updated_at: new Date().toISOString() }).eq('id', jobId).select('*').single()
