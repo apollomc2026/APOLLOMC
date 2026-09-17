@@ -9,7 +9,7 @@ function fixture(slug:(typeof PILOT_DELIVERABLES)[number]){
   const evidenceFact={key:'reference_documents',label:'Reference documents / standards',value:`${slug} source.pdf`,normalized_value:`${slug} source.pdf`,source:'evidence' as const,source_reference:evidenceId,capture_method:'file_extraction' as const,confidence:1,verification_state:'verified' as const,sensitivity:'confidential' as const,last_editor:'apollo',updated_at:'2026-09-16T12:00:00Z'}
   spec.sources=[{id:evidenceId,name:`${slug} source.pdf`,status:'verified'}];spec.content.facts.push(evidenceFact)
   const artifact=(id:string,version:number)=>({artifact_id:`artifact-${id}`,project_id:specId,conversation_id:conversationId,task_id:id,title:slug,filename:`On-Spot_${slug}_Pilot_V${version}.pdf`,document_id:`DOC-${id.slice(0,6)}`,deliverable_type:slug,brand_id:'kit:on-spot',style_id:'industrial',specification_id:specId,specification_hash:'a'.repeat(64),artifact_type:'document' as const,lifecycle:'draft' as const,storage_provider:'google-drive' as const,storage_file_id:`file-${id}`,storage_parent_id:'folder',version,content_sha256:'b'.repeat(64),mime_type:'application/pdf',source_engine_id:'apollo-documents',source_run_id:id,integrity:{bytes:250000,pages:8,text_characters:12000,verified_at:'2026-09-16T12:10:00Z'},created_at:'2026-09-16T12:10:00Z'})
-  const order=(id:string,revisionOf?:string)=>({protocol_version:'1.0' as const,work_order_id:id,idempotency_key:`spec-${'a'.repeat(64)}`,project_id:specId,conversation_id:conversationId,task_id:id,requested_by:'user',capability:'professional-document-generation',deliverable_type:slug,objective:'Pilot',audience:'Operator',formats:['pdf' as const],fields:revisionOf?{revision_of:revisionOf,artifact_version:2}:{},sources:[],brand_id:'kit:on-spot',style_id:'industrial',sensitivity:'internal' as const,priority:'medium' as const,drive_destination:{folder_id:'folder',lifecycle:'draft' as const},quality_gates:{schema_validation:true as const,source_grounding:true as const,independent_review:false,deterministic_financial_verification:false,human_approval_before_publish:true as const},trace:{specification_id:specId,specification_hash:'a'.repeat(64),specification_schema_version:'1.0',playbook_id:'pilot',playbook_version:'1',model_versions:[],required_checks:[],accepted_unresolved_items:[]},created_at:'2026-09-16T12:00:00Z'})
+  const order=(id:string,revisionOf?:string)=>({protocol_version:'1.0' as const,work_order_id:id,idempotency_key:`launch-${id}-${'a'.repeat(16)}`,project_id:specId,conversation_id:conversationId,task_id:id,requested_by:'user',capability:'professional-document-generation',deliverable_type:slug,objective:'Pilot',audience:'Operator',formats:['pdf' as const],fields:revisionOf?{revision_of:revisionOf,artifact_version:2}:{},sources:[],brand_id:'kit:on-spot',style_id:'industrial',sensitivity:'internal' as const,priority:'medium' as const,drive_destination:{folder_id:'folder',lifecycle:'draft' as const},quality_gates:{schema_validation:true as const,source_grounding:true as const,independent_review:false,deterministic_financial_verification:false,human_approval_before_publish:true as const},trace:{specification_id:specId,specification_hash:'a'.repeat(64),specification_schema_version:'1.0',playbook_id:'pilot',playbook_version:'1',model_versions:[],required_checks:[],accepted_unresolved_items:[]},created_at:'2026-09-16T12:00:00Z'})
   const jobs=[{id:failedId,conversation_id:conversationId,deliverable_type:slug,state:'failed',progress_percent:25,work_order:order(failedId),artifacts:[],error_code:'TEST_FAILURE',completion_email_status:'pending',failure_email_status:'sent',created_at:'2026-09-16T12:00:00Z',completed_at:'2026-09-16T12:01:00Z'},{id:firstId,conversation_id:conversationId,deliverable_type:slug,state:'delivered',progress_percent:100,work_order:order(firstId),artifacts:[artifact(firstId,1)],error_code:null,completion_email_status:'sent',failure_email_status:'pending',created_at:'2026-09-16T12:02:00Z',completed_at:'2026-09-16T12:08:00Z'},{id:secondId,conversation_id:conversationId,deliverable_type:slug,state:'delivered',progress_percent:100,work_order:order(secondId,firstId),artifacts:[artifact(secondId,2)],error_code:null,completion_email_status:'sent',failure_email_status:'pending',created_at:'2026-09-16T12:09:00Z',completed_at:'2026-09-16T12:15:00Z'}]
   const specialistKey=slug==='fsr'||slug==='final-qc-report'?'field_record_verification':slug==='quote'||slug==='proposal'?'commercial_verification':slug==='cash-flow-budget-package'?'financial_verification':'agreement_verification'
   const events=['accepted','queued','gathering-input','generating','validating','rendering','reviewing','delivered'].map((state,sequence)=>({job_id:secondId,sequence,state,payload:state==='validating'?{workmanship:{passed:true,score:94},[specialistKey]:{required:true}}:{}}))
@@ -21,7 +21,7 @@ describe('pilot release auditor',()=>{
     const fixtures=PILOT_DELIVERABLES.map(fixture)
     const report=auditPilotRelease({conversations:fixtures.map(item=>item.conversation),specifications:fixtures.map(item=>item.specification),evidence:fixtures.map(item=>item.evidence),jobs:fixtures.flatMap(item=>item.jobs),events:fixtures.flatMap(item=>item.events)})
     expect(report).toMatchObject({passed:true,passed_classes:6,total_classes:6})
-    expect(report.classes.every(item=>item.gates.length===11&&item.gates.every(gate=>gate.passed))).toBe(true)
+    expect(report.classes.every(item=>item.gates.length===12&&item.gates.every(gate=>gate.passed))).toBe(true)
   })
 
   it('does not call a delivered PDF pilot-ready without verification, recovery, and regeneration proof',()=>{
@@ -117,5 +117,16 @@ describe('pilot release auditor',()=>{
     const artifact=report.classes.find(entry=>entry.deliverable_type==='proposal')!.gates.find(gate=>gate.key==='artifact')!
     expect(artifact).toMatchObject({passed:false})
     expect(artifact.evidence).toContain('output authority=mismatched')
+  })
+
+  it('rejects duplicate launch keys or noncanonical job identities',()=>{
+    const item=fixture('quote')
+    item.jobs[1].work_order.idempotency_key=item.jobs[0].work_order.idempotency_key
+    item.jobs[2].work_order.work_order_id=item.jobs[1].id
+    const report=auditPilotRelease({conversations:[item.conversation],specifications:[item.specification],evidence:[item.evidence],jobs:item.jobs,events:item.events})
+    const gate=report.classes.find(entry=>entry.deliverable_type==='quote')!.gates.find(entry=>entry.key==='idempotency')!
+    expect(gate).toMatchObject({passed:false})
+    expect(gate.evidence).toContain('2 launch key(s)')
+    expect(gate.evidence).toContain('job identity=mismatched')
   })
 })
