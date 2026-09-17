@@ -7,6 +7,32 @@ import { buildContentBlocks, inlineEvidenceByteLimit, OrchestrateError } from '.
 import { mergeEvidenceIntoSpecification } from '../lib/mission-control/evidence-specification'
 
 describe('mission evidence custody', () => {
+  it('normalizes human evidence wording into an allowed select value',()=>{
+    const fields=[{key:'follow_up_required',label:'Follow-up required',type:'select',options:[{value:'none',label:'None'},{value:'parts-order',label:'Parts order — return visit pending parts'},{value:'return-visit',label:'Return visit required'}]}]
+    const facts=evidenceFactsFromToolInput({follow_up_required:[{value:'None. No return visit, parts order, or additional corrective action is required.',source_id:'record'}]},fields,['record'])
+    expect(facts).toEqual([expect.objectContaining({key:'follow_up_required',value:'none',source_reference:'record'})])
+    expect(extractLabeledEvidenceFacts([{id:'record',name:'service.txt',text:'Follow-up required:\nNone. No return visit, parts order, or additional corrective action is required.'}],fields)).toEqual([expect.objectContaining({key:'follow_up_required',value:'none',source_reference:'record'})])
+    expect(extractLabeledEvidenceFacts([{id:'quote',name:'quote.txt',text:'Payment terms:\nNet 30'}],[{key:'payment_terms',label:'Payment terms',type:'select',options:['Net 15','Net 30','Net 45']}])).toEqual([expect.objectContaining({key:'payment_terms',value:'Net 30'})])
+  })
+
+  it('combines multiple acceptance rows from one evidence source instead of manufacturing a conflict',()=>{
+    const rows=['Circuit identification | Labels match schedule | Pass','Fastener torque | 35 in-lb | Pass'].map(value=>createMissionFact({key:'acceptance_criteria',label:'Acceptance criteria',value,source:'evidence',source_reference:'qc-report',confidence:1}))
+    expect(mergeMissionFacts([],rows)).toEqual([expect.objectContaining({key:'acceptance_criteria',value:rows.map(row=>row.value).join('\n\n'),verification_state:'verified',source_references:['qc-report'],conflicts:undefined})])
+  })
+
+  it('combines evidence-backed financial assumptions as a row collection',()=>{
+    const rows=['Opening cash is $250,000','Payroll occurs biweekly'].map(value=>createMissionFact({key:'key_assumptions',label:'Key assumptions',value,source:'evidence',source_reference:'workbook',confidence:1}))
+    expect(mergeMissionFacts([],rows)).toEqual([expect.objectContaining({key:'key_assumptions',value:rows.map(row=>row.value).join('\n\n'),verification_state:'verified'})])
+  })
+
+  it('promotes a more complete scalar extracted from the same source while preserving real conflicts',()=>{
+    const short=createMissionFact({key:'customer_address',label:'Customer address',value:'100 Industrial Way',source:'evidence',source_reference:'estimate',confidence:1})
+    const complete=createMissionFact({key:'customer_address',label:'Customer address',value:'100 Industrial Way\nWorcester, MA 01608',source:'evidence',source_reference:'estimate',confidence:1})
+    const different=createMissionFact({key:'customer_address',label:'Customer address',value:'200 Industrial Way',source:'evidence',source_reference:'estimate',confidence:1})
+    expect(mergeMissionFacts([],[short,complete])).toEqual([expect.objectContaining({value:complete.value,verification_state:'verified'})])
+    expect(mergeMissionFacts([],[short,different])).toEqual([expect.objectContaining({verification_state:'conflict'})])
+  })
+
   it('routes every supported evidence form into an immediate extraction mode',()=>{
     expect(evidenceExtractionMode({mime:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',text:'Extracted document text'})).toBe('text')
     expect(evidenceExtractionMode({mime:'application/pdf'})).toBe('pdf')
@@ -241,6 +267,12 @@ describe('mission evidence custody', () => {
     ]
     const source='A text message was sent to Sam Barrette requesting access. Recommend replacement of damaged arms on a future visit.'
     expect(filterSemanticallyUnsupportedEvidenceFacts(facts,[{id:'report',text:source}],'fsr')).toEqual([])
+  })
+
+  it('accepts structured quote rows with numeric prices but rejects unpriced scope prose',()=>{
+    const priced=createMissionFact({key:'line_items',label:'Line items',value:'Field condition assessment | 1 | 8500.00',source:'evidence',source_reference:'estimate',confidence:1})
+    const unpriced=createMissionFact({key:'line_items',label:'Line items',value:'Field condition assessment and closeout support',source:'evidence',source_reference:'scope',confidence:1})
+    expect(filterSemanticallyUnsupportedEvidenceFacts([priced,unpriced],[{id:'estimate',text:priced.value},{id:'scope',text:unpriced.value}],'quote')).toEqual([priced])
   })
 
   it('retains explicit conflicts when recalibration combines extraction modes',()=>{

@@ -566,6 +566,25 @@ export function normalizeSectionCollection(args:OrchestrateArgs, output:Record<s
   return { ...normalized, sections }
 }
 
+export function recoverSectionCollection(args:OrchestrateArgs,outputs:Record<string,unknown>[]):Record<string,unknown> {
+  const normalized=outputs.map(output=>normalizeSectionCollection(args,output))
+  const latest=normalized.at(-1)??{}
+  const candidates=new Map<string,Record<string,unknown>>()
+  for(const output of normalized){
+    if(!Array.isArray(output.sections))continue
+    for(const raw of output.sections){
+      if(!raw||typeof raw!=='object')continue
+      const section=raw as Record<string,unknown>
+      if(typeof section.key==='string'&&typeof section.content==='string'&&section.content.trim())candidates.set(section.key,section)
+    }
+  }
+  const sections=activeSections(args).flatMap(section=>{
+    const candidate=candidates.get(section.key)
+    return candidate?[{...candidate,key:section.key,label:typeof candidate.label==='string'?candidate.label:section.label}]:[]
+  })
+  return {...latest,sections}
+}
+
 async function callClaudeWithTool(
   client: Anthropic,
   args: OrchestrateArgs,
@@ -776,6 +795,7 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
     }
     contractViolations = sectionContractViolations(args, output)
     if (!validator(output) || contractViolations.length) {
+      const repairPassOutput=output
       const recoverySummary = [describeAjvErrors(validator.errors), ...contractViolations.map(item => `- ${item}`)].filter(item => item !== 'unknown validation error').join('\n')
       warnings.push('Corrective follow-up remained schema-invalid; running one bounded structural recovery pass.')
       const recoveryBlocks: AnthropicContentBlock[] = [
@@ -802,7 +822,12 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
         throw new OrchestrateError('Schema recovery pass failed: '+(err instanceof Error?err.message:String(err)),'claude_invocation',err)
       }
       contractViolations=sectionContractViolations(args,output)
-      if(!validator(output)||contractViolations.length) throw new OrchestrateError('AI output remained schema-invalid after bounded recovery','schema_invalid',{schema:validator.errors,sections:contractViolations})
+      if(!validator(output)||contractViolations.length){
+        output=recoverSectionCollection(args,[firstPassOutput,repairPassOutput,output])
+        contractViolations=sectionContractViolations(args,output)
+        if(!validator(output)||contractViolations.length) throw new OrchestrateError('AI output remained schema-invalid after bounded recovery','schema_invalid',{schema:validator.errors,sections:contractViolations,attempt_section_keys:[firstPassOutput,repairPassOutput,output].map(candidate=>Array.isArray(candidate.sections)?candidate.sections.flatMap(section=>section&&typeof section==='object'&&'key' in section&&typeof section.key==='string'?[section.key]:[]):[])})
+        warnings.push('Bounded structural recovery assembled complete keyed sections from validated model attempts.')
+      }
     }
   }
 

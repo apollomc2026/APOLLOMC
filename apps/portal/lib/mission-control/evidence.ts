@@ -24,7 +24,8 @@ import { modelFor } from '@/lib/ai/models'
 import { getModule } from '@/lib/apollo/packages-loader'
 import { createMissionFact, type FactSupersession, type MissionFact } from './contracts'
 
-type EvidenceField = { key:string; label:string; type?:string; help?:string; evidence_aliases?:string[]; options?:Array<{ value:string; label:string }> }
+type EvidenceOption={value:string;label:string}
+type EvidenceField = { key:string; label:string; type?:string; help?:string; evidence_aliases?:string[]; options?:Array<string|EvidenceOption> }
 export interface EvidenceSupersessionDecision { key:string; controlling_source_reference:string; superseded_source_references:string[]; reason:string }
 
 export function evidenceMagicMatches(bytes: Buffer, mime: string): boolean {
@@ -172,13 +173,15 @@ export function evidenceFactsFromToolInput(
   fields: EvidenceField[],
   sourceIds: string[],
 ): MissionFact[] {
-  const labels = new Map(fields.map(field => [field.key, field.label]))
+  const byKey = new Map(fields.map(field => [field.key, field]))
   return Object.entries(input).flatMap(([key, raw]) => {
-    if (!labels.has(key)) return []
+    const field=byKey.get(key)
+    if (!field) return []
     const candidates = Array.isArray(raw) ? raw : [raw]
     return candidates.flatMap(candidate => {
       if (!candidate || typeof candidate !== 'object') return []
-      const value = 'value' in candidate && typeof candidate.value === 'string' ? candidate.value.trim() : ''
+      const rawValue = 'value' in candidate && typeof candidate.value === 'string' ? candidate.value.trim() : ''
+      const value = normalizeEvidenceOptionValue(field,rawValue)
       const sourceReference = 'source_id' in candidate && typeof candidate.source_id === 'string' && sourceIds.includes(candidate.source_id) ? candidate.source_id : null
       const rawSupersededSourceReferences:unknown[] = 'supersedes_source_ids' in candidate && Array.isArray(candidate.supersedes_source_ids) ? candidate.supersedes_source_ids : []
       const supersededSourceReferences:string[] = [...new Set(rawSupersededSourceReferences.filter((sourceId):sourceId is string => typeof sourceId === 'string' && sourceIds.includes(sourceId) && sourceId !== sourceReference))]
@@ -186,9 +189,27 @@ export function evidenceFactsFromToolInput(
       const supersession:FactSupersession|undefined = sourceReference && supersededSourceReferences.length && supersessionReason
         ? { controlling_source_reference:sourceReference, superseded_source_references:supersededSourceReferences, reason:supersessionReason.slice(0,1000) }
         : undefined
-      return value && sourceReference ? [createMissionFact({ key, label: labels.get(key)!, value:value.slice(0, 2000), source:'evidence', source_reference:sourceReference, confidence:1, sensitivity:'confidential', supersession })] : []
+      return value && sourceReference ? [createMissionFact({ key, label: field.label, value:value.slice(0, 2000), source:'evidence', source_reference:sourceReference, confidence:1, sensitivity:'confidential', supersession })] : []
     })
   })
+}
+
+function normalizeEvidenceOptionValue(field:EvidenceField,value:string):string {
+  if(!value||!field.options?.length)return value
+  const options:EvidenceOption[]=field.options.flatMap((option):EvidenceOption[]=>typeof option==='string'&&option.trim()?[{value:option.trim(),label:option.trim()}]:typeof option==='object'&&typeof option.value==='string'&&typeof option.label==='string'?[option]:[])
+  if(!options.length)return value
+  const normalized=(input:string)=>input.toLocaleLowerCase().replace(/[^a-z0-9]+/g,' ').trim()
+  const source=normalized(value)
+  const exact=options.find(option=>source===normalized(option.value)||source===normalized(option.label))
+  if(exact)return exact.value
+  const noneOption=options.find(option=>option.value==='none')
+  if(noneOption&&/^(?:none\b|no follow up\b|follow up (?:is )?not required\b|no (?:return visit|parts? (?:order|ordered)|additional (?:action|corrective action))\b)/.test(source))return noneOption.value
+  const matches=options.filter(option=>{
+    const machine=normalized(option.value);const label=normalized(option.label)
+    return (machine.length>=4&&new RegExp(`(?:^| )${machine.replace(/ /g,' ')}(?: |$)`).test(source))
+      ||(label.length>=4&&source.includes(label))
+  })
+  return matches.length===1?matches[0].value:value
 }
 
 export function deduplicateEvidenceFacts(facts:MissionFact[]):MissionFact[] {
@@ -326,7 +347,8 @@ export function extractLabeledEvidenceFacts(
         const alias=aliases.find(candidate=>normalized===candidate || normalized.startsWith(`${candidate}:`))
         if(!alias)continue
         const inline=line.slice(alias.length).replace(/^\s*:\s*/,'').trim()
-        const value=inline || lines[index+1]?.trim() || ''
+        const rawValue=inline || lines[index+1]?.trim() || ''
+        const value=normalizeEvidenceOptionValue(field,rawValue)
         if(value && !aliases.includes(value.toLocaleLowerCase())) return [createMissionFact({key:field.key,label:field.label,value:value.slice(0,2000),source:'evidence',source_reference:source.id,confidence:1,sensitivity:'confidential'})]
       }
       return []
@@ -364,6 +386,7 @@ export function filterSemanticallyUnsupportedEvidenceFacts(
     const value=fact.value.trim()
     if(/^(?:<unknown>|unknown|not provided|not specified|n\/a|none)$/i.test(value))return false
     if(fact.key==='line_items')return /(?:\$\s?\d|\b(?:usd|dollars?)\b|\d[\d,]*(?:\.\d{2})?\s*(?:each|\/\s*(?:day|hour|unit|deployment)))/i.test(value)
+      ||value.split(/\r?\n/).some(line=>/[^|]+\|\s*\d+(?:\.\d+)?\s*\|(?:\s*[^|]+\|)?\s*\$?\s*\d[\d,]*(?:\.\d{1,2})?\s*$/.test(line))
     return true
   })
   if(moduleSlug!=='fsr')return facts
@@ -450,7 +473,7 @@ export async function extractEvidenceFactsFromSources(
 }
 
 function fieldDescriptor(field:EvidenceField):string {
-  const options=field.options?.length?` Options: ${field.options.map(option=>`${option.value} (${option.label})`).join(', ')}.`:''
+  const options=field.options?.length?` Options: ${field.options.map(option=>typeof option==='string'?option:`${option.value} (${option.label})`).join(', ')}.`:''
   const aliases=field.evidence_aliases?.length?` Evidence may label this as: ${field.evidence_aliases.join(', ')}.`:''
   return `- ${field.key}: ${field.label}${field.type?` [${field.type}]`:''}.${field.help?` ${field.help}`:''}${aliases}${options}`
 }

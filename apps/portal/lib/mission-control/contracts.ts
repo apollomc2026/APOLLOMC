@@ -46,6 +46,7 @@ const COMPOSITIONAL_EVIDENCE_KEYS = new Set([
   'scope_summary', 'work_performed', 'findings', 'observations', 'recommendations',
   'exclusions', 'assumptions', 'risks_and_mitigations', 'methodology',
   'proposed_methodology', 'test_results', 'reference_documents', 'obligations',
+  'acceptance_criteria', 'line_items', 'key_assumptions', 'base_case_lines', 'scenario_summary',
 ])
 
 function factSourceReferences(fact: MissionFact) {
@@ -88,6 +89,13 @@ export function mergeMissionFacts(priorFacts: MissionFact[], incomingFacts: Miss
       continue
     }
     if ((incoming.source === 'inferred' || incoming.source === 'default') && (prior.source === 'evidence' || prior.source === 'research' || prior.source === 'user')) continue
+    if (prior.source === 'evidence' && incoming.source === 'evidence' && prior.source_reference === incoming.source_reference && !COMPOSITIONAL_EVIDENCE_KEYS.has(incoming.key)) {
+      const priorValue=comparableFactValue(prior);const incomingValue=comparableFactValue(incoming)
+      if(priorValue.includes(incomingValue)||incomingValue.includes(priorValue)){
+        merged.set(incoming.key, incomingValue.length>priorValue.length?incoming:prior)
+        continue
+      }
+    }
     if (prior.source === 'evidence' && incoming.source === 'evidence' && COMPOSITIONAL_EVIDENCE_KEYS.has(incoming.key)) {
       const values=[prior.value,incoming.value].filter((value,index,items)=>items.findIndex(candidate=>candidate.normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase()===value.normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase())===index)
       merged.set(incoming.key, {
