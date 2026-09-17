@@ -12,6 +12,7 @@ export interface MissionFact {
   normalized_value: string | null
   source: FactSource
   source_reference: string | null
+  source_references?: string[]
   capture_method: FactCaptureMethod
   confidence: number
   verification_state: FactVerificationState
@@ -19,6 +20,16 @@ export interface MissionFact {
   last_editor: string
   updated_at: string
   conflicts?: Array<{ value: string; normalized_value: string | null; source: FactSource; source_reference: string | null }>
+}
+
+const COMPOSITIONAL_EVIDENCE_KEYS = new Set([
+  'scope_summary', 'work_performed', 'findings', 'observations', 'recommendations',
+  'exclusions', 'assumptions', 'risks_and_mitigations', 'methodology',
+  'proposed_methodology', 'test_results', 'reference_documents', 'obligations',
+])
+
+function factSourceReferences(fact: MissionFact) {
+  return [...new Set([...(fact.source_references ?? []), fact.source_reference].filter((value): value is string => Boolean(value)))]
 }
 
 function comparableFactValue(fact: MissionFact): string {
@@ -38,7 +49,9 @@ export function mergeMissionFacts(priorFacts: MissionFact[], incomingFacts: Miss
       continue
     }
     if (!prior || comparableFactValue(prior) === comparableFactValue(incoming)) {
-      merged.set(incoming.key, incoming)
+      merged.set(incoming.key, prior && incoming.source === 'evidence'
+        ? { ...incoming, source_references:[...new Set([...factSourceReferences(prior),...factSourceReferences(incoming)])] }
+        : incoming)
       continue
     }
     if (incoming.source === 'evidence' && (prior.source === 'inferred' || prior.source === 'default')) {
@@ -46,6 +59,20 @@ export function mergeMissionFacts(priorFacts: MissionFact[], incomingFacts: Miss
       continue
     }
     if ((incoming.source === 'inferred' || incoming.source === 'default') && (prior.source === 'evidence' || prior.source === 'user')) continue
+    if (prior.source === 'evidence' && incoming.source === 'evidence' && COMPOSITIONAL_EVIDENCE_KEYS.has(incoming.key)) {
+      const values=[prior.value,incoming.value].filter((value,index,items)=>items.findIndex(candidate=>candidate.normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase()===value.normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase())===index)
+      merged.set(incoming.key, {
+        ...prior,
+        value:values.join('\n\n'),
+        normalized_value:values.join('\n\n'),
+        verification_state:'verified',
+        confidence:Math.min(prior.confidence,incoming.confidence),
+        source_references:[...new Set([...factSourceReferences(prior),...factSourceReferences(incoming)])],
+        updated_at:now.toISOString(),
+        conflicts:undefined,
+      })
+      continue
+    }
     const candidates = [
       ...(prior.conflicts ?? [{ value: prior.value, normalized_value: prior.normalized_value, source: prior.source, source_reference: prior.source_reference }]),
       { value: incoming.value, normalized_value: incoming.normalized_value, source: incoming.source, source_reference: incoming.source_reference },
@@ -63,7 +90,7 @@ export function mergeMissionFacts(priorFacts: MissionFact[], incomingFacts: Miss
 }
 
 export interface SpecificationProvenance {
-  fact_origins: Array<{ key: string; source: FactSource; source_reference: string | null }>
+  fact_origins: Array<{ key: string; source: FactSource; source_reference: string | null; source_references?: string[] }>
   inferences: Array<{ key: string; value: string; confidence: number }>
   defaults: Array<{ key: string; value: string }>
   model_versions: string[]
@@ -89,7 +116,7 @@ export function createMissionFact(
 
 export function specificationProvenance(facts: MissionFact[], createdAt: string, modelVersions: string[] = ['apollo-deterministic-interpreter@1.0']): SpecificationProvenance {
   return {
-    fact_origins: facts.map(fact => ({ key: fact.key, source: fact.source, source_reference: fact.source_reference })),
+    fact_origins: facts.map(fact => ({ key: fact.key, source: fact.source, source_reference: fact.source_reference, ...(fact.source_references?.length ? { source_references:fact.source_references } : {}) })),
     inferences: facts.filter(fact => fact.source === 'inferred').map(fact => ({ key: fact.key, value: fact.value, confidence: fact.confidence })),
     defaults: facts.filter(fact => fact.source === 'default').map(fact => ({ key: fact.key, value: fact.value })),
     model_versions: [...new Set(modelVersions)],

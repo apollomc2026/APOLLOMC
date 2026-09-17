@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import * as XLSX from 'xlsx'
 import sharp from 'sharp'
 import { batchEvidenceSources, chunkEvidenceSources, deduplicateEvidenceFacts, deriveEvidenceFacts, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractLabeledEvidenceFacts, filterSemanticallyUnsupportedEvidenceFacts, normalizeEvidenceMime, prepareEvidenceRetrieval, sanitizeEvidenceBytes } from '../lib/mission-control/evidence'
-import { createMissionFact, mergeMissionFacts, type DeliverableSpecification } from '../lib/mission-control/contracts'
+import { createMissionFact, mergeMissionFacts, specificationProvenance, type DeliverableSpecification } from '../lib/mission-control/contracts'
 import { buildContentBlocks, inlineEvidenceByteLimit, OrchestrateError } from '../lib/apollo/orchestrate'
 import { mergeEvidenceIntoSpecification } from '../lib/mission-control/evidence-specification'
 
@@ -100,6 +100,16 @@ describe('mission evidence custody', () => {
       expect.objectContaining({ value:'$18,500', source_reference:'proposal' }),
       expect.objectContaining({ value:'$19,250', source_reference:'work-order' }),
     ]))
+  })
+
+  it('combines complementary narrative evidence with complete source provenance', () => {
+    const merged=mergeMissionFacts([], [
+      createMissionFact({key:'scope_summary',label:'Scope summary',value:'Reconstruct three equipment foundations.',source:'evidence',source_reference:'scope',confidence:1}),
+      createMissionFact({key:'scope_summary',label:'Scope summary',value:'Clean and reseal four vehicle-detection loops.',source:'evidence',source_reference:'estimate',confidence:1}),
+    ],new Date('2026-09-16T12:00:00.000Z'))
+    expect(merged).toEqual([expect.objectContaining({verification_state:'verified',source_references:['scope','estimate'],value:expect.stringContaining('four vehicle-detection loops')})])
+    expect(merged[0].conflicts).toBeUndefined()
+    expect(specificationProvenance(merged,'2026-09-16T12:00:00.000Z').fact_origins[0]).toEqual(expect.objectContaining({source_references:['scope','estimate']}))
   })
 
   it('lets an explicit operator answer adjudicate a surfaced evidence conflict', () => {

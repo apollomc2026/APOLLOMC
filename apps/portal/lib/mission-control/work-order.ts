@@ -14,9 +14,8 @@ export function uuidFromDigest(digest: string, offset = 0) {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`
 }
 
-function controllingConflictValue(fact:DeliverableSpecification['content']['facts'][number],deliverableType:string):string|null {
+function controllingConflictValue(fact:DeliverableSpecification['content']['facts'][number]):string|null {
   if(fact.verification_state!=='conflict')return fact.value
-  if(deliverableType==='quote'&&fact.key==='scope_summary')return fact.value
   const active=(fact.conflicts??[]).filter(candidate=>! /\b(?:superseded|obsolete|replaced by|no longer current)\b/i.test(candidate.value))
   const unique=[...new Map(active.map(candidate=>[(candidate.normalized_value??candidate.value).normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase(),candidate.value])).values()]
   return unique.length===1?unique[0]:null
@@ -25,7 +24,7 @@ function controllingConflictValue(fact:DeliverableSpecification['content']['fact
 function factMap(specification: DeliverableSpecification): Record<string, string> {
   return Object.fromEntries(specification.content.facts.flatMap(fact => {
     if(!(fact.source === 'user' || fact.source === 'evidence' || fact.confidence >= .75))return []
-    const value=controllingConflictValue(fact,specification.artifact.recommended_type)
+    const value=controllingConflictValue(fact)
     return value===null?[]:[[fact.key,value]]
   }))
 }
@@ -54,7 +53,7 @@ export function executionGaps(spec: DeliverableSpecification, now = new Date()) 
   const documentModule = getModule(spec.artifact.recommended_type)
   if (!documentModule) return [{ key: 'deliverable', label: 'Supported deliverable', reason: 'The recommendation is not mapped to an active document module.' }]
   const requiredKeys = new Set(documentModule.required_fields.map(field => field.key))
-  const conflicts = spec.content.facts.filter(fact => requiredKeys.has(fact.key) && fact.verification_state === 'conflict' && controllingConflictValue(fact,spec.artifact.recommended_type)===null).map(fact => ({ key: fact.key, label: fact.label, reason: 'Conflicting values must be resolved before controlled execution.' }))
+  const conflicts = spec.content.facts.filter(fact => requiredKeys.has(fact.key) && fact.verification_state === 'conflict' && controllingConflictValue(fact)===null).map(fact => ({ key: fact.key, label: fact.label, reason: 'Conflicting values must be resolved before controlled execution.' }))
   const fields = executionFields(spec, now)
   const internallyControlledFsrFields=new Set(spec.artifact.recommended_type==='fsr'?['work_order_number','equipment_asset_id']:[])
   const missing = documentModule.required_fields.filter(field => !internallyControlledFsrFields.has(field.key) && (fields[field.key] === undefined || fields[field.key] === null || String(fields[field.key]).trim() === '')).map(field => ({ key: field.key, label: field.label, reason: 'Required by the selected specialist document module.' }))
