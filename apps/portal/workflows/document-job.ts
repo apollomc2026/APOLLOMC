@@ -107,7 +107,12 @@ async function finishStep(order: DocumentWorkOrder, artifacts: ArtifactManifest[
 async function failureStep(order: DocumentWorkOrder, errorMessage: string): Promise<void> {
   'use step'
   const job = await getJob(order.work_order_id)
-  if (!job || ['blocked', 'cancelled', 'delivered'].includes(String(job.state))) return
+  if (!job || ['cancelled', 'delivered'].includes(String(job.state))) return
+  if (job.state === 'blocked') {
+    const notification = await sendFailureNotification(order.work_order_id)
+    console.log(`[apollo-document] blocked notification job=${order.work_order_id} sent=${notification.sent}${notification.reason ? ` reason=${notification.reason}` : ''}`)
+    return
+  }
   const message = errorMessage.slice(0, 2000)
   await updateJob(order.work_order_id, 'failed', Number(job.progress_percent ?? 0), 'Document workflow failed safely', { error_code: 'WORKFLOW_FAILED', error_message: message })
   const notification = await sendFailureNotification(order.work_order_id)

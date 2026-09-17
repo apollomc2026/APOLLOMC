@@ -7,12 +7,13 @@ describe('terminal notification reconciliation', () => {
   it('routes unsent completion and failure alerts through their idempotent claim functions', async () => {
     const complete=vi.fn().mockResolvedValue({ sent:true })
     const fail=vi.fn().mockResolvedValue({ sent:true })
-    const list=vi.fn().mockResolvedValue([{ id:'delivered-job',state:'delivered' as const },{ id:'failed-job',state:'failed' as const }])
+    const list=vi.fn().mockResolvedValue([{ id:'delivered-job',state:'delivered' as const },{ id:'failed-job',state:'failed' as const },{ id:'blocked-job',state:'blocked' as const }])
     const result=await reconcileTerminalNotifications({ userId:'operator',limit:200 },{ list,complete,fail })
     expect(list).toHaveBeenCalledWith(DEFAULT_NOTIFICATION_RECONCILIATION_SINCE,'operator',50)
     expect(complete).toHaveBeenCalledWith('delivered-job')
     expect(fail).toHaveBeenCalledWith('failed-job')
-    expect(result).toMatchObject({ checked:2,sent:2 })
+    expect(fail).toHaveBeenCalledWith('blocked-job')
+    expect(result).toMatchObject({ checked:3,sent:3 })
   })
 
   it('honors a valid explicit cutoff and falls back safely from invalid configuration', async () => {

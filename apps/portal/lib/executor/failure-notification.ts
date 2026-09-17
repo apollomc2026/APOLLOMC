@@ -14,13 +14,13 @@ export async function sendFailureNotification(jobId: string) {
       updated_at: new Date().toISOString(),
     })
     .eq('id', jobId)
-    .eq('state', 'failed')
+    .in('state', ['failed','blocked'])
     .or(`failure_email_status.in.(pending,failed),and(failure_email_status.eq.sending,updated_at.lt.${staleBefore})`)
     .select('id,conversation_id,requested_by,deliverable_type,work_order')
     .maybeSingle()
 
   if (claim.error) throw new Error(claim.error.message)
-  if (!claim.data) return { sent: false, reason: 'already-claimed-or-not-failed' }
+  if (!claim.data) return { sent: false, reason: 'already-claimed-or-not-alertable' }
 
   try {
     const profile = await db
