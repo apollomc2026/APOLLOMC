@@ -199,7 +199,7 @@ export async function renderAndStorePdf(order: DocumentWorkOrder, contentHtml: s
   })
   // Parse the exact bytes that will be stored and delivered. HTML workmanship
   // cannot prove that Chromium emitted a complete, readable PDF artifact.
-  await verifyRenderedPdf(pdf)
+  const integrity=await verifyRenderedPdf(pdf)
   const digest = createHash('sha256').update(pdf).digest('hex')
   const filename = identity.filename
   await uploadSubmissionOutput({
@@ -233,6 +233,7 @@ export async function renderAndStorePdf(order: DocumentWorkOrder, contentHtml: s
     mime_type: 'application/pdf',
     source_engine_id: 'apollo-documents',
     source_run_id: order.work_order_id,
+    integrity:{...integrity,verified_at:now.toISOString()},
     created_at: now.toISOString(),
   }
 }

@@ -101,6 +101,7 @@ export interface ArtifactManifest {
   mime_type: string
   source_engine_id: string
   source_run_id: string
+  integrity?: { bytes:number; pages:number; text_characters:number; verified_at:string }
   created_at: string
 }
 
