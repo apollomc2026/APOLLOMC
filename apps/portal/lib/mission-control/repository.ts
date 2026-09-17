@@ -207,7 +207,7 @@ export async function approveSpecification(input: { userId: string; conversation
 
 export async function loadExecutionEvidence(input: { userId: string; conversationId: string }): Promise<DocumentSource[]> {
   const db = await createClient()
-  const result = await db.from('apollo_conversation_evidence').select('id, original_name, retrieval_storage_key, retrieval_mime_type, retrieval_sha256').eq('conversation_id', input.conversationId).eq('user_id', input.userId).eq('extraction_status', 'verified')
+  const result = await db.from('apollo_conversation_evidence').select('id, original_name, retrieval_storage_key, retrieval_mime_type, retrieval_sha256').eq('conversation_id', input.conversationId).eq('user_id', input.userId).in('extraction_status', ['verified','conflict'])
   if (result.error) throw new MissionPersistenceError(result.error.message)
   const expiresIn = 3600
   const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString()
@@ -221,40 +221,16 @@ export async function refreshExecutionEvidence(input: { userId: string; conversa
   if (!input.expectedSources.length) return []
   const db = await createClient()
   const ids = input.expectedSources.map(source => source.source_id)
-  const result = await db.from('apollo_conversation_evidence').select('id, original_name, retrieval_storage_key, retrieval_mime_type, retrieval_sha256').eq('conversation_id', input.conversationId).eq('user_id', input.userId).eq('extraction_status', 'verified').in('id', ids)
+  const result = await db.from('apollo_conversation_evidence').select('id, original_name, retrieval_storage_key, retrieval_mime_type, retrieval_sha256').eq('conversation_id', input.conversationId).eq('user_id', input.userId).in('extraction_status', ['verified','conflict'])
   if (result.error) throw new MissionPersistenceError(result.error.message)
-  const rows = new Map((result.data ?? []).map(row => [String(row.id), row]))
+  const approvedIds=new Set(ids)
+  const rows = new Map((result.data ?? []).filter(row=>approvedIds.has(String(row.id))).map(row => [String(row.id), row]))
   const expiresIn = 3600
   const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString()
   return Promise.all(input.expectedSources.map(async expected => {
     const row = rows.get(expected.source_id)
     if (!row || !row.retrieval_storage_key || !row.retrieval_mime_type || !row.retrieval_sha256) throw new MissionPersistenceError(`Approved evidence ${expected.name} is no longer available`)
     if (String(row.retrieval_sha256) !== expected.content_sha256 || String(row.retrieval_mime_type) !== expected.media_type) throw new MissionPersistenceError(`Approved evidence ${expected.name} failed manifest verification`)
-    return { ...expected, name: String(row.original_name), retrieval_url: await getPresignedUrl(String(row.retrieval_storage_key), expiresIn), expires_at: expiresAt }
+    return { ...expected, retrieval_url: await getPresignedUrl(String(row.retrieval_storage_key), expiresIn), expires_at: expiresAt }
   }))
-}
-
-export async function loadCurrentMissionBrand(input: {
-  userId: string
-  conversationId: string
-}): Promise<string | null> {
-  const db = await createClient()
-  const conversation = await db
-    .from('apollo_conversations')
-    .select('current_spec_version')
-    .eq('id', input.conversationId)
-    .eq('user_id', input.userId)
-    .single()
-  if (conversation.error || !conversation.data)
-    throw new MissionPersistenceError('Current mission brand could not be read')
-  const version = await db
-    .from('apollo_specification_versions')
-    .select('specification')
-    .eq('conversation_id', input.conversationId)
-    .eq('version', conversation.data.current_spec_version)
-    .single()
-  if (version.error || !version.data)
-    throw new MissionPersistenceError('Current mission specification could not be read')
-  const specification = version.data.specification as DeliverableSpecification
-  return specification.presentation.brand_profile_id
 }

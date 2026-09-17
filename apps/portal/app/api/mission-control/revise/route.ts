@@ -4,7 +4,7 @@ import { acceptWorkOrder, WorkOrderAcceptanceError } from '@/lib/executor/accept
 import { getJob } from '@/lib/executor/ledger'
 import type { DocumentWorkOrder } from '@/lib/executor/contracts'
 import { buildRevisionOrder } from '@/lib/mission-control/revision'
-import { loadCurrentMissionBrand, MissionPersistenceError, refreshExecutionEvidence } from '@/lib/mission-control/repository'
+import { MissionPersistenceError, refreshExecutionEvidence } from '@/lib/mission-control/repository'
 
 export async function POST(request: Request) {
   if (process.env.PLAYWRIGHT_TESTING === 'true') {
@@ -24,8 +24,9 @@ export async function POST(request: Request) {
   const prior = existing.work_order as DocumentWorkOrder
   try {
     const sources = await refreshExecutionEvidence({ userId: allowed.user.userId, conversationId: prior.conversation_id, expectedSources: prior.sources })
-    const currentBrand = await loadCurrentMissionBrand({ userId: allowed.user.userId, conversationId: prior.conversation_id })
-    const order = buildRevisionOrder({ ...prior, sources, brand_id: currentBrand ?? prior.brand_id }, instruction)
+    // A reflight is a revision of the approved work order, not a new approval.
+    // Refresh expiring retrieval URLs only; keep its brand and content identity locked.
+    const order = buildRevisionOrder({ ...prior, sources }, instruction)
     return NextResponse.json(await acceptWorkOrder(order), { status: 202 })
   } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : 'Revision could not be accepted' }, { status: error instanceof WorkOrderAcceptanceError ? error.status : error instanceof MissionPersistenceError ? 409 : 500 }) }
 }

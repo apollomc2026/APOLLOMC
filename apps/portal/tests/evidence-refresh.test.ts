@@ -24,9 +24,10 @@ describe('approved evidence refresh', () => {
   })
 
   it('rebinds only the approved manifest to a fresh retrieval URL', async () => {
+    mocks.rows[0].original_name='renamed-after-approval.txt'
     const refreshed = await refreshExecutionEvidence({ userId:'user-1', conversationId:'conversation-1', expectedSources:expected })
     expect(refreshed).toHaveLength(1)
-    expect(refreshed[0]).toMatchObject({ source_id:'evidence-1', retrieval_url:'https://fresh.example/scope', content_sha256:'a'.repeat(64) })
+    expect(refreshed[0]).toMatchObject({ source_id:'evidence-1', name:'scope.txt', retrieval_url:'https://fresh.example/scope', content_sha256:'a'.repeat(64) })
     expect(Date.parse(refreshed[0].expires_at)).toBeGreaterThan(Date.parse(expected[0].expires_at))
   })
 

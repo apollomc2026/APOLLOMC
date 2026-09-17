@@ -79,6 +79,7 @@ describe.each(PILOT_CLASSES)('$slug pilot mechanics', ({ slug,request }) => {
     const revision=buildRevisionOrder(first.order,'Tighten the executive language without changing verified facts or figures.')
     expect(revision.work_order_id).not.toBe(first.order.work_order_id)
     expect(revision.deliverable_type).toBe(slug)
+    expect(revision.brand_id).toBe(first.order.brand_id)
     expect(revision.sources).toEqual(first.order.sources)
     expect(revision.fields).toMatchObject(first.order.fields)
   })
