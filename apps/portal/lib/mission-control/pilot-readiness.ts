@@ -1,12 +1,12 @@
 import type { ArtifactManifest, DocumentWorkOrder } from '@/lib/executor/contracts'
-import type { DeliverableSpecification } from './contracts'
+import { missionFactSourceReferences, type DeliverableSpecification, type MissionFact } from './contracts'
 
 export const PILOT_DELIVERABLES=['fsr','final-qc-report','quote','proposal','cash-flow-budget-package','contract-intelligence-review'] as const
 export type PilotDeliverable=(typeof PILOT_DELIVERABLES)[number]
 
 type ConversationRow={id:string;status:string;readiness:number;current_spec_version:number;updated_at:string}
 type SpecificationRow={id:string;conversation_id:string;version:number;status:string;content_hash:string;specification:DeliverableSpecification}
-type EvidenceRow={id:string;conversation_id:string;extraction_status:string;content_sha256:string|null;retrieval_sha256:string|null}
+type EvidenceRow={id:string;conversation_id:string;extraction_status:string;content_sha256:string|null;retrieval_sha256:string|null;extracted_facts:MissionFact[]}
 type JobRow={id:string;conversation_id:string;deliverable_type:string;state:string;progress_percent:number;work_order:DocumentWorkOrder;artifacts:ArtifactManifest[];error_code:string|null;created_at:string;completed_at:string|null}
 type EventRow={job_id:string;sequence:number;state:string;payload:Record<string,unknown>}
 
@@ -45,6 +45,13 @@ export function auditPilotRelease(input:PilotAuditInput):{passed:boolean;passed_
     const specialist=specialistVerification(deliverableType,payload)
     const pricingResearch=spec.content.facts.find(fact=>fact.key==='market_pricing_basis'&&fact.source==='research'&&fact.capture_method==='system_lookup'&&fact.verification_state==='verified')
     const pricingSources=pricingResearch?[...new Set([pricingResearch.source_reference,...(pricingResearch.source_references??[])].filter((value):value is string=>Boolean(value)))]:[]
+    const evidenceIds=new Set(evidence.map(row=>row.id))
+    const inventoryIds=new Set(spec.sources.map(source=>source.id))
+    const specificationEvidenceReferences=new Set(spec.content.facts.flatMap(missionFactSourceReferences).filter(reference=>evidenceIds.has(reference)))
+    const malformedExtractedFacts=evidence.flatMap(row=>row.extracted_facts??[]).filter(fact=>fact.source!=='evidence'||!fact.source_reference||!evidenceIds.has(fact.source_reference))
+    const extractedKeysBySource=new Map<string,Set<string>>()
+    for(const row of evidence)for(const fact of row.extracted_facts??[]){const keys=extractedKeysBySource.get(row.id)??new Set<string>();keys.add(fact.key);extractedKeysBySource.set(row.id,keys)}
+    const missingReconciledFacts=evidence.flatMap(row=>[...(extractedKeysBySource.get(row.id)??[])].filter(key=>!spec.content.facts.some(fact=>fact.key===key&&missionFactSourceReferences(fact).includes(row.id))).map(key=>`${row.id}:${key}`))
     const unsafeInferences=spec.content.facts.filter(fact=>fact.source==='inferred'&&UNSAFE_INFERRED_KEYS.has(fact.key))
     const unresolvedConflicts=spec.content.facts.filter(fact=>fact.verification_state==='conflict'&&!fact.supersession)
     const latestOrder=latest?.work_order;const artifacts=latest?.artifacts??[]
@@ -54,6 +61,7 @@ export function auditPilotRelease(input:PilotAuditInput):{passed:boolean;passed_
     const currentDelivered=current?.state==='delivered'
     const gates:PilotGate[]=[
       {key:'evidence',label:'Evidence inventory and custody',passed:evidence.length>0&&evidence.every(row=>['verified','conflict'].includes(row.extraction_status)&&/^[a-f0-9]{64}$/.test(row.content_sha256??'')&&/^[a-f0-9]{64}$/.test(row.retrieval_sha256??'')),evidence:`${evidence.length} source(s); ${evidence.filter(row=>row.extraction_status==='failed').length} failed.`},
+      {key:'provenance',label:'Complete evidence provenance',passed:evidence.length===inventoryIds.size&&evidence.every(row=>inventoryIds.has(row.id))&&malformedExtractedFacts.length===0&&missingReconciledFacts.length===0&&evidence.filter(row=>(row.extracted_facts??[]).length>0).every(row=>specificationEvidenceReferences.has(row.id)),evidence:`${inventoryIds.size}/${evidence.length} inventoried; ${malformedExtractedFacts.length} malformed extracted fact(s); ${missingReconciledFacts.length} fact(s) lost during reconciliation.`},
       {key:'calibration',label:'Minimal-friction calibrated specification',passed:spec.content.open_questions.length===0&&unresolvedConflicts.length===0&&unsafeInferences.length===0,evidence:`${spec.content.open_questions.length} open; ${unresolvedConflicts.length} unresolved conflicts; ${unsafeInferences.length} unsafe inferences.`},
       {key:'authority',label:'Approved specification is authoritative',passed:Boolean(latestOrder)&&specRow.status==='approved'&&spec.approval.status==='approved'&&latestOrder?.deliverable_type===deliverableType&&latestOrder.trace?.specification_id===specRow.id&&latestOrder.trace?.specification_hash===specRow.content_hash,evidence:`Spec v${specRow.version}; job=${latest?.id??'none'}.`},
       {key:'launch',label:'Durable launch and telemetry completion',passed:Boolean(latest)&&currentDelivered&&latest?.id===current?.id&&latest.progress_percent===100&&sequencePresent(events),evidence:`Current=${current?.state??'not launched'}; latest delivered=${latest?.id??'none'} at ${latest?.progress_percent??0}%; ${events.length} lifecycle event(s).`},

@@ -16,7 +16,7 @@ export async function GET(){
   if(!ids.length)return NextResponse.json(auditPilotRelease({conversations:[],specifications:[],evidence:[],jobs:[],events:[]}),{headers:{'Cache-Control':'private, no-store'}})
   const [specifications,evidence,jobs]=await Promise.all([
     db.from('apollo_specification_versions').select('id,conversation_id,version,status,content_hash,specification').in('conversation_id',ids),
-    db.from('apollo_conversation_evidence').select('id,conversation_id,extraction_status,content_sha256,retrieval_sha256').eq('user_id',auth.user.userId).in('conversation_id',ids),
+    db.from('apollo_conversation_evidence').select('id,conversation_id,extraction_status,content_sha256,retrieval_sha256,extracted_facts').eq('user_id',auth.user.userId).in('conversation_id',ids),
     db.from('apollo_document_jobs').select('id,conversation_id,deliverable_type,state,progress_percent,work_order,artifacts,error_code,created_at,completed_at').eq('requested_by',auth.user.userId).in('conversation_id',ids),
   ])
   const error=specifications.error??evidence.error??jobs.error;if(error)return NextResponse.json({error:error.message},{status:500})
@@ -26,7 +26,7 @@ export async function GET(){
   const report=auditPilotRelease({
     conversations:conversations.data,
     specifications:(specifications.data??[]).map(row=>({...row,specification:row.specification as DeliverableSpecification})),
-    evidence:evidence.data??[],
+    evidence:(evidence.data??[]).map(row=>({...row,extracted_facts:(Array.isArray(row.extracted_facts)?row.extracted_facts:[]) as import('@/lib/mission-control/contracts').MissionFact[]})),
     jobs:(jobs.data??[]).map(row=>({...row,work_order:row.work_order as DocumentWorkOrder,artifacts:(row.artifacts??[]) as ArtifactManifest[]})),
     events:(events.data??[]).map(row=>({...row,payload:(row.payload??{}) as Record<string,unknown>})),
   })
