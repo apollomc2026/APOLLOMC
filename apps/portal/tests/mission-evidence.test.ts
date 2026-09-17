@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as XLSX from 'xlsx'
 import sharp from 'sharp'
-import { batchEvidenceSources, chunkEvidenceSources, deduplicateEvidenceFacts, deriveEvidenceFacts, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractLabeledEvidenceFacts, filterSemanticallyUnsupportedEvidenceFacts, normalizeEvidenceMime, prepareEvidenceRetrieval, reconcileEvidenceSupersessions, sanitizeEvidenceBytes } from '../lib/mission-control/evidence'
+import { applyEvidenceSupersessionDecisions, batchEvidenceSources, chunkEvidenceSources, deduplicateEvidenceFacts, deriveEvidenceFacts, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractLabeledEvidenceFacts, filterSemanticallyUnsupportedEvidenceFacts, normalizeEvidenceMime, prepareEvidenceRetrieval, reconcileEvidenceSupersessions, sanitizeEvidenceBytes, supersessionDecisionsFromToolInput } from '../lib/mission-control/evidence'
 import { createMissionFact, mergeMissionFacts, specificationProvenance, type DeliverableSpecification } from '../lib/mission-control/contracts'
 import { buildContentBlocks, inlineEvidenceByteLimit, OrchestrateError } from '../lib/apollo/orchestrate'
 import { mergeEvidenceIntoSpecification } from '../lib/mission-control/evidence-specification'
@@ -127,6 +127,24 @@ describe('mission evidence custody', () => {
       createMissionFact({key:'contract_value',label:'Contract value',value:'$22,000',source:'evidence',source_reference:'amendment-2',confidence:1}),
     ]
     expect(reconcileEvidenceSupersessions(competing)).toHaveLength(3)
+  })
+
+  it('reconciles an amendment discovered outside the original extraction batch', () => {
+    const facts=[
+      createMissionFact({key:'expiration_date',label:'Expiration date',value:'December 31, 2026',source:'evidence',source_reference:'original',confidence:1}),
+      createMissionFact({key:'expiration_date',label:'Expiration date',value:'June 30, 2027',source:'evidence',source_reference:'amendment',confidence:1}),
+    ]
+    const decisions=supersessionDecisionsFromToolInput({decisions:[{key:'expiration_date',controlling_source_id:'amendment',superseded_source_ids:['original'],reason:'Amendment 2 expressly extends the expiration date through June 30, 2027.'}]},facts)
+    const reconciled=applyEvidenceSupersessionDecisions(facts,decisions,new Date('2026-09-16T12:00:00.000Z'))
+    expect(reconciled).toEqual([expect.objectContaining({value:'June 30, 2027',source_reference:'amendment',verification_state:'verified',supersession:expect.objectContaining({superseded_source_references:['original']})})])
+  })
+
+  it('rejects cross-batch precedence output that cites the wrong field or unavailable sources', () => {
+    const facts=[createMissionFact({key:'expiration_date',label:'Expiration date',value:'December 31, 2026',source:'evidence',source_reference:'original',confidence:1})]
+    expect(supersessionDecisionsFromToolInput({decisions:[
+      {key:'effective_date',controlling_source_id:'amendment',superseded_source_ids:['original'],reason:'Unsupported cross-field claim.'},
+      {key:'expiration_date',controlling_source_id:'amendment',superseded_source_ids:['original'],reason:'Unavailable controlling source.'},
+    ]},facts)).toEqual([])
   })
 
   it('combines complementary narrative evidence with complete source provenance', () => {

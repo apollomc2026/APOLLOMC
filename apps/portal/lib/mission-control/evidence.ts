@@ -25,6 +25,7 @@ import { getModule } from '@/lib/apollo/packages-loader'
 import { createMissionFact, type FactSupersession, type MissionFact } from './contracts'
 
 type EvidenceField = { key:string; label:string; type?:string; help?:string; evidence_aliases?:string[]; options?:Array<{ value:string; label:string }> }
+export interface EvidenceSupersessionDecision { key:string; controlling_source_reference:string; superseded_source_references:string[]; reason:string }
 
 export function evidenceMagicMatches(bytes: Buffer, mime: string): boolean {
   const at = (signature: number[], offset = 0) => signature.every((value, index) => bytes[offset + index] === value)
@@ -167,6 +168,90 @@ export function reconcileEvidenceSupersessions(facts:MissionFact[], now=new Date
   })
 }
 
+export function supersessionDecisionsFromToolInput(input:Record<string,unknown>,facts:MissionFact[]):EvidenceSupersessionDecision[] {
+  const raw=Array.isArray(input.decisions)?input.decisions:[]
+  const sourcesByKey=new Map<string,Set<string>>()
+  for(const fact of facts){
+    if(!fact.source_reference)continue
+    const sources=sourcesByKey.get(fact.key)??new Set<string>()
+    sources.add(fact.source_reference);sourcesByKey.set(fact.key,sources)
+  }
+  return raw.flatMap(candidate=>{
+    if(!candidate||typeof candidate!=='object')return []
+    const key='key' in candidate&&typeof candidate.key==='string'?candidate.key:''
+    const controlling='controlling_source_id' in candidate&&typeof candidate.controlling_source_id==='string'?candidate.controlling_source_id:''
+    const rawSuperseded:unknown[]='superseded_source_ids' in candidate&&Array.isArray(candidate.superseded_source_ids)?candidate.superseded_source_ids:[]
+    const superseded=[...new Set(rawSuperseded.filter((value):value is string=>typeof value==='string'&&value!==controlling))]
+    const reason='reason' in candidate&&typeof candidate.reason==='string'?candidate.reason.trim():''
+    const available=sourcesByKey.get(key)
+    if(!available||!available.has(controlling)||!superseded.length||!superseded.every(source=>available.has(source))||reason.length<12)return []
+    return [{key,controlling_source_reference:controlling,superseded_source_references:superseded,reason:reason.slice(0,1000)}]
+  })
+}
+
+export function applyEvidenceSupersessionDecisions(facts:MissionFact[],decisions:EvidenceSupersessionDecision[],now=new Date()):MissionFact[] {
+  const decisionsByKey=new Map<string,EvidenceSupersessionDecision[]>()
+  for(const decision of decisions)decisionsByKey.set(decision.key,[...(decisionsByKey.get(decision.key)??[]),decision])
+  const annotated=facts.map(fact=>{
+    const decisionsForKey=decisionsByKey.get(fact.key)??[]
+    const controlling=[...new Map(decisionsForKey.map(decision=>[decision.controlling_source_reference,decision])).values()]
+    if(controlling.length!==1||fact.source_reference!==controlling[0].controlling_source_reference)return fact
+    const decision=controlling[0]
+    return {...fact,supersession:{controlling_source_reference:decision.controlling_source_reference,superseded_source_references:decision.superseded_source_references,reason:decision.reason}}
+  })
+  return reconcileEvidenceSupersessions(annotated,now)
+}
+
+function evidenceExcerpt(text:string,value:string):string {
+  const compactValue=value.normalize('NFKC').trim().replace(/\s+/g,' ')
+  const probes=[compactValue,compactValue.slice(0,120),compactValue.split(/\n|\.|;/)[0]?.trim()].filter(probe=>probe&&probe.length>=8)
+  const normalizedText=text.normalize('NFKC').replace(/\s+/g,' ')
+  const lower=normalizedText.toLowerCase()
+  const index=probes.map(probe=>lower.indexOf(probe.toLowerCase())).find(candidate=>candidate>=0)??-1
+  if(index<0)return normalizedText.slice(0,1800)
+  return normalizedText.slice(Math.max(0,index-700),Math.min(normalizedText.length,index+compactValue.length+1100))
+}
+
+async function reconcileEvidencePrecedenceAcrossSources(
+  facts:MissionFact[],
+  sources:Array<{id:string;name:string;text:string}>,
+  client:Anthropic,
+):Promise<MissionFact[]> {
+  const sourceById=new Map<string,{id:string;name:string;text:string}>()
+  for(const source of sources){
+    const prior=sourceById.get(source.id)
+    sourceById.set(source.id,prior?{...prior,text:`${prior.text}\n\n${source.text}`}:{...source})
+  }
+  const groups=[...new Set(facts.map(fact=>fact.key))].map(key=>facts.filter(fact=>fact.key===key)).filter(group=>{
+    const values=new Set(group.map(fact=>(fact.normalized_value??fact.value).normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase()))
+    const sourcesForGroup=new Set(group.map(fact=>fact.source_reference).filter(Boolean))
+    return values.size>1&&sourcesForGroup.size>1
+  })
+  if(!groups.length)return reconcileEvidenceSupersessions(facts)
+  const decisions:EvidenceSupersessionDecision[]=[]
+  for(const groupBatch of batchEvidenceSources(groups,8)){
+    const candidatePacket=groupBatch.map(group=>{
+      const fact=group[0]
+      const candidates=group.map(candidate=>{
+        const source=candidate.source_reference?sourceById.get(candidate.source_reference):null
+        return `SOURCE ${candidate.source_reference ?? 'unknown'} (${source?.name??'Unknown source'})\nVALUE: ${candidate.value}\nLOCAL EVIDENCE:\n${source?evidenceExcerpt(source.text,candidate.value):'No readable excerpt available.'}`
+      }).join('\n\n')
+      return `FIELD ${fact.key} — ${fact.label}\n${candidates}`
+    }).join('\n\n==========\n\n')
+    const allowedKeys=groupBatch.map(group=>group[0].key)
+    const allowedSources=[...new Set(groupBatch.flatMap(group=>group.map(fact=>fact.source_reference).filter((value):value is string=>Boolean(value))))]
+    const response=await client.messages.create({
+      model:modelFor('extraction'),max_tokens:3000,
+      system:'You are APOLLO evidence precedence control. Review contradictory extracted candidates and their local source excerpts. Declare supersession only when the evidence explicitly establishes that one source amends, replaces, overrides, or is the later effective controlling version of another source for that exact field. Upload order, filename alone, apparent completeness, or a higher/lower number never establishes precedence. If control is not explicit, return no decision for that field.',
+      tools:[{name:'reconcile_precedence',description:'Return only explicit, evidence-supported source supersession decisions.',input_schema:{type:'object',properties:{decisions:{type:'array',items:{type:'object',properties:{key:{type:'string',enum:allowedKeys},controlling_source_id:{type:'string',enum:allowedSources},superseded_source_ids:{type:'array',items:{type:'string',enum:allowedSources}},reason:{type:'string',description:'Concise evidence-grounded explanation quoting or precisely paraphrasing the controlling amendment, replacement, or effective-date language.'}},required:['key','controlling_source_id','superseded_source_ids','reason']}}},required:['decisions']}}],
+      tool_choice:{type:'tool',name:'reconcile_precedence'},messages:[{role:'user',content:candidatePacket}],
+    })
+    const block=response.content.find(item=>item.type==='tool_use'&&item.name==='reconcile_precedence')
+    if(block?.type==='tool_use')decisions.push(...supersessionDecisionsFromToolInput(block.input as Record<string,unknown>,facts))
+  }
+  return applyEvidenceSupersessionDecisions(facts,decisions)
+}
+
 export function extractLabeledEvidenceFacts(
   sources:Array<{ id:string; name:string; text:string }>,
   fields:EvidenceField[],
@@ -291,7 +376,7 @@ export async function extractEvidenceFactsFromSources(
   }
   const supported=filterSemanticallyUnsupportedEvidenceFacts(facts,readable,moduleSlug)
   const deduplicated=deduplicateEvidenceFacts(supported)
-  return reconcileEvidenceSupersessions(deduplicateEvidenceFacts([...deduplicated,...deriveEvidenceFacts(deduplicated,moduleSlug)]))
+  return reconcileEvidencePrecedenceAcrossSources(deduplicateEvidenceFacts([...deduplicated,...deriveEvidenceFacts(deduplicated,moduleSlug)]),readable,client)
 }
 
 function fieldDescriptor(field:EvidenceField):string {
