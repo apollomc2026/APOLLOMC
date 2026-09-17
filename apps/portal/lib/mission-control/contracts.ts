@@ -46,6 +46,15 @@ function factSourceReferences(fact: MissionFact) {
   return [...new Set([...(fact.source_references ?? []), fact.source_reference].filter((value): value is string => Boolean(value)))]
 }
 
+export function missionFactSourceReferences(fact:MissionFact):string[] {
+  return [...new Set([
+    ...factSourceReferences(fact),
+    ...(fact.conflicts??[]).map(candidate=>candidate.source_reference),
+    fact.supersession?.controlling_source_reference,
+    ...(fact.supersession?.superseded_source_references??[]),
+  ].filter((value):value is string=>Boolean(value)))]
+}
+
 function comparableFactValue(fact: MissionFact): string {
   return (fact.normalized_value ?? fact.value).normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase()
 }

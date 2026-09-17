@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { interpretMissionWithClaude } from './ai-interpreter'
-import { createMissionFact, mergeMissionFacts, specificationProvenance, type DeliverableSpecification, type MissionFact, type MissionTurnResult, type VoiceTranscriptMetadata } from './contracts'
+import { createMissionFact, mergeMissionFacts, missionFactSourceReferences, specificationProvenance, type DeliverableSpecification, type MissionFact, type MissionTurnResult, type VoiceTranscriptMetadata } from './contracts'
 import type { DocumentSource } from '@/lib/executor/contracts'
 import { getFromS3, getPresignedUrl } from '@/lib/s3/client'
 import { extractEvidence, extractEvidenceFactsFromPdfs, extractEvidenceFactsFromSources } from './evidence'
@@ -93,7 +93,7 @@ async function reconcileSecuredEvidence(input: {
   }
   console.info('[mission-control] Evidence recalibration completed', { conversationId: input.conversationId, moduleSlug, securedSources: rows.length, recoveredSources: recoveredSources.length, readableSources: readableSources.length, nativePdfFallback: !readableSources.length && pdfSources.length > 0, extractedFacts: evidenceFacts.length })
   await Promise.all(rows.map(async row => {
-    const facts = evidenceFacts.filter(fact => fact.source_reference === row.id)
+    const facts = evidenceFacts.filter(fact => missionFactSourceReferences(fact).includes(row.id))
     const update = await input.db.from('apollo_conversation_evidence').update({ extracted_facts: facts }).eq('id', row.id).eq('user_id', input.userId)
     if (update.error) throw new MissionPersistenceError('Recalibrated evidence facts could not be recorded')
   }))

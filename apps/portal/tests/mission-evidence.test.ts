@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import * as XLSX from 'xlsx'
 import sharp from 'sharp'
 import { applyEvidenceSupersessionDecisions, batchEvidenceSources, chunkEvidenceSources, deduplicateEvidenceFacts, deriveEvidenceFacts, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractLabeledEvidenceFacts, filterSemanticallyUnsupportedEvidenceFacts, normalizeEvidenceMime, prepareEvidenceRetrieval, reconcileEvidenceSupersessions, sanitizeEvidenceBytes, supersessionDecisionsFromToolInput } from '../lib/mission-control/evidence'
-import { createMissionFact, mergeMissionFacts, specificationProvenance, type DeliverableSpecification } from '../lib/mission-control/contracts'
+import { createMissionFact, mergeMissionFacts, missionFactSourceReferences, specificationProvenance, type DeliverableSpecification } from '../lib/mission-control/contracts'
 import { buildContentBlocks, inlineEvidenceByteLimit, OrchestrateError } from '../lib/apollo/orchestrate'
 import { mergeEvidenceIntoSpecification } from '../lib/mission-control/evidence-specification'
 
@@ -137,6 +137,7 @@ describe('mission evidence custody', () => {
     const decisions=supersessionDecisionsFromToolInput({decisions:[{key:'expiration_date',controlling_source_id:'amendment',superseded_source_ids:['original'],reason:'Amendment 2 expressly extends the expiration date through June 30, 2027.'}]},facts)
     const reconciled=applyEvidenceSupersessionDecisions(facts,decisions,new Date('2026-09-16T12:00:00.000Z'))
     expect(reconciled).toEqual([expect.objectContaining({value:'June 30, 2027',source_reference:'amendment',verification_state:'verified',supersession:expect.objectContaining({superseded_source_references:['original']})})])
+    expect(missionFactSourceReferences(reconciled[0])).toEqual(['original','amendment'])
   })
 
   it('rejects cross-batch precedence output that cites the wrong field or unavailable sources', () => {
