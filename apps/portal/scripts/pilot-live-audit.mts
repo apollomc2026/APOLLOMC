@@ -1,21 +1,25 @@
 import { createClient } from '@supabase/supabase-js'
 import { auditPilotRelease, type PilotAuditInput } from '../lib/mission-control/pilot-readiness'
 
-function failAudit(error:unknown):never {
-  const raw=error instanceof Error?error.message:typeof error==='object'&&error&&'message' in error?String(error.message):String(error)
+function failAudit(error:unknown):void {
+  const message=error instanceof Error?error.message:typeof error==='object'&&error&&'message' in error?String(error.message):String(error)
+  let serialized=''
+  try{serialized=JSON.stringify(error)}catch{}
+  const raw=`${message}\n${serialized}`
   const status=raw.match(/\b(?:error code |status(?: code)?[=: ]+)(\d{3})\b/i)?.[1]
   const timeout=/connection timed out|gateway timeout|\b522\b|\b504\b/i.test(raw)
   console.error(`Live pilot audit failed: ${timeout?'Supabase origin timeout':status?`upstream HTTP ${status}`:'unexpected Supabase response'}. No data was changed.`)
-  process.exit(1)
+  process.exitCode=1
 }
-process.on('uncaughtException',failAudit)
-process.on('unhandledRejection',failAudit)
+process.once('uncaughtException',failAudit)
+process.once('unhandledRejection',failAudit)
 
 const url=process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey=process.env.SUPABASE_SERVICE_ROLE_KEY
 if(!url||!serviceRoleKey)throw new Error('NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required')
 
-const db=createClient(url,serviceRoleKey,{auth:{persistSession:false,autoRefreshToken:false}})
+const boundedFetch:typeof fetch=(input,init)=>fetch(input,{...init,signal:AbortSignal.timeout(30_000)})
+const db=createClient(url,serviceRoleKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:boundedFetch}})
 const inventory=await db.from('apollo_conversations').select('user_id')
 if(inventory.error)throw inventory.error
 const owners=[...new Set((inventory.data??[]).map(row=>row.user_id).filter((value):value is string=>Boolean(value)))]
