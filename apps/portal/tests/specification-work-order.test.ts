@@ -88,6 +88,15 @@ describe('approved specification compiler', () => {
     }
   })
 
+  it('makes one explicit reflight retry-safe without collapsing a later reflight into the old job',()=>{
+    const prior:DocumentWorkOrder={protocol_version:'1.0',work_order_id:'10000000-0000-4000-8000-000000000001',idempotency_key:'original',project_id:'spec',conversation_id:ids.conversationId,task_id:'10000000-0000-4000-8000-000000000002',requested_by:ids.requestedBy,capability:'professional-document-generation',deliverable_type:'fsr',objective:'Service record',audience:'Customer',formats:['pdf'],fields:{artifact_version:1},sources:[],brand_id:'apollo',style_id:'style',sensitivity:'internal',priority:'medium',drive_destination:{folder_id:'folder',lifecycle:'draft'},quality_gates:{schema_validation:true,source_grounding:true,independent_review:false,deterministic_financial_verification:false,human_approval_before_publish:true},created_at:'2026-09-17T00:00:00Z'}
+    const instruction='Regenerate this deliverable using the current approved evidence and publication standards.'
+    const requestOne='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    const requestTwo='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+    expect(buildRevisionOrder(prior,instruction,requestOne).work_order_id).toBe(buildRevisionOrder(prior,instruction,requestOne).work_order_id)
+    expect(buildRevisionOrder(prior,instruction,requestOne).work_order_id).not.toBe(buildRevisionOrder(prior,instruction,requestTwo).work_order_id)
+  })
+
   it('binds the selected custom brand through compilation and every revision', () => {
     const specification = interpretMission('Send a proposal to Acme Facilities for $18,500 before October 15, 2026.').specification
     specification.presentation.brand_profile_id = 'kit:44444444-4444-4444-8444-444444444444'

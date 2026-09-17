@@ -6,6 +6,9 @@ export interface CurrentSpecificationIdentity {
   version:number
   title:string
   deliverable_type:string
+  display_title?:string
+  display_context?:string
+  specification?:import('./contracts').DeliverableSpecification
 }
 
 export function jobMatchesCurrentSpecification(job:{deliverable_type:string;work_order:DocumentWorkOrder|null},identity:CurrentSpecificationIdentity|undefined){

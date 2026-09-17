@@ -8,7 +8,7 @@ export function revisionDirectiveDigest(instruction:string):string {
   return createHash('sha256').update(instruction.trim()).digest('hex')
 }
 
-export function buildRevisionOrder(prior: DocumentWorkOrder, instruction: string): DocumentWorkOrder {
+export function buildRevisionOrder(prior: DocumentWorkOrder, instruction: string, requestId?:string): DocumentWorkOrder {
   const normalized = instruction.trim()
   if (!normalized || normalized.length > 4000) throw new Error('A revision instruction between 1 and 4,000 characters is required')
   // Retrieval URLs are deliberately excluded: signed evidence links rotate even when
@@ -22,6 +22,7 @@ export function buildRevisionOrder(prior: DocumentWorkOrder, instruction: string
     instruction: normalized.toLowerCase(),
     brand_id: prior.brand_id,
     sources: sourceIdentity,
+    request_id:requestId??null,
   })).digest('hex')
   const priorVersion = Number(prior.fields.artifact_version ?? 1)
   const artifactVersion = Number.isSafeInteger(priorVersion) && priorVersion > 0 ? priorVersion + 1 : 2

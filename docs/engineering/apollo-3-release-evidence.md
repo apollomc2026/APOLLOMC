@@ -191,3 +191,26 @@ Then use Settings → Connect Google Drive once and execute the existing interna
 - The post-change local baseline is 413 passing unit/contract tests across 48 files, a clean TypeScript check, a clean diff-integrity check, and a successful Next.js 16.3.4 production build. This proves the controlled engine matrix; the separate live hosted six-mission gate remains open until representative approved missions also prove delivery, telemetry, recovery, and regeneration under production custody.
 - The exact release commit `f7229c968607be189836e61af152c76ce07960f2` deployed as `dpl_46e1f7YTMhMTbkjRQbJnQ4x68R4K`, reached `READY`, received the stable release-candidate alias, returned HTTP 200 through both deployment and stable aliases, and produced no error or fatal runtime entries in the post-deployment scan.
 - The repeatable `pilot:live-audit` operator command runs the same twelve-gate production auditor without browser-cookie dependence and refuses ambiguous multi-owner selection. Its first hosted read window on 2026-09-17 was prevented by an upstream Supabase origin outage: Management SQL timed out twice while project metadata remained `ACTIVE_HEALTHY`, then direct Auth and Data API paths returned 504/522. No database state changed. The hosted six-mission gate therefore remains unproven rather than being reported as failed or passed.
+
+## 2026-09-17 twenty-pass mission-operations regression audit
+
+1. Runtime logs: repeated intake `409` responses were traced to recalibration attempts on an archived FSR draft with no verified sources; regeneration itself was not running.
+2. Workflow state: the affected archived draft had evidence but no execution jobs, while the approved Encore FSR retained five delivered jobs.
+3. Deployment authority: the release-candidate branch and stable Vercel project remain the only deployment target for this repair.
+4. Mission inventory: generic duplicate Encore missions and the valid quote were identified without mutating or deleting production records.
+5. Duplicate containment: archived missions with no job history are hidden from operational views while remaining preserved in Archive.
+6. Dashboard completeness: the five-row truncation was removed, so a valid quote cannot disappear merely because newer drafts exist.
+7. Historical authority: execution rows now resolve the exact specification version that created each job instead of inheriting the mission's newest specification.
+8. Mission identity: derived titles combine site, customer, or project context with the deliverable, such as `Encore Boston Harbor · Field Service Report`.
+9. Flight identity: every execution receives a descriptive launch or reflight name rather than an isolated sequence number.
+10. Revision purpose: telemetry exposes the revision directive or launch purpose so operators can distinguish reflight outcomes at a glance.
+11. Explicit reflight idempotency: a client request ID makes one submission retry-safe while allowing a later deliberate reflight with identical wording to create a new job.
+12. Concurrent launch protection: an already-active mission job is returned instead of creating a duplicate execution loop.
+13. Evidence continuity: regeneration remains bound to the mission and approved specification lineage; no replacement intake or evidence reattachment is required.
+14. Failure recovery: failed or blocked flights can be retried directly from telemetry rather than routing through conversational intake.
+15. Telemetry freshness: mission activity and ordering now follow the newest execution timestamp, including reflight activity.
+16. Metric integrity: dead archived drafts do not dilute mission totals or readiness averages, while active historical-spec jobs remain visible.
+17. Operational ordering: mission rows are ordered by genuine activity and retain complete immutable flight history.
+18. Interface clarity: dashboard and telemetry search, context lines, timestamps, short job IDs, failure labels, and recovery actions use the same mission identity contract.
+19. React and accessibility regression: the changed surfaces pass the repository's type, component, and interaction checks without introducing a parallel mission-control interface.
+20. Full verification: unit and contract tests, production build, and Chromium system journeys cover quote visibility beyond five missions, archived-draft containment, descriptive reflight lineage, regeneration, and recovery.

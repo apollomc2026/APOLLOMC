@@ -105,6 +105,13 @@ export async function getLatestDeliveredJobForConversation(input: { conversation
   return result.data ?? null
 }
 
+export async function getActiveJobForConversation(input:{conversationId:string;requestedBy:string}){
+  const db=await createServiceClient()
+  const result=await db.from('apollo_document_jobs').select('*').eq('conversation_id',input.conversationId).eq('requested_by',input.requestedBy).in('state',['accepted','queued','validating','generating','verifying','rendering','delivering']).order('created_at',{ascending:false}).limit(1).maybeSingle()
+  if(result.error)throw new Error(result.error.message)
+  return result.data??null
+}
+
 export async function completeJob(jobId: string, artifacts: ArtifactManifest[]) {
   if (artifacts.length === 0) throw new Error('delivered jobs require artifacts')
   await updateJob(jobId, 'delivered', 100, 'Document deliverables are ready', { artifacts })
