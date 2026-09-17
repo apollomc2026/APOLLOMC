@@ -1,5 +1,6 @@
+import {createHash} from 'node:crypto'
 import {afterEach,describe,expect,it} from 'vitest'
-import {controlledArtifactPath,controlledArtifactUrl,projectControlledArtifacts} from '../lib/executor/artifact-access'
+import {assertControlledPdfDownload,controlledArtifactPath,controlledArtifactUrl,projectControlledArtifacts} from '../lib/executor/artifact-access'
 
 describe('APOLLO-controlled artifact access',()=>{
   afterEach(()=>{delete process.env.NEXT_PUBLIC_APP_URL})
@@ -18,5 +19,14 @@ describe('APOLLO-controlled artifact access',()=>{
 
   it('refuses to emit an uncontrolled URL without the APOLLO origin',()=>{
     expect(()=>controlledArtifactUrl('job-id')).toThrow(/NEXT_PUBLIC_APP_URL/)
+  })
+
+  it('serves only the exact PDF bytes recorded in the immutable artifact manifest',()=>{
+    const bytes=Buffer.from('%PDF-1.7\ncontrolled artifact')
+    const digest=createHash('sha256').update(bytes).digest('hex')
+    expect(()=>assertControlledPdfDownload({bytes,mimeType:'application/pdf',contentSha256:digest})).not.toThrow()
+    expect(()=>assertControlledPdfDownload({bytes:Buffer.from('%PDF-1.7\nchanged artifact'),mimeType:'application/pdf',contentSha256:digest})).toThrow(/integrity/)
+    expect(()=>assertControlledPdfDownload({bytes,mimeType:'application/octet-stream',contentSha256:digest})).toThrow(/non-PDF/)
+    expect(()=>assertControlledPdfDownload({bytes:Buffer.from('not a pdf'),mimeType:'application/pdf',contentSha256:digest})).toThrow(/invalid PDF/)
   })
 })
