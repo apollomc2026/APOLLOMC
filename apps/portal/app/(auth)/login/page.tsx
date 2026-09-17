@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { AuthShell } from '@/components/auth/AuthShell'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
@@ -8,9 +9,11 @@ import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
+  const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const configured = isSupabaseConfigured()
+  const router = useRouter()
 
   async function handleLogin(event: React.FormEvent) {
     event.preventDefault()
@@ -21,25 +24,40 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
-    const { error: authError } = await createClient().auth.signInWithOtp({ email, options: { emailRedirectTo: `${window.location.origin}/auth/confirm` } })
+    const { error: authError } = await createClient().auth.signInWithOtp({ email, options: { shouldCreateUser:false, emailRedirectTo: `${window.location.origin}/auth/confirm` } })
     if (authError) setError(authError.message)
     else setSent(true)
     setLoading(false)
   }
 
+  async function handleVerify(event:React.FormEvent){
+    event.preventDefault()
+    if(!/^\d{6}$/.test(code)){setError('Enter the six-digit access code from your email.');return}
+    setLoading(true);setError('')
+    const { error:authError }=await createClient().auth.verifyOtp({email,token:code,type:'email'})
+    if(authError)setError(authError.message)
+    else{router.replace('/dashboard');router.refresh()}
+    setLoading(false)
+  }
+
   if (sent) return (
-    <AuthShell eyebrow="Transmission sent" title="Check your inbox." description="Your secure commander link is ready." footer={<Link href="/">Return home</Link>}>
-      <div className="auth-confirm"><span>Transmission destination</span><strong>{email}</strong><p>Open the message and follow the secure link to enter Mission Control.</p></div>
+    <AuthShell eyebrow="Identity verification / 02" title="Enter access code." description="Use the six-digit code sent to your email. Stay on this screen—no external sign-in is required." footer={<button type="button" className="auth-link-button" onClick={()=>{setSent(false);setCode('');setError('')}}>Use a different email</button>}>
+      <form onSubmit={handleVerify} className="auth-form">
+        <div className="auth-confirm"><span>Transmission destination</span><strong>{email}</strong></div>
+        <label htmlFor="access-code"><span>Six-digit access code</span><input id="access-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={code} onChange={event=>setCode(event.target.value.replace(/\D/g,'').slice(0,6))} placeholder="000000" autoFocus /></label>
+        {error?<div className="auth-error" role="alert">{error}</div>:null}
+        <button type="submit" disabled={loading||code.length!==6} className="auth-submit"><span>{loading?'Verifying…':'Enter Mission Control'}</span><b aria-hidden="true">↗</b></button>
+      </form>
     </AuthShell>
   )
 
   return (
-    <AuthShell eyebrow="Secure entry / 01" title="Commander access." description="Enter your approved email. We’ll send a private, single-use access link." footer={<>New to APOLLO? <Link href="/signup">Request access</Link></>}>
+    <AuthShell eyebrow="Secure entry / 01" title="Commander access." description="Enter your approved email. We’ll send a private, single-use access code." footer={<>New to APOLLO? <Link href="/signup">Request access</Link></>}>
       <form onSubmit={handleLogin} className="auth-form">
         <label htmlFor="email"><span>Email address</span><input id="email" type="email" required value={email} onChange={event => setEmail(event.target.value)} placeholder="commander@company.com" autoComplete="email" /></label>
         {error ? <div className="auth-error" role="alert">{error}</div> : null}
         {!configured && !error ? <div className="auth-error" role="alert">Hosted database configuration is required before commander access can open.</div> : null}
-        <button type="submit" disabled={loading || !configured} className="auth-submit"><span>{loading ? 'Transmitting…' : configured ? 'Send secure link' : 'Configuration required'}</span><b aria-hidden="true">↗</b></button>
+        <button type="submit" disabled={loading || !configured} className="auth-submit"><span>{loading ? 'Transmitting…' : configured ? 'Send access code' : 'Configuration required'}</span><b aria-hidden="true">↗</b></button>
       </form>
     </AuthShell>
   )
