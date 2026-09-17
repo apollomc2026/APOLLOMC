@@ -2037,6 +2037,102 @@ export const MODULES_RAW: Record<string, unknown> = {
     "required_fields": [],
     "optional_fields": [
       {
+        "key": "contract_title",
+        "label": "Contract title / identifying number",
+        "type": "text",
+        "evidence_aliases": [
+          "agreement title",
+          "contract number",
+          "policy number",
+          "warranty number"
+        ]
+      },
+      {
+        "key": "contracting_parties",
+        "label": "Contracting parties and roles",
+        "type": "textarea",
+        "evidence_aliases": [
+          "parties",
+          "customer",
+          "provider",
+          "administrator",
+          "seller",
+          "buyer"
+        ]
+      },
+      {
+        "key": "effective_date",
+        "label": "Effective date",
+        "type": "date",
+        "evidence_aliases": [
+          "commencement date",
+          "coverage begins",
+          "start date"
+        ]
+      },
+      {
+        "key": "expiration_date",
+        "label": "Expiration / renewal date or trigger",
+        "type": "text",
+        "evidence_aliases": [
+          "term",
+          "expiration",
+          "renewal",
+          "coverage ends"
+        ]
+      },
+      {
+        "key": "current_status",
+        "label": "Current contract status supported by the evidence",
+        "type": "text",
+        "evidence_aliases": [
+          "status",
+          "active",
+          "expired",
+          "terminated",
+          "conditional"
+        ]
+      },
+      {
+        "key": "governing_law",
+        "label": "Governing law and dispute forum",
+        "type": "textarea",
+        "evidence_aliases": [
+          "governing law",
+          "jurisdiction",
+          "venue",
+          "disputes"
+        ]
+      },
+      {
+        "key": "material_obligations",
+        "label": "Material obligations, rights, deadlines, and prerequisites with clause/page anchors",
+        "type": "textarea",
+        "evidence_aliases": [
+          "duties",
+          "obligations",
+          "claim procedure",
+          "notice",
+          "deadline",
+          "conditions"
+        ]
+      },
+      {
+        "key": "commercial_rights_and_limits",
+        "label": "Verified prices, fees, deductibles, limits, reimbursements, remedies, and exclusions with clause/page anchors",
+        "type": "textarea",
+        "evidence_aliases": [
+          "price",
+          "fees",
+          "deductible",
+          "limit",
+          "benefits",
+          "coverage",
+          "exclusions",
+          "remedies"
+        ]
+      },
+      {
         "key": "review_perspective",
         "label": "Whose interests should APOLLO prioritize?",
         "type": "text",

@@ -9,6 +9,12 @@ export type WorkOrderCompilation =
   | { ok: true; order: DocumentWorkOrder }
   | { ok: false; missing: Array<{ key: string; label: string; reason: string }> }
 
+const CONSEQUENTIAL_CONFLICT_KEYS = new Set([
+  'contract_value','commercial_value','pricing_detail','line_items','total','customer_name','client_name',
+  'site_address','project_address','effective_date','expiration_date','contracting_parties','governing_law',
+  'forecast_period','base_case_lines','scenario_summary','acceptance_criteria','test_results',
+])
+
 export function uuidFromDigest(digest: string, offset = 0) {
   const hex = digest.slice(offset, offset + 32).padEnd(32, '0')
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`
@@ -46,6 +52,11 @@ export function executionFields(spec: DeliverableSpecification, now = new Date()
       if(Number.isFinite(days)&&!Number.isNaN(date.getTime())){date.setUTCDate(date.getUTCDate()+days);fields.valid_until=date.toISOString().slice(0,10)}
     }
   }
+  if(spec.artifact.recommended_type==='contract-intelligence-review'){
+    fields.review_perspective ??='Document owner'
+    fields.review_goal ??='Perform a complete operational review of the supplied agreement and related materials, identify rights, duties, deadlines, exclusions, value opportunities, risks, and actions with exact source anchors.'
+    fields.as_of_date ??=now.toISOString().slice(0,10)
+  }
   return fields
 }
 
@@ -53,11 +64,14 @@ export function executionGaps(spec: DeliverableSpecification, now = new Date()) 
   const documentModule = getModule(spec.artifact.recommended_type)
   if (!documentModule) return [{ key: 'deliverable', label: 'Supported deliverable', reason: 'The recommendation is not mapped to an active document module.' }]
   const requiredKeys = new Set(documentModule.required_fields.map(field => field.key))
-  const conflicts = spec.content.facts.filter(fact => requiredKeys.has(fact.key) && fact.verification_state === 'conflict' && controllingConflictValue(fact)===null).map(fact => ({ key: fact.key, label: fact.label, reason: 'Conflicting values must be resolved before controlled execution.' }))
+  const conflicts = spec.content.facts.filter(fact => (requiredKeys.has(fact.key)||CONSEQUENTIAL_CONFLICT_KEYS.has(fact.key)) && fact.verification_state === 'conflict' && controllingConflictValue(fact)===null).map(fact => ({ key: fact.key, label: fact.label, reason: 'Conflicting values must be resolved before controlled execution.' }))
   const fields = executionFields(spec, now)
   const internallyControlledFsrFields=new Set(spec.artifact.recommended_type==='fsr'?['work_order_number','equipment_asset_id']:[])
   const missing = documentModule.required_fields.filter(field => !internallyControlledFsrFields.has(field.key) && (fields[field.key] === undefined || fields[field.key] === null || String(fields[field.key]).trim() === '')).map(field => ({ key: field.key, label: field.label, reason: 'Required by the selected specialist document module.' }))
-  return [...conflicts, ...missing.filter(gap => !conflicts.some(conflict => conflict.key === gap.key))]
+  const evidenceMissing=spec.artifact.recommended_type==='contract-intelligence-review'&&!spec.sources.some(source=>source.status==='verified'||source.status==='conflict')
+    ? [{key:'contract_evidence',label:'Complete contract evidence',reason:'Attach at least one verified agreement, amendment, schedule, exhibit, warranty, or incorporated policy before contract review.'}]
+    : []
+  return [...evidenceMissing,...conflicts, ...missing.filter(gap => !conflicts.some(conflict => conflict.key === gap.key))]
 }
 
 export function compileApprovedSpecification(input: {

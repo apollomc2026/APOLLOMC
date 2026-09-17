@@ -47,6 +47,7 @@ describe('complete active deliverable catalog', () => {
       sensitivity:'confidential',
     }))
     specification.approval.status = 'approved'
+    if(deliverable.slug==='contract-intelligence-review') specification.sources=[{id:'contract-source',name:'complete-agreement.pdf',status:'verified'}]
 
     const compiled = compileApprovedSpecification({
       specification,
@@ -55,6 +56,7 @@ describe('complete active deliverable catalog', () => {
       conversationId:UUIDS.conversation,
       requestedBy:UUIDS.operator,
       driveFolderId:'pilot-catalog-custody',
+      sources:deliverable.slug==='contract-intelligence-review'?[{source_id:'contract-source',name:'complete-agreement.pdf',media_type:'application/pdf',retrieval_url:'https://evidence.invalid/contract',content_sha256:'c'.repeat(64),sensitivity:'confidential',expires_at:'2026-09-14T13:00:00.000Z'}]:[],
       now:new Date('2026-09-14T12:00:00.000Z'),
     })
     expect(compiled, `compile failure for ${deliverable.slug}`).toMatchObject({ ok:true })
