@@ -19,6 +19,20 @@ const REQUIRED_EVENT_SEQUENCE=['accepted','queued','gathering-input','generating
 
 function asRecord(value:unknown):Record<string,unknown>{return value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>: {}}
 function artifactIsControlled(artifact:ArtifactManifest){return artifact.mime_type==='application/pdf'&&/^[a-f0-9]{64}$/.test(artifact.content_sha256)&&artifact.source_engine_id==='apollo-documents'&&artifact.lifecycle==='draft'&&Boolean(artifact.storage_file_id)}
+function governedSourceIdentity(order:DocumentWorkOrder){return order.sources.map(source=>`${source.source_id}:${source.media_type}:${source.content_sha256.toLowerCase()}`).sort()}
+function revisionPreservesAuthority(prior:DocumentWorkOrder,revision:DocumentWorkOrder){
+  return revision.deliverable_type===prior.deliverable_type
+    &&revision.project_id===prior.project_id
+    &&revision.conversation_id===prior.conversation_id
+    &&revision.requested_by===prior.requested_by
+    &&revision.brand_id===prior.brand_id
+    &&revision.style_id===prior.style_id
+    &&revision.objective===prior.objective
+    &&revision.audience===prior.audience
+    &&revision.trace?.specification_id===prior.trace?.specification_id
+    &&revision.trace?.specification_hash===prior.trace?.specification_hash
+    &&JSON.stringify(governedSourceIdentity(revision))===JSON.stringify(governedSourceIdentity(prior))
+}
 function sequencePresent(events:EventRow[]){let cursor=-1;return REQUIRED_EVENT_SEQUENCE.every(state=>{const index=events.findIndex((event,position)=>position>cursor&&event.state===state);if(index<0)return false;cursor=index;return true})}
 function specialistVerification(deliverableType:PilotDeliverable,payload:Record<string,unknown>):{passed:boolean;evidence:string}{
   const key=deliverableType==='fsr'||deliverableType==='final-qc-report'?'field_record_verification':deliverableType==='quote'||deliverableType==='proposal'?'commercial_verification':deliverableType==='cash-flow-budget-package'?'financial_verification':'agreement_verification'
@@ -56,6 +70,8 @@ export function auditPilotRelease(input:PilotAuditInput):{passed:boolean;passed_
     const unresolvedConflicts=spec.content.facts.filter(fact=>fact.verification_state==='conflict'&&!fact.supersession)
     const latestOrder=latest?.work_order;const artifacts=latest?.artifacts??[]
     const revision=delivered.find(job=>Boolean(job.work_order.fields.revision_of)&&job.work_order.fields.revision_of!==job.id)
+    const revisionParent=revision?jobs.find(job=>job.id===revision.work_order.fields.revision_of):undefined
+    const revisionAuthority=Boolean(revision&&revisionParent&&revisionPreservesAuthority(revisionParent.work_order,revision.work_order))
     const failedAttempts=jobs.map((job,index)=>({job,index})).filter(({job})=>['failed','blocked'].includes(job.state))
     const recovered=failedAttempts.length>0&&failedAttempts.every(({index})=>jobs.slice(index+1).some(candidate=>candidate.state==='delivered'))
     const currentDelivered=current?.state==='delivered'
@@ -69,7 +85,7 @@ export function auditPilotRelease(input:PilotAuditInput):{passed:boolean;passed_
       {key:'market-pricing',label:'Cited market-informed pricing',passed:deliverableType!=='quote'||Boolean(pricingResearch)&&pricingSources.length>0&&pricingSources.every(source=>/^https:\/\//i.test(source)),evidence:deliverableType!=='quote'?'Not applicable to this pilot class.':`${pricingResearch?'Verified benchmark record':'Missing benchmark record'}; ${pricingSources.length} cited source(s).`},
       {key:'artifact',label:'Controlled branded PDF artifact',passed:artifacts.length>0&&artifacts.every(artifactIsControlled)&&Boolean(latestOrder?.brand_id)&&Boolean(latestOrder?.style_id),evidence:`${artifacts.length} artifact(s); brand=${latestOrder?.brand_id??'missing'}; style=${latestOrder?.style_id??'missing'}.`},
       {key:'recovery',label:'Failure recovery proven',passed:recovered,evidence:recovered?`${failedAttempts.length} failed/blocked attempt(s) were followed by successful delivery.`:failedAttempts.length?'A failed/blocked attempt remains unrecovered.':'No controlled failure-to-success recovery is recorded.'},
-      {key:'regeneration',label:'Regeneration lineage proven',passed:Boolean(revision)&&delivered.length>=2&&Number(revision?.artifacts?.[0]?.version??0)>=2,evidence:`${delivered.length} delivered deployment(s); revision=${revision?.id??'missing'}.`},
+      {key:'regeneration',label:'Regeneration lineage proven',passed:Boolean(revision)&&delivered.length>=2&&Number(revision?.artifacts?.[0]?.version??0)>=2&&revisionAuthority,evidence:`${delivered.length} delivered deployment(s); revision=${revision?.id??'missing'}; approved authority=${revisionAuthority?'preserved':'unproven'}.`},
     ]
     return {deliverable_type:deliverableType,conversation_id:conversation.id,passed:gates.every(gate=>gate.passed),gates}
   })

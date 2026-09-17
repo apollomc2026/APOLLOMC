@@ -79,4 +79,13 @@ describe('pilot release auditor',()=>{
     expect(fsr.gates.find(gate=>gate.key==='launch')).toMatchObject({passed:false})
     expect(fsr.gates.find(gate=>gate.key==='recovery')).toMatchObject({passed:false})
   })
+
+  it('rejects a regeneration that silently changes the approved brand',()=>{
+    const item=fixture('proposal')
+    item.jobs[2].work_order={...item.jobs[2].work_order,brand_id:'kit:unapproved-brand'}
+    const report=auditPilotRelease({conversations:[item.conversation],specifications:[item.specification],evidence:[item.evidence],jobs:item.jobs,events:item.events})
+    const regeneration=report.classes.find(entry=>entry.deliverable_type==='proposal')!.gates.find(gate=>gate.key==='regeneration')!
+    expect(regeneration).toMatchObject({passed:false})
+    expect(regeneration.evidence).toContain('approved authority=unproven')
+  })
 })
