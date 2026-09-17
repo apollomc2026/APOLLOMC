@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Rocket } from 'lucide-react'
@@ -13,8 +13,23 @@ export default function LoginPage() {
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [resendSeconds,setResendSeconds]=useState(0)
+  const [notice,setNotice]=useState('')
   const configured = isSupabaseConfigured()
   const router = useRouter()
+
+  useEffect(()=>{
+    if(resendSeconds<=0)return
+    const timer=window.setInterval(()=>setResendSeconds(value=>Math.max(0,value-1)),1000)
+    return()=>window.clearInterval(timer)
+  },[resendSeconds])
+
+  async function requestCode(){
+    const request=await fetch('/api/auth/email-code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})})
+    const result=await request.json().catch(()=>({})) as {error?:string}
+    if(!request.ok)throw new Error(result.error||'Unable to send an access code. Try again shortly.')
+    setResendSeconds(60)
+  }
 
   async function handleLogin(event: React.FormEvent) {
     event.preventDefault()
@@ -25,10 +40,14 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
-    const request=await fetch('/api/auth/email-code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})})
-    const result=await request.json().catch(()=>({})) as {error?:string}
-    if(!request.ok)setError(result.error||'Unable to send an access code. Try again shortly.')
-    else setSent(true)
+    try{await requestCode();setSent(true);setNotice('Access code transmitted.')}catch(cause){setError(cause instanceof Error?cause.message:'Unable to send an access code.')}
+    setLoading(false)
+  }
+
+  async function handleResend(){
+    if(resendSeconds>0||loading)return
+    setLoading(true);setError('');setNotice('')
+    try{await requestCode();setNotice('New access code transmitted. Use the newest email only.')}catch(cause){setError(cause instanceof Error?cause.message:'Unable to resend the access code.')}
     setLoading(false)
   }
 
@@ -47,6 +66,7 @@ export default function LoginPage() {
       <form onSubmit={handleVerify} className="auth-form">
         <div className="auth-confirm"><span>Transmission destination</span><strong>{email}</strong></div>
         <label htmlFor="access-code"><span>One-time access code</span><input id="access-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6,8}" maxLength={8} required value={code} onChange={event=>setCode(event.target.value.replace(/\D/g,'').slice(0,8))} placeholder="00000000" autoFocus /></label>
+        <div className="auth-code-actions"><span>{notice||'Use the newest APOLLO transmission.'}</span><button type="button" onClick={()=>void handleResend()} disabled={loading||resendSeconds>0}>{resendSeconds>0?`Resend in ${resendSeconds}s`:'Resend code'}</button></div>
         {error?<div className="auth-error" role="alert">{error}</div>:null}
         <button type="submit" disabled={loading||code.length<6} className="auth-submit auth-launch-submit"><Rocket aria-hidden="true"/><span>{loading?'Verifying…':'Enter Mission Control'}</span><b aria-hidden="true">IGNITE</b></button>
       </form>
