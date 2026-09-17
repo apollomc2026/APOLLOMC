@@ -23,6 +23,7 @@ export function verifyAgreementDocument(order:DocumentWorkOrder, contentHtml:str
   if (order.deliverable_type === 'contract-intelligence-review') {
     const documentText = searchable(contentHtml)
     const candidateFields = ['contract_title','contracting_parties','effective_date','expiration_date','current_status','governing_law']
+    const materialFields=['material_obligations','commercial_rights_and_limits']
     const approvedFields = candidateFields.filter(key => searchable(order.fields[key]))
     const missingFields = approvedFields.filter(key => !documentText.includes(searchable(order.fields[key])))
     const missingSources = order.sources.filter(source => {
@@ -30,9 +31,21 @@ export function verifyAgreementDocument(order:DocumentWorkOrder, contentHtml:str
       return !searchable(basename) || !documentText.includes(searchable(basename))
     })
     if (missingFields.length) throw new Error(`Agreement factual verification failed: approved ${missingFields.join(', ')} ${missingFields.length === 1 ? 'was' : 'were'} changed or omitted`)
+    const verifiedMaterialSegments:string[]=[]
+    for(const key of materialFields){
+      const raw=order.fields[key]
+      if(typeof raw!=='string'||!raw.trim())continue
+      const segments=raw.split(/\r?\n|\s*;\s*/).map(value=>value.trim()).filter(Boolean)
+      for(const [index,segment] of segments.entries()){
+        const approved=searchable(segment.replace(/\|/g,' '))
+        if(!approved||!documentText.includes(approved))throw new Error(`Agreement factual verification failed: approved ${key} item ${index+1} was changed or omitted`)
+        verifiedMaterialSegments.push(`${key}:${index+1}`)
+      }
+    }
     if (missingSources.length) throw new Error(`Agreement source verification failed: ${missingSources.map(source => source.name).join(', ')} ${missingSources.length === 1 ? 'was' : 'were'} omitted from the contract review`)
     if (!approvedFields.length && !order.sources.length) throw new Error('Agreement verification failed: contract review has no approved contract facts or source documents')
-    return { required:true, verified_fields:[...approvedFields,...order.sources.map(source => `source:${source.name}`)] }
+    if(!/not legal advice|contract intelligence,? not legal advice/i.test(contentHtml.replace(/<[^>]+>/g,' ')))throw new Error('Agreement professional-boundary verification failed: contract review must state that it is not legal advice')
+    return { required:true, verified_fields:[...approvedFields,...verifiedMaterialSegments,...order.sources.map(source => `source:${source.name}`),'boundary:not-legal-advice'] }
   }
   if (order.deliverable_type !== 'contract-package') return { required:false, verified_fields:[] }
   const documentText = searchable(contentHtml)
