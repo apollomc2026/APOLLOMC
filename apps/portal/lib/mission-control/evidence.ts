@@ -107,6 +107,22 @@ export async function extractEvidenceFacts(text: string | undefined, moduleSlug:
   return extractEvidenceFactsFromSources(text?.trim() ? [{ id: 'evidence', name: 'Evidence', text }] : [], moduleSlug)
 }
 
+export type EvidenceExtractionMode='text'|'pdf'|'image'|'none'
+export function evidenceExtractionMode(input:{mime:string;text?:string}):EvidenceExtractionMode {
+  if(input.text?.trim())return 'text'
+  if(input.mime==='application/pdf')return 'pdf'
+  if(input.mime==='image/png'||input.mime==='image/jpeg')return 'image'
+  return 'none'
+}
+
+export async function extractEvidenceFactsFromArtifact(input:{id:string;name:string;mime:string;bytes:Buffer;text?:string},moduleSlug:string|null):Promise<MissionFact[]> {
+  const mode=evidenceExtractionMode(input)
+  if(mode==='text')return extractEvidenceFactsFromSources([{id:input.id,name:input.name,text:input.text!}],moduleSlug)
+  if(mode==='pdf')return extractEvidenceFactsFromPdfs([{id:input.id,name:input.name,bytes:input.bytes}],moduleSlug)
+  if(mode==='image')return extractEvidenceFactsFromImages([{id:input.id,name:input.name,mime:input.mime as 'image/png'|'image/jpeg',bytes:input.bytes}],moduleSlug)
+  return []
+}
+
 export function evidenceFactsFromToolInput(
   input: Record<string, unknown>,
   fields: EvidenceField[],
@@ -424,5 +440,39 @@ export async function extractEvidenceFactsFromPdfs(
     }
   }
   const deduplicated=deduplicateEvidenceFacts(facts)
+  return reconcileEvidenceSupersessions(deduplicateEvidenceFacts([...deduplicated,...deriveEvidenceFacts(deduplicated,moduleSlug)]))
+}
+
+export async function extractEvidenceFactsFromImages(
+  sources:Array<{id:string;name:string;mime:'image/png'|'image/jpeg';bytes:Buffer}>,
+  moduleSlug:string|null,
+):Promise<MissionFact[]> {
+  if(!sources.length||!moduleSlug||!process.env.ANTHROPIC_API_KEY)return []
+  const documentModule=getModule(moduleSlug);if(!documentModule)return []
+  const requiredFields=documentModule.required_fields as EvidenceField[];const optionalFields=documentModule.optional_fields as EvidenceField[]
+  const client=new Anthropic({apiKey:process.env.ANTHROPIC_API_KEY});const facts:MissionFact[]=[]
+  for(const batch of batchEvidenceSources(sources,4)){
+    const sourceIds=batch.map(source=>source.id)
+    const content:ContentBlockParam[]=batch.flatMap(source=>[
+      {type:'text' as const,text:`SOURCE ID: ${source.id} — ${source.name}`},
+      {type:'image' as const,source:{type:'base64' as const,media_type:source.mime,data:source.bytes.toString('base64')}},
+    ])
+    for(const passFields of [...batchEvidenceSources(requiredFields,5),optionalFields]){
+      if(!passFields.length)continue
+      const properties=evidenceToolProperties(passFields,sourceIds,'source')
+      const response=await client.messages.create({model:modelFor('extraction'),max_tokens:5000,system:'You are one pass in APOLLO multipass image-evidence ingestion. Read visible printed and handwritten content carefully. Extract every requested value explicitly supported by the labeled images. Never infer obscured, cropped, illegible, or absent values. Cite the source ID, preserve contradictions, return option VALUES exactly, and do not calculate in this pass.',tools:[{name:'extract_evidence',description:'Return every supported candidate visible in the image evidence.',input_schema:{type:'object',properties}}],tool_choice:{type:'tool',name:'extract_evidence'},messages:[{role:'user',content:[...content,{type:'text' as const,text:`REQUESTED FIELD PASS:\n${passFields.map(field=>fieldDescriptor(field)).join('\n')}`}]}]})
+      const block=response.content.find(item=>item.type==='tool_use'&&item.name==='extract_evidence')
+      if(block?.type==='tool_use')facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,passFields,sourceIds))
+    }
+    const found=new Set(facts.map(fact=>fact.key));const missing=requiredFields.filter(field=>!found.has(field.key))
+    if(missing.length){
+      const properties=evidenceToolProperties(missing,sourceIds,'source')
+      const response=await client.messages.create({model:modelFor('extraction'),max_tokens:5000,system:'This is APOLLO image required-field recovery. Reinspect every labeled image, including headers, footers, tables, form boxes, captions, and handwritten notes. Return only legible, directly supported values with source IDs. Never fabricate.',tools:[{name:'extract_evidence',description:'Recover supported required fields missed by prior image passes.',input_schema:{type:'object',properties}}],tool_choice:{type:'tool',name:'extract_evidence'},messages:[{role:'user',content:[...content,{type:'text' as const,text:`MISSING REQUIRED FIELDS:\n${missing.map(field=>fieldDescriptor(field)).join('\n')}`}]}]})
+      const block=response.content.find(item=>item.type==='tool_use'&&item.name==='extract_evidence')
+      if(block?.type==='tool_use')facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,missing,sourceIds))
+    }
+  }
+  const supported=moduleSlug==='quote'?filterSemanticallyUnsupportedEvidenceFacts(facts,sources.map(source=>({id:source.id,text:''})),moduleSlug):facts
+  const deduplicated=deduplicateEvidenceFacts(supported)
   return reconcileEvidenceSupersessions(deduplicateEvidenceFacts([...deduplicated,...deriveEvidenceFacts(deduplicated,moduleSlug)]))
 }

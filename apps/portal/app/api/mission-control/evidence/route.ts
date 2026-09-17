@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import { requireAllowedUser } from '@/lib/apollo/auth'
 import { createClient } from '@/lib/supabase/server'
 import { deleteFromS3, getPresignedUrl, uploadToS3 } from '@/lib/s3/client'
-import { evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractEvidenceFacts, MAX_EVIDENCE_BYTES, normalizeEvidenceMime, prepareEvidenceRetrieval, sanitizeEvidenceBytes } from '@/lib/mission-control/evidence'
+import { evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractEvidenceFactsFromArtifact, MAX_EVIDENCE_BYTES, normalizeEvidenceMime, prepareEvidenceRetrieval, sanitizeEvidenceBytes } from '@/lib/mission-control/evidence'
 import { type DeliverableSpecification } from '@/lib/mission-control/contracts'
 import { mergeEvidenceIntoSpecification } from '@/lib/mission-control/evidence-specification'
 
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
   const originalHash = createHash('sha256').update(bytes).digest('hex')
   let extractionStatus: 'verified' | 'failed' = 'verified'
   let retrievalKey = storageKey; let retrievalMime = mimeType; let retrievalHash = originalHash
-  let extractedFacts: Awaited<ReturnType<typeof extractEvidenceFacts>> = []
+  let extractedFacts: Awaited<ReturnType<typeof extractEvidenceFactsFromArtifact>> = []
   let extractedText: string | undefined
   try {
     const extracted = await extractEvidence(bytes, mimeType)
@@ -77,8 +77,8 @@ export async function POST(request: Request) {
     }
   } catch { extractionStatus = 'failed' }
   if (extractionStatus === 'verified') {
-    try { extractedFacts = await extractEvidenceFacts(extractedText, moduleSlug) } catch { extractedFacts = [] }
-    extractedFacts = extractedFacts.map(fact => ({ ...fact, source_reference: id, last_editor: allowed.user.userId }))
+    try { extractedFacts = await extractEvidenceFactsFromArtifact({id,name:file.name,mime:mimeType,bytes,text:extractedText}, moduleSlug) } catch { extractedFacts = [] }
+    extractedFacts = extractedFacts.map(fact => ({ ...fact, last_editor: allowed.user.userId }))
   }
   const inserted = await db.from('apollo_conversation_evidence').insert({ id, conversation_id: conversationId, user_id: allowed.user.userId, original_name: file.name, storage_key: storageKey, content_sha256: originalHash, retrieval_storage_key: retrievalKey, retrieval_mime_type: retrievalMime, retrieval_sha256: retrievalHash, mime_type: mimeType, size_bytes: bytes.length, extraction_status: extractionStatus, extracted_facts: extractedFacts }).select('id, original_name, extraction_status').single()
   if (inserted.error) {

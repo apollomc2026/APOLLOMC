@@ -1,12 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import * as XLSX from 'xlsx'
 import sharp from 'sharp'
-import { applyEvidenceSupersessionDecisions, batchEvidenceSources, chunkEvidenceSources, deduplicateEvidenceFacts, deriveEvidenceFacts, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractLabeledEvidenceFacts, filterSemanticallyUnsupportedEvidenceFacts, normalizeEvidenceMime, prepareEvidenceRetrieval, reconcileEvidenceSupersessions, sanitizeEvidenceBytes, supersessionDecisionsFromToolInput } from '../lib/mission-control/evidence'
+import { applyEvidenceSupersessionDecisions, batchEvidenceSources, chunkEvidenceSources, deduplicateEvidenceFacts, deriveEvidenceFacts, evidenceExtractionMode, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractLabeledEvidenceFacts, filterSemanticallyUnsupportedEvidenceFacts, normalizeEvidenceMime, prepareEvidenceRetrieval, reconcileEvidenceSupersessions, sanitizeEvidenceBytes, supersessionDecisionsFromToolInput } from '../lib/mission-control/evidence'
 import { createMissionFact, mergeMissionFacts, missionFactSourceReferences, specificationProvenance, type DeliverableSpecification } from '../lib/mission-control/contracts'
 import { buildContentBlocks, inlineEvidenceByteLimit, OrchestrateError } from '../lib/apollo/orchestrate'
 import { mergeEvidenceIntoSpecification } from '../lib/mission-control/evidence-specification'
 
 describe('mission evidence custody', () => {
+  it('routes every supported evidence form into an immediate extraction mode',()=>{
+    expect(evidenceExtractionMode({mime:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',text:'Extracted document text'})).toBe('text')
+    expect(evidenceExtractionMode({mime:'application/pdf'})).toBe('pdf')
+    expect(evidenceExtractionMode({mime:'image/jpeg'})).toBe('image')
+    expect(evidenceExtractionMode({mime:'image/png'})).toBe('image')
+    expect(evidenceExtractionMode({mime:'application/octet-stream'})).toBe('none')
+  })
   it('rejects a declared PDF whose bytes are not a PDF', () => {
     expect(evidenceMagicMatches(Buffer.from('not a pdf'), 'application/pdf')).toBe(false)
     expect(evidenceMagicMatches(Buffer.from('%PDF-1.7'), 'application/pdf')).toBe(true)
