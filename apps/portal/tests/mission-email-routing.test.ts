@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { failedEmail, missionCompleteEmail } from '../lib/email/ses'
-import { artifactMatchesNotificationAuthority } from '../lib/executor/completion-notification'
+import { artifactMatchesNotificationAuthority,workOrderMatchesNotificationAuthority } from '../lib/executor/completion-notification'
 import type { ArtifactManifest, DocumentWorkOrder } from '../lib/executor/contracts'
 
 const previousAppUrl = process.env.NEXT_PUBLIC_APP_URL
@@ -33,5 +33,14 @@ describe('completion notification authority',()=>{
     expect(artifactMatchesNotificationAuthority(artifact,order)).toBe(true)
     expect(artifactMatchesNotificationAuthority({...artifact,deliverable_type:'fsr'},order)).toBe(false)
     expect(artifactMatchesNotificationAuthority({...artifact,specification_hash:'c'.repeat(64)},order)).toBe(false)
+  })
+
+  it('binds terminal notifications to the canonical job mission, owner, and deliverable',()=>{
+    const job={id:order.work_order_id,conversation_id:order.conversation_id,requested_by:order.requested_by,deliverable_type:order.deliverable_type}
+    expect(workOrderMatchesNotificationAuthority(order,job)).toBe(true)
+    expect(workOrderMatchesNotificationAuthority(order,{...job,conversation_id:'stale-mission'})).toBe(false)
+    expect(workOrderMatchesNotificationAuthority(order,{...job,requested_by:'wrong-owner'})).toBe(false)
+    expect(workOrderMatchesNotificationAuthority(order,{...job,deliverable_type:'fsr'})).toBe(false)
+    expect(workOrderMatchesNotificationAuthority(order,{...job,id:'duplicate-job'})).toBe(false)
   })
 })

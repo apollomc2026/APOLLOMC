@@ -16,6 +16,13 @@ export function artifactMatchesNotificationAuthority(artifact:ArtifactManifest,o
     &&artifact.specification_hash===order.trace?.specification_hash
 }
 
+export function workOrderMatchesNotificationAuthority(order:DocumentWorkOrder,job:{id:string;conversation_id:string;requested_by:string;deliverable_type:string}){
+  return order.work_order_id===job.id
+    &&order.conversation_id===job.conversation_id
+    &&order.requested_by===job.requested_by
+    &&order.deliverable_type===job.deliverable_type
+}
+
 export async function sendCompletionNotification(jobId: string) {
   const db = await createServiceClient()
   const staleBefore = new Date(Date.now() - 10 * 60_000).toISOString()
@@ -29,7 +36,7 @@ export async function sendCompletionNotification(jobId: string) {
     .eq('id', jobId)
     .eq('state', 'delivered')
     .or(`completion_email_status.in.(pending,failed),and(completion_email_status.eq.sending,updated_at.lt.${staleBefore})`)
-    .select('id,conversation_id,requested_by,artifacts,work_order')
+    .select('id,conversation_id,requested_by,deliverable_type,artifacts,work_order')
     .maybeSingle()
 
   if (claim.error) throw new Error(claim.error.message)
@@ -48,7 +55,7 @@ export async function sendCompletionNotification(jobId: string) {
     const artifact = artifacts[0]
     if (!artifact?.storage_file_id) throw new Error('Delivered artifact is unavailable')
     const workOrder=claim.data.work_order as DocumentWorkOrder|null
-    if(!workOrder||!artifactMatchesNotificationAuthority(artifact,workOrder))throw new Error('Delivered artifact authority does not match the approved work order')
+    if(!workOrder||!workOrderMatchesNotificationAuthority(workOrder,claim.data)||!artifactMatchesNotificationAuthority(artifact,workOrder))throw new Error('Delivered artifact authority does not match the approved work order')
     const deliverableName=findDeliverable(workOrder.deliverable_type)?.label||workOrder.deliverable_type.replace(/-/g,' ')
 
     await sendEmail({

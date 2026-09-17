@@ -2,6 +2,7 @@ import { failedEmail, sendEmail } from '@/lib/email/ses'
 import { createServiceClient } from '@/lib/supabase/server'
 import { findDeliverable } from '@/lib/apollo/packages-loader'
 import type { DocumentWorkOrder } from './contracts'
+import { workOrderMatchesNotificationAuthority } from './completion-notification'
 
 export async function sendFailureNotification(jobId: string) {
   const db = await createServiceClient()
@@ -32,7 +33,8 @@ export async function sendFailureNotification(jobId: string) {
       throw new Error(profile.error?.message ?? 'Mission owner email is unavailable')
 
     const workOrder=claim.data.work_order as DocumentWorkOrder|null
-    const deliverableType=workOrder?.deliverable_type||String(claim.data.deliverable_type||'')
+    if(!workOrder||!workOrderMatchesNotificationAuthority(workOrder,{...claim.data,deliverable_type:String(claim.data.deliverable_type||'')}))throw new Error('Failed mission authority does not match the approved work order')
+    const deliverableType=workOrder.deliverable_type
     const deliverableName=findDeliverable(deliverableType)?.label||deliverableType.replace(/-/g,' ')||'document'
     await sendEmail({
       to: profile.data.email,
