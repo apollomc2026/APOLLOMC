@@ -13,6 +13,7 @@
     "gen:thumbnails": "node scripts/generate-style-thumbnails.mjs",
     "test": "vitest run",
     "pilot:golden": "tsx scripts/pilot-golden-matrix.mts",
+    "pilot:live-audit": "tsx scripts/pilot-live-audit.mts",
     "release:check": "node scripts/release-readiness.mjs"
   },
   "dependencies": {
