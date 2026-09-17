@@ -235,6 +235,17 @@ describe('mission evidence custody', () => {
     expect(filterSemanticallyUnsupportedEvidenceFacts(facts,[{id:'report',text:source}],'fsr')).toEqual([])
   })
 
+  it('retains explicit conflicts when recalibration combines extraction modes',()=>{
+    const facts=reconcileEvidenceSupersessions([
+      createMissionFact({key:'site_address',label:'Site address',value:'100 Old Road',source:'evidence',source_reference:'scan-pdf',confidence:1}),
+      createMissionFact({key:'site_address',label:'Site address',value:'200 New Road',source:'evidence',source_reference:'site-photo',confidence:1}),
+    ])
+    const merged=mergeMissionFacts([],facts)
+    expect(merged).toEqual([expect.objectContaining({key:'site_address',verification_state:'conflict',conflicts:expect.arrayContaining([
+      expect.objectContaining({source_reference:'scan-pdf'}),expect.objectContaining({source_reference:'site-photo'}),
+    ])})])
+  })
+
   it('rebases a concurrent evidence upload onto the latest specification without losing earlier custody', () => {
     const prior: DeliverableSpecification = {
       schema_version:'1.0', mission:{ title:'Test', objective:'Test', desired_decision_or_action:'Review', stakes:'low', deadline:null },

@@ -4,7 +4,7 @@ import { interpretMissionWithClaude } from './ai-interpreter'
 import { createMissionFact, mergeMissionFacts, missionFactSourceReferences, specificationProvenance, type DeliverableSpecification, type MissionFact, type MissionTurnResult, type VoiceTranscriptMetadata } from './contracts'
 import type { DocumentSource } from '@/lib/executor/contracts'
 import { getFromS3, getPresignedUrl } from '@/lib/s3/client'
-import { extractEvidence, extractEvidenceFactsFromPdfs, extractEvidenceFactsFromSources } from './evidence'
+import { extractEvidence, extractEvidenceFactsFromImages, extractEvidenceFactsFromPdfs, extractEvidenceFactsFromSources, reconcileEvidenceSupersessions } from './evidence'
 import { executionGaps, materializeSpecificationDefaults } from './work-order'
 import { canonicalizeSpecificationIdentity } from './identity'
 import { pricingResearchFact, requestsMarketPricingResearch, researchQuotePricing } from './quote-pricing-research'
@@ -49,7 +49,7 @@ async function reconcileSecuredEvidence(input: {
     .select('id, original_name, retrieval_storage_key, retrieval_mime_type')
     .eq('conversation_id', input.conversationId)
     .eq('user_id', input.userId)
-    .eq('extraction_status', 'verified')
+    .in('extraction_status', ['verified','conflict'])
     .order('created_at')
   if (query.error) throw new MissionPersistenceError('Secured mission evidence could not be reconciled')
 
@@ -64,12 +64,12 @@ async function reconcileSecuredEvidence(input: {
     try {
       const bytes = await getFromS3(row.retrieval_storage_key)
       const extracted = await extractEvidence(bytes, row.retrieval_mime_type)
-      return { id: row.id, name: row.original_name, text: extracted.text?.trim() || null, pdfBytes: row.retrieval_mime_type === 'application/pdf' ? bytes : null }
+      return { id: row.id, name: row.original_name, mime:row.retrieval_mime_type, text: extracted.text?.trim() || null, bytes }
     } catch (error) {
       console.warn('[mission-control] Evidence source could not be re-read', { evidenceId: row.id, name: row.original_name, error: error instanceof Error ? error.message : 'unknown error' })
       return null
     }
-  }))).filter((source): source is { id: string; name: string; text: string | null; pdfBytes: Buffer | null } => Boolean(source))
+  }))).filter((source): source is { id: string; name: string; mime:string; text: string | null; bytes:Buffer } => Boolean(source))
   if (!recoveredSources.length) return [] as MissionFact[]
 
   const moduleSlug = input.specification.artifact.recommended_type
@@ -84,16 +84,19 @@ async function reconcileSecuredEvidence(input: {
     return score(right.name) - score(left.name)
   })
   const readableSources = prioritizedSources.filter((source): source is typeof source & { text: string } => Boolean(source.text))
-  const pdfSources = prioritizedSources.filter((source): source is typeof source & { pdfBytes: Buffer } => Boolean(source.pdfBytes))
-  const extracted = readableSources.length
-    ? await extractEvidenceFactsFromSources(readableSources, moduleSlug)
-    : await extractEvidenceFactsFromPdfs(pdfSources.map(source => ({ id: source.id, name: source.name, bytes: source.pdfBytes })), moduleSlug)
+  const pdfSources = prioritizedSources.filter(source => !source.text&&source.mime==='application/pdf')
+  const imageSources = prioritizedSources.filter((source):source is typeof source&{mime:'image/png'|'image/jpeg'}=>source.mime==='image/png'||source.mime==='image/jpeg')
+  const extracted = reconcileEvidenceSupersessions((await Promise.all([
+    readableSources.length?extractEvidenceFactsFromSources(readableSources,moduleSlug):Promise.resolve([]),
+    pdfSources.length?extractEvidenceFactsFromPdfs(pdfSources.map(source=>({id:source.id,name:source.name,bytes:source.bytes})),moduleSlug):Promise.resolve([]),
+    imageSources.length?extractEvidenceFactsFromImages(imageSources.map(source=>({id:source.id,name:source.name,mime:source.mime,bytes:source.bytes})),moduleSlug):Promise.resolve([]),
+  ])).flat())
   const evidenceFacts = extracted
     .map(fact => createMissionFact({ ...fact, last_editor: input.userId }))
   if (moduleSlug === 'final-qc-report' && !evidenceFacts.some(fact => fact.key === 'reference_documents')) {
     evidenceFacts.push(createMissionFact({ key: 'reference_documents', label: 'Reference documents / standards', value: rows.map(row => row.original_name).join('; '), source: 'evidence', source_reference: rows[0]?.id ?? null, confidence: 1, sensitivity: 'confidential', last_editor: input.userId }))
   }
-  console.info('[mission-control] Evidence recalibration completed', { conversationId: input.conversationId, moduleSlug, securedSources: rows.length, recoveredSources: recoveredSources.length, readableSources: readableSources.length, nativePdfFallback: !readableSources.length && pdfSources.length > 0, extractedFacts: evidenceFacts.length })
+  console.info('[mission-control] Evidence recalibration completed', { conversationId: input.conversationId, moduleSlug, securedSources: rows.length, recoveredSources: recoveredSources.length, readableSources: readableSources.length, nativePdfSources:pdfSources.length, imageSources:imageSources.length, extractedFacts: evidenceFacts.length })
   await Promise.all(rows.map(async row => {
     const facts = evidenceFacts.filter(fact => missionFactSourceReferences(fact).includes(row.id))
     const update = await input.db.from('apollo_conversation_evidence').update({ extracted_facts: facts }).eq('id', row.id).eq('user_id', input.userId)
