@@ -12,6 +12,8 @@ const ROW_FIELDS:Record<string,string[]> = {
   'change-order':['cost_breakdown'],
 }
 
+const PROPOSAL_ANCHORS=['prospect_organization','pricing_model']
+
 function searchable(value:unknown,containsHtml=false) {
   let text=String(value??'')
   if(containsHtml) text=text.replace(/<[^>]+>/g,' ')
@@ -33,6 +35,10 @@ function outputNumbers(contentHtml:string):number[] {
   }).filter(Number.isFinite)
 }
 
+function approvedNumbers(value:unknown):number[]{
+  return outputNumbers(String(value??''))
+}
+
 function containsFigure(figures:number[],expected:number){return figures.some(value=>Math.abs(value-expected)<0.005)}
 
 function approvedRows(raw:string):string[]{
@@ -47,10 +53,11 @@ function approvedRows(raw:string):string[]{
 /** Commercial documents may format approved data, but may not rewrite it. */
 export function verifyCommercialDocument(order:DocumentWorkOrder,contentHtml:string):CommercialVerificationReport {
   const rowFields=ROW_FIELDS[order.deliverable_type]
-  if(!rowFields)return{required:false,verified_rows:0,verified_figures:0}
+  const isProposal=order.deliverable_type==='proposal'
+  if(!rowFields&&!isProposal)return{required:false,verified_rows:0,verified_figures:0}
   const documentText=searchable(contentHtml,true)
   let verifiedRows=0
-  for(const key of rowFields){
+  for(const key of rowFields??[]){
     const raw=order.fields[key]
     if(typeof raw!=='string'||!raw.trim())throw new Error(`Commercial verification failed: approved ${key} was empty`)
     for(const [index,line] of approvedRows(raw).entries()){
@@ -60,6 +67,19 @@ export function verifyCommercialDocument(order:DocumentWorkOrder,contentHtml:str
     }
   }
   let verifiedFigures=0
+  if(isProposal){
+    const missing=PROPOSAL_ANCHORS.filter(key=>{
+      const approved=searchable(order.fields[key])
+      return !approved||!documentText.includes(approved)
+    })
+    if(missing.length)throw new Error(`Commercial verification failed: approved ${missing.join(', ')} ${missing.length===1?'was':'were'} changed or omitted`)
+    verifiedRows+=PROPOSAL_ANCHORS.length
+    const figures=outputNumbers(contentHtml)
+    for(const value of approvedNumbers(order.fields.pricing_detail)){
+      if(!containsFigure(figures,value))throw new Error(`Commercial verification failed: proposal pricing figure ${value} was changed or omitted`)
+      verifiedFigures+=1
+    }
+  }
   if(order.deliverable_type==='change-order'){
     const figures=outputNumbers(contentHtml)
     const original=numberValue(order.fields.original_contract_sum_dollars)

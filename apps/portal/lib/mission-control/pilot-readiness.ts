@@ -20,6 +20,11 @@ const REQUIRED_EVENT_SEQUENCE=['accepted','queued','gathering-input','generating
 function asRecord(value:unknown):Record<string,unknown>{return value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>: {}}
 function artifactIsControlled(artifact:ArtifactManifest){return artifact.mime_type==='application/pdf'&&/^[a-f0-9]{64}$/.test(artifact.content_sha256)&&artifact.source_engine_id==='apollo-documents'&&artifact.lifecycle==='draft'&&Boolean(artifact.storage_file_id)}
 function sequencePresent(events:EventRow[]){let cursor=-1;return REQUIRED_EVENT_SEQUENCE.every(state=>{const index=events.findIndex((event,position)=>position>cursor&&event.state===state);if(index<0)return false;cursor=index;return true})}
+function specialistVerification(deliverableType:PilotDeliverable,payload:Record<string,unknown>):{passed:boolean;evidence:string}{
+  const key=deliverableType==='fsr'||deliverableType==='final-qc-report'?'field_record_verification':deliverableType==='quote'||deliverableType==='proposal'?'commercial_verification':deliverableType==='cash-flow-budget-package'?'financial_verification':'agreement_verification'
+  const report=asRecord(payload[key])
+  return {passed:report.required===true,evidence:`${key}=${report.required===true?'passed':'missing'}`}
+}
 
 export function auditPilotRelease(input:PilotAuditInput):{passed:boolean;passed_classes:number;total_classes:number;classes:PilotClassAudit[]} {
   const specsByConversation=new Map(input.specifications.map(row=>[`${row.conversation_id}:${row.version}`,row]))
@@ -35,6 +40,7 @@ export function auditPilotRelease(input:PilotAuditInput):{passed:boolean;passed_
     const delivered=jobs.filter(job=>job.state==='delivered');const latest=delivered.at(-1)
     const events=latest?input.events.filter(event=>event.job_id===latest.id).sort((a,b)=>a.sequence-b.sequence):[]
     const validation=events.find(event=>event.state==='validating');const payload=asRecord(validation?.payload);const workmanship=asRecord(payload.workmanship)
+    const specialist=specialistVerification(deliverableType,payload)
     const unsafeInferences=spec.content.facts.filter(fact=>fact.source==='inferred'&&UNSAFE_INFERRED_KEYS.has(fact.key))
     const unresolvedConflicts=spec.content.facts.filter(fact=>fact.verification_state==='conflict'&&!fact.supersession)
     const latestOrder=latest?.work_order;const artifacts=latest?.artifacts??[]
@@ -45,7 +51,7 @@ export function auditPilotRelease(input:PilotAuditInput):{passed:boolean;passed_
       {key:'calibration',label:'Minimal-friction calibrated specification',passed:spec.content.open_questions.length===0&&unresolvedConflicts.length===0&&unsafeInferences.length===0,evidence:`${spec.content.open_questions.length} open; ${unresolvedConflicts.length} unresolved conflicts; ${unsafeInferences.length} unsafe inferences.`},
       {key:'authority',label:'Approved specification is authoritative',passed:Boolean(latestOrder)&&specRow.status==='approved'&&spec.approval.status==='approved'&&latestOrder?.deliverable_type===deliverableType&&latestOrder.trace?.specification_id===specRow.id&&latestOrder.trace?.specification_hash===specRow.content_hash,evidence:`Spec v${specRow.version}; job=${latest?.id??'none'}.`},
       {key:'launch',label:'Durable launch and telemetry completion',passed:Boolean(latest)&&latest?.state==='delivered'&&latest.progress_percent===100&&sequencePresent(events),evidence:`${latest?.state??'not launched'} at ${latest?.progress_percent??0}%; ${events.length} lifecycle event(s).`},
-      {key:'verification',label:'Deterministic verification and workmanship',passed:Boolean(validation)&&workmanship.passed===true&&Number(workmanship.score)>=80,evidence:`Workmanship ${String(workmanship.score??'missing')}/100; validation=${validation?'recorded':'missing'}.`},
+      {key:'verification',label:'Deterministic verification and workmanship',passed:Boolean(validation)&&specialist.passed&&workmanship.passed===true&&Number(workmanship.score)>=80,evidence:`Workmanship ${String(workmanship.score??'missing')}/100; ${specialist.evidence}; validation=${validation?'recorded':'missing'}.`},
       {key:'artifact',label:'Controlled branded PDF artifact',passed:artifacts.length>0&&artifacts.every(artifactIsControlled)&&Boolean(latestOrder?.brand_id)&&Boolean(latestOrder?.style_id),evidence:`${artifacts.length} artifact(s); brand=${latestOrder?.brand_id??'missing'}; style=${latestOrder?.style_id??'missing'}.`},
       {key:'recovery',label:'Failure recovery proven',passed:recovered,evidence:recovered?'A failed/blocked attempt was followed by successful delivery.':'No controlled failure-to-success recovery is recorded.'},
       {key:'regeneration',label:'Regeneration lineage proven',passed:Boolean(revision)&&delivered.length>=2&&Number(revision?.artifacts?.[0]?.version??0)>=2,evidence:`${delivered.length} delivered deployment(s); revision=${revision?.id??'missing'}.`},

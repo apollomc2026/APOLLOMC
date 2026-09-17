@@ -32,8 +32,19 @@ describe('deterministic commercial verification',()=>{
     expect(()=>verifyCommercialDocument(order,html)).toThrow(/contract-sum figure 112500 was changed or omitted/)
   })
 
+  it('retains proposal identity, pricing model, and every approved pricing figure',()=>{
+    const order={deliverable_type:'proposal',fields:{prospect_organization:'Riverfront Center',pricing_model:'milestone-based',pricing_detail:'Mobilization: $4,500; Field execution: $18,750; Closeout: $3,250; Total: $26,500'}} as unknown as DocumentWorkOrder
+    const html='<h2>Proposal for Riverfront Center</h2><p>Milestone-based investment.</p><table><tr><td>Mobilization</td><td>$4,500</td></tr><tr><td>Field execution</td><td>$18,750</td></tr><tr><td>Closeout</td><td>$3,250</td></tr><tr><td>Total</td><td>$26,500</td></tr></table>'
+    expect(verifyCommercialDocument(order,html)).toEqual({required:true,verified_rows:2,verified_figures:4})
+  })
+
+  it('fails closed when a proposal price is altered',()=>{
+    const order={deliverable_type:'proposal',fields:{prospect_organization:'Riverfront Center',pricing_model:'fixed-fee',pricing_detail:'Total: $26,500'}} as unknown as DocumentWorkOrder
+    expect(()=>verifyCommercialDocument(order,'<p>Riverfront Center fixed fee total $25,600</p>')).toThrow(/proposal pricing figure 26500/)
+  })
+
   it('does not impose commercial checks on unrelated deliverables',()=>{
-    const order={deliverable_type:'proposal',fields:{}} as unknown as DocumentWorkOrder
+    const order={deliverable_type:'meeting-minutes',fields:{}} as unknown as DocumentWorkOrder
     expect(verifyCommercialDocument(order,'')).toEqual({required:false,verified_rows:0,verified_figures:0})
   })
 })

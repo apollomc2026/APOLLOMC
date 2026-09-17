@@ -15,6 +15,10 @@ const FIELD_RULES:Record<string,{ anchors:string[]; rowFields:string[] }> = {
     anchors:['project_name','job_number','project_period','inspector','completion_statement'],
     rowFields:['acceptance_criteria','test_results'],
   },
+  fsr: {
+    anchors:['site_name','site_address','customer_contact_onsite','visit_date','technician_name','equipment_make_model','follow_up_required'],
+    rowFields:['work_performed'],
+  },
 }
 
 function searchable(value:unknown, containsHtml=false) {

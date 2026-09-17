@@ -31,6 +31,18 @@ describe('deterministic field-record verification', () => {
     expect(verifyFieldRecord(order,html).verified_rows).toBe(2)
   })
 
+  it('retains approved FSR identity, equipment, follow-up, and chronological work', () => {
+    const order = { deliverable_type:'fsr', fields:{ site_name:'Encore Boston Harbor',site_address:'1 Broadway, Everett, MA 02149',customer_contact_onsite:'Sam Barrette',visit_date:'2026-09-15',technician_name:'Jon Sargent',equipment_make_model:'SKIDATA Power.Gate',follow_up_required:'parts-order',work_performed:'12:30 | Inspected lane controller and documented fault E14\n13:20 | Tested barrier through three complete cycles' } } as unknown as DocumentWorkOrder
+    const html='<p>Encore Boston Harbor · 1 Broadway, Everett, MA 02149 · Sam Barrette · 2026-09-15 · Jon Sargent · SKIDATA Power.Gate · Parts order — return visit pending parts</p><ol><li>12:30 — Inspected lane controller and documented fault E14</li><li>13:20 — Tested barrier through three complete cycles</li></ol>'
+    expect(verifyFieldRecord(order,html)).toMatchObject({required:true,verified_rows:2})
+  })
+
+  it('fails closed when an FSR equipment fact is altered', () => {
+    const order = { deliverable_type:'fsr', fields:{ site_name:'Encore Boston Harbor',site_address:'1 Broadway, Everett, MA 02149',customer_contact_onsite:'Sam Barrette',visit_date:'2026-09-15',technician_name:'Jon Sargent',equipment_make_model:'SKIDATA Power.Gate',follow_up_required:'none',work_performed:'12:30 | Inspected lane controller' } } as unknown as DocumentWorkOrder
+    const html='<p>Encore Boston Harbor 1 Broadway Everett MA 02149 Sam Barrette 2026-09-15 Jon Sargent FAAC B680H None</p><p>12:30 Inspected lane controller</p>'
+    expect(()=>verifyFieldRecord(order,html)).toThrow(/equipment_make_model/)
+  })
+
   it('does not impose field checks on unrelated deliverables', () => {
     expect(verifyFieldRecord({ ...daily,deliverable_type:'proposal' },'')).toEqual({ required:false,verified_fields:[],verified_rows:0 })
   })
