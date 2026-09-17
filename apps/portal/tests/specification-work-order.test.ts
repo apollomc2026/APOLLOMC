@@ -80,6 +80,8 @@ describe('approved specification compiler', () => {
       expect(first.work_order_id).not.toBe(compiled.order.work_order_id)
       expect(first.fields.revision_of).toBe(compiled.order.work_order_id)
       expect(first.fields.artifact_version).toBe(2)
+      expect(first.fields.revision_scope).toBe('presentation-only')
+      expect(first.fields.revision_directive_sha256).toMatch(/^[a-f0-9]{64}$/)
       const next = buildRevisionOrder(first, 'Restore the commercial table and retain the concise summary.')
       expect(next.fields.artifact_version).toBe(3)
       expect(next.fields.revision_of).toBe(first.work_order_id)
@@ -129,10 +131,13 @@ describe('approved specification compiler', () => {
   })
 
   it('places review instructions inside the constrained generation context', () => {
-    const directive = formatRevisionDirective({ revision_of: 'job-v1', revision_instruction: 'Tighten the executive summary while preserving price and scope.' })
-    expect(directive).toContain('Prior immutable job: job-v1')
+    const order=buildRevisionOrder({protocol_version:'1.0',work_order_id:'10000000-0000-4000-8000-000000000001',idempotency_key:'original-work-order-id',project_id:'spec',conversation_id:ids.conversationId,task_id:'10000000-0000-4000-8000-000000000002',requested_by:ids.requestedBy,capability:'professional-document-generation',deliverable_type:'proposal',objective:'Proposal',audience:'Client',formats:['pdf'],fields:{},sources:[],brand_id:'apollo',style_id:'style',sensitivity:'internal',priority:'medium',drive_destination:{folder_id:'drive-folder',lifecycle:'draft'},quality_gates:{schema_validation:true,source_grounding:true,independent_review:false,deterministic_financial_verification:false,human_approval_before_publish:true},created_at:'2026-09-07T00:00:00.000Z'},'Tighten the executive summary while preserving price and scope.')
+    const directive = formatRevisionDirective(order.fields)
+    expect(directive).toContain('Prior immutable job: 10000000-0000-4000-8000-000000000001')
     expect(directive).toContain('Tighten the executive summary while preserving price and scope.')
     expect(directive).toContain('cannot override schema, source-grounding, safety, or workmanship requirements')
+    expect(directive).toContain('Never change, replace, add, or infer mission facts')
+    expect(()=>formatRevisionDirective({...order.fields,revision_instruction:'Change the approved price.'})).toThrow(/not bound/)
     expect(formatRevisionDirective({})).toBeNull()
   })
 
