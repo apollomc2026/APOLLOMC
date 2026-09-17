@@ -1,12 +1,13 @@
 import type { ArtifactManifest, DocumentWorkOrder } from '@/lib/executor/contracts'
 import { missionFactSourceReferences, type DeliverableSpecification, type MissionFact } from './contracts'
+import type { EvidenceExtractionTrace } from './evidence'
 
 export const PILOT_DELIVERABLES=['fsr','final-qc-report','quote','proposal','cash-flow-budget-package','contract-intelligence-review'] as const
 export type PilotDeliverable=(typeof PILOT_DELIVERABLES)[number]
 
 type ConversationRow={id:string;status:string;readiness:number;current_spec_version:number;updated_at:string}
 type SpecificationRow={id:string;conversation_id:string;version:number;status:string;content_hash:string;specification:DeliverableSpecification}
-type EvidenceRow={id:string;conversation_id:string;extraction_status:string;content_sha256:string|null;retrieval_sha256:string|null;extracted_facts:MissionFact[]}
+type EvidenceRow={id:string;conversation_id:string;extraction_status:string;content_sha256:string|null;retrieval_sha256:string|null;extracted_facts:MissionFact[];extraction_trace:EvidenceExtractionTrace|null}
 type JobRow={id:string;conversation_id:string;deliverable_type:string;state:string;progress_percent:number;work_order:DocumentWorkOrder;artifacts:ArtifactManifest[];error_code:string|null;completion_email_status:string;failure_email_status:string;created_at:string;completed_at:string|null}
 type EventRow={job_id:string;sequence:number;state:string;payload:Record<string,unknown>}
 
@@ -18,6 +19,7 @@ const UNSAFE_INFERRED_KEYS=new Set(['customer_name','client_name','prospect_orga
 const REQUIRED_EVENT_SEQUENCE=['accepted','queued','gathering-input','generating','validating','rendering','reviewing','delivered']
 
 function asRecord(value:unknown):Record<string,unknown>{return value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>: {}}
+function extractionTraceIsComplete(row:EvidenceRow){const trace=row.extraction_trace;return Boolean(trace&&trace.schema_version==='1.0'&&trace.status==='complete'&&trace.completed_at&&trace.source_ids.includes(row.id)&&trace.planned_passes>=1&&trace.completed_passes===trace.planned_passes)}
 function artifactIsControlled(artifact:ArtifactManifest,order:DocumentWorkOrder){return artifact.mime_type==='application/pdf'&&/^[a-f0-9]{64}$/.test(artifact.content_sha256)&&artifact.source_engine_id==='apollo-documents'&&artifact.lifecycle==='draft'&&Boolean(artifact.storage_file_id)&&Number(artifact.integrity?.bytes)>=1024&&Number(artifact.integrity?.pages)>=1&&Number(artifact.integrity?.text_characters)>=40&&Boolean(artifact.integrity?.verified_at)&&Boolean(artifact.filename?.endsWith('.pdf'))&&Boolean(artifact.document_id)&&artifact.project_id===order.project_id&&artifact.conversation_id===order.conversation_id&&artifact.task_id===order.task_id&&artifact.source_run_id===order.work_order_id&&artifact.version===Number(order.fields.artifact_version??1)&&artifact.deliverable_type===order.deliverable_type&&artifact.brand_id===order.brand_id&&artifact.style_id===order.style_id&&artifact.specification_id===order.trace?.specification_id&&artifact.specification_hash===order.trace?.specification_hash}
 function governedSourceIdentity(order:DocumentWorkOrder){return order.sources.map(source=>`${source.source_id}:${source.media_type}:${source.content_sha256.toLowerCase()}`).sort()}
 function revisionPreservesAuthority(prior:DocumentWorkOrder,revision:DocumentWorkOrder){
@@ -63,6 +65,7 @@ export function auditPilotRelease(input:PilotAuditInput):{passed:boolean;passed_
     const inventoryIds=new Set(spec.sources.map(source=>source.id))
     const specificationEvidenceReferences=new Set(spec.content.facts.flatMap(missionFactSourceReferences).filter(reference=>evidenceIds.has(reference)))
     const malformedExtractedFacts=evidence.flatMap(row=>row.extracted_facts??[]).filter(fact=>fact.source!=='evidence'||!fact.source_reference||!evidenceIds.has(fact.source_reference))
+    const incompleteExtractionTraces=evidence.filter(row=>!extractionTraceIsComplete(row))
     const extractedKeysBySource=new Map<string,Set<string>>()
     for(const row of evidence)for(const fact of row.extracted_facts??[]){const keys=extractedKeysBySource.get(row.id)??new Set<string>();keys.add(fact.key);extractedKeysBySource.set(row.id,keys)}
     const missingReconciledFacts=evidence.flatMap(row=>[...(extractedKeysBySource.get(row.id)??[])].filter(key=>!spec.content.facts.some(fact=>fact.key===key&&missionFactSourceReferences(fact).includes(row.id))).map(key=>`${row.id}:${key}`))
@@ -81,7 +84,7 @@ export function auditPilotRelease(input:PilotAuditInput):{passed:boolean;passed_
     const workOrderIds=jobs.map(job=>job.work_order.work_order_id)
     const canonicalLaunches=jobs.every(job=>job.id===job.work_order.work_order_id)&&new Set(launchKeys).size===launchKeys.length&&new Set(workOrderIds).size===workOrderIds.length
     const gates:PilotGate[]=[
-      {key:'evidence',label:'Evidence inventory and custody',passed:evidence.length>0&&evidence.every(row=>['verified','conflict'].includes(row.extraction_status)&&/^[a-f0-9]{64}$/.test(row.content_sha256??'')&&/^[a-f0-9]{64}$/.test(row.retrieval_sha256??'')),evidence:`${evidence.length} source(s); ${evidence.filter(row=>row.extraction_status==='failed').length} failed.`},
+      {key:'evidence',label:'Evidence inventory, custody, and multipass completion',passed:evidence.length>0&&evidence.every(row=>['verified','conflict'].includes(row.extraction_status)&&/^[a-f0-9]{64}$/.test(row.content_sha256??'')&&/^[a-f0-9]{64}$/.test(row.retrieval_sha256??'')&&extractionTraceIsComplete(row)),evidence:`${evidence.length} source(s); ${evidence.filter(row=>row.extraction_status==='failed').length} failed; ${incompleteExtractionTraces.length} incomplete multipass trace(s).`},
       {key:'provenance',label:'Complete evidence provenance',passed:evidence.length===inventoryIds.size&&evidence.every(row=>inventoryIds.has(row.id))&&malformedExtractedFacts.length===0&&missingReconciledFacts.length===0&&evidence.filter(row=>(row.extracted_facts??[]).length>0).every(row=>specificationEvidenceReferences.has(row.id)),evidence:`${inventoryIds.size}/${evidence.length} inventoried; ${malformedExtractedFacts.length} malformed extracted fact(s); ${missingReconciledFacts.length} fact(s) lost during reconciliation.`},
       {key:'calibration',label:'Minimal-friction calibrated specification',passed:spec.content.open_questions.length===0&&unresolvedConflicts.length===0&&unsafeInferences.length===0,evidence:`${spec.content.open_questions.length} open; ${unresolvedConflicts.length} unresolved conflicts; ${unsafeInferences.length} unsafe inferences.`},
       {key:'autonomy',label:'Full-autonomy resolution proven',passed:Number(spec.aura.operator_involvement)<=33&&spec.content.open_questions.length===0&&(spec.approval.unresolved_items_accepted??[]).length===0,evidence:`Operator involvement=${String(spec.aura.operator_involvement??'missing')}%; ${spec.content.open_questions.length} open; ${(spec.approval.unresolved_items_accepted??[]).length} unresolved item(s) accepted.`},

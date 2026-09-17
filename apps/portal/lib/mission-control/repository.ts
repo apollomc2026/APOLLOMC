@@ -4,7 +4,7 @@ import { interpretMissionWithClaude } from './ai-interpreter'
 import { createMissionFact, mergeMissionFacts, missionFactSourceReferences, specificationProvenance, type DeliverableSpecification, type MissionFact, type MissionTurnResult, type VoiceTranscriptMetadata } from './contracts'
 import type { DocumentSource } from '@/lib/executor/contracts'
 import { getFromS3, getPresignedUrl } from '@/lib/s3/client'
-import { extractEvidence, extractEvidenceFactsFromImages, extractEvidenceFactsFromPdfs, extractEvidenceFactsFromSources, reconcileEvidenceSupersessions } from './evidence'
+import { completeEvidenceExtractionTrace, createEvidenceExtractionTrace, extractEvidence, extractEvidenceFactsFromImages, extractEvidenceFactsFromPdfs, extractEvidenceFactsFromSources, reconcileEvidenceSupersessions, type EvidenceExtractionTrace } from './evidence'
 import { executionGaps, materializeSpecificationDefaults } from './work-order'
 import { canonicalizeSpecificationIdentity } from './identity'
 import { pricingResearchFact, requestsMarketPricingResearch, researchQuotePricing } from './quote-pricing-research'
@@ -86,11 +86,23 @@ async function reconcileSecuredEvidence(input: {
   const readableSources = prioritizedSources.filter((source): source is typeof source & { text: string } => Boolean(source.text))
   const pdfSources = prioritizedSources.filter(source => !source.text&&source.mime==='application/pdf')
   const imageSources = prioritizedSources.filter((source):source is typeof source&{mime:'image/png'|'image/jpeg'}=>source.mime==='image/png'||source.mime==='image/jpeg')
-  const extracted = reconcileEvidenceSupersessions((await Promise.all([
-    readableSources.length?extractEvidenceFactsFromSources(readableSources,moduleSlug):Promise.resolve([]),
-    pdfSources.length?extractEvidenceFactsFromPdfs(pdfSources.map(source=>({id:source.id,name:source.name,bytes:source.bytes})),moduleSlug):Promise.resolve([]),
-    imageSources.length?extractEvidenceFactsFromImages(imageSources.map(source=>({id:source.id,name:source.name,mime:source.mime,bytes:source.bytes})),moduleSlug):Promise.resolve([]),
-  ])).flat())
+  const extractionRuns:Array<Promise<{facts:MissionFact[];trace:EvidenceExtractionTrace}>>=[]
+  if(readableSources.length){
+    const trace=createEvidenceExtractionTrace('text',readableSources.map(source=>source.id))
+    extractionRuns.push(extractEvidenceFactsFromSources(readableSources,moduleSlug,trace).then(facts=>({facts,trace:completeEvidenceExtractionTrace(trace)})))
+  }
+  if(pdfSources.length){
+    const trace=createEvidenceExtractionTrace('pdf',pdfSources.map(source=>source.id))
+    extractionRuns.push(extractEvidenceFactsFromPdfs(pdfSources.map(source=>({id:source.id,name:source.name,bytes:source.bytes})),moduleSlug,trace).then(facts=>({facts,trace:completeEvidenceExtractionTrace(trace)})))
+  }
+  if(imageSources.length){
+    const trace=createEvidenceExtractionTrace('image',imageSources.map(source=>source.id))
+    extractionRuns.push(extractEvidenceFactsFromImages(imageSources.map(source=>({id:source.id,name:source.name,mime:source.mime,bytes:source.bytes})),moduleSlug,trace).then(facts=>({facts,trace:completeEvidenceExtractionTrace(trace)})))
+  }
+  const completedRuns=await Promise.all(extractionRuns)
+  if(completedRuns.some(run=>run.trace.status!=='complete'))throw new MissionPersistenceError('Not every planned evidence extraction pass completed')
+  const traceBySource=new Map(completedRuns.flatMap(run=>run.trace.source_ids.map(sourceId=>[sourceId,run.trace] as const)))
+  const extracted = reconcileEvidenceSupersessions(completedRuns.flatMap(run=>run.facts))
   const evidenceFacts = extracted
     .map(fact => createMissionFact({ ...fact, last_editor: input.userId }))
   if (moduleSlug === 'final-qc-report' && !evidenceFacts.some(fact => fact.key === 'reference_documents')) {
@@ -99,7 +111,7 @@ async function reconcileSecuredEvidence(input: {
   console.info('[mission-control] Evidence recalibration completed', { conversationId: input.conversationId, moduleSlug, securedSources: rows.length, recoveredSources: recoveredSources.length, readableSources: readableSources.length, nativePdfSources:pdfSources.length, imageSources:imageSources.length, extractedFacts: evidenceFacts.length })
   await Promise.all(rows.map(async row => {
     const facts = evidenceFacts.filter(fact => missionFactSourceReferences(fact).includes(row.id))
-    const update = await input.db.from('apollo_conversation_evidence').update({ extracted_facts: facts }).eq('id', row.id).eq('user_id', input.userId)
+    const update = await input.db.from('apollo_conversation_evidence').update({ extracted_facts: facts, extraction_trace:traceBySource.get(row.id)??null }).eq('id', row.id).eq('user_id', input.userId)
     if (update.error) throw new MissionPersistenceError('Recalibrated evidence facts could not be recorded')
   }))
   return evidenceFacts
