@@ -9,7 +9,9 @@ describe('operational mission identity',()=>{
     specification.artifact.recommended_type='fsr'
     specification.mission.title='Field Service Report'
     specification.content.facts.push(createMissionFact({key:'site_name',label:'Site name',value:'Encore Boston Harbor',source:'evidence',source_reference:'service-record',confidence:1}))
-    expect(missionDisplayIdentity(specification)).toMatchObject({displayTitle:'Encore Boston Harbor · Field Service Report',subject:'Encore Boston Harbor'})
+    specification.content.facts.push(createMissionFact({key:'visit_date',label:'Visit date',value:'September 15, 2026',source:'evidence',source_reference:'service-record',confidence:1}))
+    specification.content.facts.push(createMissionFact({key:'site_address',label:'Site address',value:'1 Broadway, Everett, MA 02149',source:'user',confidence:1}))
+    expect(missionDisplayIdentity(specification)).toMatchObject({displayTitle:'Encore Boston Harbor · Field Service Report',subject:'Encore Boston Harbor',context:'September 15, 2026 · 1 Broadway, Everett, MA 02149'})
   })
 
   it('names each reflight with mission, sequence, and purpose',()=>{

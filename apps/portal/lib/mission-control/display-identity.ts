@@ -12,6 +12,8 @@ const DELIVERABLE_LABELS:Record<string,string>={
 
 const SUBJECT_KEYS=['site_name','project_name','customer_name','client_name','prospect_organization','organization','case_name','contract_name']
 const DATE_KEYS=['service_date','visit_date','report_date','quote_date','proposal_date','date','as_of_date']
+const ADDRESS_KEYS=['site_address','project_address','customer_address','location_address']
+const REFERENCE_KEYS=['work_order_number','service_record_id','project_number','quote_number','contract_number']
 
 function usableFact(specification:DeliverableSpecification,keys:string[]){
   for(const key of keys){
@@ -30,11 +32,13 @@ export function missionDisplayIdentity(specification:DeliverableSpecification){
   const deliverableLabel=DELIVERABLE_LABELS[deliverableType]??titleCaseSlug(deliverableType)
   const subject=usableFact(specification,SUBJECT_KEYS)
   const date=usableFact(specification,DATE_KEYS)
+  const address=usableFact(specification,ADDRESS_KEYS)
+  const reference=usableFact(specification,REFERENCE_KEYS)
   const genericTitle=/^(?:untitled mission|field service|field service report|quote|proposal|final qc report|financial packet|contract intelligence review)$/i.test(specification.mission.title.trim())
   const authoredTitle=!genericTitle?specification.mission.title.trim():null
   const base=subject??authoredTitle??deliverableLabel
   const displayTitle=subject&&!subject.toLowerCase().includes(deliverableLabel.toLowerCase())?`${subject} · ${deliverableLabel}`:base
-  return { displayTitle,subject,deliverableLabel,date,context:[subject,date].filter(Boolean).join(' · ') }
+  return { displayTitle,subject,deliverableLabel,date,address,reference,context:[date,address,reference].filter(Boolean).join(' · ') }
 }
 
 export function flightDisplayIdentity(input:{specification:DeliverableSpecification;workOrder:Pick<DocumentWorkOrder,'fields'>|null;sequence:number}){

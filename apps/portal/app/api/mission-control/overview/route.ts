@@ -27,7 +27,7 @@ export async function GET() {
   const conversations = await db.from('apollo_conversations').select('id,title,status,readiness,current_spec_version,updated_at').eq('user_id', auth.user.userId).order('updated_at', { ascending:false })
   if (conversations.error) return NextResponse.json({ error:conversations.error.message }, { status:500 })
   const specificationCatalog = conversations.data?.length
-    ? await serviceSpecificationCatalog(conversations.data.map(mission => mission.id), auth.user.userId)
+    ? await serviceSpecificationCatalog(conversations.data.map(mission => ({ id:mission.id, current_spec_version:mission.current_spec_version })))
     : { current:new Map<string,CurrentSpecificationIdentity>(), byId:new Map<string,DeliverableSpecification>() }
   const service = await createServiceClient()
   const jobs = await service.from('apollo_document_jobs').select('id,conversation_id,deliverable_type,state,progress_percent,status_message,artifacts,work_order,created_at').eq('requested_by', auth.user.userId).order('created_at', { ascending:false })
@@ -59,19 +59,19 @@ export async function GET() {
   )
 }
 
-async function serviceSpecificationCatalog(conversationIds:string[],userId:string) {
+async function serviceSpecificationCatalog(conversations:Array<{id:string;current_spec_version:number}>) {
   const service=await createServiceClient()
-  const rows=await service.from('apollo_specification_versions').select('id,conversation_id,version,content_hash,specification,apollo_conversations!inner(user_id,current_spec_version)').in('conversation_id',conversationIds).eq('apollo_conversations.user_id',userId)
+  const rows=await service.from('apollo_specification_versions').select('id,conversation_id,version,content_hash,specification').in('conversation_id',conversations.map(conversation=>conversation.id))
   if(rows.error) throw new Error(rows.error.message)
+  const currentVersions=new Map(conversations.map(conversation=>[conversation.id,Number(conversation.current_spec_version)]))
   const identities=new Map<string,CurrentSpecificationIdentity>()
   const byId=new Map<string,DeliverableSpecification>()
   for(const row of rows.data ?? []){
     const specification=row.specification as DeliverableSpecification
     byId.set(String(row.id),specification)
-    const owner=Array.isArray(row.apollo_conversations)?row.apollo_conversations[0]:row.apollo_conversations
-    const currentVersion=Number((owner as {current_spec_version?:number}|null)?.current_spec_version)
+    const currentVersion=currentVersions.get(String(row.conversation_id))
     const version=(row as {version?:number}).version
-    if(Number(version)!==currentVersion)continue
+    if(currentVersion===undefined||Number(version)!==currentVersion)continue
     const title=specification.mission?.title?.trim()
     const deliverableType=specification.artifact?.recommended_type?.trim()
     if(title&&deliverableType){
