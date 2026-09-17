@@ -158,6 +158,19 @@ describe('mission interpreter', () => {
     expect(patch.stated_facts).toEqual([])
   })
 
+  it('rejects consequential model inferences while retaining safe professional recommendations', () => {
+    const base=interpretMission('Create a customer quote for site repairs.')
+    const patch=applyExpertRecommendationMode({inferred_facts:[
+      {key:'customer_name',label:'Customer name',value:'Invented Customer',confidence:.99},
+      {key:'line_items',label:'Line items',value:'Invented scope | $99,999',confidence:.99},
+      {key:'valid_until',label:'Valid until',value:'2026-12-31',confidence:.8},
+    ]},'Use your expert recommendations for every unresolved decision.',base.specification)
+    expect(patch.inferred_facts).toEqual(expect.arrayContaining([expect.objectContaining({key:'valid_until'})]))
+    expect(patch.inferred_facts).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({key:'customer_name'}),expect.objectContaining({key:'line_items'}),
+    ]))
+  })
+
   it('fills safely inferable proposal defaults in expert recommendation mode', () => {
     const base = interpretMission('Create a fixed-fee proposal for Acme Facilities at $18,750.')
     const patch = applyExpertRecommendationMode({}, 'Use your expert recommendations for every unresolved decision.', base.specification)
@@ -165,6 +178,7 @@ describe('mission interpreter', () => {
     expect(result.specification.content.facts).toEqual(expect.arrayContaining([
       expect.objectContaining({ key: 'proposed_methodology', source: 'inferred', confidence: .84 }),
       expect.objectContaining({ key: 'risks_and_mitigations', source: 'inferred' }),
+      expect.objectContaining({ key: 'assumptions', source: 'inferred' }),
       expect.objectContaining({ key: 'pricing_model', value: 'fixed-fee' }),
     ]))
     expect(result.specification.content.open_questions).not.toEqual(expect.arrayContaining([expect.stringContaining('proposed methodology'), expect.stringContaining('risks and mitigations')]))

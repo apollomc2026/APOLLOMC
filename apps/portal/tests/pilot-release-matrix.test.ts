@@ -5,6 +5,7 @@ import { interpretMission } from '../lib/mission-control/interpreter'
 import { canonicalDeliverableTitle, canonicalizeSpecificationIdentity } from '../lib/mission-control/identity'
 import { compileApprovedSpecification, executionGaps } from '../lib/mission-control/work-order'
 import { buildRevisionOrder } from '../lib/mission-control/revision'
+import { applyClaudeInterpretation, applyExpertRecommendationMode } from '../lib/mission-control/ai-interpreter'
 
 const PILOT_CLASSES = [
   { slug:'fsr', request:'Create a Field Service Report.' },
@@ -24,6 +25,24 @@ function supportedValue(key:string,label:string,index:number) {
 }
 
 describe.each(PILOT_CLASSES)('$slug pilot mechanics', ({ slug,request }) => {
+  it('resolves every noncritical default in one expert-recommendation action without altering evidence', () => {
+    const module=getModule(slug)!
+    const safelyDelegated=new Set(slug==='proposal'
+      ? ['win_themes','proposed_methodology','risks_and_mitigations','assumptions','validity_period_days','next_steps_call_to_action']
+      : slug==='quote'?['valid_until','payment_terms']:[])
+    const base=interpretMission(request)
+    const evidenceFacts=module.required_fields.filter(field=>!safelyDelegated.has(field.key)).map((field,index)=>createMissionFact({
+      key:field.key,label:field.label,value:supportedValue(field.key,field.label,index),source:'evidence',source_reference:'pilot-evidence',confidence:1,
+    },new Date('2026-09-16T12:00:00.000Z')))
+    base.specification.content.facts=mergeMissionFacts(base.specification.content.facts,evidenceFacts)
+    base.specification.sources=[{id:'pilot-evidence',name:'pilot-evidence.pdf',status:'verified'}]
+    const patch=applyExpertRecommendationMode({},'Use your expert recommendations for every unresolved decision.',base.specification)
+    const result=applyClaudeInterpretation(base,patch)
+    expect(executionGaps(result.specification)).toEqual([])
+    for(const evidence of evidenceFacts)expect(result.specification.content.facts).toContainEqual(expect.objectContaining({key:evidence.key,value:evidence.value,source:'evidence'}))
+    expect(result.specification.content.facts.filter(fact=>fact.source==='inferred').every(fact=>!['customer_name','line_items','pricing_detail','test_results','base_case_lines','contracting_parties'].includes(fact.key))).toBe(true)
+  })
+
   it('carries one specification identity through evidence, launch, duplicate submission, and regeneration', () => {
     const module=getModule(slug)
     expect(module).not.toBeNull()

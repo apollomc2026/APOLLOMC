@@ -18,6 +18,11 @@ interface ClaudeInterpretation {
   question_reason?: string
 }
 
+const EXPERT_RECOMMENDATION_KEYS = new Set([
+  'win_themes','proposed_methodology','risks_and_mitigations','assumptions',
+  'validity_period_days','valid_until','next_steps_call_to_action','payment_terms','pricing_model',
+])
+
 export function promoteAcknowledgedGap(patch: ClaudeInterpretation, text: string, prior?: DeliverableSpecification): ClaudeInterpretation {
   const activeGap = prior ? executionGaps(prior)[0] : null
   const acknowledgement = safeText(patch.acknowledgement, 1200)
@@ -39,6 +44,7 @@ export function applyExpertRecommendationMode(patch: ClaudeInterpretation, text:
     { key: 'win_themes', label: 'Win themes (3–4)', value: 'Operational clarity; safety-controlled execution; decision-ready prioritization; commercial certainty', confidence: .86 },
     { key: 'proposed_methodology', label: 'Proposed methodology / phases', value: `Mobilize and confirm controls; inspect and document the defined scope; perform permitted functional assessment; analyze and prioritize verified findings; review and deliver the controlled final artifact. Tailor each phase to: ${specification.mission.objective}`, confidence: .84 },
     { key: 'risks_and_mitigations', label: 'Risks and mitigations', value: 'Restricted access or operating windows | coordinate access and sequencing before mobilization\nUnsafe or unavailable equipment | limit work to safe, permitted observation and document constraints\nIncomplete records | identify evidence gaps and qualify affected conclusions\nOperational disruption | coordinate controls and preserve site operations', confidence: .82 },
+    { key: 'assumptions', label: 'Assumptions', value: 'Client will provide timely site access, current controlling records, and an authorized point of contact. Scope, schedule, and commercial terms remain subject to the verified mission evidence and approved deliverable specification; material changes require written review.', confidence: .82 },
     { key: 'validity_period_days', label: 'Proposal validity (days)', value: '30', confidence: .8 },
     { key: 'next_steps_call_to_action', label: 'Next steps / call to action', value: 'Confirm acceptance of scope and commercial terms, execute the controlling agreement, satisfy mobilization requirements, designate the client coordinator, and schedule kickoff.', confidence: .84 },
   ]
@@ -52,7 +58,7 @@ export function applyExpertRecommendationMode(patch: ClaudeInterpretation, text:
     recommendations.push({ key:'payment_terms', label:'Payment terms', value:'50% deposit / 50% on completion', confidence:.84 })
   }
   if (Object.keys(specification.content.commercial_terms).length || /fixed[- ]fee/i.test(specification.mission.objective)) recommendations.push({ key: 'pricing_model', label: 'Pricing model', value: 'fixed-fee', confidence: .95 })
-  const inferredFacts = Array.isArray(patch.inferred_facts) ? patch.inferred_facts : []
+  const inferredFacts = Array.isArray(patch.inferred_facts) ? patch.inferred_facts.filter(fact=>fact&&typeof fact==='object'&&EXPERT_RECOMMENDATION_KEYS.has(fact.key)) : []
   return { ...patch, stated_facts: [], acknowledgement: 'Expert recommendation mode applied. I resolved every professional default supported by the mission and preserved genuinely client-specific facts for explicit confirmation.', inferred_facts: [...inferredFacts, ...recommendations.filter(fact => !existing.has(fact.key))] }
 }
 
