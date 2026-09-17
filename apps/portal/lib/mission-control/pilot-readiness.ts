@@ -32,12 +32,14 @@ export function auditPilotRelease(input:PilotAuditInput):{passed:boolean;passed_
     const candidates=input.conversations.map(conversation=>({conversation,specification:specsByConversation.get(`${conversation.id}:${conversation.current_spec_version}`)}))
       .filter((candidate):candidate is {conversation:ConversationRow;specification:SpecificationRow}=>candidate.specification?.specification.artifact.recommended_type===deliverableType)
       .sort((a,b)=>Date.parse(b.conversation.updated_at)-Date.parse(a.conversation.updated_at))
-    const selected=candidates.find(candidate=>input.jobs.some(job=>job.conversation_id===candidate.conversation.id&&job.state==='delivered'))??candidates[0]
+    // The newest representative mission is authoritative. Falling back to an
+    // older delivered mission would conceal a regression in the current run.
+    const selected=candidates[0]
     if(!selected)return {deliverable_type:deliverableType,conversation_id:null,passed:false,gates:[{key:'mission',label:'Representative mission exists',passed:false,evidence:'No current specification exists for this pilot class.'}]}
     const {conversation,specification:specRow}=selected;const spec=specRow.specification
     const evidence=input.evidence.filter(row=>row.conversation_id===conversation.id)
     const jobs=input.jobs.filter(row=>row.conversation_id===conversation.id).sort((a,b)=>Date.parse(a.created_at)-Date.parse(b.created_at))
-    const delivered=jobs.filter(job=>job.state==='delivered');const latest=delivered.at(-1)
+    const delivered=jobs.filter(job=>job.state==='delivered');const latest=delivered.at(-1);const current=jobs.at(-1)
     const events=latest?input.events.filter(event=>event.job_id===latest.id).sort((a,b)=>a.sequence-b.sequence):[]
     const validation=events.find(event=>event.state==='validating');const payload=asRecord(validation?.payload);const workmanship=asRecord(payload.workmanship)
     const specialist=specialistVerification(deliverableType,payload)
@@ -45,15 +47,17 @@ export function auditPilotRelease(input:PilotAuditInput):{passed:boolean;passed_
     const unresolvedConflicts=spec.content.facts.filter(fact=>fact.verification_state==='conflict'&&!fact.supersession)
     const latestOrder=latest?.work_order;const artifacts=latest?.artifacts??[]
     const revision=delivered.find(job=>Boolean(job.work_order.fields.revision_of)&&job.work_order.fields.revision_of!==job.id)
-    const recovered=jobs.some((job,index)=>['failed','blocked'].includes(job.state)&&jobs.slice(index+1).some(candidate=>candidate.state==='delivered'))
+    const failedAttempts=jobs.map((job,index)=>({job,index})).filter(({job})=>['failed','blocked'].includes(job.state))
+    const recovered=failedAttempts.length>0&&failedAttempts.every(({index})=>jobs.slice(index+1).some(candidate=>candidate.state==='delivered'))
+    const currentDelivered=current?.state==='delivered'
     const gates:PilotGate[]=[
       {key:'evidence',label:'Evidence inventory and custody',passed:evidence.length>0&&evidence.every(row=>['verified','conflict'].includes(row.extraction_status)&&/^[a-f0-9]{64}$/.test(row.content_sha256??'')&&/^[a-f0-9]{64}$/.test(row.retrieval_sha256??'')),evidence:`${evidence.length} source(s); ${evidence.filter(row=>row.extraction_status==='failed').length} failed.`},
       {key:'calibration',label:'Minimal-friction calibrated specification',passed:spec.content.open_questions.length===0&&unresolvedConflicts.length===0&&unsafeInferences.length===0,evidence:`${spec.content.open_questions.length} open; ${unresolvedConflicts.length} unresolved conflicts; ${unsafeInferences.length} unsafe inferences.`},
       {key:'authority',label:'Approved specification is authoritative',passed:Boolean(latestOrder)&&specRow.status==='approved'&&spec.approval.status==='approved'&&latestOrder?.deliverable_type===deliverableType&&latestOrder.trace?.specification_id===specRow.id&&latestOrder.trace?.specification_hash===specRow.content_hash,evidence:`Spec v${specRow.version}; job=${latest?.id??'none'}.`},
-      {key:'launch',label:'Durable launch and telemetry completion',passed:Boolean(latest)&&latest?.state==='delivered'&&latest.progress_percent===100&&sequencePresent(events),evidence:`${latest?.state??'not launched'} at ${latest?.progress_percent??0}%; ${events.length} lifecycle event(s).`},
+      {key:'launch',label:'Durable launch and telemetry completion',passed:Boolean(latest)&&currentDelivered&&latest?.id===current?.id&&latest.progress_percent===100&&sequencePresent(events),evidence:`Current=${current?.state??'not launched'}; latest delivered=${latest?.id??'none'} at ${latest?.progress_percent??0}%; ${events.length} lifecycle event(s).`},
       {key:'verification',label:'Deterministic verification and workmanship',passed:Boolean(validation)&&specialist.passed&&workmanship.passed===true&&Number(workmanship.score)>=80,evidence:`Workmanship ${String(workmanship.score??'missing')}/100; ${specialist.evidence}; validation=${validation?'recorded':'missing'}.`},
       {key:'artifact',label:'Controlled branded PDF artifact',passed:artifacts.length>0&&artifacts.every(artifactIsControlled)&&Boolean(latestOrder?.brand_id)&&Boolean(latestOrder?.style_id),evidence:`${artifacts.length} artifact(s); brand=${latestOrder?.brand_id??'missing'}; style=${latestOrder?.style_id??'missing'}.`},
-      {key:'recovery',label:'Failure recovery proven',passed:recovered,evidence:recovered?'A failed/blocked attempt was followed by successful delivery.':'No controlled failure-to-success recovery is recorded.'},
+      {key:'recovery',label:'Failure recovery proven',passed:recovered,evidence:recovered?`${failedAttempts.length} failed/blocked attempt(s) were followed by successful delivery.`:failedAttempts.length?'A failed/blocked attempt remains unrecovered.':'No controlled failure-to-success recovery is recorded.'},
       {key:'regeneration',label:'Regeneration lineage proven',passed:Boolean(revision)&&delivered.length>=2&&Number(revision?.artifacts?.[0]?.version??0)>=2,evidence:`${delivered.length} delivered deployment(s); revision=${revision?.id??'missing'}.`},
     ]
     return {deliverable_type:deliverableType,conversation_id:conversation.id,passed:gates.every(gate=>gate.passed),gates}

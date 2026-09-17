@@ -37,4 +37,25 @@ describe('pilot release auditor',()=>{
     expect(verification).toMatchObject({passed:false})
     expect(verification.evidence).toContain('commercial_verification=missing')
   })
+
+  it('does not hide the newest failed mission behind an older delivered mission',()=>{
+    const older=fixture('quote');older.conversation.updated_at='2026-09-16T12:00:00Z'
+    const newer=fixture('quote');newer.conversation.id='mission-quote-new';newer.conversation.updated_at='2026-09-16T13:00:00Z';newer.specification.id='spec-quote-new';newer.specification.conversation_id=newer.conversation.id
+    newer.jobs=newer.jobs.slice(0,1).map(job=>({...job,conversation_id:newer.conversation.id}))
+    newer.evidence={...newer.evidence,conversation_id:newer.conversation.id}
+    const report=auditPilotRelease({conversations:[older.conversation,newer.conversation],specifications:[older.specification,newer.specification],evidence:[older.evidence,newer.evidence],jobs:[...older.jobs,...newer.jobs],events:older.events})
+    const quote=report.classes.find(entry=>entry.deliverable_type==='quote')!
+    expect(quote.conversation_id).toBe('mission-quote-new')
+    expect(quote.gates.find(gate=>gate.key==='launch')).toMatchObject({passed:false})
+  })
+
+  it('fails launch and recovery when a later regeneration fails',()=>{
+    const item=fixture('fsr')
+    const failedAfter={...item.jobs[0],id:'40000000-0000-5000-a000-000000000001',created_at:'2026-09-16T12:20:00Z',completed_at:'2026-09-16T12:21:00Z'}
+    item.jobs.push(failedAfter)
+    const report=auditPilotRelease({conversations:[item.conversation],specifications:[item.specification],evidence:[item.evidence],jobs:item.jobs,events:item.events})
+    const fsr=report.classes.find(entry=>entry.deliverable_type==='fsr')!
+    expect(fsr.gates.find(gate=>gate.key==='launch')).toMatchObject({passed:false})
+    expect(fsr.gates.find(gate=>gate.key==='recovery')).toMatchObject({passed:false})
+  })
 })
