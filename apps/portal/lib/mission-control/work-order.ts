@@ -112,7 +112,12 @@ export function executionGaps(spec: DeliverableSpecification, now = new Date()) 
   const pricingApprovalMissing=spec.artifact.recommended_type==='quote'&&spec.content.facts.some(fact=>fact.key==='market_pricing_basis'&&fact.verification_state==='verified')&&!hasCurrentQuotePricingApproval(spec)
     ? [{key:'market_pricing_approval',label:'Market-informed pricing approval',reason:'The operator must approve the current quote figures after reviewing the cited market basis.'}]
     : []
-  return [...evidenceMissing,...conflicts,...pricingApprovalMissing, ...missing.filter(gap => !conflicts.some(conflict => conflict.key === gap.key))]
+  const pricingResearchMissing=spec.artifact.recommended_type==='quote'
+    &&spec.content.facts.some(fact=>fact.key==='market_pricing_research_required'&&fact.value==='true')
+    &&!spec.content.facts.some(fact=>fact.key==='market_pricing_basis'&&fact.source==='research'&&fact.verification_state==='verified')
+    ? [{key:'market_pricing_basis',label:'Cited market-pricing research',reason:'Requested market research must complete with verified public sources before launch.'}]
+    : []
+  return [...evidenceMissing,...conflicts,...pricingResearchMissing,...pricingApprovalMissing, ...missing.filter(gap => !conflicts.some(conflict => conflict.key === gap.key))]
 }
 
 export function compileApprovedSpecification(input: {

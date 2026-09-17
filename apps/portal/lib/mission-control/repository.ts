@@ -13,6 +13,7 @@ export class MissionPersistenceError extends Error {}
 
 function questionForGap(gap:{key:string;label:string},specification:DeliverableSpecification):string {
   if(gap.key==='market_pricing_approval')return 'Review APOLLO’s cited market pricing basis and approve the current quote line items, or revise the commercial figures.'
+  if(gap.key==='market_pricing_basis')return 'APOLLO has not completed the requested cited market-pricing research. Retry calibration; launch will remain safely blocked until verified benchmarks are available.'
   if(gap.key==='site_address'){
     const site=specification.content.facts.find(fact=>fact.key==='site_name'&&fact.verification_state!=='conflict')?.value.trim()
     return site?`Confirm the complete street address for ${site}. APOLLO did not find a usable postal address in the secured evidence.`:'Confirm the complete street address for this service location.'
@@ -118,20 +119,25 @@ async function reconcileSecuredEvidence(input: {
 }
 
 async function enrichQuotePricingResearch(specification:DeliverableSpecification,message:string):Promise<DeliverableSpecification> {
-  if(specification.artifact.recommended_type!=='quote'||!requestsMarketPricingResearch(message))return specification
-  if(specification.content.facts.some(fact=>fact.key==='market_pricing_basis'&&fact.verification_state==='verified'))return specification
-  const values=new Map(specification.content.facts.filter(fact=>fact.verification_state!=='conflict').map(fact=>[fact.key,fact.value.trim()]))
+  if(specification.artifact.recommended_type!=='quote')return specification
+  const alreadyRequired=specification.content.facts.some(fact=>fact.key==='market_pricing_research_required'&&fact.value==='true')
+  if(!alreadyRequired&&!requestsMarketPricingResearch(message))return specification
+  const requiredFact=createMissionFact({key:'market_pricing_research_required',label:'Cited market-pricing research required',value:'true',source:'user',confidence:1,sensitivity:'internal'})
+  const requiredFacts=alreadyRequired?specification.content.facts:mergeMissionFacts(specification.content.facts,[requiredFact])
+  const requiredSpecification={...specification,content:{...specification.content,facts:requiredFacts},provenance:specificationProvenance(requiredFacts,specification.provenance.created_at,specification.provenance.model_versions)}
+  if(requiredFacts.some(fact=>fact.key==='market_pricing_basis'&&fact.verification_state==='verified'))return requiredSpecification
+  const values=new Map(requiredFacts.filter(fact=>fact.verification_state!=='conflict').map(fact=>[fact.key,fact.value.trim()]))
   const scopeSummary=values.get('scope_summary')||specification.mission.objective.trim()
-  if(!scopeSummary)return specification
+  if(!scopeSummary)return requiredSpecification
   try{
     const research=await researchQuotePricing({scopeSummary,lineItems:values.get('line_items'),geography:values.get('project_address')||values.get('site_address')||values.get('customer_address')})
-    if(!research)return specification
+    if(!research)return requiredSpecification
     const fact=pricingResearchFact(research)
-    const facts=mergeMissionFacts(specification.content.facts,[fact])
+    const facts=mergeMissionFacts(requiredFacts,[fact])
     return {...specification,content:{...specification.content,facts},provenance:specificationProvenance(facts,specification.provenance.created_at,specification.provenance.model_versions)}
   }catch(error){
     console.error('[mission-control] Quote pricing research failed',{error:error instanceof Error?error.message:'unknown error'})
-    return specification
+    return requiredSpecification
   }
 }
 

@@ -24,6 +24,15 @@ describe('quote market-pricing research custody',()=>{
     expect(requestsMarketPricingResearch('Create a quote from the attached estimate.')).toBe(false)
   })
 
+  it('blocks quote launch when requested research has not produced a verified cited basis',()=>{
+    const specification=interpretMission('Create a quote for the facilities director.').specification
+    specification.artifact.recommended_type='quote'
+    specification.content.facts.push(createMissionFact({key:'market_pricing_research_required',label:'Cited market-pricing research required',value:'true',source:'user',confidence:1}))
+    expect(executionGaps(specification)).toContainEqual(expect.objectContaining({key:'market_pricing_basis'}))
+    specification.content.facts.push(createMissionFact({key:'market_pricing_basis',label:'Market pricing basis',value:'Field labor | USD 110.00–165.00 per hour | https://official.example/rates',source:'research',source_reference:'https://official.example/rates',confidence:.9}))
+    expect(executionGaps(specification).map(gap=>gap.key)).not.toContain('market_pricing_basis')
+  })
+
   it('binds operator approval to the exact research basis and commercial rows',()=>{
     const specification=interpretMission('Create a quote for the facilities director.').specification
     specification.artifact.recommended_type='quote'
