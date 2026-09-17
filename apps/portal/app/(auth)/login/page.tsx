@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Rocket } from 'lucide-react'
 import { AuthShell } from '@/components/auth/AuthShell'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
@@ -47,7 +48,7 @@ export default function LoginPage() {
         <div className="auth-confirm"><span>Transmission destination</span><strong>{email}</strong></div>
         <label htmlFor="access-code"><span>Six-digit access code</span><input id="access-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={code} onChange={event=>setCode(event.target.value.replace(/\D/g,'').slice(0,6))} placeholder="000000" autoFocus /></label>
         {error?<div className="auth-error" role="alert">{error}</div>:null}
-        <button type="submit" disabled={loading||code.length!==6} className="auth-submit"><span>{loading?'Verifying…':'Enter Mission Control'}</span><b aria-hidden="true">↗</b></button>
+        <button type="submit" disabled={loading||code.length!==6} className="auth-submit auth-launch-submit"><Rocket aria-hidden="true"/><span>{loading?'Verifying…':'Enter Mission Control'}</span><b aria-hidden="true">IGNITE</b></button>
       </form>
     </AuthShell>
   )
@@ -58,7 +59,7 @@ export default function LoginPage() {
         <label htmlFor="email"><span>Email address</span><input id="email" type="email" required value={email} onChange={event => setEmail(event.target.value)} placeholder="commander@company.com" autoComplete="email" /></label>
         {error ? <div className="auth-error" role="alert">{error}</div> : null}
         {!configured && !error ? <div className="auth-error" role="alert">Hosted database configuration is required before commander access can open.</div> : null}
-        <button type="submit" disabled={loading || !configured} className="auth-submit"><span>{loading ? 'Transmitting…' : configured ? 'Send access code' : 'Configuration required'}</span><b aria-hidden="true">↗</b></button>
+        <button type="submit" disabled={loading || !configured} className="auth-submit auth-launch-submit"><Rocket aria-hidden="true"/><span>{loading ? 'Transmitting…' : configured ? 'Send access code' : 'Configuration required'}</span><b aria-hidden="true">IGNITE</b></button>
       </form>
     </AuthShell>
   )
