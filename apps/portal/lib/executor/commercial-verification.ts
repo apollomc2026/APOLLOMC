@@ -50,6 +50,24 @@ function approvedRows(raw:string):string[]{
   return segments.length>1?segments:lines
 }
 
+function verifyQuotePricingBasis(order:DocumentWorkOrder,contentHtml:string,documentText:string){
+  const required=String(order.fields.market_pricing_research_required??'')==='true'
+  const raw=typeof order.fields.market_pricing_basis==='string'?order.fields.market_pricing_basis.trim():''
+  if(required&&!raw)throw new Error('Commercial verification failed: requested market_pricing_basis was absent')
+  if(!raw)return
+  const researchDate=raw.match(/^Research date:\s*(.+)$/im)?.[1]?.trim()
+  const geography=raw.match(/^Geography:\s*(.+)$/im)?.[1]?.trim()
+  if(!researchDate||!geography)throw new Error('Commercial verification failed: market pricing provenance was incomplete')
+  if(!documentText.includes(searchable(researchDate))||!documentText.includes(searchable(geography)))throw new Error('Commercial verification failed: market pricing date or geography was omitted')
+  const urls=[...new Set((raw.match(/https:\/\/[^\s,|)]+/gi)??[]).map(url=>url.replace(/[.;]+$/,'')))]
+  if(!urls.length)throw new Error('Commercial verification failed: market pricing basis had no cited source URL')
+  const decodedHtml=contentHtml.replace(/&amp;/gi,'&')
+  for(const url of urls)if(!decodedHtml.includes(url))throw new Error(`Commercial verification failed: market pricing source ${url} was omitted`)
+  const benchmarkFigures=[...raw.matchAll(/\b[A-Z]{3}\s+([0-9][0-9,]*(?:\.\d+)?)/g)].map(match=>Number(match[1].replace(/,/g,''))).filter(Number.isFinite)
+  const output=outputNumbers(contentHtml)
+  for(const value of benchmarkFigures)if(!containsFigure(output,value))throw new Error(`Commercial verification failed: market benchmark figure ${value} was changed or omitted`)
+}
+
 /** Commercial documents may format approved data, but may not rewrite it. */
 export function verifyCommercialDocument(order:DocumentWorkOrder,contentHtml:string):CommercialVerificationReport {
   const rowFields=ROW_FIELDS[order.deliverable_type]
@@ -67,6 +85,7 @@ export function verifyCommercialDocument(order:DocumentWorkOrder,contentHtml:str
     }
   }
   let verifiedFigures=0
+  if(order.deliverable_type==='quote')verifyQuotePricingBasis(order,contentHtml,documentText)
   if(isProposal){
     const missing=PROPOSAL_ANCHORS.filter(key=>{
       const approved=searchable(order.fields[key])

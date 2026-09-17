@@ -15,6 +15,26 @@ describe('deterministic commercial verification',()=>{
     expect(verifyCommercialDocument(order,html)).toEqual({required:true,verified_rows:4,verified_figures:0})
   })
 
+  it('retains the approved market-pricing provenance, citations, and benchmark figures',()=>{
+    const order={deliverable_type:'quote',fields:{
+      line_items:'Field labor | 16 | hour | $135.00 | $2,160.00',
+      market_pricing_research_required:'true',
+      market_pricing_basis:'Research date: 2026-09-17\nGeography: New Hampshire\nField labor | USD 110.00–165.00 per hour | typical USD 135.00 | Published regional schedule | https://official.example/rates',
+    }} as unknown as DocumentWorkOrder
+    const html='<table><tr><td>Field labor</td><td>16</td><td>hour</td><td>$135.00</td><td>$2,160.00</td></tr></table><section><p>Research date: 2026-09-17. Geography: New Hampshire.</p><p>Published benchmark: USD 110.00–165.00 per hour; typical USD 135.00.</p><a href="https://official.example/rates">Official rate schedule</a></section>'
+    expect(verifyCommercialDocument(order,html)).toEqual({required:true,verified_rows:1,verified_figures:0})
+  })
+
+  it('fails closed when a market-informed quote omits its public citation',()=>{
+    const order={deliverable_type:'quote',fields:{
+      line_items:'Field labor | 16 | hour | $135.00 | $2,160.00',
+      market_pricing_research_required:'true',
+      market_pricing_basis:'Research date: 2026-09-17\nGeography: New Hampshire\nField labor | USD 110.00–165.00 per hour | typical USD 135.00 | https://official.example/rates',
+    }} as unknown as DocumentWorkOrder
+    const html='<p>Field labor 16 hour $135.00 $2,160.00. Research date 2026-09-17. Geography New Hampshire. USD 110.00–165.00, typical USD 135.00.</p>'
+    expect(()=>verifyCommercialDocument(order,html)).toThrow(/market pricing source/)
+  })
+
   it('fails closed when an invoice row changes',()=>{
     const order={deliverable_type:'invoice',fields:{line_items:'LAB-01 | Field labor | 16 | $125.00 | No | $2,000.00'}} as unknown as DocumentWorkOrder
     expect(()=>verifyCommercialDocument(order,'<table><tr><td>LAB-01</td><td>Field labor</td><td>18</td><td>$125.00</td><td>No</td><td>$2,250.00</td></tr></table>')).toThrow(/line_items row 1 was changed or omitted/)
