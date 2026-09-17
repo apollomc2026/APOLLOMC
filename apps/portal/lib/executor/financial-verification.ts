@@ -47,6 +47,26 @@ function htmlText(contentHtml: string): string {
     .replace(/\s+/g, ' ')
 }
 
+function associationText(value:string):string {
+  return value.replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/&amp;/gi,'&').replace(/[^a-z0-9]+/gi,' ').trim().toLowerCase()
+}
+
+function verifyScheduleRowAssociation(order:DocumentWorkOrder,contentHtml:string,fields:string[]):number {
+  const documentText=associationText(contentHtml)
+  let verified=0
+  for(const field of fields){
+    const raw=order.fields[field]
+    if(typeof raw!=='string'||!raw.trim())continue
+    const parsed=rows(raw,6)
+    for(const [index,columns] of parsed.entries()){
+      const approved=associationText(columns.join(' '))
+      if(!approved||!documentText.includes(approved))throw new Error(`rendered ${order.deliverable_type} changed, reordered, or omitted ${field} row ${index+1}`)
+      verified+=1
+    }
+  }
+  return verified
+}
+
 function financialValues(contentHtml: string): number[] {
   return (htmlText(contentHtml).match(/\(?-?\$?\s*\d[\d,]*(?:\.\d+)?\)?/g) ?? [])
     .flatMap(value => {
@@ -135,8 +155,9 @@ export function verifyFinancialDocument(order: DocumentWorkOrder, contentHtml: s
   }
   if (order.deliverable_type === 'cash-flow-budget-package') {
     const arithmetic = verifyCashFlowBudget(order)
+    const associatedRows=verifyScheduleRowAssociation(order,contentHtml,['base_case_lines','best_case_lines','worst_case_lines'])
     const figures = verifyVerbatimFigures({ ...order, fields: { balance_sheet_lines: order.fields.base_case_lines, income_statement_lines: order.fields.best_case_lines, cash_flow_lines: order.fields.worst_case_lines } }, contentHtml)
-    return { required: true, checks: ['cash continuity', 'net change arithmetic', 'closing balance arithmetic', 'supplied figures preserved'], verified_values: arithmetic + figures }
+    return { required: true, checks: ['cash continuity', 'net change arithmetic', 'closing balance arithmetic', 'schedule row association', 'supplied figures preserved'], verified_values: arithmetic + associatedRows + figures }
   }
   if (order.deliverable_type === 'budget-vs-actual') {
     const count = verifySourceBasis(order, contentHtml, { revenue_lines:[1,2], expense_lines:[1,2] })

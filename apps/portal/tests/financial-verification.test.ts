@@ -14,14 +14,14 @@ const base = {
 describe('deterministic financial verification', () => {
   it('cross-foots cash schedules and verifies continuity', () => {
     const order = { ...base, deliverable_type: 'cash-flow-budget-package', fields: { base_case_lines: 'Jan | 100 | 50 | (20) | 30 | 130\nFeb | 130 | 25 | (35) | (10) | 120' } } as unknown as DocumentWorkOrder
-    const report = verifyFinancialDocument(order, '<p>100 50 (20) 30 130 130 25 (35) (10) 120</p>')
+    const report = verifyFinancialDocument(order, '<p>Jan 100 50 (20) 30 130</p><p>Feb 130 25 (35) (10) 120</p>')
     expect(report.required).toBe(true)
     expect(report.verified_values).toBeGreaterThan(0)
   })
 
   it('accepts a labeled cash schedule and validates only its data rows', () => {
     const order = { ...base, deliverable_type: 'cash-flow-budget-package', fields: { base_case_lines: 'Month | Opening cash | Inflows | Outflows | Net change | Closing cash\nJan-27 | $425,000 | $340,000 | $318,000 | $22,000 | $447,000' } } as unknown as DocumentWorkOrder
-    const report = verifyFinancialDocument(order, '<table><tr><th>Opening cash</th></tr><tr><td>$425,000</td><td>$340,000</td><td>$318,000</td><td>$22,000</td><td>$447,000</td></tr></table>')
+    const report = verifyFinancialDocument(order, '<table><tr><th>Month</th><th>Opening cash</th><th>Inflows</th><th>Outflows</th><th>Net change</th><th>Closing cash</th></tr><tr><td>Jan-27</td><td>$425,000</td><td>$340,000</td><td>$318,000</td><td>$22,000</td><td>$447,000</td></tr></table>')
     expect(report.verified_values).toBeGreaterThan(0)
   })
 
@@ -45,6 +45,12 @@ describe('deterministic financial verification', () => {
     const report = verifyFinancialDocument({ ...base, deliverable_type, fields } as unknown as DocumentWorkOrder, `<p>${output}</p>`)
     expect(report.required).toBe(true)
     expect(report.verified_values).toBeGreaterThan(0)
+  })
+
+  it('rejects valid cash figures reassigned to the wrong month',()=>{
+    const order={...base,deliverable_type:'cash-flow-budget-package',fields:{base_case_lines:'Jan | 100 | 50 | (20) | 30 | 130\nFeb | 130 | 25 | (35) | (10) | 120'}} as unknown as DocumentWorkOrder
+    const html='<table><tr><td>Jan</td><td>130</td><td>25</td><td>(35)</td><td>(10)</td><td>120</td></tr><tr><td>Feb</td><td>100</td><td>50</td><td>(20)</td><td>30</td><td>130</td></tr></table>'
+    expect(()=>verifyFinancialDocument(order,html)).toThrow(/changed, reordered, or omitted base_case_lines row 1/)
   })
 
   it('requires both source figures and the professional boundary for tax estimates', () => {
