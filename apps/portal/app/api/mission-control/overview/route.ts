@@ -20,6 +20,9 @@ export async function GET() {
   const db = await createClient()
   const conversations = await db.from('apollo_conversations').select('id,title,status,readiness,current_spec_version,updated_at').eq('user_id', auth.user.userId).order('updated_at', { ascending:false })
   if (conversations.error) return NextResponse.json({ error:conversations.error.message }, { status:500 })
+  const currentSpecifications = conversations.data?.length
+    ? await serviceCurrentSpecifications(conversations.data.map(mission => mission.id), auth.user.userId)
+    : new Map<string, { title:string; deliverable_type:string }>()
   const service = await createServiceClient()
   const jobs = await service.from('apollo_document_jobs').select('id,conversation_id,deliverable_type,state,progress_percent,status_message,artifacts,created_at').eq('requested_by', auth.user.userId).order('created_at', { ascending:false })
   if (jobs.error) return NextResponse.json({ error:jobs.error.message }, { status:500 })
@@ -28,9 +31,8 @@ export async function GET() {
   const missions = (conversations.data ?? []).map(mission => {
     const missionJobs = jobsByMission.get(mission.id) ?? []
     const normalizedJobs = missionJobs.map(job => ({ id:job.id, deliverable_type:job.deliverable_type, state:job.state, progress_percent:job.progress_percent, message:job.status_message, artifacts:job.artifacts ?? [], created_at:job.created_at }))
-    const authoritativeType=normalizedJobs[0]?.deliverable_type
-    const authoritativeTitle=authoritativeType?String(authoritativeType).split('-').map((part:string)=>part.charAt(0).toUpperCase()+part.slice(1)).join(' '):mission.title
-    return { ...mission, title:authoritativeTitle, job:normalizedJobs[0] ?? null, jobs:normalizedJobs }
+    const identity=currentSpecifications.get(mission.id)
+    return { ...mission, title:identity?.title ?? mission.title, deliverable_type:identity?.deliverable_type ?? null, job:normalizedJobs[0] ?? null, jobs:normalizedJobs }
   })
   const allJobs = missions.flatMap(mission => mission.jobs)
   const delivered = allJobs.filter(job => job.state === 'delivered').length
@@ -42,4 +44,22 @@ export async function GET() {
     { missions, metrics:{ total:missions.length, active, delivered, failed, average_progress:averageProgress } },
     { headers:{ 'Cache-Control':'private, no-store, max-age=0' } },
   )
+}
+
+async function serviceCurrentSpecifications(conversationIds:string[],userId:string) {
+  const service=await createServiceClient()
+  const rows=await service.from('apollo_specification_versions').select('conversation_id,version,specification,apollo_conversations!inner(user_id,current_spec_version)').in('conversation_id',conversationIds).eq('apollo_conversations.user_id',userId)
+  if(rows.error) throw new Error(rows.error.message)
+  const identities=new Map<string,{title:string;deliverable_type:string}>()
+  for(const row of rows.data ?? []){
+    const owner=Array.isArray(row.apollo_conversations)?row.apollo_conversations[0]:row.apollo_conversations
+    const currentVersion=Number((owner as {current_spec_version?:number}|null)?.current_spec_version)
+    const version=(row as {version?:number}).version
+    if(Number(version)!==currentVersion)continue
+    const specification=row.specification as {mission?:{title?:string};artifact?:{recommended_type?:string}}
+    const title=specification.mission?.title?.trim()
+    const deliverableType=specification.artifact?.recommended_type?.trim()
+    if(title&&deliverableType)identities.set(String(row.conversation_id),{title,deliverable_type:deliverableType})
+  }
+  return identities
 }

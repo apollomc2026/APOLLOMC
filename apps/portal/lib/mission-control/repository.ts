@@ -6,6 +6,7 @@ import type { DocumentSource } from '@/lib/executor/contracts'
 import { getFromS3, getPresignedUrl } from '@/lib/s3/client'
 import { extractEvidence, extractEvidenceFactsFromPdfs, extractEvidenceFactsFromSources } from './evidence'
 import { executionGaps } from './work-order'
+import { canonicalizeSpecificationIdentity } from './identity'
 
 export class MissionPersistenceError extends Error {}
 
@@ -153,10 +154,11 @@ export async function persistMissionTurn(input: {
   }
   result.specification.approval = { status: sanitizedGaps.length ? 'draft' : 'ready', approved_by: null, approved_at: null, unresolved_items_accepted: [] }
   result.specification.provenance = specificationProvenance(result.specification.content.facts, result.specification.provenance.created_at, result.specification.provenance.model_versions)
+  result.specification = canonicalizeSpecificationIdentity(result.specification)
   const apolloContent = [result.acknowledgement, result.question].filter(Boolean).join('\n\n')
   const contentHash = createHash('sha256').update(JSON.stringify(result.specification)).digest('hex')
   const state = result.readiness >= 75 ? 'brief_ready' : result.readiness >= 50 ? 'calibrating' : 'discovery'
-  const committed = await db.rpc('apollo_commit_mission_turn_v2', { p_conversation_id: input.conversationId ?? null, p_user_content: input.message, p_apollo_content: apolloContent, p_rationale: result.question_reason, p_specification: result.specification, p_schema_version: result.specification.schema_version, p_content_hash: contentHash, p_spec_status: result.specification.approval.status, p_readiness: result.readiness, p_conversation_status: state, p_title: result.specification.artifact.recommended_family, p_input_channel:input.voiceTranscript?.inputChannel ?? 'text', p_transcription_confidence:input.voiceTranscript?.confidence ?? null, p_critical_review_required:input.voiceTranscript?.criticalReviewRequired ?? false, p_critical_review_confirmed:input.voiceTranscript?.criticalReviewConfirmed ?? false }).single()
+  const committed = await db.rpc('apollo_commit_mission_turn_v2', { p_conversation_id: input.conversationId ?? null, p_user_content: input.message, p_apollo_content: apolloContent, p_rationale: result.question_reason, p_specification: result.specification, p_schema_version: result.specification.schema_version, p_content_hash: contentHash, p_spec_status: result.specification.approval.status, p_readiness: result.readiness, p_conversation_status: state, p_title: result.specification.mission.title, p_input_channel:input.voiceTranscript?.inputChannel ?? 'text', p_transcription_confidence:input.voiceTranscript?.confidence ?? null, p_critical_review_required:input.voiceTranscript?.criticalReviewRequired ?? false, p_critical_review_confirmed:input.voiceTranscript?.criticalReviewConfirmed ?? false }).single()
   if (committed.error || !committed.data) throw new MissionPersistenceError(committed.error?.message ?? 'Mission turn could not be committed')
   const row = committed.data as { conversation_id: string; specification_version: number }
   return { ...result, conversation_id: String(row.conversation_id), specification_version: Number(row.specification_version) }

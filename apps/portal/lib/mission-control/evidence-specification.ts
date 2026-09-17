@@ -1,5 +1,6 @@
 import { createMissionFact, mergeMissionFacts, specificationProvenance, type DeliverableSpecification, type MissionFact } from './contracts'
 import { executionGaps } from './work-order'
+import { canonicalizeSpecificationIdentity } from './identity'
 
 export function mergeEvidenceIntoSpecification(input: {
   prior: DeliverableSpecification
@@ -20,5 +21,5 @@ export function mergeEvidenceIntoSpecification(input: {
   const gaps = executionGaps(specification)
   const readiness = gaps.length ? Math.min(70, Math.max(50, mergedFacts.length * 8)) : 82
   specification.approval.status = readiness >= 75 ? 'ready' : 'draft'
-  return { specification, readiness, effectiveStatus }
+  return { specification:canonicalizeSpecificationIdentity(specification), readiness, effectiveStatus }
 }
