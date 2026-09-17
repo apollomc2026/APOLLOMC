@@ -7,7 +7,7 @@ import { REVISION_SCOPE, revisionDirectiveDigest } from './revision'
 export const PILOT_DELIVERABLES=['fsr','final-qc-report','quote','proposal','cash-flow-budget-package','contract-intelligence-review'] as const
 export type PilotDeliverable=(typeof PILOT_DELIVERABLES)[number]
 
-type ConversationRow={id:string;status:string;readiness:number;current_spec_version:number;updated_at:string}
+type ConversationRow={id:string;status:string;readiness:number;current_spec_version:number;created_at:string;updated_at:string}
 type SpecificationRow={id:string;conversation_id:string;version:number;status:string;content_hash:string;specification:DeliverableSpecification}
 type EvidenceRow={id:string;conversation_id:string;extraction_status:string;content_sha256:string|null;retrieval_sha256:string|null;extracted_facts:MissionFact[];extraction_trace:EvidenceExtractionTrace|null}
 type JobRow={id:string;conversation_id:string;deliverable_type:string;state:string;progress_percent:number;work_order:DocumentWorkOrder;artifacts:ArtifactManifest[];error_code:string|null;completion_email_status:string;failure_email_status:string;created_at:string;completed_at:string|null}
@@ -71,7 +71,7 @@ export function auditPilotRelease(input:PilotAuditInput):{passed:boolean;passed_
   const classes=PILOT_DELIVERABLES.map(deliverableType=>{
     const candidates=input.conversations.map(conversation=>({conversation,specification:specsByConversation.get(`${conversation.id}:${conversation.current_spec_version}`)}))
       .filter((candidate):candidate is {conversation:ConversationRow;specification:SpecificationRow}=>candidate.specification?.specification.artifact.recommended_type===deliverableType)
-      .sort((a,b)=>Date.parse(b.conversation.updated_at)-Date.parse(a.conversation.updated_at))
+      .sort((a,b)=>Date.parse(b.conversation.created_at)-Date.parse(a.conversation.created_at)||b.conversation.id.localeCompare(a.conversation.id))
     // The newest representative mission is authoritative. Falling back to an
     // older delivered mission would conceal a regression in the current run.
     const selected=candidates[0]

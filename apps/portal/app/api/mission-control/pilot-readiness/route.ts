@@ -10,7 +10,7 @@ export const dynamic='force-dynamic'
 export async function GET(){
   const auth=await requireAllowedUser();if(!auth.ok)return NextResponse.json({error:auth.error},{status:auth.status})
   const db=await createServiceClient()
-  const conversations=await db.from('apollo_conversations').select('id,status,readiness,current_spec_version,updated_at').eq('user_id',auth.user.userId)
+  const conversations=await db.from('apollo_conversations').select('id,status,readiness,current_spec_version,created_at,updated_at').eq('user_id',auth.user.userId)
   if(conversations.error)return NextResponse.json({error:conversations.error.message},{status:500})
   const ids=(conversations.data??[]).map(row=>row.id)
   if(!ids.length)return NextResponse.json(auditPilotRelease({conversations:[],specifications:[],evidence:[],jobs:[],events:[]}),{headers:{'Cache-Control':'private, no-store'}})
