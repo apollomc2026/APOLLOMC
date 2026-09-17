@@ -537,8 +537,24 @@ function findToolUse(
 }
 
 export function normalizeSectionCollection(args:OrchestrateArgs, output:Record<string,unknown>):Record<string,unknown> {
-  if (Array.isArray(output.sections) || !output.sections || typeof output.sections !== 'object') return output
-  const keyed=output.sections as Record<string,unknown>
+  let normalized=output
+  if ((!normalized.sections || typeof normalized.sections !== 'object') && normalized.deliverable && typeof normalized.deliverable === 'object' && !Array.isArray(normalized.deliverable)) {
+    normalized={...normalized,...normalized.deliverable as Record<string,unknown>}
+    delete normalized.deliverable
+  }
+  if (typeof normalized.sections === 'string') {
+    const raw=normalized.sections.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'')
+    try {
+      const parsed=JSON.parse(raw) as unknown
+      if (Array.isArray(parsed)) normalized={...normalized,sections:parsed}
+      else if (parsed&&typeof parsed==='object'&&!Array.isArray(parsed)) {
+        const record=parsed as Record<string,unknown>
+        normalized=Array.isArray(record.sections)?{...normalized,...record}:{...normalized,sections:record}
+      }
+    } catch { return normalized }
+  }
+  if (Array.isArray(normalized.sections) || !normalized.sections || typeof normalized.sections !== 'object') return normalized
+  const keyed=normalized.sections as Record<string,unknown>
   const sections=activeSections(args).flatMap(section => {
     const raw=keyed[section.key]
     if (typeof raw === 'string') return [{ key:section.key, label:section.label, content:raw }]
@@ -547,7 +563,7 @@ export function normalizeSectionCollection(args:OrchestrateArgs, output:Record<s
     if (typeof value.content !== 'string') return []
     return [{ ...value, key:section.key, label:typeof value.label === 'string' ? value.label : section.label }]
   })
-  return { ...output, sections }
+  return { ...normalized, sections }
 }
 
 async function callClaudeWithTool(
@@ -719,6 +735,7 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
 
   let contractViolations = sectionContractViolations(args, output)
   if (!validator(output) || contractViolations.length) {
+    const firstPassOutput = output
     const errorSummary = [describeAjvErrors(validator.errors), ...contractViolations.map(item => `- ${item}`)].filter(item => item !== 'unknown validation error').join('\n')
     warnings.push('First-pass schema validation failed; running corrective follow-up.')
 
@@ -759,11 +776,33 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
     }
     contractViolations = sectionContractViolations(args, output)
     if (!validator(output) || contractViolations.length) {
-      throw new OrchestrateError(
-        'AI output failed schema validation after repair pass',
-        'schema_invalid',
-        { schema:validator.errors, sections:contractViolations }
-      )
+      const recoverySummary = [describeAjvErrors(validator.errors), ...contractViolations.map(item => `- ${item}`)].filter(item => item !== 'unknown validation error').join('\n')
+      warnings.push('Corrective follow-up remained schema-invalid; running one bounded structural recovery pass.')
+      const recoveryBlocks: AnthropicContentBlock[] = [
+        ...promptBlocks,
+        {
+          type:'text',
+          text:[
+            'Two prior attempts failed the required deliverable schema. This is the final bounded structural recovery.',
+            'Re-emit the COMPLETE deliverable through emit_deliverable. Do not return an empty sections array.',
+            `Include every active section exactly once in this order: ${activeSections(args).map(section => section.key).join(', ')}.`,
+            'Restore every required top-level property. Preserve every supplied fact and figure. Do not invent missing facts.',
+            'Current validation errors:',
+            '```', recoverySummary, '```',
+            'First-pass output:',
+            '```json', JSON.stringify(firstPassOutput).slice(0,12000), '```',
+            'Invalid repair output:',
+            '```json', JSON.stringify(output).slice(0,12000), '```',
+          ].join('\n'),
+        },
+      ]
+      try {
+        output = await callClaudeWithTool(client,args,systemPrompt,recoveryBlocks,outputTokenBudget(args,true),modelFor('repair'))
+      } catch (err) {
+        throw new OrchestrateError('Schema recovery pass failed: '+(err instanceof Error?err.message:String(err)),'claude_invocation',err)
+      }
+      contractViolations=sectionContractViolations(args,output)
+      if(!validator(output)||contractViolations.length) throw new OrchestrateError('AI output remained schema-invalid after bounded recovery','schema_invalid',{schema:validator.errors,sections:contractViolations})
     }
   }
 
