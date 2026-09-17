@@ -1,6 +1,7 @@
 import { missionCompleteEmail, sendEmail } from '@/lib/email/ses'
 import { createServiceClient } from '@/lib/supabase/server'
 import type { ArtifactManifest } from './contracts'
+import { controlledArtifactUrl } from './artifact-access'
 
 export async function sendCompletionNotification(jobId: string) {
   const db = await createServiceClient()
@@ -32,14 +33,14 @@ export async function sendCompletionNotification(jobId: string) {
 
     const artifacts = (claim.data.artifacts as ArtifactManifest[] | null) ?? []
     const artifact = artifacts[0]
-    if (!artifact?.web_view_url) throw new Error('Delivered artifact URL is unavailable')
+    if (!artifact?.storage_file_id) throw new Error('Delivered artifact is unavailable')
 
     await sendEmail({
       to: profile.data.email,
       ...missionCompleteEmail(
         artifact.title || 'document',
         claim.data.conversation_id,
-        artifact.web_view_url,
+        controlledArtifactUrl(jobId),
       ),
     })
     const recorded = await db

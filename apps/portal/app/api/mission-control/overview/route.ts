@@ -2,6 +2,8 @@ import { after, NextResponse } from 'next/server'
 import { requireAllowedUser } from '@/lib/apollo/auth'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { reconcileTerminalNotifications } from '@/lib/executor/notification-reconciler'
+import { projectControlledArtifacts } from '@/lib/executor/artifact-access'
+import type { ArtifactManifest } from '@/lib/executor/contracts'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,7 +32,7 @@ export async function GET() {
   for (const job of jobs.data ?? []) jobsByMission.set(job.conversation_id, [...(jobsByMission.get(job.conversation_id) ?? []), job])
   const missions = (conversations.data ?? []).map(mission => {
     const missionJobs = jobsByMission.get(mission.id) ?? []
-    const normalizedJobs = missionJobs.map(job => ({ id:job.id, deliverable_type:job.deliverable_type, state:job.state, progress_percent:job.progress_percent, message:job.status_message, artifacts:job.artifacts ?? [], created_at:job.created_at }))
+    const normalizedJobs = missionJobs.map(job => ({ id:job.id, deliverable_type:job.deliverable_type, state:job.state, progress_percent:job.progress_percent, message:job.status_message, artifacts:projectControlledArtifacts(job.id,((job.artifacts??[]) as ArtifactManifest[])), created_at:job.created_at }))
     const identity=currentSpecifications.get(mission.id)
     return { ...mission, title:identity?.title ?? mission.title, deliverable_type:identity?.deliverable_type ?? null, job:normalizedJobs[0] ?? null, jobs:normalizedJobs }
   })

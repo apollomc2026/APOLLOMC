@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { requireAllowedUser } from '@/lib/apollo/auth'
 import { createMissionFact, specificationProvenance, type DeliverableSpecification } from '@/lib/mission-control/contracts'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { projectControlledArtifacts } from '@/lib/executor/artifact-access'
+import type { ArtifactManifest } from '@/lib/executor/contracts'
 
 const fixtureTimestamp = '2026-09-06T11:45:00.000Z'
 const reviewFacts = [createMissionFact({
@@ -96,7 +98,7 @@ export async function GET(request: Request) {
   const jobs = await service.from('apollo_document_jobs').select('id,state,progress_percent,status_message,artifacts,work_order,missing_inputs,error_code,created_at,completed_at').eq('conversation_id', id).eq('requested_by', allowed.user.userId).order('created_at', { ascending: false })
   if (jobs.error) return NextResponse.json({ error: jobs.error.message }, { status: 500 })
   const history = (jobs.data ?? []).map(item => {
-    const artifacts = (item.artifacts as Array<{ title?: string; web_view_url?: string; version?: number; content_sha256?: string }> | null) ?? []
+    const artifacts = projectControlledArtifacts(item.id,((item.artifacts as ArtifactManifest[]|null)??[]))
     const workOrder = item.work_order as { fields?: { revision_of?: string; revision_instruction?: string } } | null
     return { id:item.id, state:item.state, progress_percent:item.progress_percent, message:item.status_message, artifacts, revision_of:workOrder?.fields?.revision_of ?? null, revision_instruction:workOrder?.fields?.revision_instruction ?? null, missing_inputs:item.missing_inputs ?? [], error_code:item.error_code ?? null, created_at:item.created_at, completed_at:item.completed_at }
   })

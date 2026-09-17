@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { verifyExecutorRequest } from '@/lib/executor/auth'
 import { getJob } from '@/lib/executor/ledger'
+import { projectControlledArtifacts } from '@/lib/executor/artifact-access'
+import type { ArtifactManifest } from '@/lib/executor/contracts'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,7 +21,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     retry_count: job.retry_count,
     checkpoint_ref: job.checkpoint_ref,
     missing_inputs: job.missing_inputs,
-    artifacts: job.artifacts,
+    artifacts: projectControlledArtifacts(String(job.id),((job.artifacts??[]) as ArtifactManifest[])),
     cancel_requested_at: job.cancel_requested_at,
     created_at: job.created_at,
     updated_at: job.updated_at,
