@@ -74,8 +74,15 @@ export function verifyCommercialDocument(order:DocumentWorkOrder,contentHtml:str
     })
     if(missing.length)throw new Error(`Commercial verification failed: approved ${missing.join(', ')} ${missing.length===1?'was':'were'} changed or omitted`)
     verifiedRows+=PROPOSAL_ANCHORS.length
+    const pricingDetail=order.fields.pricing_detail
+    if(typeof pricingDetail!=='string'||!pricingDetail.trim())throw new Error('Commercial verification failed: approved pricing_detail was empty')
+    for(const [index,line] of approvedRows(pricingDetail).entries()){
+      const approved=searchable(line.replace(/[|:]/g,' '))
+      if(!approved||!documentText.includes(approved))throw new Error(`Commercial verification failed: pricing_detail row ${index+1} was changed, reassigned, or omitted`)
+      verifiedRows+=1
+    }
     const figures=outputNumbers(contentHtml)
-    for(const value of approvedNumbers(order.fields.pricing_detail)){
+    for(const value of approvedNumbers(pricingDetail)){
       if(!containsFigure(figures,value))throw new Error(`Commercial verification failed: proposal pricing figure ${value} was changed or omitted`)
       verifiedFigures+=1
     }

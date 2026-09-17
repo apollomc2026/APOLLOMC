@@ -35,12 +35,18 @@ describe('deterministic commercial verification',()=>{
   it('retains proposal identity, pricing model, and every approved pricing figure',()=>{
     const order={deliverable_type:'proposal',fields:{prospect_organization:'Riverfront Center',pricing_model:'milestone-based',pricing_detail:'Mobilization: $4,500; Field execution: $18,750; Closeout: $3,250; Total: $26,500'}} as unknown as DocumentWorkOrder
     const html='<h2>Proposal for Riverfront Center</h2><p>Milestone-based investment.</p><table><tr><td>Mobilization</td><td>$4,500</td></tr><tr><td>Field execution</td><td>$18,750</td></tr><tr><td>Closeout</td><td>$3,250</td></tr><tr><td>Total</td><td>$26,500</td></tr></table>'
-    expect(verifyCommercialDocument(order,html)).toEqual({required:true,verified_rows:2,verified_figures:4})
+    expect(verifyCommercialDocument(order,html)).toEqual({required:true,verified_rows:6,verified_figures:4})
   })
 
   it('fails closed when a proposal price is altered',()=>{
     const order={deliverable_type:'proposal',fields:{prospect_organization:'Riverfront Center',pricing_model:'fixed-fee',pricing_detail:'Total: $26,500'}} as unknown as DocumentWorkOrder
-    expect(()=>verifyCommercialDocument(order,'<p>Riverfront Center fixed fee total $25,600</p>')).toThrow(/proposal pricing figure 26500/)
+    expect(()=>verifyCommercialDocument(order,'<p>Riverfront Center fixed fee total $25,600</p>')).toThrow(/pricing_detail row 1/)
+  })
+
+  it('fails closed when proposal prices are reassigned between approved rows',()=>{
+    const order={deliverable_type:'proposal',fields:{prospect_organization:'Riverfront Center',pricing_model:'milestone-based',pricing_detail:'Mobilization: $4,500; Closeout: $3,250; Total: $7,750'}} as unknown as DocumentWorkOrder
+    const html='<h2>Riverfront Center</h2><p>Milestone-based pricing.</p><table><tr><td>Mobilization</td><td>$3,250</td></tr><tr><td>Closeout</td><td>$4,500</td></tr><tr><td>Total</td><td>$7,750</td></tr></table><p>Approved figures include $4,500 and $3,250.</p>'
+    expect(()=>verifyCommercialDocument(order,html)).toThrow(/pricing_detail row 1 was changed, reassigned, or omitted/)
   })
 
   it('does not impose commercial checks on unrelated deliverables',()=>{
