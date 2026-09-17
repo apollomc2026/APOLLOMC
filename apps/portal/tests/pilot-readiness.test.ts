@@ -4,6 +4,7 @@ import { interpretMission } from '../lib/mission-control/interpreter'
 
 function fixture(slug:(typeof PILOT_DELIVERABLES)[number]){
   const spec=interpretMission(`Create a ${slug}.`).specification;spec.artifact.recommended_type=slug;spec.approval={status:'approved',approved_by:'user',approved_at:'2026-09-16T12:00:00Z',unresolved_items_accepted:[]};spec.content.open_questions=[]
+  if(slug==='quote')spec.content.facts.push({key:'market_pricing_basis',label:'Market pricing basis',value:'Field labor | USD 110.00–165.00 per hour | typical USD 135.00',normalized_value:'Field labor | USD 110.00–165.00 per hour | typical USD 135.00',source:'research',source_reference:'https://official.example/rates',source_references:['https://official.example/rates'],capture_method:'system_lookup',confidence:.9,verification_state:'verified',sensitivity:'internal',last_editor:'apollo',updated_at:'2026-09-16T12:00:00Z'})
   const conversationId=`mission-${slug}`;const specId=`spec-${slug}`;const failedId=`10000000-0000-5000-a000-${String(PILOT_DELIVERABLES.indexOf(slug)+1).padStart(12,'0')}`;const firstId=`20000000-0000-5000-a000-${String(PILOT_DELIVERABLES.indexOf(slug)+1).padStart(12,'0')}`;const secondId=`30000000-0000-5000-a000-${String(PILOT_DELIVERABLES.indexOf(slug)+1).padStart(12,'0')}`
   const artifact=(id:string,version:number)=>({artifact_id:`artifact-${id}`,project_id:specId,conversation_id:conversationId,task_id:id,title:slug,artifact_type:'document' as const,lifecycle:'draft' as const,storage_provider:'google-drive' as const,storage_file_id:`file-${id}`,storage_parent_id:'folder',version,content_sha256:'b'.repeat(64),mime_type:'application/pdf',source_engine_id:'apollo-documents',source_run_id:id,created_at:'2026-09-16T12:10:00Z'})
   const order=(id:string,revisionOf?:string)=>({protocol_version:'1.0' as const,work_order_id:id,idempotency_key:`spec-${'a'.repeat(64)}`,project_id:specId,conversation_id:conversationId,task_id:id,requested_by:'user',capability:'professional-document-generation',deliverable_type:slug,objective:'Pilot',audience:'Operator',formats:['pdf' as const],fields:revisionOf?{revision_of:revisionOf,artifact_version:2}:{},sources:[],brand_id:'kit:on-spot',style_id:'industrial',sensitivity:'internal' as const,priority:'medium' as const,drive_destination:{folder_id:'folder',lifecycle:'draft' as const},quality_gates:{schema_validation:true as const,source_grounding:true as const,independent_review:false,deterministic_financial_verification:false,human_approval_before_publish:true as const},trace:{specification_id:specId,specification_hash:'a'.repeat(64),specification_schema_version:'1.0',playbook_id:'pilot',playbook_version:'1',model_versions:[],required_checks:[],accepted_unresolved_items:[]},created_at:'2026-09-16T12:00:00Z'})
@@ -18,7 +19,7 @@ describe('pilot release auditor',()=>{
     const fixtures=PILOT_DELIVERABLES.map(fixture)
     const report=auditPilotRelease({conversations:fixtures.map(item=>item.conversation),specifications:fixtures.map(item=>item.specification),evidence:fixtures.map(item=>item.evidence),jobs:fixtures.flatMap(item=>item.jobs),events:fixtures.flatMap(item=>item.events)})
     expect(report).toMatchObject({passed:true,passed_classes:6,total_classes:6})
-    expect(report.classes.every(item=>item.gates.length===8&&item.gates.every(gate=>gate.passed))).toBe(true)
+    expect(report.classes.every(item=>item.gates.length===9&&item.gates.every(gate=>gate.passed))).toBe(true)
   })
 
   it('does not call a delivered PDF pilot-ready without verification, recovery, and regeneration proof',()=>{
@@ -36,6 +37,15 @@ describe('pilot release auditor',()=>{
     const verification=report.classes.find(entry=>entry.deliverable_type==='proposal')!.gates.find(gate=>gate.key==='verification')!
     expect(verification).toMatchObject({passed:false})
     expect(verification.evidence).toContain('commercial_verification=missing')
+  })
+
+  it('does not pass the quote class without cited system-lookup pricing research',()=>{
+    const item=fixture('quote')
+    item.specification.specification.content.facts=item.specification.specification.content.facts.filter(fact=>fact.key!=='market_pricing_basis')
+    const report=auditPilotRelease({conversations:[item.conversation],specifications:[item.specification],evidence:[item.evidence],jobs:item.jobs,events:item.events})
+    const gate=report.classes.find(entry=>entry.deliverable_type==='quote')!.gates.find(entry=>entry.key==='market-pricing')!
+    expect(gate).toMatchObject({passed:false})
+    expect(gate.evidence).toContain('Missing benchmark record')
   })
 
   it('does not hide the newest failed mission behind an older delivered mission',()=>{

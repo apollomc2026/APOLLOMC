@@ -7,6 +7,7 @@ import { getFromS3, getPresignedUrl } from '@/lib/s3/client'
 import { extractEvidence, extractEvidenceFactsFromPdfs, extractEvidenceFactsFromSources } from './evidence'
 import { executionGaps } from './work-order'
 import { canonicalizeSpecificationIdentity } from './identity'
+import { pricingResearchFact, requestsMarketPricingResearch, researchQuotePricing } from './quote-pricing-research'
 
 export class MissionPersistenceError extends Error {}
 
@@ -100,6 +101,24 @@ async function reconcileSecuredEvidence(input: {
   return evidenceFacts
 }
 
+async function enrichQuotePricingResearch(specification:DeliverableSpecification,message:string):Promise<DeliverableSpecification> {
+  if(specification.artifact.recommended_type!=='quote'||!requestsMarketPricingResearch(message))return specification
+  if(specification.content.facts.some(fact=>fact.key==='market_pricing_basis'&&fact.verification_state==='verified'))return specification
+  const values=new Map(specification.content.facts.filter(fact=>fact.verification_state!=='conflict').map(fact=>[fact.key,fact.value.trim()]))
+  const scopeSummary=values.get('scope_summary')||specification.mission.objective.trim()
+  if(!scopeSummary)return specification
+  try{
+    const research=await researchQuotePricing({scopeSummary,lineItems:values.get('line_items'),geography:values.get('project_address')||values.get('site_address')||values.get('customer_address')})
+    if(!research)return specification
+    const fact=pricingResearchFact(research)
+    const facts=mergeMissionFacts(specification.content.facts,[fact])
+    return {...specification,content:{...specification.content,facts},provenance:specificationProvenance(facts,specification.provenance.created_at,specification.provenance.model_versions)}
+  }catch(error){
+    console.error('[mission-control] Quote pricing research failed',{error:error instanceof Error?error.message:'unknown error'})
+    return specification
+  }
+}
+
 export async function persistMissionTurn(input: {
   userId: string
   message: string
@@ -137,6 +156,7 @@ export async function persistMissionTurn(input: {
       result.specification.provenance = specificationProvenance(result.specification.content.facts, result.specification.provenance.created_at, result.specification.provenance.model_versions)
     }
   }
+  result.specification=await enrichQuotePricingResearch(result.specification,input.message)
   result.specification.content.facts = result.specification.content.facts.filter(fact => !isControlMessageFact(fact))
   result.changed_facts = result.changed_facts.filter(fact => !isControlMessageFact(fact))
   const sanitizedGaps = executionGaps(result.specification)

@@ -39,7 +39,7 @@ export function promoteAcknowledgedGap(patch: ClaudeInterpretation, text: string
 
 export function applyExpertRecommendationMode(patch: ClaudeInterpretation, text: string, specification: DeliverableSpecification, force = false): ClaudeInterpretation {
   if (!force && !/^Use your expert recommendations\b/i.test(text.trim())) return patch
-  const existing = new Set(specification.content.facts.filter(fact => fact.source === 'user' || fact.source === 'evidence' || fact.confidence >= .75).map(fact => fact.key))
+  const existing = new Set(specification.content.facts.filter(fact => fact.source === 'user' || fact.source === 'evidence' || fact.source === 'research' || fact.confidence >= .75).map(fact => fact.key))
   const recommendations = [
     { key: 'win_themes', label: 'Win themes (3–4)', value: 'Operational clarity; safety-controlled execution; decision-ready prioritization; commercial certainty', confidence: .86 },
     { key: 'proposed_methodology', label: 'Proposed methodology / phases', value: `Mobilize and confirm controls; inspect and document the defined scope; perform permitted functional assessment; analyze and prioritize verified findings; review and deliver the controlled final artifact. Tailor each phase to: ${specification.mission.objective}`, confidence: .84 },

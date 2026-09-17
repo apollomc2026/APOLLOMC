@@ -7820,6 +7820,12 @@ export const MODULES_RAW: Record<string, unknown> = {
         "key": "preparer_contact",
         "label": "Preparer phone/email",
         "type": "text"
+      },
+      {
+        "key": "market_pricing_basis",
+        "label": "Cited market pricing basis",
+        "type": "textarea",
+        "help": "Current public benchmarks gathered by APOLLO. These inform pricing but never replace approved line items."
       }
     ],
     "file_upload_prompts": [
@@ -7867,6 +7873,14 @@ export const MODULES_RAW: Record<string, unknown> = {
         "min_words": 30,
         "max_words": 200,
         "instructions": "Parse the line_items input into a structured table: description, quantity, unit, unit price, line total. Compute subtotals. Be honest about any tax/labor breakdowns the user provided."
+      },
+      {
+        "key": "pricing_basis",
+        "label": "Pricing Basis",
+        "required": false,
+        "min_words": 40,
+        "max_words": 180,
+        "instructions": "Only when market_pricing_basis is supplied, concisely explain how cited public benchmarks informed commercial positioning. Preserve the benchmark date, geography, units, ranges, limitations, and source URLs. Clearly distinguish external benchmarks from the approved customer-facing line_items. Do not expose internal target margin, cost, or markup unless the operator explicitly supplied it for publication."
       },
       {
         "key": "totals",

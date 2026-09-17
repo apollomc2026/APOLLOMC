@@ -1,6 +1,6 @@
 export type ReadinessState = 'discovery' | 'calibrating' | 'ready'
 
-export type FactSource = 'user' | 'evidence' | 'inferred' | 'default'
+export type FactSource = 'user' | 'evidence' | 'research' | 'inferred' | 'default'
 export type FactCaptureMethod = 'user' | 'file_extraction' | 'system_lookup' | 'model_inference' | 'default'
 export type FactVerificationState = 'stated' | 'verified' | 'unverified' | 'conflict'
 export type Sensitivity = 'public' | 'internal' | 'confidential' | 'restricted'
@@ -77,11 +77,11 @@ export function mergeMissionFacts(priorFacts: MissionFact[], incomingFacts: Miss
         : incoming)
       continue
     }
-    if (incoming.source === 'evidence' && (prior.source === 'inferred' || prior.source === 'default')) {
+    if ((incoming.source === 'evidence' || incoming.source === 'research') && (prior.source === 'inferred' || prior.source === 'default')) {
       merged.set(incoming.key, incoming)
       continue
     }
-    if ((incoming.source === 'inferred' || incoming.source === 'default') && (prior.source === 'evidence' || prior.source === 'user')) continue
+    if ((incoming.source === 'inferred' || incoming.source === 'default') && (prior.source === 'evidence' || prior.source === 'research' || prior.source === 'user')) continue
     if (prior.source === 'evidence' && incoming.source === 'evidence' && COMPOSITIONAL_EVIDENCE_KEYS.has(incoming.key)) {
       const values=[prior.value,incoming.value].filter((value,index,items)=>items.findIndex(candidate=>candidate.normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase()===value.normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase())===index)
       merged.set(incoming.key, {
@@ -125,12 +125,12 @@ export function createMissionFact(
   input: Pick<MissionFact, 'key' | 'label' | 'value' | 'source' | 'confidence'> & Partial<Omit<MissionFact, 'key' | 'label' | 'value' | 'source' | 'confidence'>>,
   now = new Date(),
 ): MissionFact {
-  const captureMethod: Record<FactSource, FactCaptureMethod> = { user: 'user', evidence: 'file_extraction', inferred: 'model_inference', default: 'default' }
+  const captureMethod: Record<FactSource, FactCaptureMethod> = { user: 'user', evidence: 'file_extraction', research: 'system_lookup', inferred: 'model_inference', default: 'default' }
   return {
     normalized_value: input.value.trim() || null,
     source_reference: null,
     capture_method: captureMethod[input.source],
-    verification_state: input.source === 'evidence' ? 'verified' : input.source === 'user' ? 'stated' : 'unverified',
+    verification_state: input.source === 'evidence' || input.source === 'research' ? 'verified' : input.source === 'user' ? 'stated' : 'unverified',
     sensitivity: 'internal',
     last_editor: input.source === 'user' ? 'user' : 'apollo',
     updated_at: now.toISOString(),

@@ -30,7 +30,7 @@ function controllingConflictValue(fact:DeliverableSpecification['content']['fact
 
 function factMap(specification: DeliverableSpecification): Record<string, string> {
   return Object.fromEntries(specification.content.facts.flatMap(fact => {
-    if(!(fact.source === 'user' || fact.source === 'evidence' || fact.confidence >= .75))return []
+    if(!(fact.source === 'user' || fact.source === 'evidence' || fact.source === 'research' || fact.confidence >= .75))return []
     const value=controllingConflictValue(fact)
     return value===null?[]:[[fact.key,value]]
   }))
