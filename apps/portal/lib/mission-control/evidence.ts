@@ -425,18 +425,20 @@ export async function extractEvidenceFactsFromSources(
       planExtractionPass(trace)
       const properties=evidenceToolProperties(passFields,sourceIds,'source')
       const response=await client.messages.create({ model:modelFor('extraction'),max_tokens:5000,system:'You are one pass in APOLLO multipass evidence ingestion. Extract every requested value explicitly supported by the labeled sources. Never fabricate or silently omit a supported requested field. Return option VALUES exactly when options are provided. Cite the source ID. Preserve contradictions as separate candidates. Do not derive or calculate in this extraction pass.',tools:[{name:'extract_evidence',description:'Return every supported candidate for the requested field group.',input_schema:{type:'object',properties}}],tool_choice:{type:'tool',name:'extract_evidence'},messages:[{role:'user',content:`REQUESTED FIELD PASS:\n${passFields.map(field=>fieldDescriptor(field)).join('\n')}\n\n${evidenceText}`}]})
-      completeExtractionPass(trace)
       const block=response.content.find(item=>item.type==='tool_use'&&item.name==='extract_evidence')
-      if(block?.type==='tool_use')facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,passFields,sourceIds))
+      if(block?.type!=='tool_use')throw new Error('Evidence field pass returned no structured extraction payload')
+      facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,passFields,sourceIds))
+      completeExtractionPass(trace)
     }
     const found=new Set(facts.map(fact=>fact.key));const missing=requiredFields.filter(field=>!found.has(field.key))
     if(missing.length){
       planExtractionPass(trace)
       const properties=evidenceToolProperties(missing,sourceIds,'source')
       const response=await client.messages.create({model:modelFor('extraction'),max_tokens:5000,system:'This is APOLLO required-field recovery. Search the complete labeled evidence carefully for each missing field, including headings, tables, timelines, conclusions, and recommendations. Return all explicitly supported values with source IDs. Return option VALUES exactly. Leave a field absent only when no source supports it. Never fabricate.',tools:[{name:'extract_evidence',description:'Recover supported required fields missed by earlier extraction passes.',input_schema:{type:'object',properties}}],tool_choice:{type:'tool',name:'extract_evidence'},messages:[{role:'user',content:`MISSING REQUIRED FIELDS:\n${missing.map(field=>fieldDescriptor(field)).join('\n')}\n\n${evidenceText}`}]})
-      completeExtractionPass(trace,'recovery')
       const block=response.content.find(item=>item.type==='tool_use'&&item.name==='extract_evidence')
-      if(block?.type==='tool_use')facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,missing,sourceIds))
+      if(block?.type!=='tool_use')throw new Error('Evidence recovery pass returned no structured extraction payload')
+      facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,missing,sourceIds))
+      completeExtractionPass(trace,'recovery')
     }
   }
   const supported=filterSemanticallyUnsupportedEvidenceFacts(facts,readable,moduleSlug)
@@ -481,9 +483,10 @@ export async function extractEvidenceFactsFromPdfs(
       const properties=evidenceToolProperties(passFields,sourceIds,'PDF')
       const passContent=[...content,{type:'text' as const,text:`REQUESTED FIELD PASS:\n${passFields.map(field=>fieldDescriptor(field)).join('\n')}\nExtract every explicitly supported value for this field group. Return option VALUES exactly and preserve contradictions.`}]
       const response=await client.messages.create({model:modelFor('extraction'),max_tokens:5000,system:'You are one pass in APOLLO multipass PDF ingestion. Extract every requested value explicitly supported by the PDFs. Never fabricate or silently omit a supported requested field. Cite the source ID, preserve contradictions, return option VALUES exactly, and do not calculate in this pass.',tools:[{name:'extract_evidence',description:'Return every supported candidate for the requested PDF field group.',input_schema:{type:'object',properties}}],tool_choice:{type:'tool',name:'extract_evidence'},messages:[{role:'user',content:passContent}]})
-      completeExtractionPass(trace)
       const block=response.content.find(item=>item.type==='tool_use'&&item.name==='extract_evidence')
-      if(block?.type==='tool_use')facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,passFields,sourceIds))
+      if(block?.type!=='tool_use')throw new Error('PDF field pass returned no structured extraction payload')
+      facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,passFields,sourceIds))
+      completeExtractionPass(trace)
     }
     const found=new Set(facts.map(fact=>fact.key));const missing=requiredFields.filter(field=>!found.has(field.key))
     if(missing.length){
@@ -491,9 +494,10 @@ export async function extractEvidenceFactsFromPdfs(
       const properties=evidenceToolProperties(missing,sourceIds,'PDF')
       const recoveryContent=[...content,{type:'text' as const,text:`REQUIRED-FIELD RECOVERY PASS:\n${missing.map(field=>fieldDescriptor(field)).join('\n')}\nSearch headings, tables, timelines, conclusions, and recommendations. Leave absent only when unsupported.`}]
       const response=await client.messages.create({model:modelFor('extraction'),max_tokens:5000,system:'Recover every explicitly supported required field missed by earlier PDF passes. Never fabricate. Return option VALUES exactly, cite source IDs, and preserve contradictions.',tools:[{name:'extract_evidence',description:'Recover supported required fields missed by prior PDF extraction.',input_schema:{type:'object',properties}}],tool_choice:{type:'tool',name:'extract_evidence'},messages:[{role:'user',content:recoveryContent}]})
-      completeExtractionPass(trace,'recovery')
       const block=response.content.find(item=>item.type==='tool_use'&&item.name==='extract_evidence')
-      if(block?.type==='tool_use')facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,missing,sourceIds))
+      if(block?.type!=='tool_use')throw new Error('PDF recovery pass returned no structured extraction payload')
+      facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,missing,sourceIds))
+      completeExtractionPass(trace,'recovery')
     }
   }
   const deduplicated=deduplicateEvidenceFacts(facts)
@@ -523,18 +527,20 @@ export async function extractEvidenceFactsFromImages(
       planExtractionPass(trace)
       const properties=evidenceToolProperties(passFields,sourceIds,'source')
       const response=await client.messages.create({model:modelFor('extraction'),max_tokens:5000,system:'You are one pass in APOLLO multipass image-evidence ingestion. Read visible printed and handwritten content carefully. Extract every requested value explicitly supported by the labeled images. Never infer obscured, cropped, illegible, or absent values. Cite the source ID, preserve contradictions, return option VALUES exactly, and do not calculate in this pass.',tools:[{name:'extract_evidence',description:'Return every supported candidate visible in the image evidence.',input_schema:{type:'object',properties}}],tool_choice:{type:'tool',name:'extract_evidence'},messages:[{role:'user',content:[...content,{type:'text' as const,text:`REQUESTED FIELD PASS:\n${passFields.map(field=>fieldDescriptor(field)).join('\n')}`}]}]})
-      completeExtractionPass(trace)
       const block=response.content.find(item=>item.type==='tool_use'&&item.name==='extract_evidence')
-      if(block?.type==='tool_use')facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,passFields,sourceIds))
+      if(block?.type!=='tool_use')throw new Error('Image field pass returned no structured extraction payload')
+      facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,passFields,sourceIds))
+      completeExtractionPass(trace)
     }
     const found=new Set(facts.map(fact=>fact.key));const missing=requiredFields.filter(field=>!found.has(field.key))
     if(missing.length){
       planExtractionPass(trace)
       const properties=evidenceToolProperties(missing,sourceIds,'source')
       const response=await client.messages.create({model:modelFor('extraction'),max_tokens:5000,system:'This is APOLLO image required-field recovery. Reinspect every labeled image, including headers, footers, tables, form boxes, captions, and handwritten notes. Return only legible, directly supported values with source IDs. Never fabricate.',tools:[{name:'extract_evidence',description:'Recover supported required fields missed by prior image passes.',input_schema:{type:'object',properties}}],tool_choice:{type:'tool',name:'extract_evidence'},messages:[{role:'user',content:[...content,{type:'text' as const,text:`MISSING REQUIRED FIELDS:\n${missing.map(field=>fieldDescriptor(field)).join('\n')}`}]}]})
-      completeExtractionPass(trace,'recovery')
       const block=response.content.find(item=>item.type==='tool_use'&&item.name==='extract_evidence')
-      if(block?.type==='tool_use')facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,missing,sourceIds))
+      if(block?.type!=='tool_use')throw new Error('Image recovery pass returned no structured extraction payload')
+      facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,missing,sourceIds))
+      completeExtractionPass(trace,'recovery')
     }
   }
   const supported=moduleSlug==='quote'?filterSemanticallyUnsupportedEvidenceFacts(facts,sources.map(source=>({id:source.id,text:''})),moduleSlug):facts
