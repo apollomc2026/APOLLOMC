@@ -1,6 +1,6 @@
 import type { ArtifactManifest, DocumentWorkOrder } from '@/lib/executor/contracts'
 import { missionFactSourceReferences, type DeliverableSpecification, type MissionFact } from './contracts'
-import type { EvidenceExtractionTrace } from './evidence'
+import { extractionTracesCoverSources, type EvidenceExtractionTrace } from './evidence'
 
 export const PILOT_DELIVERABLES=['fsr','final-qc-report','quote','proposal','cash-flow-budget-package','contract-intelligence-review'] as const
 export type PilotDeliverable=(typeof PILOT_DELIVERABLES)[number]
@@ -19,7 +19,7 @@ const UNSAFE_INFERRED_KEYS=new Set(['customer_name','client_name','prospect_orga
 const REQUIRED_EVENT_SEQUENCE=['accepted','queued','gathering-input','generating','validating','rendering','reviewing','delivered']
 
 function asRecord(value:unknown):Record<string,unknown>{return value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>: {}}
-function extractionTraceIsComplete(row:EvidenceRow){const trace=row.extraction_trace;return Boolean(trace&&trace.schema_version==='1.0'&&trace.status==='complete'&&trace.completed_at&&trace.source_ids.includes(row.id)&&trace.planned_passes>=1&&trace.completed_passes===trace.planned_passes)}
+function extractionTraceIsComplete(row:EvidenceRow){return Boolean(row.extraction_trace&&extractionTracesCoverSources([row.id],[row.extraction_trace]))}
 function artifactIsControlled(artifact:ArtifactManifest,order:DocumentWorkOrder){return artifact.mime_type==='application/pdf'&&/^[a-f0-9]{64}$/.test(artifact.content_sha256)&&artifact.source_engine_id==='apollo-documents'&&artifact.lifecycle==='draft'&&Boolean(artifact.storage_file_id)&&Number(artifact.integrity?.bytes)>=1024&&Number(artifact.integrity?.pages)>=1&&Number(artifact.integrity?.text_characters)>=40&&Boolean(artifact.integrity?.verified_at)&&Boolean(artifact.filename?.endsWith('.pdf'))&&Boolean(artifact.document_id)&&artifact.project_id===order.project_id&&artifact.conversation_id===order.conversation_id&&artifact.task_id===order.task_id&&artifact.source_run_id===order.work_order_id&&artifact.version===Number(order.fields.artifact_version??1)&&artifact.deliverable_type===order.deliverable_type&&artifact.brand_id===order.brand_id&&artifact.style_id===order.style_id&&artifact.specification_id===order.trace?.specification_id&&artifact.specification_hash===order.trace?.specification_hash}
 function governedSourceIdentity(order:DocumentWorkOrder){return order.sources.map(source=>`${source.source_id}:${source.media_type}:${source.content_sha256.toLowerCase()}`).sort()}
 function revisionPreservesAuthority(prior:DocumentWorkOrder,revision:DocumentWorkOrder){

@@ -133,6 +133,10 @@ export function completeEvidenceExtractionTrace(trace:EvidenceExtractionTrace){
   return finishExtractionTrace(trace,'complete')
 }
 
+export function extractionTracesCoverSources(sourceIds:string[],traces:EvidenceExtractionTrace[]){
+  return sourceIds.every(sourceId=>traces.some(trace=>trace.schema_version==='1.0'&&trace.status==='complete'&&Boolean(trace.completed_at)&&trace.planned_passes>=1&&trace.completed_passes===trace.planned_passes&&trace.source_ids.includes(sourceId)))
+}
+
 export function evidenceExtractionMode(input:{mime:string;text?:string}):EvidenceExtractionMode {
   if(input.text?.trim())return 'text'
   if(input.mime==='application/pdf')return 'pdf'

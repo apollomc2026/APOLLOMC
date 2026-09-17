@@ -4,7 +4,7 @@ import { interpretMissionWithClaude } from './ai-interpreter'
 import { createMissionFact, mergeMissionFacts, missionFactSourceReferences, specificationProvenance, type DeliverableSpecification, type MissionFact, type MissionTurnResult, type VoiceTranscriptMetadata } from './contracts'
 import type { DocumentSource } from '@/lib/executor/contracts'
 import { getFromS3, getPresignedUrl } from '@/lib/s3/client'
-import { completeEvidenceExtractionTrace, createEvidenceExtractionTrace, extractEvidence, extractEvidenceFactsFromImages, extractEvidenceFactsFromPdfs, extractEvidenceFactsFromSources, reconcileEvidenceSupersessions, type EvidenceExtractionTrace } from './evidence'
+import { completeEvidenceExtractionTrace, createEvidenceExtractionTrace, extractEvidence, extractEvidenceFactsFromImages, extractEvidenceFactsFromPdfs, extractEvidenceFactsFromSources, extractionTracesCoverSources, reconcileEvidenceSupersessions, type EvidenceExtractionTrace } from './evidence'
 import { executionGaps, materializeSpecificationDefaults } from './work-order'
 import { canonicalizeSpecificationIdentity } from './identity'
 import { pricingResearchFact, requestsMarketPricingResearch, researchQuotePricing } from './quote-pricing-research'
@@ -70,7 +70,7 @@ async function reconcileSecuredEvidence(input: {
       return null
     }
   }))).filter((source): source is { id: string; name: string; mime:string; text: string | null; bytes:Buffer } => Boolean(source))
-  if (!recoveredSources.length) return [] as MissionFact[]
+  if (recoveredSources.length!==rows.length) throw new MissionPersistenceError(`Evidence recalibration stopped because ${rows.length-recoveredSources.length} secured source(s) could not be reread`)
 
   const moduleSlug = input.specification.artifact.recommended_type
   const moduleTerms = moduleSlug.split('-').filter(term => term.length > 2)
@@ -100,7 +100,7 @@ async function reconcileSecuredEvidence(input: {
     extractionRuns.push(extractEvidenceFactsFromImages(imageSources.map(source=>({id:source.id,name:source.name,mime:source.mime,bytes:source.bytes})),moduleSlug,trace).then(facts=>({facts,trace:completeEvidenceExtractionTrace(trace)})))
   }
   const completedRuns=await Promise.all(extractionRuns)
-  if(completedRuns.some(run=>run.trace.status!=='complete'))throw new MissionPersistenceError('Not every planned evidence extraction pass completed')
+  if(completedRuns.some(run=>run.trace.status!=='complete')||!extractionTracesCoverSources(rows.map(row=>row.id),completedRuns.map(run=>run.trace)))throw new MissionPersistenceError('Not every secured source completed multipass evidence extraction')
   const traceBySource=new Map(completedRuns.flatMap(run=>run.trace.source_ids.map(sourceId=>[sourceId,run.trace] as const)))
   const extracted = reconcileEvidenceSupersessions(completedRuns.flatMap(run=>run.facts))
   const evidenceFacts = extracted

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as XLSX from 'xlsx'
 import sharp from 'sharp'
-import { applyEvidenceSupersessionDecisions, batchEvidenceSources, chunkEvidenceSources, deduplicateEvidenceFacts, deriveEvidenceFacts, evidenceExtractionMode, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractLabeledEvidenceFacts, filterSemanticallyUnsupportedEvidenceFacts, normalizeEvidenceMime, prepareEvidenceRetrieval, reconcileEvidenceSupersessions, sanitizeEvidenceBytes, supersessionDecisionsFromToolInput } from '../lib/mission-control/evidence'
+import { applyEvidenceSupersessionDecisions, batchEvidenceSources, chunkEvidenceSources, deduplicateEvidenceFacts, deriveEvidenceFacts, evidenceExtractionMode, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractionTracesCoverSources, extractLabeledEvidenceFacts, filterSemanticallyUnsupportedEvidenceFacts, normalizeEvidenceMime, prepareEvidenceRetrieval, reconcileEvidenceSupersessions, sanitizeEvidenceBytes, supersessionDecisionsFromToolInput } from '../lib/mission-control/evidence'
 import { createMissionFact, mergeMissionFacts, missionFactSourceReferences, specificationProvenance, type DeliverableSpecification } from '../lib/mission-control/contracts'
 import { buildContentBlocks, inlineEvidenceByteLimit, OrchestrateError } from '../lib/apollo/orchestrate'
 import { mergeEvidenceIntoSpecification } from '../lib/mission-control/evidence-specification'
@@ -211,6 +211,13 @@ describe('mission evidence custody', () => {
   it('deduplicates repeated multipass findings without losing source custody', () => {
     const repeated=createMissionFact({ key:'technician_name',label:'Technician name',value:'Jon Sargent / On Spot Solutions LLC',source:'evidence',source_reference:'service-record',confidence:1 })
     expect(deduplicateEvidenceFacts([repeated,{...repeated}])).toHaveLength(1)
+  })
+
+  it('requires completed multipass custody for every inventoried source',()=>{
+    const trace={schema_version:'1.0' as const,mode:'text' as const,source_ids:['scope','estimate'],planned_passes:3,completed_passes:3,recovery_passes:1,started_at:'2026-09-17T02:00:00Z',completed_at:'2026-09-17T02:01:00Z',status:'complete' as const}
+    expect(extractionTracesCoverSources(['scope','estimate'],[trace])).toBe(true)
+    expect(extractionTracesCoverSources(['scope','estimate','missing'],[trace])).toBe(false)
+    expect(extractionTracesCoverSources(['scope'],[{...trace,completed_passes:2}])).toBe(false)
   })
 
   it('derives time on site deterministically from evidence-backed arrival and departure', () => {
