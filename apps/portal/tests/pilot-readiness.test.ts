@@ -61,6 +61,15 @@ describe('pilot release auditor',()=>{
     expect(evidence.evidence).toContain('1 incomplete multipass trace(s)')
   })
 
+  it('rejects an evidence supersession that cannot be audited back to both sources',()=>{
+    const item=fixture('contract-intelligence-review')
+    item.specification.specification.content.facts.push({key:'expiration_date',label:'Expiration date',value:'2027-06-30',normalized_value:'2027-06-30',source:'evidence',source_reference:item.evidence.id,source_references:[item.evidence.id],capture_method:'file_extraction',confidence:1,verification_state:'verified',sensitivity:'confidential',last_editor:'apollo',updated_at:'2026-09-16T12:00:00Z',conflicts:[{value:'2027-06-30',normalized_value:'2027-06-30',source:'evidence',source_reference:item.evidence.id}],supersession:{controlling_source_reference:item.evidence.id,superseded_source_references:['missing-original'],reason:'Later amendment controls.'}})
+    const report=auditPilotRelease({conversations:[item.conversation],specifications:[item.specification],evidence:[item.evidence],jobs:item.jobs,events:item.events})
+    const calibration=report.classes.find(entry=>entry.deliverable_type==='contract-intelligence-review')!.gates.find(gate=>gate.key==='calibration')!
+    expect(calibration).toMatchObject({passed:false})
+    expect(calibration.evidence).toContain('1 unauditable supersession decision(s)')
+  })
+
   it('does not pass the quote class without cited system-lookup pricing research',()=>{
     const item=fixture('quote')
     item.specification.specification.content.facts=item.specification.specification.content.facts.filter(fact=>fact.key!=='market_pricing_basis')

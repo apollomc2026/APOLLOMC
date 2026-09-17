@@ -21,6 +21,21 @@ const REQUIRED_EVENT_SEQUENCE=['accepted','queued','gathering-input','generating
 
 function asRecord(value:unknown):Record<string,unknown>{return value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>: {}}
 function extractionTraceIsComplete(row:EvidenceRow){return Boolean(row.extraction_trace&&extractionTracesCoverSources([row.id],[row.extraction_trace]))}
+function supersessionIsAuditable(fact:MissionFact,evidenceIds:Set<string>){
+  const decision=fact.supersession
+  if(!decision)return true
+  const superseded=[...new Set(decision.superseded_source_references)]
+  const candidates=new Set((fact.conflicts??[]).map(candidate=>candidate.source_reference).filter((value):value is string=>Boolean(value)))
+  return fact.verification_state==='verified'
+    &&fact.source==='evidence'
+    &&fact.source_reference===decision.controlling_source_reference
+    &&evidenceIds.has(decision.controlling_source_reference)
+    &&superseded.length>0
+    &&superseded.length===decision.superseded_source_references.length
+    &&superseded.every(source=>source!==decision.controlling_source_reference&&evidenceIds.has(source)&&candidates.has(source))
+    &&candidates.has(decision.controlling_source_reference)
+    &&decision.reason.trim().length>=12
+}
 function artifactIsControlled(artifact:ArtifactManifest,order:DocumentWorkOrder){return artifact.mime_type==='application/pdf'&&/^[a-f0-9]{64}$/.test(artifact.content_sha256)&&artifact.source_engine_id==='apollo-documents'&&artifact.lifecycle==='draft'&&Boolean(artifact.storage_file_id)&&Number(artifact.integrity?.bytes)>=1024&&Number(artifact.integrity?.pages)>=1&&Number(artifact.integrity?.text_characters)>=40&&Boolean(artifact.integrity?.verified_at)&&/^[a-f0-9]{64}$/.test(artifact.integrity?.factual_content_sha256??'')&&artifact.integrity?.verification_profile==='specialist-pdf-v1'&&Boolean(artifact.filename?.endsWith('.pdf'))&&Boolean(artifact.document_id)&&artifact.project_id===order.project_id&&artifact.conversation_id===order.conversation_id&&artifact.task_id===order.task_id&&artifact.source_run_id===order.work_order_id&&artifact.version===Number(order.fields.artifact_version??1)&&artifact.deliverable_type===order.deliverable_type&&artifact.brand_id===order.brand_id&&artifact.style_id===order.style_id&&artifact.specification_id===order.trace?.specification_id&&artifact.specification_hash===order.trace?.specification_hash}
 function governedSourceIdentity(order:DocumentWorkOrder){return order.sources.map(source=>`${source.source_id}:${source.media_type}:${source.content_sha256.toLowerCase()}`).sort()}
 const REVISION_OVERLAY_FIELDS=new Set(['revision_instruction','revision_directive_sha256','revision_scope','revision_of','artifact_version'])
@@ -79,6 +94,7 @@ export function auditPilotRelease(input:PilotAuditInput):{passed:boolean;passed_
     for(const row of evidence)for(const fact of row.extracted_facts??[]){const keys=extractedKeysBySource.get(row.id)??new Set<string>();keys.add(fact.key);extractedKeysBySource.set(row.id,keys)}
     const missingReconciledFacts=evidence.flatMap(row=>[...(extractedKeysBySource.get(row.id)??[])].filter(key=>!spec.content.facts.some(fact=>fact.key===key&&missionFactSourceReferences(fact).includes(row.id))).map(key=>`${row.id}:${key}`))
     const unresolvedConflicts=spec.content.facts.filter(fact=>fact.verification_state==='conflict'&&!fact.supersession)
+    const invalidSupersessions=spec.content.facts.filter(fact=>!supersessionIsAuditable(fact,evidenceIds))
     const latestOrder=latest?.work_order;const artifacts=latest?.artifacts??[]
     const unsafeInferences=spec.content.facts.filter(fact=>fact.source==='inferred'&&!inferredFactMayControlExecution(fact.key))
     const unsafeInferredExecution=unsafeInferences.filter(fact=>latestOrder&&latestOrder.fields[fact.key]===fact.value)
@@ -98,7 +114,7 @@ export function auditPilotRelease(input:PilotAuditInput):{passed:boolean;passed_
     const gates:PilotGate[]=[
       {key:'evidence',label:'Evidence inventory, custody, and multipass completion',passed:evidence.length>0&&evidence.every(row=>['verified','conflict'].includes(row.extraction_status)&&/^[a-f0-9]{64}$/.test(row.content_sha256??'')&&/^[a-f0-9]{64}$/.test(row.retrieval_sha256??'')&&extractionTraceIsComplete(row)),evidence:`${evidence.length} source(s); ${evidence.filter(row=>row.extraction_status==='failed').length} failed; ${incompleteExtractionTraces.length} incomplete multipass trace(s).`},
       {key:'provenance',label:'Complete evidence provenance',passed:evidence.length===inventoryIds.size&&evidence.every(row=>inventoryIds.has(row.id))&&malformedExtractedFacts.length===0&&missingReconciledFacts.length===0&&evidence.filter(row=>(row.extracted_facts??[]).length>0).every(row=>specificationEvidenceReferences.has(row.id)),evidence:`${inventoryIds.size}/${evidence.length} inventoried; ${malformedExtractedFacts.length} malformed extracted fact(s); ${missingReconciledFacts.length} fact(s) lost during reconciliation.`},
-      {key:'calibration',label:'Minimal-friction calibrated specification',passed:spec.content.open_questions.length===0&&unresolvedConflicts.length===0&&unsafeInferredExecution.length===0,evidence:`${spec.content.open_questions.length} open; ${unresolvedConflicts.length} unresolved conflicts; ${unsafeInferredExecution.length} unauthorized inference(s) entered execution; ${unsafeInferences.length} labeled assumption(s) retained.`},
+      {key:'calibration',label:'Minimal-friction calibrated specification',passed:spec.content.open_questions.length===0&&unresolvedConflicts.length===0&&invalidSupersessions.length===0&&unsafeInferredExecution.length===0,evidence:`${spec.content.open_questions.length} open; ${unresolvedConflicts.length} unresolved conflicts; ${invalidSupersessions.length} unauditable supersession decision(s); ${unsafeInferredExecution.length} unauthorized inference(s) entered execution; ${unsafeInferences.length} labeled assumption(s) retained.`},
       {key:'autonomy',label:'Full-autonomy resolution proven',passed:Number(spec.aura.operator_involvement)<=33&&spec.content.open_questions.length===0&&(spec.approval.unresolved_items_accepted??[]).length===0,evidence:`Operator involvement=${String(spec.aura.operator_involvement??'missing')}%; ${spec.content.open_questions.length} open; ${(spec.approval.unresolved_items_accepted??[]).length} unresolved item(s) accepted.`},
       {key:'authority',label:'Approved specification is authoritative',passed:Boolean(latestOrder)&&specRow.status==='approved'&&spec.approval.status==='approved'&&latestOrder?.deliverable_type===deliverableType&&latestOrder.trace?.specification_id===specRow.id&&latestOrder.trace?.specification_hash===specRow.content_hash,evidence:`Spec v${specRow.version}; job=${latest?.id??'none'}.`},
       {key:'idempotency',label:'One canonical execution per launch',passed:jobs.length>0&&canonicalLaunches,evidence:`${jobs.length} attempt(s); ${new Set(launchKeys).size} launch key(s); ${new Set(workOrderIds).size} work-order ID(s); job identity=${jobs.every(job=>job.id===job.work_order.work_order_id)?'canonical':'mismatched'}.`},
