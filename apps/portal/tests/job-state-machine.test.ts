@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { assertJobTransition, isJobTransitionAllowed, JOB_STATES } from '../lib/executor/contracts'
+import { ACTIVE_EXECUTION_STATES, ACTIVE_JOB_STATES, assertJobTransition, isJobTransitionAllowed, JOB_STATES } from '../lib/executor/contracts'
 
 describe('APOLLO document job state machine', () => {
   it('permits only the forward execution spine and explicit terminal exits', () => {
@@ -21,5 +21,12 @@ describe('APOLLO document job state machine', () => {
 
   it('allows an idempotent state write for retry-safe checkpoints', () => {
     expect(isJobTransitionAllowed('validating', 'validating')).toBe(true)
+  })
+
+  it('uses the actual workflow spine for duplicate prevention and stale recovery',()=>{
+    expect(ACTIVE_JOB_STATES).toEqual(['accepted','queued','gathering-input','generating','validating','rendering','reviewing'])
+    expect(ACTIVE_EXECUTION_STATES).toEqual(['queued','gathering-input','generating','validating','rendering','reviewing'])
+    expect(ACTIVE_JOB_STATES).not.toContain('verifying')
+    expect(ACTIVE_JOB_STATES).not.toContain('delivering')
   })
 })

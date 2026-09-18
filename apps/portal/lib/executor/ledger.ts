@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { createServiceClient } from '@/lib/supabase/server'
-import { assertJobTransition, isJobState, type ArtifactManifest, type DocumentWorkOrder, type JobState } from './contracts'
+import { ACTIVE_EXECUTION_STATES, ACTIVE_JOB_STATES, assertJobTransition, isJobState, type ArtifactManifest, type DocumentWorkOrder, type JobState } from './contracts'
 
 export async function createJob(order: DocumentWorkOrder) {
   const db = await createServiceClient()
@@ -37,7 +37,7 @@ export async function createJob(order: DocumentWorkOrder) {
   // instead of converting the unique-index protection into a false failure.
   const active=await db.from('apollo_document_jobs').select('*')
     .eq('conversation_id',order.conversation_id).eq('requested_by',order.requested_by)
-    .in('state',['accepted','queued','validating','generating','verifying','rendering','delivering'])
+    .in('state',[...ACTIVE_JOB_STATES])
     .order('created_at',{ascending:false}).limit(1).maybeSingle()
   if(active.error||!active.data)throw new Error(active.error?.message??'active mission flight lookup failed')
   return {job:active.data,duplicate:true}
@@ -91,7 +91,7 @@ export async function failStaleExecutionJob(jobId:string,cutoff:string):Promise<
     state:'failed',status_message:'Mission execution stalled and was released for a safe retry',
     completed_at:new Date().toISOString(),updated_at:new Date().toISOString(),...extra,
   }).eq('id',jobId)
-    .in('state',['queued','validating','generating','verifying','rendering','delivering'])
+    .in('state',[...ACTIVE_EXECUTION_STATES])
     .lt('updated_at',cutoff).select('id,progress_percent').maybeSingle()
   if(result.error)throw new Error(result.error.message)
   if(!result.data)return false
@@ -143,7 +143,7 @@ export async function getLatestDeliveredJobForConversation(input: { conversation
 
 export async function getActiveJobForConversation(input:{conversationId:string;requestedBy:string}){
   const db=await createServiceClient()
-  const result=await db.from('apollo_document_jobs').select('*').eq('conversation_id',input.conversationId).eq('requested_by',input.requestedBy).in('state',['accepted','queued','validating','generating','verifying','rendering','delivering']).order('created_at',{ascending:false}).limit(1).maybeSingle()
+  const result=await db.from('apollo_document_jobs').select('*').eq('conversation_id',input.conversationId).eq('requested_by',input.requestedBy).in('state',[...ACTIVE_JOB_STATES]).order('created_at',{ascending:false}).limit(1).maybeSingle()
   if(result.error)throw new Error(result.error.message)
   return result.data??null
 }

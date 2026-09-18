@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { failStaleAcceptedJob, failStaleExecutionJob } from './ledger'
+import { ACTIVE_EXECUTION_STATES } from './contracts'
 
 export const STALE_ACCEPTED_JOB_MINUTES=15
 export const STALE_EXECUTION_JOB_MINUTES=60
@@ -23,7 +24,7 @@ async function listStaleAccepted(cutoff:string,limit:number):Promise<Candidate[]
 async function listStaleExecutions(cutoff:string,limit:number):Promise<Candidate[]>{
   const db=await createServiceClient()
   const result=await db.from('apollo_document_jobs').select('id')
-    .in('state',['queued','validating','generating','verifying','rendering','delivering'])
+    .in('state',[...ACTIVE_EXECUTION_STATES])
     .lt('updated_at',cutoff).order('updated_at',{ascending:true}).limit(limit)
   if(result.error)throw new Error(result.error.message)
   return (result.data??[]).filter((row):row is Candidate=>typeof row.id==='string')

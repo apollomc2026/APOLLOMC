@@ -6,6 +6,12 @@ export const JOB_STATES = [
 ] as const
 export type JobState = (typeof JOB_STATES)[number]
 
+export const ACTIVE_JOB_STATES = [
+  'accepted', 'queued', 'gathering-input', 'generating', 'validating', 'rendering', 'reviewing',
+] as const satisfies readonly JobState[]
+
+export const ACTIVE_EXECUTION_STATES = ACTIVE_JOB_STATES.filter(state => state !== 'accepted')
+
 const JOB_TRANSITIONS: Record<JobState, readonly JobState[]> = {
   accepted: ['queued', 'failed', 'cancelled'],
   queued: ['gathering-input', 'failed', 'cancelled'],
