@@ -51,10 +51,22 @@ function timeVariants(value:unknown):string[]{
   return [raw,`${String(hour).padStart(2,'0')}:${minute}`,`${displayHour}:${minute} ${suffix}`].map(item=>searchable(item))
 }
 
+const US_STATE_NAMES:Record<string,string>={
+  al:'alabama',ak:'alaska',az:'arizona',ar:'arkansas',ca:'california',co:'colorado',ct:'connecticut',de:'delaware',fl:'florida',ga:'georgia',hi:'hawaii',id:'idaho',il:'illinois',in:'indiana',ia:'iowa',ks:'kansas',ky:'kentucky',la:'louisiana',me:'maine',md:'maryland',ma:'massachusetts',mi:'michigan',mn:'minnesota',ms:'mississippi',mo:'missouri',mt:'montana',ne:'nebraska',nv:'nevada',nh:'new hampshire',nj:'new jersey',nm:'new mexico',ny:'new york',nc:'north carolina',nd:'north dakota',oh:'ohio',ok:'oklahoma',or:'oregon',pa:'pennsylvania',ri:'rhode island',sc:'south carolina',sd:'south dakota',tn:'tennessee',tx:'texas',ut:'utah',vt:'vermont',va:'virginia',wa:'washington',wv:'west virginia',wi:'wisconsin',wy:'wyoming',dc:'district of columbia',
+}
+
+function addressVariants(value:unknown):string[]{
+  const raw=String(value??'').trim()
+  if(!raw)return[]
+  const normalized=searchable(raw)
+  const expanded=normalized.split(' ').map(token=>US_STATE_NAMES[token]??token).join(' ')
+  return [...new Set([normalized,expanded])]
+}
+
 function anchorPresent(key:string,value:unknown,documentText:string){
   const exact=searchable(value)
   if(exact&&documentText.includes(exact))return true
-  const variants=/(?:^|_)date$/.test(key)?dateVariants(value):/(?:arrival|departure)_time$/.test(key)?timeVariants(value):[]
+  const variants=/(?:^|_)date$/.test(key)?dateVariants(value):/(?:arrival|departure)_time$/.test(key)?timeVariants(value):/(?:^|_)address$/.test(key)?addressVariants(value):[]
   return variants.some(variant=>variant&&documentText.includes(variant))
 }
 
