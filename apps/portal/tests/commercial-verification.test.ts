@@ -1,8 +1,23 @@
 import { describe,expect,it } from 'vitest'
 import { verifyCommercialDocument } from '../lib/executor/commercial-verification'
 import type { DocumentWorkOrder } from '../lib/executor/contracts'
+import { applyAuthoritativeQuoteStructure } from '../lib/apollo/orchestrate'
 
 describe('deterministic commercial verification',()=>{
+  it('builds quote schema arithmetic from approved semicolon-delimited mission data',()=>{
+    const output=applyAuthoritativeQuoteStructure({
+      slug:'quote',deliverableLabel:'Quote',fields:{customer_name:'US Foods',quote_date:'2026-09-17',valid_until:'2026-10-16',line_items:'Field labor: 4 planned field days × $2,000/day = $8,000; Deployment charges: 4 deployments × $150 = $600; Materials allowance: Concrete, reinforcing steel, anchors = $1,200; Project execution allowance: Weather/cure sequencing = $1,000; Working Project Total = $10,800'},
+    } as never,{metadata:{title:'US Foods Seabrook Quote'},sections:[]})
+    expect(output.line_items).toEqual([
+      expect.objectContaining({description:'Field labor',quantity:4,unit_price:2000,line_total:8000}),
+      expect.objectContaining({description:'Deployment charges',quantity:4,unit_price:150,line_total:600}),
+      expect.objectContaining({description:'Materials allowance',line_total:1200}),
+      expect.objectContaining({description:'Project execution allowance',line_total:1000}),
+    ])
+    expect(output.totals).toEqual({subtotal:10800,tax:0,grand_total:10800,currency:'USD'})
+    expect(output.metadata).toEqual(expect.objectContaining({deliverable_type:'quote',customer_name:'US Foods',quote_date:'2026-09-17',valid_until:'2026-10-16'}))
+  })
+
   it('retains every approved quote line item',()=>{
     const order={deliverable_type:'quote',fields:{line_items:'Loop sealant | 5 | bottle | $42.00 | $210.00\nField labor | 16 | hour | $125.00 | $2,000.00'}} as unknown as DocumentWorkOrder
     const html='<table><tr><td>Loop sealant</td><td>5</td><td>bottle</td><td>$42.00</td><td>$210.00</td></tr><tr><td>Field labor</td><td>16</td><td>hour</td><td>$125.00</td><td>$2,000.00</td></tr></table>'

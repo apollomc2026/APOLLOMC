@@ -567,6 +567,53 @@ export function normalizeSectionCollection(args:OrchestrateArgs, output:Record<s
   return { ...normalized, sections }
 }
 
+function monetaryValues(value:string):number[]{
+  return [...value.matchAll(/\$\s*([0-9][\d,]*(?:\.\d+)?)/g)]
+    .map(match=>Number(match[1].replace(/,/g,'')))
+    .filter(Number.isFinite)
+}
+
+/**
+ * Quote arithmetic is approved mission data, not generative prose. Build the
+ * schema-owned commercial arrays from that source so a model cannot omit,
+ * reshape, or change a price while composing the presentation sections.
+ */
+export function applyAuthoritativeQuoteStructure(args:OrchestrateArgs,output:Record<string,unknown>):Record<string,unknown>{
+  if(args.slug!=='quote')return output
+  const raw=typeof args.fields.line_items==='string'?args.fields.line_items.trim():''
+  if(!raw)return output
+  const rows=raw.split(/\r?\n|\s*;\s*/).map(value=>value.trim()).filter(Boolean)
+  const explicitTotal=rows.find(row=>/\b(?:grand|project|quote)?\s*total\b/i.test(row))
+  const itemRows=rows.filter(row=>row!==explicitTotal)
+  const lineItems=itemRows.flatMap(row=>{
+    const amounts=monetaryValues(row)
+    if(!amounts.length)return[]
+    const description=(row.split(/\s*(?:\||:)\s*/,1)[0]||row).trim()
+    const quantityMatch=row.match(/(?:^|[:|]\s*)(\d+(?:\.\d+)?)\s+([^$=|]+?)\s*[×x]\s*\$/i)
+    return [{
+      description,
+      ...(quantityMatch?{quantity:Number(quantityMatch[1]),unit:quantityMatch[2].trim()}:{}),
+      ...(amounts.length>1?{unit_price:amounts.at(-2)}:{}),
+      line_total:amounts[amounts.length-1]!,
+    }]
+  })
+  if(!lineItems.length)return output
+  const explicitAmounts=explicitTotal?monetaryValues(explicitTotal):[]
+  const grandTotal=explicitAmounts.at(-1)??lineItems.reduce((sum,item)=>sum+item.line_total,0)
+  const existingMetadata=output.metadata&&typeof output.metadata==='object'&&!Array.isArray(output.metadata)?output.metadata as Record<string,unknown>:{}
+  const metadata={
+    ...existingMetadata,
+    deliverable_type:'quote',
+    title:String(existingMetadata.title||args.fields.title||args.deliverableLabel),
+    customer_name:String(args.fields.customer_name||existingMetadata.customer_name||''),
+    quote_date:String(args.fields.quote_date||existingMetadata.quote_date||''),
+    valid_until:String(args.fields.valid_until||existingMetadata.valid_until||''),
+    ...(args.fields.customer_address?{customer_address:String(args.fields.customer_address)}:{}),
+    ...(args.fields.quote_number?{quote_number:String(args.fields.quote_number)}:{}),
+  }
+  return {...output,metadata,line_items:lineItems,totals:{subtotal:grandTotal,tax:0,grand_total:grandTotal,currency:'USD'}}
+}
+
 export function recoverSectionCollection(args:OrchestrateArgs,outputs:Record<string,unknown>[]):Record<string,unknown> {
   const normalized=outputs.map(output=>normalizeSectionCollection(args,output))
   const latest=normalized.at(-1)??{}
@@ -632,7 +679,7 @@ async function callClaudeWithTool(
       { content: response.content }
     )
   }
-  return normalizeSectionCollection(args, tool.input)
+  return applyAuthoritativeQuoteStructure(args,normalizeSectionCollection(args, tool.input))
 }
 
 // Each section's canonical heading is the single <h2> emitted by
