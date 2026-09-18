@@ -1,3 +1,5 @@
+import {ensurePdfRuntimeGlobals} from '@/lib/pdf-runtime'
+
 export interface RenderedPdfIntegrity {
   bytes:number
   pages:number
@@ -16,6 +18,7 @@ export function assertRenderedPdfIntegrity(bytes:Buffer,metrics:{pages:number;te
 }
 
 export async function verifyRenderedPdf(pdf:Buffer):Promise<VerifiedRenderedPdf> {
+  await ensurePdfRuntimeGlobals()
   const {PDFParse}=await import('pdf-parse')
   const parser=new PDFParse({data:new Uint8Array(pdf)})
   try{
