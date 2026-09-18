@@ -20,5 +20,16 @@
   "packageManager": "npm@10.8.2",
   "devDependencies": {
     "turbo": "^2.4.0"
+  },
+  "overrides": {
+    "@workflow/core": {
+      "nanoid": "5.1.16"
+    },
+    "@workflow/world-local": {
+      "undici": "7.29.0"
+    },
+    "@workflow/world-vercel": {
+      "undici": "7.29.0"
+    }
   }
 }
