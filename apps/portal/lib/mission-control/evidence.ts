@@ -347,17 +347,29 @@ export function extractLabeledEvidenceFacts(
   sources:Array<{ id:string; name:string; text:string }>,
   fields:EvidenceField[],
 ):MissionFact[] {
+  const fieldAliases=fields.map(field=>({field,aliases:[field.label,...(field.evidence_aliases??[])].map(alias=>alias.trim().toLocaleLowerCase())}))
+  const labeledLine=(line:string)=>{
+    const normalized=line.trim().replace(/[:\s]+$/,'').toLocaleLowerCase()
+    return fieldAliases.some(({aliases})=>aliases.some(candidate=>normalized===candidate||normalized.startsWith(`${candidate}:`)))
+  }
   return sources.flatMap(source => {
-    const lines=source.text.split(/\r?\n/).map(line=>line.trim()).filter(Boolean)
-    return fields.flatMap(field => {
-      const aliases=[field.label,...(field.evidence_aliases??[])].map(alias=>alias.trim().toLocaleLowerCase())
+    const lines=source.text.split(/\r?\n/).map(line=>line.trim())
+    return fieldAliases.flatMap(({field,aliases}) => {
       for(let index=0;index<lines.length;index+=1){
         const line=lines[index]
+        if(!line)continue
         const normalized=line.replace(/[:\s]+$/,'').toLocaleLowerCase()
         const alias=aliases.find(candidate=>normalized===candidate || normalized.startsWith(`${candidate}:`))
         if(!alias)continue
         const inline=line.slice(alias.length).replace(/^\s*:\s*/,'').trim()
-        const rawValue=inline || lines[index+1]?.trim() || ''
+        const block:string[]=[]
+        if(inline)block.push(inline)
+        else for(let cursor=index+1;cursor<lines.length;cursor+=1){
+          const candidate=lines[cursor]
+          if(!candidate||labeledLine(candidate))break
+          block.push(candidate)
+        }
+        const rawValue=block.join('\n').trim()
         const value=normalizeEvidenceOptionValue(field,rawValue)
         if(value && !aliases.includes(value.toLocaleLowerCase())) return [createMissionFact({key:field.key,label:field.label,value:value.slice(0,2000),source:'evidence',source_reference:source.id,confidence:1,sensitivity:'confidential'})]
       }

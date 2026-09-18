@@ -28,6 +28,15 @@ describe('mission evidence custody', () => {
     expect(extractLabeledEvidenceFacts([{id:'quote',name:'quote.txt',text:'Payment terms:\nNet 30'}],[{key:'payment_terms',label:'Payment terms',type:'select',options:['Net 15','Net 30','Net 45']}])).toEqual([expect.objectContaining({key:'payment_terms',value:'Net 30'})])
   })
 
+  it('preserves every row in an explicitly labeled multiline evidence block',()=>{
+    const fields=[{key:'base_case_lines',label:'Base-case monthly forecast (one row per month: Month | Opening cash | Inflows | Outflows | Net change | Closing cash)'},{key:'scenario_summary',label:'Scenario comparison'}]
+    const text='Base-case monthly forecast (one row per month: Month | Opening cash | Inflows | Outflows | Net change | Closing cash):\nOct 2026 | 250000 | 185000 | 172000 | 13000 | 263000\nNov 2026 | 263000 | 192000 | 181000 | 11000 | 274000\nDec 2026 | 274000 | 215000 | 207000 | 8000 | 282000\n\nScenario comparison:\nBase | 282000 | 250000 | 592000 | 560000'
+    expect(extractLabeledEvidenceFacts([{id:'workbook',name:'forecast.txt',text}],fields)).toEqual([
+      expect.objectContaining({key:'base_case_lines',value:'Oct 2026 | 250000 | 185000 | 172000 | 13000 | 263000\nNov 2026 | 263000 | 192000 | 181000 | 11000 | 274000\nDec 2026 | 274000 | 215000 | 207000 | 8000 | 282000'}),
+      expect.objectContaining({key:'scenario_summary',value:'Base | 282000 | 250000 | 592000 | 560000'}),
+    ])
+  })
+
   it('combines multiple acceptance rows from one evidence source instead of manufacturing a conflict',()=>{
     const rows=['Circuit identification | Labels match schedule | Pass','Fastener torque | 35 in-lb | Pass'].map(value=>createMissionFact({key:'acceptance_criteria',label:'Acceptance criteria',value,source:'evidence',source_reference:'qc-report',confidence:1}))
     expect(mergeMissionFacts([],rows)).toEqual([expect.objectContaining({key:'acceptance_criteria',value:rows.map(row=>row.value).join('\n'),verification_state:'verified',source_references:['qc-report'],conflicts:undefined})])
