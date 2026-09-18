@@ -14,6 +14,6 @@ export function verifyDocumentContent(order:DocumentWorkOrder,content:string,opt
     // tables from the approved specification. Verify them against the exact
     // delivered PDF, after that deterministic layer has run.
     fieldRecord:options.phase==='generated'?{required:false,verified_fields:[],verified_rows:0}:verifyFieldRecord(order,content),
-    commercial:verifyCommercialDocument(order,content),
+    commercial:options.phase==='generated'?{required:false,verified_rows:0,verified_figures:0}:verifyCommercialDocument(order,content),
   }
 }

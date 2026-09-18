@@ -15,4 +15,9 @@ describe('shared HTML and rendered-PDF factual gate',()=>{
     expect(verifyDocumentContent(order,'<p>07:00 Inspected equipment</p>',{phase:'generated'}).fieldRecord.required).toBe(false)
     expect(()=>verifyDocumentContent(order,'<p>07:00 Inspected equipment</p>',{phase:'rendered'})).toThrow(/work_order_number/)
   })
+  it('defers renderer-owned commercial schedules until the delivered artifact',()=>{
+    const order={deliverable_type:'quote',quality_gates:{schema_validation:true,source_grounding:true,independent_review:false,deterministic_financial_verification:false,human_approval_before_publish:true},fields:{customer_name:'Northstar',customer_address:'100 Industrial Way',quote_date:'2026-09-17',valid_until:'2026-10-17',scope_summary:'Site assessment',payment_terms:'Net 30',line_items:'Assessment | 1 | visit | $100.00 | $100.00'}} as unknown as DocumentWorkOrder
+    expect(verifyDocumentContent(order,'<p>Draft narrative</p>',{phase:'generated'}).commercial.required).toBe(false)
+    expect(()=>verifyDocumentContent(order,'<p>Draft narrative</p>',{phase:'rendered'})).toThrow(/customer_name/)
+  })
 })
