@@ -4,7 +4,7 @@ import type { DocumentWorkOrder } from '@/lib/executor/contracts'
 import type { DocumentSource } from '@/lib/executor/contracts'
 import { controllingMissionFactValue, createMissionFact, mergeMissionFacts, specificationProvenance, type DeliverableSpecification } from './contracts'
 import { cleanExecutionFields } from './field-quality'
-import { hasCurrentQuotePricingApproval } from './quote-pricing-research'
+import { hasCurrentQuotePricingApproval, quotePricingResearchIsVerified } from './quote-pricing-research'
 
 export type WorkOrderCompilation =
   | { ok: true; order: DocumentWorkOrder }
@@ -120,7 +120,7 @@ export function executionGaps(spec: DeliverableSpecification, now = new Date()) 
     : []
   const pricingResearchMissing=spec.artifact.recommended_type==='quote'
     &&spec.content.facts.some(fact=>fact.key==='market_pricing_research_required'&&fact.value==='true')
-    &&!spec.content.facts.some(fact=>fact.key==='market_pricing_basis'&&fact.source==='research'&&fact.verification_state==='verified')
+    &&!quotePricingResearchIsVerified(spec)
     ? [{key:'market_pricing_basis',label:'Cited market-pricing research',reason:'Requested market research must complete with verified public sources before launch.'}]
     : []
   return [...evidenceMissing,...conflicts,...pricingResearchMissing,...pricingApprovalMissing, ...missing.filter(gap => !conflicts.some(conflict => conflict.key === gap.key))]

@@ -63,6 +63,20 @@ export function requestsMarketPricingResearch(text:string):boolean {
   return /\b(?:fair[- ]market|market[- ]informed|market research|competitive pricing|pricing research|benchmark (?:the )?(?:price|pricing|rates?)|research (?:the )?(?:price|pricing|rates?))\b/i.test(text)
 }
 
+export function quotePricingResearchIsVerified(specification:DeliverableSpecification):boolean {
+  return specification.content.facts.some(fact=>fact.key==='market_pricing_basis'
+    &&fact.source==='research'
+    &&fact.capture_method==='system_lookup'
+    &&fact.verification_state==='verified'
+    &&[fact.source_reference,...(fact.source_references??[])].some(reference=>/^https:\/\//i.test(reference??'')))
+}
+
+export function quoteRequiresMarketPricingResearch(specification:DeliverableSpecification,message=''):boolean {
+  if(specification.artifact.recommended_type!=='quote')return false
+  if(specification.content.facts.some(fact=>fact.key==='market_pricing_research_required'&&fact.value==='true'))return true
+  return requestsMarketPricingResearch([message,specification.mission.objective,specification.mission.desired_decision_or_action].filter(Boolean).join('\n'))
+}
+
 export function quotePricingApprovalToken(specification:DeliverableSpecification):string|null {
   if(specification.artifact.recommended_type!=='quote')return null
   const values=new Map(specification.content.facts.filter(fact=>fact.verification_state!=='conflict').map(fact=>[fact.key,fact.value.trim()]))

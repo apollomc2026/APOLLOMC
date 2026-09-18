@@ -7,7 +7,7 @@ import { getFromS3, getPresignedUrl } from '@/lib/s3/client'
 import { completeEvidenceExtractionTrace, createEvidenceExtractionTrace, extractEvidence, extractEvidenceFactsFromImages, extractEvidenceFactsFromPdfs, extractEvidenceFactsFromSources, extractionTracesCoverSources, reconcileEvidenceSupersessions, type EvidenceExtractionTrace } from './evidence'
 import { materializeSpecificationDefaults } from './work-order'
 import { canonicalizeSpecificationIdentity } from './identity'
-import { pricingResearchFact, requestsMarketPricingResearch, researchQuotePricing } from './quote-pricing-research'
+import { pricingResearchFact, quotePricingResearchIsVerified, quoteRequiresMarketPricingResearch, researchQuotePricing } from './quote-pricing-research'
 import { calibrateMissionSpecification } from './calibration'
 
 export class MissionPersistenceError extends Error {}
@@ -171,11 +171,11 @@ async function loadSecuredEvidenceLedger(input:{
 async function enrichQuotePricingResearch(specification:DeliverableSpecification,message:string):Promise<DeliverableSpecification> {
   if(specification.artifact.recommended_type!=='quote')return specification
   const alreadyRequired=specification.content.facts.some(fact=>fact.key==='market_pricing_research_required'&&fact.value==='true')
-  if(!alreadyRequired&&!requestsMarketPricingResearch(message))return specification
+  if(!quoteRequiresMarketPricingResearch(specification,message))return specification
   const requiredFact=createMissionFact({key:'market_pricing_research_required',label:'Cited market-pricing research required',value:'true',source:'user',confidence:1,sensitivity:'internal'})
   const requiredFacts=alreadyRequired?specification.content.facts:mergeMissionFacts(specification.content.facts,[requiredFact])
   const requiredSpecification={...specification,content:{...specification.content,facts:requiredFacts},provenance:specificationProvenance(requiredFacts,specification.provenance.created_at,specification.provenance.model_versions)}
-  if(requiredFacts.some(fact=>fact.key==='market_pricing_basis'&&fact.verification_state==='verified'))return requiredSpecification
+  if(quotePricingResearchIsVerified(requiredSpecification))return requiredSpecification
   const values=new Map(requiredFacts.filter(fact=>fact.verification_state!=='conflict').map(fact=>[fact.key,fact.value.trim()]))
   const scopeSummary=values.get('scope_summary')||specification.mission.objective.trim()
   if(!scopeSummary)return requiredSpecification
@@ -183,7 +183,12 @@ async function enrichQuotePricingResearch(specification:DeliverableSpecification
     const research=await researchQuotePricing({scopeSummary,lineItems:values.get('line_items'),geography:values.get('project_address')||values.get('site_address')||values.get('customer_address')})
     if(!research)return requiredSpecification
     const fact=pricingResearchFact(research)
-    const facts=mergeMissionFacts(requiredFacts,[fact])
+    // Evidence may contain an operator's preliminary pricing note. Preserve its
+    // custody reference, but only the separately researched, URL-cited record
+    // may satisfy APOLLO's market-research gate.
+    const suppliedBasis=requiredFacts.find(candidate=>candidate.key==='market_pricing_basis'&&candidate.source!=='research')
+    const factWithCustody=suppliedBasis?{...fact,source_references:[...new Set([...(fact.source_references??[]),...missionFactSourceReferences(suppliedBasis)])]}:fact
+    const facts=[...requiredFacts.filter(candidate=>candidate.key!=='market_pricing_basis'),factWithCustody]
     return {...specification,content:{...specification.content,facts},provenance:specificationProvenance(facts,specification.provenance.created_at,specification.provenance.model_versions)}
   }catch(error){
     console.error('[mission-control] Quote pricing research failed',{error:error instanceof Error?error.message:'unknown error'})

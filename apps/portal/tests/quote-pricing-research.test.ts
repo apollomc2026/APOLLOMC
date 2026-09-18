@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest'
-import {applyQuotePricingApproval,hasCurrentQuotePricingApproval,pricingResearchFact,quotePricingApprovalToken,requestsMarketPricingResearch,verifiedPricingResearch} from '../lib/mission-control/quote-pricing-research'
+import {applyQuotePricingApproval,hasCurrentQuotePricingApproval,pricingResearchFact,quotePricingApprovalToken,quotePricingResearchIsVerified,quoteRequiresMarketPricingResearch,requestsMarketPricingResearch,verifiedPricingResearch} from '../lib/mission-control/quote-pricing-research'
 import {PRICING_APPROVAL_DIRECTIVE} from '../lib/mission-control/commercial-directives'
 import {interpretMission} from '../lib/mission-control/interpreter'
 import {createMissionFact} from '../lib/mission-control/contracts'
@@ -22,6 +22,21 @@ describe('quote market-pricing research custody',()=>{
   it('requires an explicit market-research request',()=>{
     expect(requestsMarketPricingResearch('Research fair-market pricing and keep this quote profitable.')).toBe(true)
     expect(requestsMarketPricingResearch('Create a quote from the attached estimate.')).toBe(false)
+  })
+
+  it('persists the original market-research mission intent across later control actions',()=>{
+    const specification=interpretMission('Create a quote using fair-market research and protect profitability.').specification
+    specification.artifact.recommended_type='quote'
+    expect(quoteRequiresMarketPricingResearch(specification,'Use your expert recommendations.')).toBe(true)
+  })
+
+  it('does not accept an evidence note as completed cited market research',()=>{
+    const specification=interpretMission('Create a quote using fair-market research.').specification
+    specification.artifact.recommended_type='quote'
+    specification.content.facts.push(createMissionFact({key:'market_pricing_basis',label:'Market pricing basis',value:'Unverified internal budget range',source:'evidence',source_reference:'estimate',confidence:1}))
+    expect(quotePricingResearchIsVerified(specification)).toBe(false)
+    specification.content.facts.push(pricingResearchFact({as_of_date:'2026-09-17',geography:'New Hampshire',benchmarks:[{item:'Field labor',unit:'hour',currency:'USD',low:110,typical:135,high:165,rationale:'Published schedule',source_urls:['https://official.example/rates']}],limitations:[]}))
+    expect(quotePricingResearchIsVerified(specification)).toBe(true)
   })
 
   it('blocks quote launch when requested research has not produced a verified cited basis',()=>{
