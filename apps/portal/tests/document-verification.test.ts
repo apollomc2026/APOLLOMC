@@ -20,4 +20,9 @@ describe('shared HTML and rendered-PDF factual gate',()=>{
     expect(verifyDocumentContent(order,'<p>Draft narrative</p>',{phase:'generated'}).commercial.required).toBe(false)
     expect(()=>verifyDocumentContent(order,'<p>Draft narrative</p>',{phase:'rendered'})).toThrow(/customer_name/)
   })
+  it('defers renderer-owned cash-flow schedules until the delivered artifact',()=>{
+    const order={deliverable_type:'cash-flow-budget-package',quality_gates:{schema_validation:true,source_grounding:true,independent_review:false,deterministic_financial_verification:true,human_approval_before_publish:true},fields:{entity_name:'Northstar',forecast_period:'October 2026',base_case_lines:'Oct 2026 | 250000 | 185000 | 172000 | 13000 | 263000',scenario_summary:'Base | 263000 | 250000 | 185000 | 172000',key_assumptions:'Opening cash is $250,000'}} as unknown as DocumentWorkOrder
+    expect(verifyDocumentContent(order,'<p>Draft narrative</p>',{phase:'generated'}).financial.required).toBe(false)
+    expect(()=>verifyDocumentContent(order,'<p>Draft narrative</p>',{phase:'rendered'})).toThrow(/base_case_lines row 1/)
+  })
 })
