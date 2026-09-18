@@ -24,7 +24,7 @@ import type { ContentBlockParam } from '@anthropic-ai/sdk/resources/messages/mes
 import { modelFor } from '@/lib/ai/models'
 import { getModule } from '@/lib/apollo/packages-loader'
 import { createMissionFact, type FactSupersession, type MissionFact } from './contracts'
-import {ensurePdfRuntimeGlobals} from '@/lib/pdf-runtime'
+import {configurePdfWorker,ensurePdfRuntimeGlobals} from '@/lib/pdf-runtime'
 
 type EvidenceOption={value:string;label:string}
 type EvidenceField = { key:string; label:string; type?:string; help?:string; evidence_aliases?:string[]; options?:Array<string|EvidenceOption> }
@@ -87,6 +87,7 @@ export async function extractEvidence(bytes: Buffer, mime: string): Promise<Evid
     try {
       await ensurePdfRuntimeGlobals()
       const { PDFParse } = await import('pdf-parse')
+      await configurePdfWorker(PDFParse)
       const parser = new PDFParse({ data: new Uint8Array(bytes) })
       try { return { text: (await parser.getText()).text?.slice(0, MAX_EXTRACTED_TEXT_CHARS), safeForDirectRetrieval: true } }
       finally { await parser.destroy().catch(() => {}) }

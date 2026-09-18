@@ -8,3 +8,8 @@ export async function ensurePdfRuntimeGlobals():Promise<void>{
     Path2D:globalThis.Path2D??canvas.Path2D,
   })
 }
+
+export async function configurePdfWorker(parser:{setWorker:(workerSrc:string)=>string}):Promise<void>{
+  const {getData}=await import('pdf-parse/worker')
+  parser.setWorker(getData())
+}
