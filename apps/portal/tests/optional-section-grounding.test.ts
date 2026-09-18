@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activeSections, buildUserPromptText, normalizeSectionCollection, outputTokenBudget, sectionContractViolations, sourceBoundaryViolations, workmanshipRepairGuidance, type OrchestrateArgs } from '../lib/apollo/orchestrate'
+import { activeSections, buildUserPromptText, normalizeSectionCollection, outputTokenBudget, recoverWorkmanshipCollection, sectionContractViolations, sourceBoundaryViolations, workmanshipRepairGuidance, type OrchestrateArgs } from '../lib/apollo/orchestrate'
 import { getModule } from '../lib/apollo/packages-loader'
 
 function args(slug:string, fields:Record<string,unknown> = {}, uploads:OrchestrateArgs['uploads'] = []):OrchestrateArgs {
@@ -117,6 +117,20 @@ describe('optional section evidence boundaries', () => {
     expect(guidance).toContain('action_calendar')
     expect(guidance).toContain('twenty substantive data rows')
     expect(guidance).toContain('Source clause/page')
+  })
+
+  it('retains the strongest version of each section across workmanship attempts', () => {
+    const input=args('contract-intelligence-review')
+    const keys=activeSections(input).map(section=>section.key)
+    const prose=(key:string)=>({key,label:key,content:'Plain source-grounded narrative.'})
+    const table=(key:string)=>({key,label:key,content:'| Item | Status | Source clause/page |\n|---|---|---|\n| Notice | Active | Section 4, page 2 |\n| Claim | Conditional | Section 7, page 4 |'})
+    const first={metadata:{title:'First'},sections:keys.map(key=>key==='status_dashboard'?table(key):prose(key))}
+    const repair={metadata:{title:'Repair'},sections:keys.map(key=>key==='obligation_matrix'?table(key):prose(key))}
+    const recovered=recoverWorkmanshipCollection(input,[first,repair])
+    expect((recovered.metadata as {title:string}).title).toBe('Repair')
+    const sections=recovered.sections as Array<{key:string;content:string}>
+    expect(sections.find(section=>section.key==='status_dashboard')?.content).toContain('| Notice |')
+    expect(sections.find(section=>section.key==='obligation_matrix')?.content).toContain('| Notice |')
   })
 
   it('rejects strategic figures and legal authorities that are not in the approved source corpus', () => {

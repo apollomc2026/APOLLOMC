@@ -645,6 +645,41 @@ export function recoverSectionCollection(args:OrchestrateArgs,outputs:Record<str
   return {...latest,sections}
 }
 
+function sectionWorkmanshipScore(content:string):number {
+  const tableSeparators=(content.match(/^\s*\|?(?:\s*:?-{3,}:?\s*\|)+/gm)??[]).length
+  const tableRows=(content.match(/^\s*\|.*\|\s*$/gm)??[]).length
+  const listItems=(content.match(/^\s*(?:[-*+] |\d+\. )/gm)??[]).length
+  const sourceAnchors=(content.match(/\b(?:clause|section|page)\b/gi)??[]).length
+  const statusLabels=(content.match(/\b(?:active|expired|upcoming|conditional|conflicting|unknown)\b/gi)??[]).length
+  return tableSeparators*1000+tableRows*100+listItems*20+sourceAnchors*8+statusLabels*4+Math.min(content.length,20000)/1000
+}
+
+/**
+ * A whole-document quality repair can improve one section while regressing a
+ * different one. Preserve the strongest schema-valid version of every active
+ * section across attempts before paying for another full publication pass.
+ */
+export function recoverWorkmanshipCollection(args:OrchestrateArgs,outputs:Record<string,unknown>[]):Record<string,unknown> {
+  const normalized=outputs.map(output=>normalizeSectionCollection(args,output))
+  const latest=normalized.at(-1)??{}
+  const candidates=new Map<string,Record<string,unknown>>()
+  for(const output of normalized){
+    if(!Array.isArray(output.sections))continue
+    for(const raw of output.sections){
+      if(!raw||typeof raw!=='object')continue
+      const section=raw as Record<string,unknown>
+      if(typeof section.key!=='string'||typeof section.content!=='string'||!section.content.trim())continue
+      const current=candidates.get(section.key)
+      if(!current||sectionWorkmanshipScore(section.content)>=sectionWorkmanshipScore(String(current.content??'')))candidates.set(section.key,section)
+    }
+  }
+  const sections=activeSections(args).flatMap(section=>{
+    const candidate=candidates.get(section.key)
+    return candidate?[{...candidate,key:section.key,label:typeof candidate.label==='string'?candidate.label:section.label}]:[]
+  })
+  return {...latest,sections}
+}
+
 async function callClaudeWithTool(
   client: Anthropic,
   args: OrchestrateArgs,
@@ -911,6 +946,7 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
     quality.score = Math.max(0, quality.score - boundaryViolations.length * 18)
   }
   if (!quality.passed) {
+    const workmanshipBaseOutput=output
     warnings.push(`First-pass workmanship audit scored ${quality.score}; running focused quality repair.`)
     const repairBlocks: AnthropicContentBlock[] = [...promptBlocks, {
       type: 'text',
@@ -957,6 +993,26 @@ export async function orchestrate(args: OrchestrateArgs): Promise<OrchestrateRes
       quality.violations.push(...repairedBoundaryViolations)
       quality.passed = false
       quality.score = Math.max(0, quality.score - repairedBoundaryViolations.length * 18)
+    }
+    if (!quality.passed) {
+      const recoveredOutput=recoverWorkmanshipCollection(args,[workmanshipBaseOutput,output])
+      const recoveredContractViolations=sectionContractViolations(args,recoveredOutput)
+      if(validator(recoveredOutput)&&!recoveredContractViolations.length){
+        const recoveredHtml=renderContentHtml(recoveredOutput,args.module,args.deliverableLabel,allowedSectionKeys)
+        const recoveredQuality=auditDeliverableQuality(args.slug,recoveredHtml,expectedSections)
+        const recoveredBoundaryViolations=sourceBoundaryViolations(args,recoveredHtml)
+        if(recoveredBoundaryViolations.length){
+          recoveredQuality.violations.push(...recoveredBoundaryViolations)
+          recoveredQuality.passed=false
+          recoveredQuality.score=Math.max(0,recoveredQuality.score-recoveredBoundaryViolations.length*18)
+        }
+        if(recoveredQuality.passed){
+          output=recoveredOutput
+          contentHtml=recoveredHtml
+          quality=recoveredQuality
+          warnings.push('Quality-aware recovery assembled the strongest source-grounded sections from validated attempts.')
+        }
+      }
     }
     if (!quality.passed) {
       warnings.push(`Focused workmanship repair scored ${quality.score}; running one final bounded recovery pass.`)
