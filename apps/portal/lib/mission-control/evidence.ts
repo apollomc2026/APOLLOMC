@@ -402,7 +402,8 @@ export function filterSemanticallyUnsupportedEvidenceFacts(
     const sourceText=fact.source_reference?textBySource.get(fact.source_reference)??'':''
     if(fact.key==='customer_contact_onsite'){
       const escaped=fact.value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')
-      return new RegExp(`(?:met|on[- ]?site contact|onsite contact|present (?:at|on) (?:the )?site|escorted by|accompanied by)[^.!?\\n]{0,100}${escaped}|${escaped}[^.!?\\n]{0,100}(?:met (?:the )?technician|was present (?:at|on) (?:the )?site|served as (?:the )?on[- ]?site contact)`,'i').test(sourceText)
+      if(new RegExp(`customer contact on[- ]?site\\s*:?\\s*${escaped}`,'i').test(sourceText))return true
+      return new RegExp(`(?:met|on[- ]?site contact|onsite contact|customer contact on[- ]?site|present (?:at|on) (?:the )?site|escorted by|accompanied by)[^.!?\\n]{0,100}${escaped}|${escaped}[^.!?\\n]{0,100}(?:met (?:the )?technician|was present (?:at|on) (?:the )?site|served as (?:the )?on[- ]?site contact)`,'i').test(sourceText)
     }
     if(fact.key==='follow_up_required'&&fact.value==='parts-order'){
       return /\b(?:parts? (?:were |are |has been |have been )?(?:ordered|on order)|purchase order|pending parts receipt|awaiting parts)\b/i.test(sourceText)

@@ -282,6 +282,12 @@ describe('mission evidence custody', () => {
     expect(filterSemanticallyUnsupportedEvidenceFacts(facts,[{id:'report',text:source}],'fsr')).toEqual([])
   })
 
+  it('accepts a contact explicitly identified by the schema field label',()=>{
+    const fact=createMissionFact({key:'customer_contact_onsite',label:'Customer contact on site',value:'Avery Morgan, Facilities Director',source:'evidence',source_reference:'report',confidence:1})
+    const source='Customer contact onsite:\nAvery Morgan, Facilities Director'
+    expect(filterSemanticallyUnsupportedEvidenceFacts([fact],[{id:'report',text:source}],'fsr')).toEqual([fact])
+  })
+
   it('accepts structured quote rows with numeric prices but rejects unpriced scope prose',()=>{
     const priced=createMissionFact({key:'line_items',label:'Line items',value:'Field condition assessment | 1 | 8500.00',source:'evidence',source_reference:'estimate',confidence:1})
     const unpriced=createMissionFact({key:'line_items',label:'Line items',value:'Field condition assessment and closeout support',source:'evidence',source_reference:'scope',confidence:1})
