@@ -1,5 +1,5 @@
 import type { ArtifactManifest, DocumentWorkOrder } from '@/lib/executor/contracts'
-import { missionFactSourceReferences, type DeliverableSpecification, type MissionFact } from './contracts'
+import { controllingMissionFactValue, missionFactSourceReferences, type DeliverableSpecification, type MissionFact } from './contracts'
 import { extractionTracesCoverSources, type EvidenceExtractionTrace } from './evidence'
 import { inferredFactMayControlExecution } from './work-order'
 import { REVISION_SCOPE, revisionDirectiveDigest } from './revision'
@@ -97,7 +97,7 @@ export function auditPilotRelease(input:PilotAuditInput):{passed:boolean;passed_
     const extractedKeysBySource=new Map<string,Set<string>>()
     for(const row of evidence)for(const fact of row.extracted_facts??[]){const keys=extractedKeysBySource.get(row.id)??new Set<string>();keys.add(fact.key);extractedKeysBySource.set(row.id,keys)}
     const missingReconciledFacts=evidence.flatMap(row=>[...(extractedKeysBySource.get(row.id)??[])].filter(key=>!spec.content.facts.some(fact=>fact.key===key&&missionFactSourceReferences(fact).includes(row.id))).map(key=>`${row.id}:${key}`))
-    const unresolvedConflicts=spec.content.facts.filter(fact=>fact.verification_state==='conflict'&&!fact.supersession)
+    const unresolvedConflicts=spec.content.facts.filter(fact=>fact.verification_state==='conflict'&&!fact.supersession&&controllingMissionFactValue(fact)===null)
     const invalidSupersessions=spec.content.facts.filter(fact=>!supersessionIsAuditable(fact,evidenceIds))
     const latestOrder=latest?.work_order;const artifacts=latest?.artifacts??[]
     const unsafeInferences=spec.content.facts.filter(fact=>fact.source==='inferred'&&!inferredFactMayControlExecution(fact.key))

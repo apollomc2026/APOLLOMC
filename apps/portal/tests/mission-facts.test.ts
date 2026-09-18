@@ -25,6 +25,17 @@ describe('mission fact reconciliation', () => {
     expect(fact.conflicts).toBeUndefined()
   })
 
+  it('treats equivalent date formats and a trailing state abbreviation as corroboration', () => {
+    const facts = mergeMissionFacts([], [
+      createMissionFact({ key:'quote_date', label:'Quote date', value:'2026-09-16', source:'evidence', source_reference:'source-a', confidence:1 }, now),
+      createMissionFact({ key:'quote_date', label:'Quote date', value:'September 16, 2026', source:'evidence', source_reference:'source-b', confidence:1 }, now),
+      createMissionFact({ key:'customer_name', label:'Customer name', value:'US Foods Seabrook', source:'evidence', source_reference:'source-a', confidence:1 }, now),
+      createMissionFact({ key:'customer_name', label:'Customer name', value:'US Foods — Seabrook, NH', source:'evidence', source_reference:'source-b', confidence:1 }, now),
+    ], now)
+    expect(facts.find(fact=>fact.key==='quote_date')).toEqual(expect.objectContaining({verification_state:'verified'}))
+    expect(facts.find(fact=>fact.key==='customer_name')).toEqual(expect.objectContaining({verification_state:'verified'}))
+  })
+
   it('lets verified evidence replace an earlier model inference', () => {
     const inferred = createMissionFact({ key: 'report_date', label: 'Report date', value: '2026-05-12', source: 'inferred', confidence: .6 }, now)
     const evidence = createMissionFact({ key: 'report_date', label: 'Report date', value: '2026-05-13', source: 'evidence', confidence: 1, source_reference: 'final-qc' }, now)

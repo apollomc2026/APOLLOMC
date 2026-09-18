@@ -62,8 +62,34 @@ export function missionFactSourceReferences(fact:MissionFact):string[] {
   ].filter((value):value is string=>Boolean(value)))]
 }
 
+const DATE_FACT_KEY = /(?:^|_)(?:date|as_of|effective|expiration)(?:_|$)|^valid_until$/
+const ORGANIZATION_FACT_KEYS = new Set(['customer_name','client_name','prospect_organization'])
+const US_STATE_ABBREVIATIONS = new Set(['al','ak','az','ar','ca','co','ct','de','fl','ga','hi','id','il','in','ia','ks','ky','la','me','md','ma','mi','mn','ms','mo','mt','ne','nv','nh','nj','nm','ny','nc','nd','oh','ok','or','pa','ri','sc','sd','tn','tx','ut','vt','va','wa','wv','wi','wy','dc'])
+
+function normalizedFactValue(key:string,value:string):string {
+  const normalized=value.normalize('NFKC').trim().replace(/\s+/g,' ').toLocaleLowerCase()
+  if(DATE_FACT_KEY.test(key)){
+    const timestamp=Date.parse(normalized)
+    if(!Number.isNaN(timestamp))return new Date(timestamp).toISOString().slice(0,10)
+  }
+  if(ORGANIZATION_FACT_KEYS.has(key)){
+    const tokens=normalized.replace(/[^a-z0-9]+/g,' ').trim().split(/\s+/)
+    if(tokens.length>1&&US_STATE_ABBREVIATIONS.has(tokens.at(-1)!))tokens.pop()
+    return tokens.join(' ')
+  }
+  return normalized
+}
+
 function comparableFactValue(fact: MissionFact): string {
-  return (fact.normalized_value ?? fact.value).normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase()
+  return normalizedFactValue(fact.key,fact.normalized_value ?? fact.value)
+}
+
+export function controllingMissionFactValue(fact:MissionFact):string|null {
+  if(fact.verification_state!=='conflict')return fact.value
+  const superseded=new Set(fact.supersession?.superseded_source_references??[])
+  const active=(fact.conflicts??[]).filter(candidate=>!superseded.has(candidate.source_reference??''))
+  const unique=[...new Map(active.map(candidate=>[normalizedFactValue(fact.key,candidate.normalized_value??candidate.value),candidate.value])).values()]
+  return unique.length===1?unique[0]:null
 }
 
 export function mergeMissionFacts(priorFacts: MissionFact[], incomingFacts: MissionFact[], now = new Date()): MissionFact[] {
