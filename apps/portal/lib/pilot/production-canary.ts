@@ -14,6 +14,7 @@ import {PRICING_APPROVAL_DIRECTIVE} from '@/lib/mission-control/commercial-direc
 import {compileApprovedSpecification,executionFields,materializeSpecificationDefaults} from '@/lib/mission-control/work-order'
 import {verifyDocumentContent} from '@/lib/executor/document-verification'
 import {verifyRenderedPdf} from '@/lib/executor/pdf-integrity'
+import {buildRevisionOrder} from '@/lib/mission-control/revision'
 
 export const PILOT_CANARY_SLUGS=['fsr','final-qc-report','quote','proposal','cash-flow-budget-package','contract-intelligence-review'] as const
 export type PilotCanarySlug=(typeof PILOT_CANARY_SLUGS)[number]
@@ -66,9 +67,11 @@ export async function runProductionPilotCanary(slug:PilotCanarySlug){
   if(calibrated.gaps.length)throw new Error(`calibration left gaps: ${calibrated.gaps.map(gap=>gap.key).join(', ')}`)
   specification={...calibrated.specification,approval:{status:'approved',approved_by:'pilot-canary',approved_at:'2026-09-17T12:05:00Z',unresolved_items_accepted:[]}}
   const specificationHash=createHash('sha256').update(JSON.stringify(specification)).digest('hex')
-  const compiled=compileApprovedSpecification({specification,specificationId:'11111111-1111-4111-8111-111111111111',specificationHash,conversationId:'22222222-2222-4222-8222-222222222222',requestedBy:'33333333-3333-4333-8333-333333333333',driveFolderId:'pilot-canary',now:new Date('2026-09-17T12:06:00Z')})
+  const sourceSha256=createHash('sha256').update(bytes).digest('hex')
+  const sourceName=`${slug}-canary.txt`
+  const compiled=compileApprovedSpecification({specification,specificationId:'11111111-1111-4111-8111-111111111111',specificationHash,conversationId:'22222222-2222-4222-8222-222222222222',requestedBy:'33333333-3333-4333-8333-333333333333',driveFolderId:'pilot-canary',sources:[{source_id:sourceId,name:sourceName,media_type:'text/plain',retrieval_url:`https://evidence.invalid/${sourceId}`,content_sha256:sourceSha256,sensitivity:'confidential',expires_at:'2026-09-18T12:06:00Z'}],now:new Date('2026-09-17T12:06:00Z')})
   if(!compiled.ok)throw new Error(`work-order compilation failed: ${compiled.missing.map(gap=>gap.key).join(', ')}`)
-  const uploads=[{id:sourceId,upload_kind:'reference_doc',original_filename:`${slug}-canary.txt`,content_type:'text/plain',size_bytes:bytes.length,caption:'Synthetic pilot evidence',extracted_text:text,bytes:null}]
+  const uploads=[{id:sourceId,upload_kind:'reference_doc',original_filename:sourceName,content_type:'text/plain',size_bytes:bytes.length,caption:'Synthetic pilot evidence',extracted_text:text,bytes:null}]
   const fields=executionFields(specification,new Date('2026-09-17T12:06:00Z'))
   for(const [key,expected] of Object.entries(FIXTURES[slug])){
     const actual=fields[key]
@@ -78,7 +81,7 @@ export async function runProductionPilotCanary(slug:PilotCanarySlug){
   const generated=await orchestrate({slug,deliverableLabel:summary.label,industryLabel:summary.industry_label,module,schema:schema as Record<string,unknown>,style,brand,fields,uploads})
   verifyDocumentContent(compiled.order,generated.contentHtml,{phase:'generated'})
   const template:Template={slug,label:summary.label,description:summary.description,category:summary.industry_slug,supports_images:true,has_signature_block:slug==='proposal',has_toc:shouldRenderToc(slug),layout:chooseLayoutForSlug(slug),fields:[],sections:module.sections.map(section=>({id:section.key,title:section.label})),generation_notes:''}
-  const pdf=await buildPdf({template,brand,inputs:fields,contentHtml:generated.contentHtml,documentId:`CANARY-${slug.toUpperCase()}`,preparedDate:'September 17, 2026',palette,sourceNames:[`${slug}-canary.txt`]})
+  const pdf=await buildPdf({template,brand,inputs:fields,contentHtml:generated.contentHtml,documentId:`CANARY-${slug.toUpperCase()}`,preparedDate:'September 17, 2026',palette,sourceNames:[sourceName]})
   const integrity=await verifyRenderedPdf(pdf)
   let verification:ReturnType<typeof verifyDocumentContent>
   try{verification=verifyDocumentContent(compiled.order,integrity.text,{phase:'rendered'})}
@@ -86,5 +89,13 @@ export async function runProductionPilotCanary(slug:PilotCanarySlug){
     const sample=integrity.text.replace(/\s+/g,' ').trim().slice(0,1200)
     throw new Error(`${error instanceof Error?error.message:String(error)}; controlled canary PDF sample: ${sample}`)
   }
-  return {slug,passed:true,source_sha256:createHash('sha256').update(bytes).digest('hex'),specification_hash:specificationHash,extracted_facts:extracted.facts.length,trace:extracted.trace,open_questions:specification.content.open_questions.length,quality:generated.quality,verification,pdf:{sha256:createHash('sha256').update(pdf).digest('hex'),...integrity.integrity}}
+  let failureProbeRejected=false
+  try{verifyDocumentContent(compiled.order,'CONTROLLED INVALID ARTIFACT',{phase:'rendered'})}catch{failureProbeRejected=true}
+  if(!failureProbeRejected)throw new Error('specialist verification accepted the controlled invalid artifact')
+  const revisionOrder=buildRevisionOrder(compiled.order,'Improve presentation while preserving every approved fact, figure, source, brand, and deliverable identity.','44444444-4444-4444-8444-444444444444')
+  if(revisionOrder.fields.revision_of!==compiled.order.work_order_id||revisionOrder.fields.artifact_version!==2||revisionOrder.trace?.specification_hash!==compiled.order.trace?.specification_hash||revisionOrder.brand_id!==compiled.order.brand_id||JSON.stringify(revisionOrder.sources)!==JSON.stringify(compiled.order.sources))throw new Error('regeneration lineage changed approved mission authority')
+  const revisionPdf=await buildPdf({template,brand,inputs:revisionOrder.fields,contentHtml:generated.contentHtml,documentId:`CANARY-${slug.toUpperCase()}-V2`,preparedDate:'September 17, 2026',palette,sourceNames:[sourceName]})
+  const revisionIntegrity=await verifyRenderedPdf(revisionPdf)
+  const revisionVerification=verifyDocumentContent(revisionOrder,revisionIntegrity.text,{phase:'rendered'})
+  return {slug,passed:true,source_sha256:sourceSha256,specification_hash:specificationHash,extracted_facts:extracted.facts.length,trace:extracted.trace,open_questions:specification.content.open_questions.length,quality:generated.quality,verification,failure_probe:{rejected:true},regeneration:{version:revisionOrder.fields.artifact_version,revision_of:revisionOrder.fields.revision_of,work_order_id:revisionOrder.work_order_id,verification:revisionVerification,pdf:{sha256:createHash('sha256').update(revisionPdf).digest('hex'),...revisionIntegrity.integrity}},pdf:{sha256:createHash('sha256').update(pdf).digest('hex'),...integrity.integrity}}
 }
