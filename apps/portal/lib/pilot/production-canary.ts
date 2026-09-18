@@ -19,6 +19,8 @@ import {normalizedPdfTextSha256,verifyControlledPdfDownload} from '@/lib/executo
 
 export const PILOT_CANARY_SLUGS=['fsr','final-qc-report','quote','proposal','cash-flow-budget-package','contract-intelligence-review'] as const
 export type PilotCanarySlug=(typeof PILOT_CANARY_SLUGS)[number]
+export type PilotCanaryStage='evidence-inventoried'|'specification-approved'|'generation-verified'|'artifact-picked-up'|'controlled-failure-rejected'|'refight-picked-up'
+type PilotCanaryStageReporter=(stage:PilotCanaryStage,payload?:Record<string,unknown>)=>Promise<void>
 
 const FIXTURES:Record<PilotCanarySlug,Record<string,unknown>>={
   fsr:{work_order_number:'WO-CANARY-1047',site_name:'Northstar East Plant',site_address:'100 Industrial Way, Worcester, MA 01608',customer_contact_onsite:'Avery Morgan, Facilities Director',visit_date:'2026-09-17',arrival_time:'07:00',departure_time:'16:30',technician_name:'Morgan Reed',equipment_asset_id:'EER-FDR-A-001',equipment_make_model:'Square D Power-Zone 4 switchgear',issue_reported:'Intermittent insulation-resistance alarm.',work_performed:'07:00 | Verified work permit and lockout\n09:10 | Performed insulation-resistance testing\n13:15 | Corrected loose terminal and repeated tests\n16:15 | Secured equipment',warranty_status:'not-applicable',time_on_site_hours:9.5,follow_up_required:'none'},
@@ -44,7 +46,8 @@ function evidenceText(slug:PilotCanarySlug,fields:Record<string,unknown>){
   return [`CONTROLLED SYNTHETIC PILOT EVIDENCE — ${slug}`,...labeled,slug==='contract-intelligence-review'?CONTRACT_EVIDENCE:''].join('\n\n')
 }
 
-export async function runProductionPilotCanary(slug:PilotCanarySlug){
+export async function runProductionPilotCanary(slug:PilotCanarySlug,reportStage?:PilotCanaryStageReporter){
+  const report=reportStage??(async()=>{})
   const startedAt=Date.now()
   const timings:Record<string,number>={}
   let checkpoint=startedAt
@@ -56,6 +59,7 @@ export async function runProductionPilotCanary(slug:PilotCanarySlug){
   const sourceId=`pilot-canary-${slug}`;const text=evidenceText(slug,FIXTURES[slug]);const bytes=Buffer.from(text)
   const extracted=await extractEvidenceFactsWithTraceFromArtifact({id:sourceId,name:`${slug}-canary.txt`,mime:'text/plain',bytes,text},slug)
   mark('evidence_extraction')
+  await report('evidence-inventoried',{sources:1,extracted_facts:extracted.facts.length,trace_status:extracted.trace.status})
   if(!extractionTracesCoverSources([sourceId],[extracted.trace]))throw new Error('multipass extraction trace incomplete')
   const turn=interpretMission(`Create a ${summary.label}${slug==='quote'?' using current fair-market research':''}.`)
   turn.specification.artifact.recommended_type=slug;turn.specification.aura.operator_involvement=0;turn.specification.sources=[{id:sourceId,name:`${slug}-canary.txt`,status:'verified'}]
@@ -78,6 +82,7 @@ export async function runProductionPilotCanary(slug:PilotCanarySlug){
   const sourceName=`${slug}-canary.txt`
   const compiled=compileApprovedSpecification({specification,specificationId:'11111111-1111-4111-8111-111111111111',specificationHash,conversationId:'22222222-2222-4222-8222-222222222222',requestedBy:'33333333-3333-4333-8333-333333333333',driveFolderId:'pilot-canary',sources:[{source_id:sourceId,name:sourceName,media_type:'text/plain',retrieval_url:`https://evidence.invalid/${sourceId}`,content_sha256:sourceSha256,sensitivity:'confidential',expires_at:'2026-09-18T12:06:00Z'}],now:new Date('2026-09-17T12:06:00Z')})
   if(!compiled.ok)throw new Error(`work-order compilation failed: ${compiled.missing.map(gap=>gap.key).join(', ')}`)
+  await report('specification-approved',{specification_hash:specificationHash,open_questions:specification.content.open_questions.length,work_order_id:compiled.order.work_order_id})
   const uploads=[{id:sourceId,upload_kind:'reference_doc',original_filename:sourceName,content_type:'text/plain',size_bytes:bytes.length,caption:'Synthetic pilot evidence',extracted_text:text,bytes:null}]
   const fields=executionFields(specification,new Date('2026-09-17T12:06:00Z'))
   for(const [key,expected] of Object.entries(FIXTURES[slug])){
@@ -88,12 +93,14 @@ export async function runProductionPilotCanary(slug:PilotCanarySlug){
   const generated=await orchestrate({slug,deliverableLabel:summary.label,industryLabel:summary.industry_label,module,schema:schema as Record<string,unknown>,style,brand,fields,uploads})
   mark('generation_and_repair')
   verifyDocumentContent(compiled.order,generated.contentHtml,{phase:'generated'})
+  await report('generation-verified',{quality_score:generated.quality.score,repair_warnings:generated.warnings})
   const template:Template={slug,label:summary.label,description:summary.description,category:summary.industry_slug,supports_images:true,has_signature_block:slug==='proposal',has_toc:shouldRenderToc(slug),layout:chooseLayoutForSlug(slug),fields:[],sections:module.sections.map(section=>({id:section.key,title:section.label})),generation_notes:''}
   const pdf=await buildPdf({template,brand,inputs:fields,contentHtml:generated.contentHtml,documentId:`CANARY-${slug.toUpperCase()}`,preparedDate:'September 17, 2026',palette,sourceNames:[sourceName]})
   const integrity=await verifyRenderedPdf(pdf)
   const pdfSha256=createHash('sha256').update(pdf).digest('hex')
   const pickupIntegrity=await verifyControlledPdfDownload({bytes:pdf,mimeType:'application/pdf',contentSha256:pdfSha256,factualContentSha256:normalizedPdfTextSha256(integrity.text)})
   mark('initial_render_and_pickup')
+  await report('artifact-picked-up',{content_sha256:pdfSha256,pages:integrity.integrity.pages,controlled:true})
   let verification:ReturnType<typeof verifyDocumentContent>
   try{verification=verifyDocumentContent(compiled.order,integrity.text,{phase:'rendered'})}
   catch(error){
@@ -103,6 +110,7 @@ export async function runProductionPilotCanary(slug:PilotCanarySlug){
   let failureProbeRejected=false
   try{verifyDocumentContent(compiled.order,'CONTROLLED INVALID ARTIFACT',{phase:'rendered'})}catch{failureProbeRejected=true}
   if(!failureProbeRejected)throw new Error('specialist verification accepted the controlled invalid artifact')
+  await report('controlled-failure-rejected',{rejected:true,stage:'rendered'})
   const revisionOrder=buildRevisionOrder(compiled.order,'Improve presentation while preserving every approved fact, figure, source, brand, and deliverable identity.','44444444-4444-4444-8444-444444444444')
   if(revisionOrder.fields.revision_of!==compiled.order.work_order_id||revisionOrder.fields.artifact_version!==2||revisionOrder.trace?.specification_hash!==compiled.order.trace?.specification_hash||revisionOrder.brand_id!==compiled.order.brand_id||JSON.stringify(revisionOrder.sources)!==JSON.stringify(compiled.order.sources))throw new Error('regeneration lineage changed approved mission authority')
   const revisionPdf=await buildPdf({template,brand,inputs:revisionOrder.fields,contentHtml:generated.contentHtml,documentId:`CANARY-${slug.toUpperCase()}-V2`,preparedDate:'September 17, 2026',palette,sourceNames:[sourceName]})
@@ -111,6 +119,7 @@ export async function runProductionPilotCanary(slug:PilotCanarySlug){
   const revisionPickupIntegrity=await verifyControlledPdfDownload({bytes:revisionPdf,mimeType:'application/pdf',contentSha256:revisionPdfSha256,factualContentSha256:normalizedPdfTextSha256(revisionIntegrity.text)})
   const revisionVerification=verifyDocumentContent(revisionOrder,revisionIntegrity.text,{phase:'rendered'})
   mark('regeneration_render_and_pickup')
+  await report('refight-picked-up',{content_sha256:revisionPdfSha256,pages:revisionIntegrity.integrity.pages,controlled:true,version:revisionOrder.fields.artifact_version,revision_of:revisionOrder.fields.revision_of})
   timings.total=Date.now()-startedAt
   return {slug,passed:true,source_sha256:sourceSha256,specification_hash:specificationHash,extracted_facts:extracted.facts.length,trace:extracted.trace,open_questions:specification.content.open_questions.length,quality:generated.quality,warnings:generated.warnings,timings_ms:timings,verification,failure_probe:{rejected:true},regeneration:{version:revisionOrder.fields.artifact_version,revision_of:revisionOrder.fields.revision_of,work_order_id:revisionOrder.work_order_id,verification:revisionVerification,pickup:{controlled:true,...revisionPickupIntegrity},pdf:{sha256:revisionPdfSha256,...revisionIntegrity.integrity}},pickup:{controlled:true,...pickupIntegrity},pdf:{sha256:pdfSha256,...integrity.integrity}}
 }

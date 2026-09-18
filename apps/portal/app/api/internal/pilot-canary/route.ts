@@ -23,7 +23,12 @@ export async function GET(request:Request){
   if(rows.error)return NextResponse.json({error:rows.error.message},{status:500})
   const latest=new Map<string,unknown>()
   for(const row of rows.data??[])if(!latest.has(row.deliverable_type))latest.set(row.deliverable_type,row)
-  return NextResponse.json({runs:[...latest.values()]},{headers:{'Cache-Control':'private, no-store, max-age=0'}})
+  const runs=[...latest.values()] as Array<{id:string}>
+  const eventRows=runs.length?await db.from('apollo_pilot_canary_events').select('run_id,sequence,stage,payload,created_at').in('run_id',runs.map(run=>run.id)).order('sequence',{ascending:true}):{data:[],error:null}
+  if(eventRows.error)return NextResponse.json({error:eventRows.error.message},{status:500})
+  const eventsByRun=new Map<string,unknown[]>()
+  for(const event of eventRows.data??[]){const events=eventsByRun.get(event.run_id)??[];events.push(event);eventsByRun.set(event.run_id,events)}
+  return NextResponse.json({runs:runs.map(run=>({...run,events:eventsByRun.get(run.id)??[]}))},{headers:{'Cache-Control':'private, no-store, max-age=0'}})
 }
 
 export async function POST(request:Request){
@@ -33,9 +38,17 @@ export async function POST(request:Request){
   const db=await createServiceClient();const runId=randomUUID();const started=Date.now()
   const inserted=await db.from('apollo_pilot_canary_runs').insert({id:runId,deliverable_type:slug,deployment_id:deploymentId(),status:'running'}).select('id').single()
   if(inserted.error)return NextResponse.json({slug,passed:false,error:`Pilot attestation could not start: ${inserted.error.message}`},{status:500})
+  let eventSequence=0
+  const appendEvent=async(stage:string,payload:Record<string,unknown>={})=>{
+    eventSequence+=1
+    const event=await db.from('apollo_pilot_canary_events').insert({run_id:runId,sequence:eventSequence,stage,payload})
+    if(event.error)throw new Error(`Pilot telemetry could not record ${stage}: ${event.error.message}`)
+  }
   try{
-    const result=await runProductionPilotCanary(slug)
+    await appendEvent('accepted',{slug,deployment_id:deploymentId()})
+    const result=await runProductionPilotCanary(slug,appendEvent)
     const completedAt=new Date().toISOString();const durationMs=Date.now()-started
+    await appendEvent('passed',{duration_ms:durationMs,quality_score:result.quality.score})
     const update=await db.from('apollo_pilot_canary_runs').update({status:'passed',completed_at:completedAt,duration_ms:durationMs,result}).eq('id',runId).eq('status','running')
     if(update.error)throw new Error(`Pilot passed but its attestation could not be committed: ${update.error.message}`)
     return NextResponse.json({...result,attestation:{id:runId,deployment_id:deploymentId(),duration_ms:durationMs}})
@@ -49,6 +62,7 @@ export async function POST(request:Request){
       ...(error instanceof OrchestrateError?{stage,details:error.details}:{}),
     })
     const failureResult=error instanceof OrchestrateError&&error.details&&typeof error.details==='object'?error.details:{}
+    try{await appendEvent('failed',{error_stage:stage,error_message:message})}catch(eventError){console.error('[pilot-canary] failure event update failed',{slug,runId,error:eventError instanceof Error?eventError.message:String(eventError)})}
     const update=await db.from('apollo_pilot_canary_runs').update({status:'failed',completed_at:new Date().toISOString(),duration_ms:Date.now()-started,result:failureResult,error_stage:stage,error_message:message}).eq('id',runId).eq('status','running')
     if(update.error)console.error('[pilot-canary] attestation update failed',{slug,runId,error:update.error.message})
     return NextResponse.json({slug,passed:false,error:message},{status:500})
