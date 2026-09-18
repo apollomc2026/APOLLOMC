@@ -33,6 +33,31 @@ function searchable(value:unknown, containsHtml=false) {
     .toLowerCase()
 }
 
+function dateVariants(value:unknown):string[]{
+  const raw=String(value??'').trim();const match=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if(!match)return[]
+  const date=new Date(`${raw}T12:00:00Z`)
+  if(Number.isNaN(date.getTime()))return[]
+  return [raw,date.toLocaleDateString('en-US',{timeZone:'UTC',month:'long',day:'numeric',year:'numeric'}),date.toLocaleDateString('en-US',{timeZone:'UTC',month:'short',day:'numeric',year:'numeric'})].map(item=>searchable(item))
+}
+
+function timeVariants(value:unknown):string[]{
+  const raw=String(value??'').trim();const match=raw.match(/^(\d{1,2}):(\d{2})(?:\s*([ap])\.?m\.?)?$/i)
+  if(!match)return[]
+  let hour=Number(match[1]);const minute=match[2];const meridiem=match[3]?.toLowerCase()
+  if(meridiem){hour%=12;if(meridiem==='p')hour+=12}
+  if(hour>23)return[]
+  const displayHour=hour%12||12;const suffix=hour>=12?'PM':'AM'
+  return [raw,`${String(hour).padStart(2,'0')}:${minute}`,`${displayHour}:${minute} ${suffix}`].map(item=>searchable(item))
+}
+
+function anchorPresent(key:string,value:unknown,documentText:string){
+  const exact=searchable(value)
+  if(exact&&documentText.includes(exact))return true
+  const variants=/(?:^|_)date$/.test(key)?dateVariants(value):/(?:arrival|departure)_time$/.test(key)?timeVariants(value):[]
+  return variants.some(variant=>variant&&documentText.includes(variant))
+}
+
 /**
  * Field records are evidence instruments. Their approved identifiers and
  * pipe-delimited operational rows must survive generation before decoration.
@@ -42,8 +67,7 @@ export function verifyFieldRecord(order:DocumentWorkOrder, contentHtml:string):F
   if (!rules) return { required:false, verified_fields:[], verified_rows:0 }
   const documentText = searchable(contentHtml,true)
   const missingAnchors = rules.anchors.filter(key => {
-    const approved = searchable(order.fields[key])
-    return !approved || !documentText.includes(approved)
+    return !anchorPresent(key,order.fields[key],documentText)
   })
   if (missingAnchors.length) throw new Error(`Field record verification failed: approved ${missingAnchors.join(', ')} ${missingAnchors.length === 1 ? 'was' : 'were'} changed or omitted`)
 

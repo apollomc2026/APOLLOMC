@@ -37,6 +37,13 @@ describe('deterministic field-record verification', () => {
     expect(verifyFieldRecord(order,html)).toMatchObject({required:true,verified_rows:2})
   })
 
+  it('accepts human-readable rendering of the exact approved date and time',()=>{
+    const order={deliverable_type:'fsr',fields:{work_order_number:'WO-1',site_name:'Northstar',site_address:'100 Industrial Way',customer_contact_onsite:'Avery Morgan',visit_date:'2026-09-17',arrival_time:'07:00',departure_time:'16:30',technician_name:'Morgan Reed',equipment_asset_id:'ASSET-1',equipment_make_model:'Model X',issue_reported:'Alarm',warranty_status:'not applicable',time_on_site_hours:'9.5',follow_up_required:'none',work_performed:'07:00 | Inspected equipment'}} as unknown as DocumentWorkOrder
+    const html='<p>WO-1 Northstar 100 Industrial Way Avery Morgan September 17, 2026 7:00 AM 4:30 PM Morgan Reed ASSET-1 Model X Alarm not applicable 9.5 none</p><p>07:00 Inspected equipment</p>'
+    expect(verifyFieldRecord(order,html).required).toBe(true)
+    expect(()=>verifyFieldRecord(order,html.replace('September 17, 2026','September 18, 2026'))).toThrow(/visit_date/)
+  })
+
   it('fails closed when an FSR equipment fact is altered', () => {
     const order = { deliverable_type:'fsr', fields:{ work_order_number:'SR-7C0FF0',site_name:'Encore Boston Harbor',site_address:'1 Broadway, Everett, MA 02149',customer_contact_onsite:'Sam Barrette',visit_date:'2026-09-15',arrival_time:'12:30',departure_time:'14:30',technician_name:'Jon Sargent',equipment_asset_id:'LANE-03',equipment_make_model:'SKIDATA Power.Gate',issue_reported:'Barrier fault E14',warranty_status:'Out of warranty',time_on_site_hours:'2.0',follow_up_required:'none',work_performed:'12:30 | Inspected lane controller' } } as unknown as DocumentWorkOrder
     const html='<p>SR-7C0FF0 Encore Boston Harbor 1 Broadway Everett MA 02149 Sam Barrette 2026-09-15 12:30 14:30 Jon Sargent LANE-03 FAAC B680H Barrier fault E14 Out of warranty 2.0 None</p><p>12:30 Inspected lane controller</p>'
