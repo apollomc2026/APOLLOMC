@@ -19,6 +19,12 @@ describe('quote market-pricing research custody',()=>{
     expect(fact.value).toContain('USD 110.00–165.00 per hour')
   })
 
+  it('reconciles harmless URL formatting differences without accepting another source',()=>{
+    const result=verifiedPricingResearch({geography:'Massachusetts',benchmarks:[{item:'Field labor',unit:'hour',currency:'USD',low:100,typical:125,high:150,rationale:'Published schedule',source_urls:['https://official.example/rates/']}],limitations:[]},new Set(['https://official.example/rates']))
+    expect(result?.benchmarks[0].source_urls).toEqual(['https://official.example/rates'])
+    expect(verifiedPricingResearch({geography:'Massachusetts',benchmarks:[{item:'Field labor',unit:'hour',currency:'USD',low:100,typical:125,high:150,rationale:'Published schedule',source_urls:['https://other.example/rates']}],limitations:[]},new Set(['https://official.example/rates']))).toBeNull()
+  })
+
   it('requires an explicit market-research request',()=>{
     expect(requestsMarketPricingResearch('Research fair-market pricing and keep this quote profitable.')).toBe(true)
     expect(requestsMarketPricingResearch('Create a quote from the attached estimate.')).toBe(false)

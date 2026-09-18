@@ -27,10 +27,16 @@ function finitePositive(value:unknown):number|null {
   return Number.isFinite(parsed)&&parsed>=0?parsed:null
 }
 
+function canonicalResearchUrl(value:string):string|null{
+  try{const url=new URL(value);if(url.protocol!=='https:')return null;url.hash='';url.pathname=url.pathname.replace(/\/$/,'')||'/';return url.toString()}
+  catch{return null}
+}
+
 export function verifiedPricingResearch(input:unknown,allowedUrls:Set<string>,now=new Date()):QuotePricingResearch|null {
   if(!input||typeof input!=='object')return null
   const row=input as Record<string,unknown>
   const geography=typeof row.geography==='string'?row.geography.trim():''
+  const allowedByCanonical=new Map([...allowedUrls].flatMap(url=>{const canonical=canonicalResearchUrl(url);return canonical?[[canonical,url] as const]:[]}))
   const benchmarks=Array.isArray(row.benchmarks)?row.benchmarks.flatMap(value=>{
     if(!value||typeof value!=='object')return []
     const candidate=value as Record<string,unknown>
@@ -39,7 +45,11 @@ export function verifiedPricingResearch(input:unknown,allowedUrls:Set<string>,no
     const currency=typeof candidate.currency==='string'?candidate.currency.trim().toUpperCase():''
     const rationale=typeof candidate.rationale==='string'?candidate.rationale.trim():''
     const low=finitePositive(candidate.low);const typical=finitePositive(candidate.typical);const high=finitePositive(candidate.high)
-    const source_urls=Array.isArray(candidate.source_urls)?[...new Set(candidate.source_urls.filter((url):url is string=>typeof url==='string'&&allowedUrls.has(url)))]:[]
+    const source_urls=Array.isArray(candidate.source_urls)?[...new Set(candidate.source_urls.flatMap(url=>{
+      if(typeof url!=='string')return[]
+      const allowed=allowedByCanonical.get(canonicalResearchUrl(url)??'')
+      return allowed?[allowed]:[]
+    }))]:[]
     if(!item||!unit||!currency||!rationale||low===null||typical===null||high===null||low>typical||typical>high||!source_urls.length)return []
     return [{item,unit,currency,low,typical,high,rationale,source_urls}]
   }):[]
@@ -101,17 +111,21 @@ export function applyQuotePricingApproval(specification:DeliverableSpecification
 export async function researchQuotePricing(input:{scopeSummary:string;lineItems?:string;geography?:string}):Promise<QuotePricingResearch|null> {
   if(!process.env.ANTHROPIC_API_KEY)return null
   const client=createAnthropicClient()
-  const response=await client.messages.create({
+  for(let attempt=0;attempt<2;attempt++){
+    const response=await client.messages.create({
     model:modelFor('extraction'),max_tokens:5000,
     system:'Research current public market pricing for the supplied quote scope. Search the web first. Return benchmark ranges only when supported by returned search results. Distinguish labor, equipment, material, mobilization, and specialty-service units where the public evidence permits. Never present a benchmark as an approved customer price, never invent a margin, and never change supplied quantities or amounts. Prefer current primary sources, public rate sheets, government schedules, manufacturer/distributor pricing, and reputable published cost data. State limitations when geography, exact specification, freight, taxes, prevailing wage, union conditions, access, or site conditions can materially change price.',
     tools:[
       {type:'web_search_20250305',name:'web_search',max_uses:8},
       {name:'emit_pricing_research',description:'Return only pricing benchmarks supported by URLs from this search.',input_schema:{type:'object',properties:{geography:{type:'string'},benchmarks:{type:'array',maxItems:20,items:{type:'object',properties:{item:{type:'string'},unit:{type:'string'},currency:{type:'string'},low:{type:'number'},typical:{type:'number'},high:{type:'number'},rationale:{type:'string'},source_urls:{type:'array',items:{type:'string'}}},required:['item','unit','currency','low','typical','high','rationale','source_urls']}},limitations:{type:'array',items:{type:'string'}}},required:['geography','benchmarks','limitations']}},
     ],
-    messages:[{role:'user',content:`QUOTE SCOPE:\n${input.scopeSummary}\n\nSUPPLIED LINE ITEMS (preserve; research only):\n${input.lineItems||'No line items supplied'}\n\nGEOGRAPHY:\n${input.geography||'Determine only from the supplied scope; otherwise state not geographically constrained.'}`}],
-  })
-  const allowedUrls=new Set<string>()
-  for(const block of response.content)if(block.type==='web_search_tool_result'&&Array.isArray(block.content))for(const result of block.content)if(result.type==='web_search_result')allowedUrls.add(result.url)
-  const emitted=response.content.find(block=>block.type==='tool_use'&&block.name==='emit_pricing_research')
-  return emitted?.type==='tool_use'?verifiedPricingResearch(emitted.input,allowedUrls):null
+    messages:[{role:'user',content:`QUOTE SCOPE:\n${input.scopeSummary}\n\nSUPPLIED LINE ITEMS (preserve; research only):\n${input.lineItems||'No line items supplied'}\n\nGEOGRAPHY:\n${input.geography||'Determine only from the supplied scope; otherwise state not geographically constrained.'}\n\n${attempt?'PRIOR ATTEMPT DID NOT PRODUCE A VALID CITED BENCHMARK. Search again, then call emit_pricing_research. Every benchmark must cite an exact HTTPS URL returned by web_search.':'Search first, then call emit_pricing_research with at least one supportable benchmark.'}`}],
+    })
+    const allowedUrls=new Set<string>()
+    for(const block of response.content)if(block.type==='web_search_tool_result'&&Array.isArray(block.content))for(const result of block.content)if(result.type==='web_search_result')allowedUrls.add(result.url)
+    const emitted=response.content.find(block=>block.type==='tool_use'&&block.name==='emit_pricing_research')
+    const verified=emitted?.type==='tool_use'?verifiedPricingResearch(emitted.input,allowedUrls):null
+    if(verified)return verified
+  }
+  return null
 }
