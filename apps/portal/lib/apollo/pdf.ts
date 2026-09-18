@@ -523,6 +523,7 @@ hr.hairline {
   border-top: 0.5pt solid var(--hairline);
   margin: 18pt 0;
 }
+.commercial-pricing-line { white-space: normal; overflow-wrap: anywhere; word-break: break-word; margin: 0 0 5pt; }
 </style>
 `
 }
@@ -1228,6 +1229,7 @@ function renderQuoteControlPanel(args:BuildPdfArgs):string{
   const value=(key:string,fallback='Not recorded')=>escapeHtml(readString(args.inputs,key)||fallback)
   const lineRows=readString(args.inputs,'line_items').split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map(line=>`<tr>${line.split('|').map(cell=>`<td>${escapeHtml(cell.trim())}</td>`).join('')}</tr>`).join('')
   const pricingBasis=readString(args.inputs,'market_pricing_basis')
+  const pricingLines=pricingBasis.split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map(line=>`<p class="commercial-pricing-line">${escapeHtml(line)}</p>`).join('')
   return `<section class="commercial-control-panel">
     <h2>Approved commercial schedule</h2>
     <table aria-label="Approved quote identity"><tbody>
@@ -1237,7 +1239,7 @@ function renderQuoteControlPanel(args:BuildPdfArgs):string{
       <tr><th>Payment terms</th><td colspan="3">${value('payment_terms')}</td></tr>
     </tbody></table>
     ${lineRows?`<table aria-label="Approved quote line items"><tbody>${lineRows}</tbody></table>`:''}
-    ${pricingBasis?`<h3>Market pricing basis</h3><pre>${escapeHtml(pricingBasis)}</pre>`:''}
+    ${pricingLines?`<h3>Market pricing basis</h3><div class="commercial-pricing-basis">${pricingLines}</div>`:''}
   </section>`
 }
 
