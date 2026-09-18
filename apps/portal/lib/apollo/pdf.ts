@@ -709,6 +709,10 @@ function renderFsrControlPanel(args: BuildPdfArgs): string {
   const recordValue = customerWorkOrder || readString(args.inputs,'apollo_service_record_id') || args.documentId
   const followUp = readString(args.inputs,'follow_up_required')
   const status = followUp === 'none' ? 'Service complete' : followUp === 'parts-order' ? 'Parts pending' : followUp === 'escalation' ? 'Escalation required' : followUp === 'return-visit' ? 'Return visit required' : 'Disposition documented below'
+  const workRows=readString(args.inputs,'work_performed').split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map(line=>{
+    const [time,...details]=line.split('|').map(part=>part.trim())
+    return `<tr><td>${escapeHtml(time)}</td><td>${escapeHtml(details.join(' | ')||time)}</td></tr>`
+  }).join('')
   return `<section class="fsr-control-panel">
     <div class="fsr-disposition"><span>Service disposition</span><strong>${escapeHtml(status)}</strong></div>
     <table aria-label="Service control record"><tbody>
@@ -716,7 +720,10 @@ function renderFsrControlPanel(args: BuildPdfArgs): string {
       <tr><th>Customer / site</th><td>${value('site_name')}</td><th>On site</th><td>${value('arrival_time')} - ${value('departure_time')}</td></tr>
       <tr><th>Site address</th><td>${value('site_address')}</td><th>Time on site</th><td>${value('time_on_site_hours')} hours</td></tr>
       <tr><th>Technician</th><td>${value('technician_name')}</td><th>Customer contact</th><td>${value('customer_contact_onsite')}</td></tr>
+      <tr><th>Equipment / asset</th><td>${value('equipment_make_model')} · ${value('equipment_asset_id')}</td><th>Warranty</th><td>${value('warranty_status')}</td></tr>
+      <tr><th>Issue reported</th><td>${value('issue_reported')}</td><th>Follow-up</th><td>${value('follow_up_required')}</td></tr>
     </tbody></table>
+    ${workRows?`<table class="fsr-work-log" aria-label="Approved chronological work performed"><thead><tr><th>Time</th><th>Work performed</th></tr></thead><tbody>${workRows}</tbody></table>`:''}
   </section>`
 }
 

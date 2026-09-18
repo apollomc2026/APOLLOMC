@@ -43,7 +43,7 @@ describe('complete catalog rendering matrix', () => {
     const html = buildFullHtml({
       template,
       brand:clientBrand,
-      inputs:{ entity_name:'Northstar Fabrication', project_name:'Northstar Pilot', prepared_by:'Operations Team' },
+      inputs:{ entity_name:'Northstar Fabrication', project_name:'Northstar Pilot', prepared_by:'Operations Team',work_performed:'07:00 | Verified permit and lockout\n16:15 | Secured equipment',equipment_make_model:'Square D Power-Zone 4',equipment_asset_id:'EER-001',issue_reported:'Intermittent alarm',warranty_status:'not applicable',follow_up_required:'none' },
       contentHtml,
       documentId:`NOR-${deliverable.slug.toUpperCase()}`,
       preparedDate:'September 14, 2026',
@@ -70,6 +70,9 @@ describe('complete catalog rendering matrix', () => {
       expect(html).toContain('class="cf-body fsr-technical"')
       expect(html).toContain('class="fsr-control-panel"')
       expect(html).toContain('Service disposition')
+      expect(html).toContain('Approved chronological work performed')
+      expect(html).toContain('16:15</td><td>Secured equipment')
+      expect(html).toContain('Square D Power-Zone 4')
       expect(html).toContain('counter-reset:fsr-section')
     }
     if (['project-completion-notice','tool-box-talk'].includes(deliverable.slug)) {
