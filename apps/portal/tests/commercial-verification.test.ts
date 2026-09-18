@@ -40,6 +40,13 @@ describe('deterministic commercial verification',()=>{
     expect(verifyCommercialDocument(order,html)).toEqual({required:true,verified_rows:1,verified_figures:0})
   })
 
+  it('accepts an exact citation split only by PDF line wrapping',()=>{
+    const order={deliverable_type:'quote',fields:{line_items:'Field labor | 16 | hour | $135.00 | $2,160.00',market_pricing_basis:'Research date: 2026-09-17\nGeography: New Hampshire\nField labor | USD 110.00–165.00 per hour | typical USD 135.00 | https://official.example/rates'}} as unknown as DocumentWorkOrder
+    const text='Field labor 16 hour $135.00 $2,160.00 Research date 2026-09-17 Geography New Hampshire USD 110.00–165.00 typical USD 135.00 https://official.example/\n rates'
+    expect(verifyCommercialDocument(order,text).required).toBe(true)
+    expect(()=>verifyCommercialDocument(order,text.replace('official.example','other.example'))).toThrow(/market pricing source/)
+  })
+
   it('fails closed when a market-informed quote omits its public citation',()=>{
     const order={deliverable_type:'quote',fields:{
       line_items:'Field labor | 16 | hour | $135.00 | $2,160.00',

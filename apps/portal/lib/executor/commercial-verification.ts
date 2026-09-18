@@ -66,7 +66,8 @@ function verifyQuotePricingBasis(order:DocumentWorkOrder,contentHtml:string,docu
   const urls=[...new Set((raw.match(/https:\/\/[^\s,|)]+/gi)??[]).map(url=>url.replace(/[.;]+$/,'')))]
   if(!urls.length)throw new Error('Commercial verification failed: market pricing basis had no cited source URL')
   const decodedHtml=contentHtml.replace(/&amp;/gi,'&')
-  for(const url of urls)if(!decodedHtml.includes(url))throw new Error(`Commercial verification failed: market pricing source ${url} was omitted`)
+  const compactOutput=decodedHtml.replace(/[\s\u200b\ufeff]+/g,'')
+  for(const url of urls)if(!decodedHtml.includes(url)&&!compactOutput.includes(url.replace(/[\s\u200b\ufeff]+/g,'')))throw new Error(`Commercial verification failed: market pricing source ${url} was omitted`)
   const benchmarkFigures=[...raw.matchAll(/\b[A-Z]{3}\s+([0-9][0-9,]*(?:\.\d+)?)/g)].map(match=>Number(match[1].replace(/,/g,''))).filter(Number.isFinite)
   const output=outputNumbers(contentHtml)
   for(const value of benchmarkFigures)if(!containsFigure(output,value))throw new Error(`Commercial verification failed: market benchmark figure ${value} was changed or omitted`)
