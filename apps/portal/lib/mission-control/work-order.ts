@@ -22,6 +22,19 @@ const SAFE_INFERRED_EXECUTION_KEYS = new Set([
   'problem_statement','our_understanding','review_perspective','review_goal',
 ])
 
+const PILOT_PLAYBOOKS:Record<string,string>={
+  fsr:'field-service-report',
+  'final-qc-report':'quality-control-closeout',
+  quote:'commercial-quote',
+  proposal:'field-service-proposal',
+  'cash-flow-budget-package':'financial-package',
+  'contract-intelligence-review':'contract-intelligence',
+}
+
+export function authoritativePlaybookId(spec:DeliverableSpecification):string {
+  return PILOT_PLAYBOOKS[spec.artifact.recommended_type]??spec.specialist.playbook_id
+}
+
 export function inferredFactMayControlExecution(key:string){return SAFE_INFERRED_EXECUTION_KEYS.has(key)}
 
 export function uuidFromDigest(digest: string, offset = 0) {
@@ -93,9 +106,10 @@ export function materializeSpecificationDefaults(spec:DeliverableSpecification,n
     add('review_goal','Review goal','Perform a complete operational review of the supplied agreement and related materials, identify rights, duties, deadlines, exclusions, value opportunities, risks, and actions with exact source anchors.',.9)
     add('as_of_date','Review as-of date',today)
   }
-  if(!defaults.length)return spec
-  const facts=mergeMissionFacts(spec.content.facts,defaults,now)
-  return {...spec,content:{...spec.content,facts},provenance:specificationProvenance(facts,spec.provenance.created_at,spec.provenance.model_versions)}
+  const facts=defaults.length?mergeMissionFacts(spec.content.facts,defaults,now):spec.content.facts
+  const playbookId=authoritativePlaybookId(spec)
+  if(!defaults.length&&playbookId===spec.specialist.playbook_id)return spec
+  return {...spec,specialist:{...spec.specialist,playbook_id:playbookId},content:{...spec.content,facts},provenance:specificationProvenance(facts,spec.provenance.created_at,spec.provenance.model_versions)}
 }
 
 export function executionGaps(spec: DeliverableSpecification, now = new Date()) {
@@ -145,8 +159,9 @@ export function compileApprovedSpecification(input: {
   const now = input.now ?? new Date()
   const sourceIdentity = (input.sources ?? []).map(source => `${source.source_id}:${source.content_sha256}`).sort().join('|')
   const digest = createHash('sha256').update(`${input.specificationId}:${input.specificationHash}:${sourceIdentity}`).digest('hex')
+  const playbookId=authoritativePlaybookId(spec)
   return { ok: true, order: {
-    protocol_version: '1.0', work_order_id: uuidFromDigest(digest), idempotency_key: `spec-${digest}`, project_id: input.specificationId, conversation_id: input.conversationId, task_id: uuidFromDigest(digest, 32), requested_by: input.requestedBy, capability: 'professional-document-generation', deliverable_type: spec.artifact.recommended_type, objective: spec.mission.objective, audience: spec.audience.primary.join(', '), formats: ['pdf'], fields, sources: input.sources ?? [], brand_id: spec.presentation.brand_profile_id ?? 'apollo', style_id: style.id, sensitivity: spec.mission.stakes === 'high' ? 'confidential' : 'internal', priority: spec.mission.deadline ? 'high' : 'medium', deadline: spec.mission.deadline ?? undefined, drive_destination: { folder_id: input.driveFolderId, lifecycle: 'draft' }, quality_gates: { schema_validation: true, source_grounding: true, independent_review: spec.mission.stakes === 'high', deterministic_financial_verification: spec.specialist.playbook_id === 'financial-package', human_approval_before_publish: true }, trace: { specification_id: input.specificationId, specification_hash: input.specificationHash, specification_schema_version: spec.schema_version, playbook_id: spec.specialist.playbook_id, playbook_version: spec.specialist.playbook_version, model_versions: spec.provenance?.model_versions ?? [], required_checks: spec.specialist.required_checks, accepted_unresolved_items: spec.approval.unresolved_items_accepted ?? [] }, created_at: now.toISOString(),
+    protocol_version: '1.0', work_order_id: uuidFromDigest(digest), idempotency_key: `spec-${digest}`, project_id: input.specificationId, conversation_id: input.conversationId, task_id: uuidFromDigest(digest, 32), requested_by: input.requestedBy, capability: 'professional-document-generation', deliverable_type: spec.artifact.recommended_type, objective: spec.mission.objective, audience: spec.audience.primary.join(', '), formats: ['pdf'], fields, sources: input.sources ?? [], brand_id: spec.presentation.brand_profile_id ?? 'apollo', style_id: style.id, sensitivity: spec.mission.stakes === 'high' ? 'confidential' : 'internal', priority: spec.mission.deadline ? 'high' : 'medium', deadline: spec.mission.deadline ?? undefined, drive_destination: { folder_id: input.driveFolderId, lifecycle: 'draft' }, quality_gates: { schema_validation: true, source_grounding: true, independent_review: spec.mission.stakes === 'high', deterministic_financial_verification: playbookId === 'financial-package', human_approval_before_publish: true }, trace: { specification_id: input.specificationId, specification_hash: input.specificationHash, specification_schema_version: spec.schema_version, playbook_id: playbookId, playbook_version: spec.specialist.playbook_version, model_versions: spec.provenance?.model_versions ?? [], required_checks: spec.specialist.required_checks, accepted_unresolved_items: spec.approval.unresolved_items_accepted ?? [] }, created_at: now.toISOString(),
   } }
 }
 

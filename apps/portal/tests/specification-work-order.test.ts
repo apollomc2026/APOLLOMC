@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compileApprovedSpecification, continueApprovedMissionLineage, executionGaps, materializeSpecificationDefaults } from '../lib/mission-control/work-order'
+import { authoritativePlaybookId, compileApprovedSpecification, continueApprovedMissionLineage, executionGaps, materializeSpecificationDefaults } from '../lib/mission-control/work-order'
 import { interpretMission } from '../lib/mission-control/interpreter'
 import { getModule } from '../lib/apollo/packages-loader'
 import { buildRevisionOrder } from '../lib/mission-control/revision'
@@ -11,6 +11,17 @@ import type { DocumentWorkOrder } from '../lib/executor/contracts'
 const ids = { specificationId: '11111111-1111-4111-8111-111111111111', specificationHash: 'a'.repeat(64), conversationId: '22222222-2222-4222-8222-222222222222', requestedBy: '33333333-3333-4333-8333-333333333333', driveFolderId: 'drive-folder', now: new Date('2026-09-06T12:00:00Z') }
 
 describe('approved specification compiler', () => {
+  it('binds every pilot class to its deliverable-specific authoritative playbook',()=>{
+    const expected={fsr:'field-service-report','final-qc-report':'quality-control-closeout',quote:'commercial-quote',proposal:'field-service-proposal','cash-flow-budget-package':'financial-package','contract-intelligence-review':'contract-intelligence'}
+    for(const [slug,playbook] of Object.entries(expected)){
+      const specification=interpretMission(`Create a ${slug}.`).specification
+      specification.artifact.recommended_type=slug
+      specification.specialist.playbook_id='stale-playbook'
+      expect(authoritativePlaybookId(specification)).toBe(playbook)
+      expect(materializeSpecificationDefaults(specification,ids.now).specialist.playbook_id).toBe(playbook)
+    }
+  })
+
   it('uses quote evidence to resolve identity, validity, narrative variants, and superseded pricing', () => {
     const specification = interpretMission('Create a customer quote for site repairs.').specification
     const now = new Date('2026-09-16T12:00:00Z')
