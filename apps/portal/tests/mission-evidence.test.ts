@@ -30,12 +30,18 @@ describe('mission evidence custody', () => {
 
   it('combines multiple acceptance rows from one evidence source instead of manufacturing a conflict',()=>{
     const rows=['Circuit identification | Labels match schedule | Pass','Fastener torque | 35 in-lb | Pass'].map(value=>createMissionFact({key:'acceptance_criteria',label:'Acceptance criteria',value,source:'evidence',source_reference:'qc-report',confidence:1}))
-    expect(mergeMissionFacts([],rows)).toEqual([expect.objectContaining({key:'acceptance_criteria',value:rows.map(row=>row.value).join('\n\n'),verification_state:'verified',source_references:['qc-report'],conflicts:undefined})])
+    expect(mergeMissionFacts([],rows)).toEqual([expect.objectContaining({key:'acceptance_criteria',value:rows.map(row=>row.value).join('\n'),verification_state:'verified',source_references:['qc-report'],conflicts:undefined})])
   })
 
   it('combines evidence-backed financial assumptions as a row collection',()=>{
     const rows=['Opening cash is $250,000','Payroll occurs biweekly'].map(value=>createMissionFact({key:'key_assumptions',label:'Key assumptions',value,source:'evidence',source_reference:'workbook',confidence:1}))
-    expect(mergeMissionFacts([],rows)).toEqual([expect.objectContaining({key:'key_assumptions',value:rows.map(row=>row.value).join('\n\n'),verification_state:'verified'})])
+    expect(mergeMissionFacts([],rows)).toEqual([expect.objectContaining({key:'key_assumptions',value:rows.map(row=>row.value).join('\n'),verification_state:'verified'})])
+  })
+
+  it('deduplicates overlapping rows emitted by separate evidence passes',()=>{
+    const first=createMissionFact({key:'base_case_lines',label:'Base case',value:'Oct 2026 | 250000 | 185000 | 172000 | 13000 | 263000',source:'evidence',source_reference:'workbook',confidence:1})
+    const full=createMissionFact({key:'base_case_lines',label:'Base case',value:'Oct 2026 | 250000 | 185000 | 172000 | 13000 | 263000\nNov 2026 | 263000 | 192000 | 181000 | 11000 | 274000',source:'evidence',source_reference:'workbook',confidence:1})
+    expect(mergeMissionFacts([],[first,full])[0].value).toBe(full.value)
   })
 
   it('promotes a more complete scalar extracted from the same source while preserving real conflicts',()=>{

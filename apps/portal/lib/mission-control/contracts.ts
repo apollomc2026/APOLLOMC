@@ -49,6 +49,16 @@ const COMPOSITIONAL_EVIDENCE_KEYS = new Set([
   'acceptance_criteria', 'line_items', 'key_assumptions', 'base_case_lines', 'scenario_summary',
 ])
 
+function mergeCompositionalEvidenceValues(values:string[]):string{
+  const seen=new Set<string>();const lines:string[]=[]
+  for(const value of values)for(const line of value.split(/\r?\n+/).map(item=>item.trim()).filter(Boolean)){
+    const normalized=line.normalize('NFKC').replace(/\s+/g,' ').toLowerCase()
+    if(seen.has(normalized))continue
+    seen.add(normalized);lines.push(line)
+  }
+  return lines.join('\n')
+}
+
 function factSourceReferences(fact: MissionFact) {
   return [...new Set([...(fact.source_references ?? []), fact.source_reference].filter((value): value is string => Boolean(value)))]
 }
@@ -144,11 +154,11 @@ export function mergeMissionFacts(priorFacts: MissionFact[], incomingFacts: Miss
       }
     }
     if (prior.source === 'evidence' && incoming.source === 'evidence' && COMPOSITIONAL_EVIDENCE_KEYS.has(incoming.key)) {
-      const values=[prior.value,incoming.value].filter((value,index,items)=>items.findIndex(candidate=>candidate.normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase()===value.normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase())===index)
+      const value=mergeCompositionalEvidenceValues([prior.value,incoming.value])
       merged.set(incoming.key, {
         ...prior,
-        value:values.join('\n\n'),
-        normalized_value:values.join('\n\n'),
+        value,
+        normalized_value:value,
         verification_state:'verified',
         confidence:Math.min(prior.confidence,incoming.confidence),
         source_references:[...new Set([...factSourceReferences(prior),...factSourceReferences(incoming)])],
