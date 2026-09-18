@@ -7,9 +7,10 @@ import { verifyFinancialDocument } from './financial-verification'
 
 export function verifyDocumentContent(order:DocumentWorkOrder,content:string,options:{phase?:'generated'|'rendered'}={}){
   const rendererOwnsFinancialControls=order.deliverable_type==='cash-flow-budget-package'
+  const rendererOwnsAgreementControls=order.deliverable_type==='contract-intelligence-review'
   return {
     financial:options.phase==='generated'&&rendererOwnsFinancialControls?{required:false,checks:[],verified_values:0}:verifyFinancialDocument(order,content),
-    agreement:verifyAgreementDocument(order,content),
+    agreement:options.phase==='generated'&&rendererOwnsAgreementControls?{required:false,verified_fields:[]}:verifyAgreementDocument(order,content),
     federal:verifyFederalDocument(order,content),
     // The controlled renderer injects field-record identity and service-fact
     // tables from the approved specification. Verify them against the exact

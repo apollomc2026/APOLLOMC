@@ -78,6 +78,19 @@ describe('packet cover invariant', () => {
     expect(html).toContain('Receipts follow the approved aging schedule')
   })
 
+  it('renders approved contract facts and controlled source custody deterministically', () => {
+    const html=buildFullHtml({
+      template:template('contract-intelligence-review','Contract Intelligence Review'),brand,
+      inputs:{contract_title:'Northstar Vehicle Service Contract',contracting_parties:'Northstar | Customer\nSecure Warranty | Administrator',effective_date:'2026-09-17',expiration_date:'2031-09-17',current_status:'Active',review_perspective:'Customer',review_goal:'Preserve every claim right',as_of_date:'2026-09-17',material_obligations:'Prior authorization | Section 4',commercial_rights_and_limits:'Towing | $150 | Section 8'},
+      sourceNames:['Northstar_Vehicle_Service_Contract.pdf'],contentHtml:'<h2>Review</h2><p>Model narrative.</p>',documentId:'CIR-1007',preparedDate:'September 17, 2026',
+    })
+    expect(html).toContain('Approved contract controls')
+    expect(html).toContain('Northstar Vehicle Service Contract')
+    expect(html).toContain('Prior authorization | Section 4')
+    expect(html).toContain('Northstar_Vehicle_Service_Contract.pdf')
+    expect(html).toContain('contract intelligence, not legal advice')
+  })
+
   it('does not add a cover to a standalone financial statement', () => {
     const html = render(template('cash-flow-statement', 'Cash Flow Statement', 'financial-statement'))
     expect(html).not.toContain('class="packet-cover"')

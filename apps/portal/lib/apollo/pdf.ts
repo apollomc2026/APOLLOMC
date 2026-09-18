@@ -83,6 +83,7 @@ export interface BuildPdfArgs {
   documentId: string
   preparedDate: string
   preparedFor?: string
+  sourceNames?: string[]
   // Visual controls — each optional with sensible defaults so existing
   // callers don't break while the new system rolls out.
   palette?: BrandPalette
@@ -1286,6 +1287,25 @@ function renderProposalControlPanel(args:BuildPdfArgs):string{
   </section>`
 }
 
+function renderContractIntelligenceControls(args:BuildPdfArgs):string{
+  if(args.template.slug!=='contract-intelligence-review')return''
+  const rows=['contract_title','contracting_parties','effective_date','expiration_date','current_status','governing_law','review_perspective','review_goal','as_of_date','jurisdiction','related_documents']
+    .flatMap(key=>{
+      const value=readString(args.inputs,key)
+      return value ? [`<tr><th>${escapeHtml(key.replace(/_/g,' '))}</th><td>${escapeHtml(value)}</td></tr>`] : []
+    }).join('')
+  const list=(title:string,key:string)=>{const items=readString(args.inputs,key).split(/\r?\n|\s*;\s*/).map(item=>item.trim()).filter(Boolean);return items.length?`<h3>${escapeHtml(title)}</h3><ul>${items.map(item=>`<li>${escapeHtml(item)}</li>`).join('')}</ul>`:''}
+  const sources=(args.sourceNames??[]).filter(Boolean)
+  return `<section class="contract-intelligence-controls">
+    <h2>Approved contract controls</h2>
+    ${rows?`<table aria-label="Approved contract controls"><tbody>${rows}</tbody></table>`:''}
+    ${list('Approved material obligations','material_obligations')}
+    ${list('Approved commercial rights and limits','commercial_rights_and_limits')}
+    ${sources.length?`<h3>Controlled source set</h3><ul>${sources.map(name=>`<li>${escapeHtml(name)}</li>`).join('')}</ul>`:''}
+    <p><strong>Professional boundary:</strong> This is contract intelligence, not legal advice. Legal conclusions require qualified counsel.</p>
+  </section>`
+}
+
 function buildContractHtml(args: BuildPdfArgs): string {
   const palette = resolvePaletteForBuild(args)
   const preset = resolvePreset(args.fontPreset?.key)
@@ -1303,6 +1323,7 @@ function buildContractHtml(args: BuildPdfArgs): string {
     : ''
   const quoteControlPanel=renderQuoteControlPanel(args)
   const proposalControlPanel=renderProposalControlPanel(args)
+  const contractIntelligenceControls=renderContractIntelligenceControls(args)
   const signaturesHtml = renderSignatureBlock(args)
   const isEditorialReport = new Set(['business-plan','market-analysis','investor-memo','investor-update','audit-readiness','legal-memo','compliance-report','board-report','discovery-summary']).has(args.template.slug)
   const wordmark = brandWordmark(args.brand.slug) || args.brand.label
@@ -1745,6 +1766,7 @@ ${tocHtml}
 <main class="body-content${isEditorialReport ? ' editorial-report' : ''}">
 ${quoteControlPanel}
 ${proposalControlPanel}
+${contractIntelligenceControls}
 ${preambleHtml}
 ${numberedBody}
 </main>

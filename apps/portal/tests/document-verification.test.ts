@@ -25,4 +25,9 @@ describe('shared HTML and rendered-PDF factual gate',()=>{
     expect(verifyDocumentContent(order,'<p>Draft narrative</p>',{phase:'generated'}).financial.required).toBe(false)
     expect(()=>verifyDocumentContent(order,'<p>Draft narrative</p>',{phase:'rendered'})).toThrow(/base_case_lines row 1/)
   })
+  it('defers renderer-owned contract controls until the delivered artifact',()=>{
+    const order={deliverable_type:'contract-intelligence-review',quality_gates:{schema_validation:true,source_grounding:true,independent_review:true,deterministic_financial_verification:false,human_approval_before_publish:true},fields:{contract_title:'Northstar Vehicle Service Contract',current_status:'Active'},sources:[{name:'Northstar_Contract.pdf'}]} as unknown as DocumentWorkOrder
+    expect(verifyDocumentContent(order,'<p>Draft narrative</p>',{phase:'generated'}).agreement.required).toBe(false)
+    expect(()=>verifyDocumentContent(order,'<p>Draft narrative</p>',{phase:'rendered'})).toThrow(/contract_title/)
+  })
 })

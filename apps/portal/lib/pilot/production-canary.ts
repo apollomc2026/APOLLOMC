@@ -78,7 +78,7 @@ export async function runProductionPilotCanary(slug:PilotCanarySlug){
   const generated=await orchestrate({slug,deliverableLabel:summary.label,industryLabel:summary.industry_label,module,schema:schema as Record<string,unknown>,style,brand,fields,uploads})
   verifyDocumentContent(compiled.order,generated.contentHtml,{phase:'generated'})
   const template:Template={slug,label:summary.label,description:summary.description,category:summary.industry_slug,supports_images:true,has_signature_block:slug==='proposal',has_toc:shouldRenderToc(slug),layout:chooseLayoutForSlug(slug),fields:[],sections:module.sections.map(section=>({id:section.key,title:section.label})),generation_notes:''}
-  const pdf=await buildPdf({template,brand,inputs:fields,contentHtml:generated.contentHtml,documentId:`CANARY-${slug.toUpperCase()}`,preparedDate:'September 17, 2026',palette})
+  const pdf=await buildPdf({template,brand,inputs:fields,contentHtml:generated.contentHtml,documentId:`CANARY-${slug.toUpperCase()}`,preparedDate:'September 17, 2026',palette,sourceNames:[`${slug}-canary.txt`]})
   const integrity=await verifyRenderedPdf(pdf)
   let verification:ReturnType<typeof verifyDocumentContent>
   try{verification=verifyDocumentContent(compiled.order,integrity.text,{phase:'rendered'})}

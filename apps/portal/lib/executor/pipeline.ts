@@ -195,6 +195,7 @@ export async function renderAndStorePdf(order: DocumentWorkOrder, contentHtml: s
     contentHtml,
     documentId: identity.documentId,
     preparedDate: now.toISOString(),
+    sourceNames: order.sources.map(source=>source.name),
     palette: applyPaletteOverride(palette, undefined),
     fontPreset: resolvePreset(undefined),
     logoPlacement: resolvePlacement(undefined),
