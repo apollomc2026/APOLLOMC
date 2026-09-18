@@ -72,7 +72,7 @@ async function verifyStep(order: DocumentWorkOrder, contentHtml: string, quality
   'use step'
   console.log(`[apollo-document] validating START job=${order.work_order_id}`)
   await assertNotCancelled(order.work_order_id)
-  const {financial,agreement,federal,fieldRecord,commercial}=verifyDocumentContent(order,contentHtml)
+  const {financial,agreement,federal,fieldRecord,commercial}=verifyDocumentContent(order,contentHtml,{phase:'generated'})
   const message = financial.required
     ? `Schema, workmanship, and deterministic financial verification passed (${financial.verified_values} values/checks)`
     : agreement.required

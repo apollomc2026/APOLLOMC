@@ -9,4 +9,10 @@ describe('shared HTML and rendered-PDF factual gate',()=>{
     expect(verifyDocumentContent(order,text).fieldRecord).toMatchObject({required:true,verified_rows:1})
     expect(()=>verifyDocumentContent(order,text.replace('1 Broadway Everett MA 02149','200 Broadway Chelsea MA 02150'))).toThrow(/site_address/)
   })
+
+  it('defers renderer-owned field-record anchors until the delivered artifact',()=>{
+    const order={deliverable_type:'fsr',quality_gates:{schema_validation:true,source_grounding:true,independent_review:false,deterministic_financial_verification:false,human_approval_before_publish:true},fields:{work_order_number:'WO-1',site_name:'Northstar',site_address:'100 Industrial Way',customer_contact_onsite:'Avery Morgan',visit_date:'2026-09-17',arrival_time:'07:00',departure_time:'16:30',technician_name:'Morgan Reed',equipment_asset_id:'ASSET-1',equipment_make_model:'Model X',issue_reported:'Alarm',warranty_status:'not applicable',time_on_site_hours:'9.5',follow_up_required:'none',work_performed:'07:00 | Inspected equipment'}} as unknown as DocumentWorkOrder
+    expect(verifyDocumentContent(order,'<p>07:00 Inspected equipment</p>',{phase:'generated'}).fieldRecord.required).toBe(false)
+    expect(()=>verifyDocumentContent(order,'<p>07:00 Inspected equipment</p>',{phase:'rendered'})).toThrow(/work_order_number/)
+  })
 })

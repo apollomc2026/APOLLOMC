@@ -71,9 +71,10 @@ export async function runProductionPilotCanary(slug:PilotCanarySlug){
   const uploads=[{id:sourceId,upload_kind:'reference_doc',original_filename:`${slug}-canary.txt`,content_type:'text/plain',size_bytes:bytes.length,caption:'Synthetic pilot evidence',extracted_text:text,bytes:null}]
   const fields=executionFields(specification,new Date('2026-09-17T12:06:00Z'))
   const generated=await orchestrate({slug,deliverableLabel:summary.label,industryLabel:summary.industry_label,module,schema:schema as Record<string,unknown>,style,brand,fields,uploads})
-  const verification=verifyDocumentContent(compiled.order,generated.contentHtml)
+  verifyDocumentContent(compiled.order,generated.contentHtml,{phase:'generated'})
   const template:Template={slug,label:summary.label,description:summary.description,category:summary.industry_slug,supports_images:true,has_signature_block:slug==='proposal',has_toc:shouldRenderToc(slug),layout:chooseLayoutForSlug(slug),fields:[],sections:module.sections.map(section=>({id:section.key,title:section.label})),generation_notes:''}
   const pdf=await buildPdf({template,brand,inputs:fields,contentHtml:generated.contentHtml,documentId:`CANARY-${slug.toUpperCase()}`,preparedDate:'September 17, 2026',palette})
   const integrity=await verifyRenderedPdf(pdf)
+  const verification=verifyDocumentContent(compiled.order,integrity.text,{phase:'rendered'})
   return {slug,passed:true,source_sha256:createHash('sha256').update(bytes).digest('hex'),specification_hash:specificationHash,extracted_facts:extracted.facts.length,trace:extracted.trace,open_questions:specification.content.open_questions.length,quality:generated.quality,verification,pdf:{sha256:createHash('sha256').update(pdf).digest('hex'),...integrity.integrity}}
 }
