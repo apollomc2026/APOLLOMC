@@ -1,6 +1,7 @@
 {
   "functions": {
-    "app/api/apollo/submit/route.ts": { "maxDuration": 60 }
+    "app/api/apollo/submit/route.ts": { "maxDuration": 60 },
+    "app/api/internal/pilot-canary/route.ts": { "maxDuration": 300 }
   },
   "crons": [
     { "path": "/api/apollo/keepalive", "schedule": "0 9 * * *" },
