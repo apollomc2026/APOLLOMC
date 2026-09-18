@@ -1,11 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Rocket } from 'lucide-react'
 import { AuthShell } from '@/components/auth/AuthShell'
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { isSupabaseConfigured } from '@/lib/supabase/client'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -16,8 +15,6 @@ export default function LoginPage() {
   const [resendSeconds,setResendSeconds]=useState(0)
   const [notice,setNotice]=useState('')
   const configured = isSupabaseConfigured()
-  const router = useRouter()
-
   useEffect(()=>{
     if(resendSeconds<=0)return
     const timer=window.setInterval(()=>setResendSeconds(value=>Math.max(0,value-1)),1000)
@@ -55,10 +52,17 @@ export default function LoginPage() {
     event.preventDefault()
     if(!/^\d{6,8}$/.test(code)){setError('Enter the access code from your email.');return}
     setLoading(true);setError('')
-    const { error:authError }=await createClient().auth.verifyOtp({email,token:code,type:'email'})
-    if(authError)setError(authError.message)
-    else{router.replace('/dashboard');router.refresh()}
-    setLoading(false)
+    try {
+      const request=await fetch('/api/auth/verify-code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,token:code}),cache:'no-store'})
+      const result=await request.json().catch(()=>({})) as {error?:string;redirectTo?:string}
+      if(!request.ok)throw new Error(result.error||'APOLLO could not establish your session. Request a new code and try again.')
+      // A full navigation guarantees middleware receives the Set-Cookie response
+      // before evaluating the protected destination.
+      window.location.assign(result.redirectTo||'/dashboard')
+    } catch(cause) {
+      setError(cause instanceof Error?cause.message:'APOLLO could not establish your session. Request a new code and try again.')
+      setLoading(false)
+    }
   }
 
   if (sent) return (
