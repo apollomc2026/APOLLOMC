@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as XLSX from 'xlsx'
 import sharp from 'sharp'
-import { applyEvidenceSupersessionDecisions, batchEvidenceSources, chunkEvidenceSources, deduplicateEvidenceFacts, deriveEvidenceFacts, evidenceExtractionMode, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceToolProperties, evidenceZipTooLarge, extractEvidence, extractionTracesCoverSources, extractLabeledEvidenceFacts, filterSemanticallyUnsupportedEvidenceFacts, normalizeEvidenceMime, prepareEvidenceRetrieval, reconcileEvidenceSupersessions, sanitizeEvidenceBytes, supersessionDecisionsFromToolInput } from '../lib/mission-control/evidence'
+import { applyEvidenceSupersessionDecisions, batchEvidenceSources, chunkEvidenceSources, deduplicateEvidenceFacts, deriveEvidenceFacts, evidenceExtractionMode, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceSourceInventory, evidenceToolProperties, evidenceZipTooLarge, extractEvidence, extractionTracesCoverSources, extractLabeledEvidenceFacts, filterSemanticallyUnsupportedEvidenceFacts, normalizeEvidenceMime, prepareEvidenceRetrieval, reconcileEvidenceSupersessions, sanitizeEvidenceBytes, supersessionDecisionsFromToolInput } from '../lib/mission-control/evidence'
 import { createMissionFact, mergeMissionFacts, missionFactSourceReferences, specificationProvenance, type DeliverableSpecification } from '../lib/mission-control/contracts'
 import { buildContentBlocks, inlineEvidenceByteLimit, OrchestrateError } from '../lib/apollo/orchestrate'
 import { mergeEvidenceIntoSpecification } from '../lib/mission-control/evidence-specification'
@@ -14,6 +14,10 @@ describe('mission evidence custody', () => {
     expect(evidenceFactsFromToolInput({expiration_date:[{value:'June 30, 2027',source_id:'amendment-2',supersedes_source_ids:['original-agreement'],supersession_reason:'Amendment 2 expressly extends and replaces the original expiration date.'}]},[{key:'expiration_date',label:'Expiration date'}],['amendment-2'],['original-agreement','amendment-1','amendment-2'])).toEqual([
       expect.objectContaining({source_reference:'amendment-2',supersession:expect.objectContaining({superseded_source_references:['original-agreement']})}),
     ])
+  })
+
+  it('gives every modality pass a sanitized complete source inventory',()=>{
+    expect(evidenceSourceInventory([{id:'original',name:'Master Agreement.pdf'},{id:'amendment',name:'Amendment 2\r\nFinal.pdf'}])).toBe('MISSION SOURCE INVENTORY (identifiers and filenames only):\n- original: Master Agreement.pdf\n- amendment: Amendment 2 Final.pdf')
   })
 
   it('normalizes human evidence wording into an allowed select value',()=>{

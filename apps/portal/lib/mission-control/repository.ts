@@ -104,6 +104,7 @@ async function reconcileSecuredEvidence(input: {
   const readableSources = prioritizedSources.filter((source): source is typeof source & { text: string } => Boolean(source.text))
   const pdfSources = prioritizedSources.filter(source => !source.text&&source.mime==='application/pdf')
   const imageSources = prioritizedSources.filter((source):source is typeof source&{mime:'image/png'|'image/jpeg'}=>source.mime==='image/png'||source.mime==='image/jpeg')
+  const missionSourceCatalog=prioritizedSources.map(source=>({id:source.id,name:source.name}))
   const extractionRuns:Array<Promise<{facts:MissionFact[];trace:EvidenceExtractionTrace}>>=[]
   if(readableSources.length){
     const trace=createEvidenceExtractionTrace('text',readableSources.map(source=>source.id))
@@ -111,11 +112,11 @@ async function reconcileSecuredEvidence(input: {
   }
   if(pdfSources.length){
     const trace=createEvidenceExtractionTrace('pdf',pdfSources.map(source=>source.id))
-    extractionRuns.push(extractEvidenceFactsFromPdfs(pdfSources.map(source=>({id:source.id,name:source.name,bytes:source.bytes})),moduleSlug,trace).then(facts=>({facts,trace:completeEvidenceExtractionTrace(trace)})))
+    extractionRuns.push(extractEvidenceFactsFromPdfs(pdfSources.map(source=>({id:source.id,name:source.name,bytes:source.bytes})),moduleSlug,trace,missionSourceCatalog).then(facts=>({facts,trace:completeEvidenceExtractionTrace(trace)})))
   }
   if(imageSources.length){
     const trace=createEvidenceExtractionTrace('image',imageSources.map(source=>source.id))
-    extractionRuns.push(extractEvidenceFactsFromImages(imageSources.map(source=>({id:source.id,name:source.name,mime:source.mime,bytes:source.bytes})),moduleSlug,trace).then(facts=>({facts,trace:completeEvidenceExtractionTrace(trace)})))
+    extractionRuns.push(extractEvidenceFactsFromImages(imageSources.map(source=>({id:source.id,name:source.name,mime:source.mime,bytes:source.bytes})),moduleSlug,trace,missionSourceCatalog).then(facts=>({facts,trace:completeEvidenceExtractionTrace(trace)})))
   }
   const completedRuns=await Promise.all(extractionRuns)
   if(completedRuns.some(run=>run.trace.status!=='complete')||!extractionTracesCoverSources(rows.map(row=>row.id),completedRuns.map(run=>run.trace)))throw new MissionPersistenceError('Not every secured source completed multipass evidence extraction')

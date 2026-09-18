@@ -28,6 +28,11 @@ import { createMissionFact, type FactSupersession, type MissionFact } from './co
 type EvidenceOption={value:string;label:string}
 type EvidenceField = { key:string; label:string; type?:string; help?:string; evidence_aliases?:string[]; options?:Array<string|EvidenceOption> }
 export interface EvidenceSupersessionDecision { key:string; controlling_source_reference:string; superseded_source_references:string[]; reason:string }
+export interface EvidenceSourceCatalogEntry { id:string; name:string }
+
+export function evidenceSourceInventory(sources:EvidenceSourceCatalogEntry[]):string {
+  return ['MISSION SOURCE INVENTORY (identifiers and filenames only):',...sources.map(source=>`- ${source.id}: ${source.name.replace(/[\r\n]+/g,' ').slice(0,240)}`)].join('\n')
+}
 
 export function evidenceMagicMatches(bytes: Buffer, mime: string): boolean {
   const at = (signature: number[], offset = 0) => signature.every((value, index) => bytes[offset + index] === value)
@@ -491,6 +496,7 @@ export async function extractEvidenceFactsFromPdfs(
   sources: Array<{ id: string; name: string; bytes: Buffer }>,
   moduleSlug: string | null,
   trace?:EvidenceExtractionTrace,
+  missionSources:EvidenceSourceCatalogEntry[]=sources,
 ): Promise<MissionFact[]> {
   if (!sources.length || !moduleSlug || !process.env.ANTHROPIC_API_KEY) return []
   const documentModule = getModule(moduleSlug)
@@ -499,7 +505,8 @@ export async function extractEvidenceFactsFromPdfs(
   const optionalFields=documentModule.optional_fields as EvidenceField[]
   const client = createAnthropicClient()
   const facts: MissionFact[] = []
-  const allSourceIds=sources.map(source=>source.id)
+  const allSourceIds=missionSources.map(source=>source.id)
+  const sourceInventory=evidenceSourceInventory(missionSources)
   for (const batch of batchEvidenceSources(sources, 3)) {
     const sourceIds = batch.map(source => source.id)
     const content: ContentBlockParam[] = batch.flatMap(source => [{ type:'text' as const, text:`SOURCE ID: ${source.id} — ${source.name}` }, { type:'document' as const, title:source.name, source:{ type:'base64' as const, media_type:'application/pdf' as const, data:source.bytes.toString('base64') } }])
@@ -507,7 +514,7 @@ export async function extractEvidenceFactsFromPdfs(
       if(!passFields.length)continue
       planExtractionPass(trace)
       const properties=evidenceToolProperties(passFields,sourceIds,'PDF',allSourceIds)
-      const passContent=[...content,{type:'text' as const,text:`REQUESTED FIELD PASS:\n${passFields.map(field=>fieldDescriptor(field)).join('\n')}\nExtract every explicitly supported value for this field group. Return option VALUES exactly and preserve contradictions.`}]
+      const passContent=[...content,{type:'text' as const,text:`${sourceInventory}\n\nREQUESTED FIELD PASS:\n${passFields.map(field=>fieldDescriptor(field)).join('\n')}\nExtract every explicitly supported value for this field group. Return option VALUES exactly and preserve contradictions. If the current source explicitly amends or replaces another listed source, record that source ID even when it is outside this extraction batch.`}]
       const response=await client.messages.create({model:modelFor('extraction'),max_tokens:5000,system:'You are one pass in APOLLO multipass PDF ingestion. Extract every requested value explicitly supported by the PDFs. Never fabricate or silently omit a supported requested field. Cite the source ID, preserve contradictions, return option VALUES exactly, and do not calculate in this pass.',tools:[{name:'extract_evidence',description:'Return every supported candidate for the requested PDF field group.',input_schema:{type:'object',properties}}],tool_choice:{type:'tool',name:'extract_evidence'},messages:[{role:'user',content:passContent}]})
       const block=response.content.find(item=>item.type==='tool_use'&&item.name==='extract_evidence')
       if(block?.type!=='tool_use')throw new Error('PDF field pass returned no structured extraction payload')
@@ -518,7 +525,7 @@ export async function extractEvidenceFactsFromPdfs(
     if(missing.length){
       planExtractionPass(trace)
       const properties=evidenceToolProperties(missing,sourceIds,'PDF',allSourceIds)
-      const recoveryContent=[...content,{type:'text' as const,text:`REQUIRED-FIELD RECOVERY PASS:\n${missing.map(field=>fieldDescriptor(field)).join('\n')}\nSearch headings, tables, timelines, conclusions, and recommendations. Leave absent only when unsupported.`}]
+      const recoveryContent=[...content,{type:'text' as const,text:`${sourceInventory}\n\nREQUIRED-FIELD RECOVERY PASS:\n${missing.map(field=>fieldDescriptor(field)).join('\n')}\nSearch headings, tables, timelines, conclusions, and recommendations. Leave absent only when unsupported. Preserve explicit amendment/replacement relationships using the listed source IDs.`}]
       const response=await client.messages.create({model:modelFor('extraction'),max_tokens:5000,system:'Recover every explicitly supported required field missed by earlier PDF passes. Never fabricate. Return option VALUES exactly, cite source IDs, and preserve contradictions.',tools:[{name:'extract_evidence',description:'Recover supported required fields missed by prior PDF extraction.',input_schema:{type:'object',properties}}],tool_choice:{type:'tool',name:'extract_evidence'},messages:[{role:'user',content:recoveryContent}]})
       const block=response.content.find(item=>item.type==='tool_use'&&item.name==='extract_evidence')
       if(block?.type!=='tool_use')throw new Error('PDF recovery pass returned no structured extraction payload')
@@ -537,11 +544,12 @@ export async function extractEvidenceFactsFromImages(
   sources:Array<{id:string;name:string;mime:'image/png'|'image/jpeg';bytes:Buffer}>,
   moduleSlug:string|null,
   trace?:EvidenceExtractionTrace,
+  missionSources:EvidenceSourceCatalogEntry[]=sources,
 ):Promise<MissionFact[]> {
   if(!sources.length||!moduleSlug||!process.env.ANTHROPIC_API_KEY)return []
   const documentModule=getModule(moduleSlug);if(!documentModule)return []
   const requiredFields=documentModule.required_fields as EvidenceField[];const optionalFields=documentModule.optional_fields as EvidenceField[]
-  const client=createAnthropicClient();const facts:MissionFact[]=[];const allSourceIds=sources.map(source=>source.id)
+  const client=createAnthropicClient();const facts:MissionFact[]=[];const allSourceIds=missionSources.map(source=>source.id);const sourceInventory=evidenceSourceInventory(missionSources)
   for(const batch of batchEvidenceSources(sources,4)){
     const sourceIds=batch.map(source=>source.id)
     const content:ContentBlockParam[]=batch.flatMap(source=>[
@@ -552,7 +560,7 @@ export async function extractEvidenceFactsFromImages(
       if(!passFields.length)continue
       planExtractionPass(trace)
       const properties=evidenceToolProperties(passFields,sourceIds,'source',allSourceIds)
-      const response=await client.messages.create({model:modelFor('extraction'),max_tokens:5000,system:'You are one pass in APOLLO multipass image-evidence ingestion. Read visible printed and handwritten content carefully. Extract every requested value explicitly supported by the labeled images. Never infer obscured, cropped, illegible, or absent values. Cite the source ID, preserve contradictions, return option VALUES exactly, and do not calculate in this pass.',tools:[{name:'extract_evidence',description:'Return every supported candidate visible in the image evidence.',input_schema:{type:'object',properties}}],tool_choice:{type:'tool',name:'extract_evidence'},messages:[{role:'user',content:[...content,{type:'text' as const,text:`REQUESTED FIELD PASS:\n${passFields.map(field=>fieldDescriptor(field)).join('\n')}`}]}]})
+      const response=await client.messages.create({model:modelFor('extraction'),max_tokens:5000,system:'You are one pass in APOLLO multipass image-evidence ingestion. Read visible printed and handwritten content carefully. Extract every requested value explicitly supported by the labeled images. Never infer obscured, cropped, illegible, or absent values. Cite the source ID, preserve contradictions, return option VALUES exactly, and do not calculate in this pass.',tools:[{name:'extract_evidence',description:'Return every supported candidate visible in the image evidence.',input_schema:{type:'object',properties}}],tool_choice:{type:'tool',name:'extract_evidence'},messages:[{role:'user',content:[...content,{type:'text' as const,text:`${sourceInventory}\n\nREQUESTED FIELD PASS:\n${passFields.map(field=>fieldDescriptor(field)).join('\n')}\nIf the current source explicitly amends or replaces another listed source, record that source ID even when it is outside this extraction batch.`}]}]})
       const block=response.content.find(item=>item.type==='tool_use'&&item.name==='extract_evidence')
       if(block?.type!=='tool_use')throw new Error('Image field pass returned no structured extraction payload')
       facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,passFields,sourceIds,allSourceIds))
@@ -562,7 +570,7 @@ export async function extractEvidenceFactsFromImages(
     if(missing.length){
       planExtractionPass(trace)
       const properties=evidenceToolProperties(missing,sourceIds,'source',allSourceIds)
-      const response=await client.messages.create({model:modelFor('extraction'),max_tokens:5000,system:'This is APOLLO image required-field recovery. Reinspect every labeled image, including headers, footers, tables, form boxes, captions, and handwritten notes. Return only legible, directly supported values with source IDs. Never fabricate.',tools:[{name:'extract_evidence',description:'Recover supported required fields missed by prior image passes.',input_schema:{type:'object',properties}}],tool_choice:{type:'tool',name:'extract_evidence'},messages:[{role:'user',content:[...content,{type:'text' as const,text:`MISSING REQUIRED FIELDS:\n${missing.map(field=>fieldDescriptor(field)).join('\n')}`}]}]})
+      const response=await client.messages.create({model:modelFor('extraction'),max_tokens:5000,system:'This is APOLLO image required-field recovery. Reinspect every labeled image, including headers, footers, tables, form boxes, captions, and handwritten notes. Return only legible, directly supported values with source IDs. Never fabricate.',tools:[{name:'extract_evidence',description:'Recover supported required fields missed by prior image passes.',input_schema:{type:'object',properties}}],tool_choice:{type:'tool',name:'extract_evidence'},messages:[{role:'user',content:[...content,{type:'text' as const,text:`${sourceInventory}\n\nMISSING REQUIRED FIELDS:\n${missing.map(field=>fieldDescriptor(field)).join('\n')}\nPreserve explicit amendment/replacement relationships using the listed source IDs.`}]}]})
       const block=response.content.find(item=>item.type==='tool_use'&&item.name==='extract_evidence')
       if(block?.type!=='tool_use')throw new Error('Image recovery pass returned no structured extraction payload')
       facts.push(...evidenceFactsFromToolInput(block.input as Record<string,unknown>,missing,sourceIds,allSourceIds))
