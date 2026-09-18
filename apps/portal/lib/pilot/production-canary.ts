@@ -70,6 +70,11 @@ export async function runProductionPilotCanary(slug:PilotCanarySlug){
   if(!compiled.ok)throw new Error(`work-order compilation failed: ${compiled.missing.map(gap=>gap.key).join(', ')}`)
   const uploads=[{id:sourceId,upload_kind:'reference_doc',original_filename:`${slug}-canary.txt`,content_type:'text/plain',size_bytes:bytes.length,caption:'Synthetic pilot evidence',extracted_text:text,bytes:null}]
   const fields=executionFields(specification,new Date('2026-09-17T12:06:00Z'))
+  for(const [key,expected] of Object.entries(FIXTURES[slug])){
+    const actual=fields[key]
+    const normalize=(value:unknown)=>String(value??'').replace(/\r\n/g,'\n').trim()
+    if(normalize(actual)!==normalize(expected))throw new Error(`controlled evidence custody mismatch for ${key}: expected ${JSON.stringify(expected)}, received ${JSON.stringify(actual)}`)
+  }
   const generated=await orchestrate({slug,deliverableLabel:summary.label,industryLabel:summary.industry_label,module,schema:schema as Record<string,unknown>,style,brand,fields,uploads})
   verifyDocumentContent(compiled.order,generated.contentHtml,{phase:'generated'})
   const template:Template={slug,label:summary.label,description:summary.description,category:summary.industry_slug,supports_images:true,has_signature_block:slug==='proposal',has_toc:shouldRenderToc(slug),layout:chooseLayoutForSlug(slug),fields:[],sections:module.sections.map(section=>({id:section.key,title:section.label})),generation_notes:''}
