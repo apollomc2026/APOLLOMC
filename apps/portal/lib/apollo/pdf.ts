@@ -1008,6 +1008,26 @@ function decorateLedgerStatements(html: string, isStatementsPackage: boolean): s
   )
 }
 
+function renderCashFlowBudgetControls(args: BuildPdfArgs): string {
+  if (args.template.slug !== 'cash-flow-budget-package') return ''
+  const table = (label: string, key: string, headings: string[]) => {
+    const rows = readString(args.inputs, key).split(/\r?\n/).map(line => line.trim()).filter(Boolean)
+    if (!rows.length) return ''
+    return `<h2>${escapeHtml(label)}</h2><table aria-label="${escapeHtml(label)}"><thead><tr>${headings.map(heading => `<th>${escapeHtml(heading)}</th>`).join('')}</tr></thead><tbody>${rows.map(line => `<tr>${line.split('|').map(cell => `<td>${escapeHtml(cell.trim())}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+  }
+  const assumptions = readString(args.inputs, 'key_assumptions').split(/\r?\n/).map(line => line.trim()).filter(Boolean)
+  return `<section class="cash-flow-control-panel">
+    <h2>Approved forecast controls</h2>
+    <table aria-label="Approved forecast identity"><tbody>
+      <tr><th>Entity</th><td>${escapeHtml(readString(args.inputs, 'entity_name') || 'Not recorded')}</td></tr>
+      <tr><th>Forecast period</th><td>${escapeHtml(readString(args.inputs, 'forecast_period') || 'Not recorded')}</td></tr>
+    </tbody></table>
+    ${table('Approved base-case forecast', 'base_case_lines', ['Month', 'Opening cash', 'Inflows', 'Outflows', 'Net change', 'Closing cash'])}
+    ${table('Approved scenario comparison', 'scenario_summary', ['Scenario', 'Ending cash', 'Lowest monthly cash', 'Total inflows', 'Total outflows'])}
+    ${assumptions.length ? `<h2>Approved key assumptions</h2><ul>${assumptions.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : ''}
+  </section>`
+}
+
 // ledger genre primitive (WS5). Clean financial typesetting: a quiet masthead,
 // then ruled statement tables with right-aligned, tabular figures and totals
 // emphasized by the model's bold. Packet/package deliverables receive their
@@ -1026,6 +1046,7 @@ function buildLedgerHtml(args: BuildPdfArgs): string {
     readString(args.inputs, 'entity_name')
   const firmLead = firmFull.split(/\s+[—–-]\s+/)[0].trim()
   const isStatementsPackage = args.template.slug === 'financial-statements-package'
+  const cashFlowControls = renderCashFlowBudgetControls(args)
   const decorated = decorateLedgerStatements(
     stripPreH2Banner(stripAllH1(stripLeadingTitle(args.contentHtml))),
     isStatementsPackage
@@ -1085,6 +1106,7 @@ body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.4; color:
     <div class="ld-meta">${meta}</div>
   </div>
   <div class="ld-body">
+${cashFlowControls}
 ${body}
   </div>
 </body>
