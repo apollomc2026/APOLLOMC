@@ -1,7 +1,24 @@
-**/.next*
-**/node_modules
-**/tmp
-**/playwright-report
-**/test-results
-**/pnpm-lock.yaml
-**/pnpm-workspace.yaml
+# Local scratch + reference artifacts at the monorepo root. These are not part
+# of the deploy (Root Directory is apps/portal) and must never be uploaded.
+_live_snapshot/
+_refs/
+_smoke/
+_deploy/
+*.zip
+htaccess
+
+# Local build output and retained recovery snapshots. Vercel's ignore matcher
+# needs these explicit workspace-relative paths before it walks the tree.
+node_modules/
+.next/
+.next-*/
+apps/portal/.next/
+apps/portal/.next-*/
+apps/portal/tmp/
+tmp/
+test-results/
+apps/portal/test-results/
+apps/portal/playwright-report/
+apps/portal/pnpm-lock.yaml
+apps/portal/pnpm-workspace.yaml
+pnpm-lock.yaml
