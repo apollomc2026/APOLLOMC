@@ -47,4 +47,15 @@ describe('executor capability truthfulness', () => {
       readiness: 'platform_configuration_required',
     })
   })
+
+  it('never emits a blank service version when Git metadata is empty', async () => {
+    mocks.googleDriveConfigured.mockReturnValue(true)
+    process.env.VERCEL_GIT_COMMIT_SHA = '   '
+    process.env.VERCEL_DEPLOYMENT_ID = 'dpl_apollo_pilot'
+    const response = await GET()
+    const body = await response.json()
+    expect(body.service_version).toBe('dpl_apollo_pilot')
+    delete process.env.VERCEL_GIT_COMMIT_SHA
+    delete process.env.VERCEL_DEPLOYMENT_ID
+  })
 })

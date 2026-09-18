@@ -6,6 +6,9 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   const drivePlatformConfigured = googleDriveConfigured()
+  const serviceVersion = process.env.VERCEL_GIT_COMMIT_SHA?.trim()
+    || process.env.VERCEL_DEPLOYMENT_ID?.trim()
+    || 'development'
   const deliverables = getCatalog().industries
     .filter((industry) => industry.status === 'active')
     .flatMap((industry) => industry.deliverables.map((deliverable) => deliverable.slug))
@@ -13,7 +16,7 @@ export async function GET() {
   return NextResponse.json({
     executor_id: 'apollo-documents',
     contract_version: '1.0',
-    service_version: process.env.VERCEL_GIT_COMMIT_SHA ?? 'development',
+    service_version: serviceVersion,
     health: drivePlatformConfigured ? 'healthy' : 'degraded',
     asynchronous: true,
     supports_callbacks: false,
