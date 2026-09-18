@@ -15,6 +15,7 @@ import {compileApprovedSpecification,executionFields,materializeSpecificationDef
 import {verifyDocumentContent} from '@/lib/executor/document-verification'
 import {verifyRenderedPdf} from '@/lib/executor/pdf-integrity'
 import {buildRevisionOrder} from '@/lib/mission-control/revision'
+import {normalizedPdfTextSha256,verifyControlledPdfDownload} from '@/lib/executor/artifact-access'
 
 export const PILOT_CANARY_SLUGS=['fsr','final-qc-report','quote','proposal','cash-flow-budget-package','contract-intelligence-review'] as const
 export type PilotCanarySlug=(typeof PILOT_CANARY_SLUGS)[number]
@@ -83,6 +84,8 @@ export async function runProductionPilotCanary(slug:PilotCanarySlug){
   const template:Template={slug,label:summary.label,description:summary.description,category:summary.industry_slug,supports_images:true,has_signature_block:slug==='proposal',has_toc:shouldRenderToc(slug),layout:chooseLayoutForSlug(slug),fields:[],sections:module.sections.map(section=>({id:section.key,title:section.label})),generation_notes:''}
   const pdf=await buildPdf({template,brand,inputs:fields,contentHtml:generated.contentHtml,documentId:`CANARY-${slug.toUpperCase()}`,preparedDate:'September 17, 2026',palette,sourceNames:[sourceName]})
   const integrity=await verifyRenderedPdf(pdf)
+  const pdfSha256=createHash('sha256').update(pdf).digest('hex')
+  const pickupIntegrity=await verifyControlledPdfDownload({bytes:pdf,mimeType:'application/pdf',contentSha256:pdfSha256,factualContentSha256:normalizedPdfTextSha256(integrity.text)})
   let verification:ReturnType<typeof verifyDocumentContent>
   try{verification=verifyDocumentContent(compiled.order,integrity.text,{phase:'rendered'})}
   catch(error){
@@ -96,6 +99,8 @@ export async function runProductionPilotCanary(slug:PilotCanarySlug){
   if(revisionOrder.fields.revision_of!==compiled.order.work_order_id||revisionOrder.fields.artifact_version!==2||revisionOrder.trace?.specification_hash!==compiled.order.trace?.specification_hash||revisionOrder.brand_id!==compiled.order.brand_id||JSON.stringify(revisionOrder.sources)!==JSON.stringify(compiled.order.sources))throw new Error('regeneration lineage changed approved mission authority')
   const revisionPdf=await buildPdf({template,brand,inputs:revisionOrder.fields,contentHtml:generated.contentHtml,documentId:`CANARY-${slug.toUpperCase()}-V2`,preparedDate:'September 17, 2026',palette,sourceNames:[sourceName]})
   const revisionIntegrity=await verifyRenderedPdf(revisionPdf)
+  const revisionPdfSha256=createHash('sha256').update(revisionPdf).digest('hex')
+  const revisionPickupIntegrity=await verifyControlledPdfDownload({bytes:revisionPdf,mimeType:'application/pdf',contentSha256:revisionPdfSha256,factualContentSha256:normalizedPdfTextSha256(revisionIntegrity.text)})
   const revisionVerification=verifyDocumentContent(revisionOrder,revisionIntegrity.text,{phase:'rendered'})
-  return {slug,passed:true,source_sha256:sourceSha256,specification_hash:specificationHash,extracted_facts:extracted.facts.length,trace:extracted.trace,open_questions:specification.content.open_questions.length,quality:generated.quality,verification,failure_probe:{rejected:true},regeneration:{version:revisionOrder.fields.artifact_version,revision_of:revisionOrder.fields.revision_of,work_order_id:revisionOrder.work_order_id,verification:revisionVerification,pdf:{sha256:createHash('sha256').update(revisionPdf).digest('hex'),...revisionIntegrity.integrity}},pdf:{sha256:createHash('sha256').update(pdf).digest('hex'),...integrity.integrity}}
+  return {slug,passed:true,source_sha256:sourceSha256,specification_hash:specificationHash,extracted_facts:extracted.facts.length,trace:extracted.trace,open_questions:specification.content.open_questions.length,quality:generated.quality,verification,failure_probe:{rejected:true},regeneration:{version:revisionOrder.fields.artifact_version,revision_of:revisionOrder.fields.revision_of,work_order_id:revisionOrder.work_order_id,verification:revisionVerification,pickup:{controlled:true,...revisionPickupIntegrity},pdf:{sha256:revisionPdfSha256,...revisionIntegrity.integrity}},pickup:{controlled:true,...pickupIntegrity},pdf:{sha256:pdfSha256,...integrity.integrity}}
 }
