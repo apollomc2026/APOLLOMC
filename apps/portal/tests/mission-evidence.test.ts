@@ -1,12 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import * as XLSX from 'xlsx'
 import sharp from 'sharp'
-import { applyEvidenceSupersessionDecisions, batchEvidenceSources, chunkEvidenceSources, deduplicateEvidenceFacts, deriveEvidenceFacts, evidenceExtractionMode, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceZipTooLarge, extractEvidence, extractionTracesCoverSources, extractLabeledEvidenceFacts, filterSemanticallyUnsupportedEvidenceFacts, normalizeEvidenceMime, prepareEvidenceRetrieval, reconcileEvidenceSupersessions, sanitizeEvidenceBytes, supersessionDecisionsFromToolInput } from '../lib/mission-control/evidence'
+import { applyEvidenceSupersessionDecisions, batchEvidenceSources, chunkEvidenceSources, deduplicateEvidenceFacts, deriveEvidenceFacts, evidenceExtractionMode, evidenceFactsFromToolInput, evidenceMagicMatches, evidenceToolProperties, evidenceZipTooLarge, extractEvidence, extractionTracesCoverSources, extractLabeledEvidenceFacts, filterSemanticallyUnsupportedEvidenceFacts, normalizeEvidenceMime, prepareEvidenceRetrieval, reconcileEvidenceSupersessions, sanitizeEvidenceBytes, supersessionDecisionsFromToolInput } from '../lib/mission-control/evidence'
 import { createMissionFact, mergeMissionFacts, missionFactSourceReferences, specificationProvenance, type DeliverableSpecification } from '../lib/mission-control/contracts'
 import { buildContentBlocks, inlineEvidenceByteLimit, OrchestrateError } from '../lib/apollo/orchestrate'
 import { mergeEvidenceIntoSpecification } from '../lib/mission-control/evidence-specification'
 
 describe('mission evidence custody', () => {
+  it('allows explicit supersession of a source outside the current PDF or image batch',()=>{
+    const schema=evidenceToolProperties([{key:'expiration_date',label:'Expiration date'}],['amendment-2'],'PDF',['original-agreement','amendment-1','amendment-2']) as Record<string,{items:{properties:{source_id:{enum:string[]};supersedes_source_ids:{items:{enum:string[]}}}}}>
+    expect(schema.expiration_date.items.properties.source_id.enum).toEqual(['amendment-2'])
+    expect(schema.expiration_date.items.properties.supersedes_source_ids.items.enum).toEqual(['original-agreement','amendment-1','amendment-2'])
+    expect(evidenceFactsFromToolInput({expiration_date:[{value:'June 30, 2027',source_id:'amendment-2',supersedes_source_ids:['original-agreement'],supersession_reason:'Amendment 2 expressly extends and replaces the original expiration date.'}]},[{key:'expiration_date',label:'Expiration date'}],['amendment-2'],['original-agreement','amendment-1','amendment-2'])).toEqual([
+      expect.objectContaining({source_reference:'amendment-2',supersession:expect.objectContaining({superseded_source_references:['original-agreement']})}),
+    ])
+  })
+
   it('normalizes human evidence wording into an allowed select value',()=>{
     const fields=[{key:'follow_up_required',label:'Follow-up required',type:'select',options:[{value:'none',label:'None'},{value:'parts-order',label:'Parts order — return visit pending parts'},{value:'return-visit',label:'Return visit required'}]}]
     const facts=evidenceFactsFromToolInput({follow_up_required:[{value:'None. No return visit, parts order, or additional corrective action is required.',source_id:'record'}]},fields,['record'])
