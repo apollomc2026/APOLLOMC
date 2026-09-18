@@ -91,6 +91,20 @@ describe('pilot release auditor',()=>{
     expect(quote.gates.find(gate=>gate.key==='launch')).toMatchObject({passed:false})
   })
 
+  it('does not let an abandoned archived draft mask the executed pilot lineage',()=>{
+    const executed=fixture('fsr')
+    const archived=fixture('fsr')
+    archived.conversation.id='mission-fsr-abandoned'
+    archived.conversation.status='archived'
+    archived.conversation.created_at='2026-09-17T12:00:00Z'
+    archived.specification.id='spec-fsr-abandoned'
+    archived.specification.conversation_id=archived.conversation.id
+    const report=auditPilotRelease({conversations:[executed.conversation,archived.conversation],specifications:[executed.specification,archived.specification],evidence:[executed.evidence],jobs:executed.jobs,events:executed.events})
+    const fsr=report.classes.find(entry=>entry.deliverable_type==='fsr')!
+    expect(fsr.conversation_id).toBe(executed.conversation.id)
+    expect(fsr.passed).toBe(true)
+  })
+
   it('fails launch and recovery when a later regeneration fails',()=>{
     const item=fixture('fsr')
     const failedAfter={...item.jobs[0],id:'40000000-0000-5000-a000-000000000001',created_at:'2026-09-16T12:20:00Z',completed_at:'2026-09-16T12:21:00Z'}

@@ -71,6 +71,10 @@ export function auditPilotRelease(input:PilotAuditInput):{passed:boolean;passed_
   const classes=PILOT_DELIVERABLES.map(deliverableType=>{
     const candidates=input.conversations.map(conversation=>({conversation,specification:specsByConversation.get(`${conversation.id}:${conversation.current_spec_version}`)}))
       .filter((candidate):candidate is {conversation:ConversationRow;specification:SpecificationRow}=>candidate.specification?.specification.artifact.recommended_type===deliverableType)
+      // An archived draft with no execution history is an abandoned experiment,
+      // not the current representative pilot. Keep archived missions that did
+      // execute so their failures cannot be hidden by archiving them.
+      .filter(candidate=>candidate.conversation.status!=='archived'||input.jobs.some(job=>job.conversation_id===candidate.conversation.id))
       .sort((a,b)=>Date.parse(b.conversation.created_at)-Date.parse(a.conversation.created_at)||b.conversation.id.localeCompare(a.conversation.id))
     // The newest representative mission is authoritative. Falling back to an
     // older delivered mission would conceal a regression in the current run.
