@@ -416,8 +416,8 @@ export function buildUserPromptText(args: OrchestrateArgs): string {
       ...(args.slug === 'contract-intelligence-review' ? ['- Every material finding and recommended contract action must identify its source document and clause, section, or page. Clearly distinguish active, expired, upcoming, conditional, conflicting, and unknown status.', '- Treat this as operational contract intelligence and issue spotting, not legal advice. Identify questions that require licensed counsel or another qualified professional.'] : []),
       '',
     ] : []),
-    ...(args.slug === 'contract-intelligence-review' ? [
-      '# Contract intelligence publication floor',
+    ...(['contract-intelligence-review','final-qc-report','proposal'].includes(args.slug) ? [
+      '# Deliverable-specific publication floor',
       ...workmanshipRepairGuidance(args.slug, []),
       'Meet this structure in the first tool response. These are publication requirements, not optional repair suggestions.',
       '',
@@ -547,6 +547,10 @@ export function workmanshipRepairGuidance(slug:string, violations:string[]):stri
     '- Put a responsibility/delivery table in management_approach or technical_approach with columns Workstream | Owner | Deliverable | Control.',
   )
   if (slug === 'proposal') guidance.push('- Put phases, responsibilities, risks, or investment into at least two decision-useful Markdown tables.')
+  if (slug === 'final-qc-report') guidance.push(
+    '- Put acceptance_criteria and test_results into substantive GitHub-flavored Markdown tables with explicit measured outcomes and PASS, FAIL, MARGINAL, or NOT TESTED status.',
+    '- Across the Final QC report include at least two substantive tables and eight total data rows. Preserve every supplied criterion and result; never convert an uncertain result to PASS.',
+  )
   if (slug === 'contract-intelligence-review') guidance.push(
     '- Build status_dashboard as a Markdown table with at least four material event/date rows and columns Event or right | Source clause/page | Trigger or deadline | Status | Owner | Action.',
     '- Build plain_english_map as a Markdown table with at least four material clause rows and columns Topic | Contract language | Operational meaning | Owner | Source clause/page.',

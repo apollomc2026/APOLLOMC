@@ -121,12 +121,22 @@ describe('optional section evidence boundaries', () => {
 
   it('puts the contract workmanship floor in the first-pass prompt',()=>{
     const prompt=buildUserPromptText(args('contract-intelligence-review'))
-    expect(prompt).toContain('# Contract intelligence publication floor')
+    expect(prompt).toContain('# Deliverable-specific publication floor')
     expect(prompt).toContain('status_dashboard')
     expect(prompt).toContain('obligation_matrix')
     expect(prompt).toContain('action_calendar')
     expect(prompt).toContain('twenty substantive data rows')
     expect(prompt).toContain('first tool response')
+  })
+
+  it('puts QC and proposal workmanship floors in their first-pass prompts',()=>{
+    const qc=buildUserPromptText(args('final-qc-report'))
+    expect(qc).toContain('# Deliverable-specific publication floor')
+    expect(qc).toContain('acceptance_criteria and test_results')
+    expect(qc).toContain('eight total data rows')
+    const proposal=buildUserPromptText(args('proposal'))
+    expect(proposal).toContain('# Deliverable-specific publication floor')
+    expect(proposal).toContain('at least two decision-useful Markdown tables')
   })
 
   it('retains the strongest version of each section across workmanship attempts', () => {
