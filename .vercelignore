@@ -1,21 +1,7 @@
-# Local scratch + reference artifacts at the monorepo root. These are not part
-# of the deploy (Root Directory is apps/portal) and must never be uploaded —
-# public_html.zip alone is ~115 MB and trips Vercel's 100 MB upload limit.
-_live_snapshot/
-_refs/
-_smoke/
-_deploy/
-*.zip
-htaccess
-
-# Local build output and retained recovery snapshots. These can exceed several
-# gigabytes and must never be walked or uploaded by the Vercel CLI.
-node_modules/
-.next/
-.next-*/
-apps/portal/.next/
-apps/portal/.next-*/
-apps/portal/tmp/
-tmp/
-test-results/
-apps/portal/test-results/
+**/.next*
+**/node_modules
+**/tmp
+**/playwright-report
+**/test-results
+**/pnpm-lock.yaml
+**/pnpm-workspace.yaml
