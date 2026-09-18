@@ -43,7 +43,11 @@ import { MAX_EVIDENCE_BYTES, MAX_EXECUTABLE_IMAGE_BYTES } from '@/lib/mission-co
 const MAX_TOKENS_PRIMARY = 8192
 const MAX_TOKENS_RETRY = 6144
 const MAX_TOKENS_LONG_FORM = 16384
-const MAX_TOKENS_LONG_FORM_RETRY = 14336
+// A repair must have at least as much room as the output it is repairing.
+// Reducing the budget on retry made long-form recovery probabilistic: the
+// model could understand the audit findings yet truncate or compress the
+// corrected publication below the same workmanship floor.
+const MAX_TOKENS_LONG_FORM_RETRY = MAX_TOKENS_LONG_FORM
 const SOURCE_BOUND_STRATEGIC_SLUGS = new Set(['business-plan','market-analysis','investor-memo','investor-update','contract-intelligence-review'])
 const LONG_FORM_EDITORIAL_SLUGS = new Set(['business-plan','market-analysis','investor-memo','investor-update','audit-readiness','legal-memo','contract-intelligence-review','compliance-report','board-report','discovery-summary'])
 export function inlineEvidenceByteLimit(contentType:string):number {
@@ -161,7 +165,7 @@ export function outputTokenBudget(args:OrchestrateArgs, retry = false):number {
   const sections = activeSections(args)
   const maximumWords = sections.reduce((total, section) => total + section.max_words, 0)
   if (maximumWords >= 4500 || sections.length >= 11) return retry ? MAX_TOKENS_LONG_FORM_RETRY : MAX_TOKENS_LONG_FORM
-  if (maximumWords >= 2600 || sections.length >= 8) return retry ? 10240 : 12288
+  if (maximumWords >= 2600 || sections.length >= 8) return 12288
   return retry ? MAX_TOKENS_RETRY : MAX_TOKENS_PRIMARY
 }
 
@@ -512,6 +516,14 @@ export function workmanshipRepairGuidance(slug:string, violations:string[]):stri
     '- Put a responsibility/delivery table in management_approach or technical_approach with columns Workstream | Owner | Deliverable | Control.',
   )
   if (slug === 'proposal') guidance.push('- Put phases, responsibilities, risks, or investment into at least two decision-useful Markdown tables.')
+  if (slug === 'contract-intelligence-review') guidance.push(
+    '- Build status_dashboard as a Markdown table with at least four material event/date rows and columns Event or right | Source clause/page | Trigger or deadline | Status | Owner | Action.',
+    '- Build plain_english_map as a Markdown table with at least four material clause rows and columns Topic | Contract language | Operational meaning | Owner | Source clause/page.',
+    '- Build obligation_matrix as a Markdown table with at least four rows and columns Party | Duty or right | Prerequisite | Evidence | Consequence | Source clause/page.',
+    '- Build money_value or missed_items as a Markdown table with at least four source-grounded rows covering verified value, coverage, exclusions, friction, or unknowns; never invent a figure or clause.',
+    '- Build action_calendar as a Markdown table with at least four rows and columns Priority | Owner | Action | Due date or trigger | Evidence | Source clause/page | Status.',
+    '- Across those tables include at least twenty substantive data rows. Use explicit active, expired, upcoming, conditional, conflicting, or unknown status labels wherever status applies.',
+  )
   if (slug === 'pitch-deck') guidance.push('- Put supplied market, competition, traction, or financial comparison facts into at least one real Markdown table with a header, separator, and data rows.')
   if (slug === 'exec-presentation') guidance.push(
     '- Put the strategic options comparison into a real Markdown table with columns Option | Decision latency | Evidence provenance | Accountability | Cost.',

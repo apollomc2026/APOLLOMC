@@ -105,9 +105,18 @@ describe('optional section evidence boundaries', () => {
 
   it('reserves a complete structured-output budget for long professional publications', () => {
     expect(outputTokenBudget(args('business-plan'))).toBe(16384)
-    expect(outputTokenBudget(args('business-plan'), true)).toBe(14336)
+    expect(outputTokenBudget(args('business-plan'), true)).toBe(16384)
     expect(outputTokenBudget(args('legal-memo'))).toBeGreaterThan(8192)
     expect(outputTokenBudget(args('quote'))).toBe(8192)
+  })
+
+  it('gives contract-intelligence recovery concrete table placement and row targets', () => {
+    const guidance = workmanshipRepairGuidance('contract-intelligence-review', ['Contract review lacks structured controls.']).join('\n')
+    expect(guidance).toContain('status_dashboard')
+    expect(guidance).toContain('obligation_matrix')
+    expect(guidance).toContain('action_calendar')
+    expect(guidance).toContain('twenty substantive data rows')
+    expect(guidance).toContain('Source clause/page')
   })
 
   it('rejects strategic figures and legal authorities that are not in the approved source corpus', () => {
