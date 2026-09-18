@@ -4,6 +4,7 @@ import { findDeliverable } from '@/lib/apollo/packages-loader'
 import { googleDriveConfigured } from './google-drive'
 import { createJob, setWorkflowRun, updateJob } from './ledger'
 import type { DocumentWorkOrder } from './contracts'
+import { requireApprovedSpecificationAuthority } from './specification-authority'
 
 export class WorkOrderAcceptanceError extends Error {
   constructor(message: string, public status: number) { super(message) }
@@ -14,6 +15,11 @@ export async function acceptWorkOrder(order: DocumentWorkOrder) {
   if (order.formats.some(format => format !== 'pdf')) throw new WorkOrderAcceptanceError('this executor version supports PDF only', 422)
   if (!findDeliverable(order.deliverable_type)) throw new WorkOrderAcceptanceError('unknown deliverable_type', 422)
   if (!googleDriveConfigured()) throw new WorkOrderAcceptanceError('Google Drive artifact custody is unavailable', 503)
+  try {
+    await requireApprovedSpecificationAuthority(order)
+  } catch (error) {
+    throw new WorkOrderAcceptanceError(error instanceof Error ? error.message : 'approved specification validation failed', 422)
+  }
   const created = await createJob(order)
   const existing = created.job as Record<string, unknown>
   if (created.duplicate) return jobAccepted(existing)

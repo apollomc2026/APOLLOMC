@@ -6,7 +6,7 @@ const order = {
   protocol_version: '1.0',
   work_order_id: '00000000-0000-4000-8000-000000000301',
   idempotency_key: 'apollo-pilot:task:document:business-plan:v1',
-  project_id: 'apollo-pilot',
+  project_id: '00000000-0000-4000-8000-000000000304',
   conversation_id: '00000000-0000-4000-8000-000000000302',
   task_id: '00000000-0000-4000-8000-000000000303',
   requested_by: 'jon', capability: 'business-plan', deliverable_type: 'business-plan',
@@ -14,6 +14,7 @@ const order = {
   brand_id: 'on-spot-solutions', style_id: 'consulting-executive', sensitivity: 'confidential', priority: 'high',
   drive_destination: { folder_id: 'draft-folder', lifecycle: 'draft' },
   quality_gates: { schema_validation: true, source_grounding: true, independent_review: true, deterministic_financial_verification: false, human_approval_before_publish: true },
+  trace: { specification_id:'00000000-0000-4000-8000-000000000304', specification_hash:'a'.repeat(64), specification_schema_version:'3.0', playbook_id:'business-plan', playbook_version:'1.0', model_versions:[], required_checks:[], accepted_unresolved_items:[] },
   created_at: '2026-07-20T12:00:00.000Z',
 }
 
@@ -38,6 +39,12 @@ describe('APOLLO executor boundary', () => {
 
   it('requires an explicit customer-owned Drive destination', () => {
     expect(() => parseWorkOrder({ ...order, drive_destination: { folder_id: ' ', lifecycle: 'draft' } })).toThrow(/drive_destination/)
+  })
+
+  it('rejects work orders that are not bound to an approved specification identity', () => {
+    const { trace: _trace, ...withoutTrace } = order
+    expect(() => parseWorkOrder(withoutTrace)).toThrow(/trace is required/)
+    expect(() => parseWorkOrder({ ...order, project_id:'00000000-0000-4000-8000-000000000399' })).toThrow(/project_id/)
   })
 
   it('rejects non-HTTPS source URLs', () => {

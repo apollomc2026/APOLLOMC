@@ -8,6 +8,7 @@ import type { DocumentWorkOrder } from '@/lib/executor/contracts'
 import { jobMatchesCurrentSpecification, type CurrentSpecificationIdentity } from '@/lib/mission-control/telemetry-authority'
 import { flightDisplayIdentity, missionDisplayIdentity } from '@/lib/mission-control/display-identity'
 import type { DeliverableSpecification } from '@/lib/mission-control/contracts'
+import { isApolloControlledOrder } from '@/lib/executor/specification-authority'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,7 +34,10 @@ export async function GET() {
   const jobs = await service.from('apollo_document_jobs').select('id,conversation_id,deliverable_type,state,progress_percent,status_message,artifacts,work_order,created_at').eq('requested_by', auth.user.userId).order('created_at', { ascending:false })
   if (jobs.error) return NextResponse.json({ error:jobs.error.message }, { status:500 })
   const jobsByMission = new Map<string, typeof jobs.data>()
-  for (const job of jobs.data ?? []) jobsByMission.set(job.conversation_id, [...(jobsByMission.get(job.conversation_id) ?? []), job])
+  for (const job of jobs.data ?? []) {
+    if (!isApolloControlledOrder(job.work_order)) continue
+    jobsByMission.set(job.conversation_id, [...(jobsByMission.get(job.conversation_id) ?? []), job])
+  }
   const missions = (conversations.data ?? []).map(mission => {
     const missionJobs = jobsByMission.get(mission.id) ?? []
     const identity=specificationCatalog.current.get(mission.id)

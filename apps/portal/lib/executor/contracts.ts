@@ -156,13 +156,14 @@ export function parseWorkOrder(value: unknown): DocumentWorkOrder {
   if (!isRecord(value.quality_gates) || value.quality_gates.schema_validation !== true || value.quality_gates.source_grounding !== true || value.quality_gates.human_approval_before_publish !== true) {
     throw new Error('mandatory quality gates cannot be disabled')
   }
-  if (value.trace !== undefined) {
-    if (!isRecord(value.trace)) throw new Error('trace must be an object')
-    for (const key of ['specification_id', 'specification_hash', 'specification_schema_version', 'playbook_id', 'playbook_version']) {
-      if (typeof value.trace[key] !== 'string' || !(value.trace[key] as string).trim()) throw new Error(`trace ${key} is required`)
-    }
-    for (const key of ['model_versions', 'required_checks', 'accepted_unresolved_items']) if (!Array.isArray(value.trace[key])) throw new Error(`trace ${key} must be an array`)
+  if (!isRecord(value.trace)) throw new Error('trace is required and must be an object')
+  for (const key of ['specification_id', 'specification_hash', 'specification_schema_version', 'playbook_id', 'playbook_version']) {
+    if (typeof value.trace[key] !== 'string' || !(value.trace[key] as string).trim()) throw new Error(`trace ${key} is required`)
   }
+  for (const key of ['model_versions', 'required_checks', 'accepted_unresolved_items']) if (!Array.isArray(value.trace[key])) throw new Error(`trace ${key} must be an array`)
+  if (!UUID.test(value.trace.specification_id as string)) throw new Error('trace specification_id must be a UUID')
+  if (!SHA256.test(value.trace.specification_hash as string)) throw new Error('trace specification_hash must be a SHA-256 digest')
+  if (value.project_id !== value.trace.specification_id) throw new Error('project_id must equal the approved specification_id')
   if (!Number.isFinite(Date.parse(value.created_at as string))) throw new Error('created_at must be an ISO timestamp')
   return value as unknown as DocumentWorkOrder
 }
