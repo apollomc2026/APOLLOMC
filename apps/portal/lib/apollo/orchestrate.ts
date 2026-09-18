@@ -416,6 +416,12 @@ export function buildUserPromptText(args: OrchestrateArgs): string {
       ...(args.slug === 'contract-intelligence-review' ? ['- Every material finding and recommended contract action must identify its source document and clause, section, or page. Clearly distinguish active, expired, upcoming, conditional, conflicting, and unknown status.', '- Treat this as operational contract intelligence and issue spotting, not legal advice. Identify questions that require licensed counsel or another qualified professional.'] : []),
       '',
     ] : []),
+    ...(args.slug === 'contract-intelligence-review' ? [
+      '# Contract intelligence publication floor',
+      ...workmanshipRepairGuidance(args.slug, []),
+      'Meet this structure in the first tool response. These are publication requirements, not optional repair suggestions.',
+      '',
+    ] : []),
     '# Uploaded reference materials',
     args.uploads.length === 0
       ? 'No files uploaded.'

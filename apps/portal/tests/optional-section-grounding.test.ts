@@ -119,6 +119,16 @@ describe('optional section evidence boundaries', () => {
     expect(guidance).toContain('Source clause/page')
   })
 
+  it('puts the contract workmanship floor in the first-pass prompt',()=>{
+    const prompt=buildUserPromptText(args('contract-intelligence-review'))
+    expect(prompt).toContain('# Contract intelligence publication floor')
+    expect(prompt).toContain('status_dashboard')
+    expect(prompt).toContain('obligation_matrix')
+    expect(prompt).toContain('action_calendar')
+    expect(prompt).toContain('twenty substantive data rows')
+    expect(prompt).toContain('first tool response')
+  })
+
   it('retains the strongest version of each section across workmanship attempts', () => {
     const input=args('contract-intelligence-review')
     const keys=activeSections(input).map(section=>section.key)
