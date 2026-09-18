@@ -75,6 +75,11 @@ export async function runProductionPilotCanary(slug:PilotCanarySlug){
   const template:Template={slug,label:summary.label,description:summary.description,category:summary.industry_slug,supports_images:true,has_signature_block:slug==='proposal',has_toc:shouldRenderToc(slug),layout:chooseLayoutForSlug(slug),fields:[],sections:module.sections.map(section=>({id:section.key,title:section.label})),generation_notes:''}
   const pdf=await buildPdf({template,brand,inputs:fields,contentHtml:generated.contentHtml,documentId:`CANARY-${slug.toUpperCase()}`,preparedDate:'September 17, 2026',palette})
   const integrity=await verifyRenderedPdf(pdf)
-  const verification=verifyDocumentContent(compiled.order,integrity.text,{phase:'rendered'})
+  let verification:ReturnType<typeof verifyDocumentContent>
+  try{verification=verifyDocumentContent(compiled.order,integrity.text,{phase:'rendered'})}
+  catch(error){
+    const sample=integrity.text.replace(/\s+/g,' ').trim().slice(0,1200)
+    throw new Error(`${error instanceof Error?error.message:String(error)}; controlled canary PDF sample: ${sample}`)
+  }
   return {slug,passed:true,source_sha256:createHash('sha256').update(bytes).digest('hex'),specification_hash:specificationHash,extracted_facts:extracted.facts.length,trace:extracted.trace,open_questions:specification.content.open_questions.length,quality:generated.quality,verification,pdf:{sha256:createHash('sha256').update(pdf).digest('hex'),...integrity.integrity}}
 }
