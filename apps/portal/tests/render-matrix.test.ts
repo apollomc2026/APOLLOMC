@@ -43,7 +43,7 @@ describe('complete catalog rendering matrix', () => {
     const html = buildFullHtml({
       template,
       brand:clientBrand,
-      inputs:{ entity_name:'Northstar Fabrication', project_name:'Northstar Pilot', prepared_by:'Operations Team',work_performed:'07:00 | Verified permit and lockout\n16:15 | Secured equipment',equipment_make_model:'Square D Power-Zone 4',equipment_asset_id:'EER-001',issue_reported:'Intermittent alarm',warranty_status:'not applicable',follow_up_required:'none' },
+      inputs:{ entity_name:'Northstar Fabrication', project_name:'Northstar Pilot',job_number:'NS-1047',project_period:'September 10–17, 2026',report_date:'2026-09-17',inspector:'Alex Morgan',completion_statement:'Installation is complete.',reference_documents:'Drawing A-101 Rev 3',acceptance_criteria:'Fastener torque | 35 in-lb | Pass',test_results:'QC-01 | Main room | 35 in-lb | Pass', prepared_by:'Operations Team',work_performed:'07:00 | Verified permit and lockout\n16:15 | Secured equipment',equipment_make_model:'Square D Power-Zone 4',equipment_asset_id:'EER-001',issue_reported:'Intermittent alarm',warranty_status:'not applicable',follow_up_required:'none' },
       contentHtml,
       documentId:`NOR-${deliverable.slug.toUpperCase()}`,
       preparedDate:'September 14, 2026',
@@ -74,6 +74,11 @@ describe('complete catalog rendering matrix', () => {
       expect(html).toContain('16:15</td><td>Secured equipment')
       expect(html).toContain('Square D Power-Zone 4')
       expect(html).toContain('counter-reset:fsr-section')
+    }
+    if(deliverable.slug==='final-qc-report'){
+      expect(html).toContain('Approved quality control identity')
+      expect(html).toContain('Fastener torque</td><td>35 in-lb</td><td>Pass')
+      expect(html).toContain('QC-01</td><td>Main room</td><td>35 in-lb</td><td>Pass')
     }
     if (['project-completion-notice','tool-box-talk'].includes(deliverable.slug)) {
       expect(html).toContain('class="cf-body compact-closeout"')

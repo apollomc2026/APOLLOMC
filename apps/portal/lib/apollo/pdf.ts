@@ -727,6 +727,25 @@ function renderFsrControlPanel(args: BuildPdfArgs): string {
   </section>`
 }
 
+function renderFinalQcControlPanel(args:BuildPdfArgs):string{
+  if(args.template.slug!=='final-qc-report')return''
+  const value=(key:string,fallback='Not recorded')=>escapeHtml(readString(args.inputs,key)||fallback)
+  const rows=(key:string)=>readString(args.inputs,key).split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map(line=>{
+    const cells=line.split('|').map(cell=>`<td>${escapeHtml(cell.trim())}</td>`).join('')
+    return `<tr>${cells}</tr>`
+  }).join('')
+  return `<section class="qc-control-panel">
+    <table aria-label="Approved quality control identity"><tbody>
+      <tr><th>Project</th><td>${value('project_name')}</td><th>Job number</th><td>${value('job_number')}</td></tr>
+      <tr><th>Project period</th><td>${value('project_period')}</td><th>Report date</th><td>${value('report_date')}</td></tr>
+      <tr><th>Inspector</th><td>${value('inspector')}</td><th>Completion statement</th><td>${value('completion_statement')}</td></tr>
+    </tbody></table>
+    ${rows('reference_documents')?`<table aria-label="Approved reference documents"><tbody>${rows('reference_documents')}</tbody></table>`:''}
+    ${rows('acceptance_criteria')?`<table aria-label="Approved acceptance criteria"><tbody>${rows('acceptance_criteria')}</tbody></table>`:''}
+    ${rows('test_results')?`<table aria-label="Approved test results"><tbody>${rows('test_results')}</tbody></table>`:''}
+  </section>`
+}
+
 // contractor_form genre primitive (WS2). Dense, tabular field-documentation
 // layout: a compact masthead (typeset wordmark + title + meta), then the
 // section body rendered tight — ALL-CAPS ruled headings, markdown tables and
@@ -771,6 +790,7 @@ function buildContractorFormHtml(args: BuildPdfArgs): string {
     return `<div><b>${escapeHtml(p.label)}</b><strong>${escapeHtml(name)}</strong><i></i><span>Signature</span><i class="date-line"></i><span>Date</span></div>`
   }).join('')}</div>` : ''
   const fsrControlPanel = renderFsrControlPanel(args)
+  const finalQcControlPanel=renderFinalQcControlPanel(args)
 
   return `<!doctype html>
 <html lang="en">${sharedHead(palette, preset, docTitle)}
@@ -851,6 +871,7 @@ body { font-family: var(--font-body); font-size: 9.5pt; line-height: 1.42; color
   </div>
   <div class="cf-body${isCompactCloseout ? ' compact-closeout' : ''}${args.template.slug === 'fsr' ? ' fsr-technical' : ''}">
 ${fsrControlPanel}
+${finalQcControlPanel}
 ${body}
 ${signoffHtml}
   </div>
