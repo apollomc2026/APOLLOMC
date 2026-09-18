@@ -1,4 +1,4 @@
-import { assumptionLedger, type DeliverableSpecification, type ReadinessState } from './contracts'
+import { assumptionLedger, reconcileEquivalentMissionConflicts, specificationProvenance, type DeliverableSpecification, type ReadinessState } from './contracts'
 import { executionGaps } from './work-order'
 
 export type MissionGap={key:string;label:string;reason:string}
@@ -14,6 +14,8 @@ export function questionForMissionGap(gap:MissionGap,specification:DeliverableSp
 }
 
 export function calibrateMissionSpecification(specification:DeliverableSpecification,priorReadiness=0){
+  const facts=reconcileEquivalentMissionConflicts(specification.content.facts)
+  if(facts.some((fact,index)=>fact!==specification.content.facts[index]))specification={...specification,content:{...specification.content,facts},provenance:specificationProvenance(facts,specification.provenance.created_at,specification.provenance.model_versions)}
   const gaps=executionGaps(specification) as MissionGap[]
   const openQuestions=gaps.map(gap=>questionForMissionGap(gap,specification))
   const readiness=gaps.length?Math.min(70,Math.max(50,82-gaps.length*8)):Math.max(82,priorReadiness)

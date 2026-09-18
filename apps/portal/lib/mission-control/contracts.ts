@@ -92,6 +92,27 @@ export function controllingMissionFactValue(fact:MissionFact):string|null {
   return unique.length===1?unique[0]:null
 }
 
+export function reconcileEquivalentMissionConflicts(facts:MissionFact[],now=new Date()):MissionFact[] {
+  return facts.map(fact=>{
+    if(fact.verification_state!=='conflict')return fact
+    const value=controllingMissionFactValue(fact)
+    if(value===null)return fact
+    const active=(fact.conflicts??[]).filter(candidate=>candidate.source_reference)
+    const sourceReferences=[...new Set(active.map(candidate=>candidate.source_reference).filter((reference):reference is string=>Boolean(reference)))]
+    return {
+      ...fact,
+      value,
+      normalized_value:value.trim()||null,
+      verification_state:fact.source==='evidence'||fact.source==='research'?'verified':'stated',
+      source_reference:fact.source_reference??sourceReferences[0]??null,
+      source_references:sourceReferences,
+      conflicts:undefined,
+      supersession:undefined,
+      updated_at:now.toISOString(),
+    }
+  })
+}
+
 export function mergeMissionFacts(priorFacts: MissionFact[], incomingFacts: MissionFact[], now = new Date()): MissionFact[] {
   const merged = new Map(priorFacts.map(fact => [fact.key, createMissionFact(fact, now)]))
   for (const incomingValue of incomingFacts) {

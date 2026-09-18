@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createMissionFact, mergeMissionFacts } from '../lib/mission-control/contracts'
+import { createMissionFact, mergeMissionFacts, reconcileEquivalentMissionConflicts } from '../lib/mission-control/contracts'
 
 describe('mission fact reconciliation', () => {
   const now = new Date('2026-09-07T14:00:00.000Z')
@@ -34,6 +34,19 @@ describe('mission fact reconciliation', () => {
     ], now)
     expect(facts.find(fact=>fact.key==='quote_date')).toEqual(expect.objectContaining({verification_state:'verified'}))
     expect(facts.find(fact=>fact.key==='customer_name')).toEqual(expect.objectContaining({verification_state:'verified'}))
+  })
+
+  it('heals legacy equivalent conflicts while preserving their source custody', () => {
+    const [conflict]=mergeMissionFacts([], [
+      createMissionFact({key:'quote_date',label:'Quote date',value:'2026-09-16',source:'evidence',source_reference:'source-a',confidence:1},now),
+      createMissionFact({key:'quote_date',label:'Quote date',value:'September 17, 2026',source:'evidence',source_reference:'source-b',confidence:1},now),
+    ],now)
+    const legacy={...conflict,conflicts:[
+      {value:'2026-09-16',normalized_value:'2026-09-16',source:'evidence' as const,source_reference:'source-a'},
+      {value:'September 16, 2026',normalized_value:'September 16, 2026',source:'evidence' as const,source_reference:'source-b'},
+    ]}
+    const [healed]=reconcileEquivalentMissionConflicts([legacy],now)
+    expect(healed).toEqual(expect.objectContaining({verification_state:'verified',source_references:['source-a','source-b'],conflicts:undefined}))
   })
 
   it('lets verified evidence replace an earlier model inference', () => {
