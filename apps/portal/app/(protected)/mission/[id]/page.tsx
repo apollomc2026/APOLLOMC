@@ -1,4 +1,4 @@
-import MissionStatus from '@/components/job-board/MissionStatus'
+import {redirect} from 'next/navigation'
 
 export default async function MissionPage({
   params,
@@ -6,15 +6,5 @@ export default async function MissionPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-
-  return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">Mission Control</h1>
-        <p className="text-gray-400 mt-1">Track your build progress in real time.</p>
-      </div>
-
-      <MissionStatus missionId={id} />
-    </div>
-  )
+  redirect(`/new-mission?mission=${encodeURIComponent(id)}`)
 }
