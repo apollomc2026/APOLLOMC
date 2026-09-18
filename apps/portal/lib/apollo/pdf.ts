@@ -1223,6 +1223,24 @@ ${slides}
 </html>`
 }
 
+function renderQuoteControlPanel(args:BuildPdfArgs):string{
+  if(args.template.slug!=='quote')return''
+  const value=(key:string,fallback='Not recorded')=>escapeHtml(readString(args.inputs,key)||fallback)
+  const lineRows=readString(args.inputs,'line_items').split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map(line=>`<tr>${line.split('|').map(cell=>`<td>${escapeHtml(cell.trim())}</td>`).join('')}</tr>`).join('')
+  const pricingBasis=readString(args.inputs,'market_pricing_basis')
+  return `<section class="commercial-control-panel">
+    <h2>Approved commercial schedule</h2>
+    <table aria-label="Approved quote identity"><tbody>
+      <tr><th>Customer</th><td>${value('customer_name')}</td><th>Quote date</th><td>${value('quote_date')}</td></tr>
+      <tr><th>Customer address</th><td>${value('customer_address')}</td><th>Valid until</th><td>${value('valid_until')}</td></tr>
+      <tr><th>Scope summary</th><td colspan="3">${value('scope_summary')}</td></tr>
+      <tr><th>Payment terms</th><td colspan="3">${value('payment_terms')}</td></tr>
+    </tbody></table>
+    ${lineRows?`<table aria-label="Approved quote line items"><tbody>${lineRows}</tbody></table>`:''}
+    ${pricingBasis?`<h3>Market pricing basis</h3><pre>${escapeHtml(pricingBasis)}</pre>`:''}
+  </section>`
+}
+
 function buildContractHtml(args: BuildPdfArgs): string {
   const palette = resolvePaletteForBuild(args)
   const preset = resolvePreset(args.fontPreset?.key)
@@ -1238,6 +1256,7 @@ function buildContractHtml(args: BuildPdfArgs): string {
   const preambleHtml = preamble
     ? `<section class="preamble">${preamble}</section>`
     : ''
+  const quoteControlPanel=renderQuoteControlPanel(args)
   const signaturesHtml = renderSignatureBlock(args)
   const isEditorialReport = new Set(['business-plan','market-analysis','investor-memo','investor-update','audit-readiness','legal-memo','compliance-report','board-report','discovery-summary']).has(args.template.slug)
   const wordmark = brandWordmark(args.brand.slug) || args.brand.label
@@ -1678,6 +1697,7 @@ ${tocHtml}
 
 <!-- BODY -->
 <main class="body-content${isEditorialReport ? ' editorial-report' : ''}">
+${quoteControlPanel}
 ${preambleHtml}
 ${numberedBody}
 </main>
@@ -1754,6 +1774,7 @@ function buildInvoiceHtml(args: BuildPdfArgs): string {
 .invoice-body {
   font-family: var(--font-body); font-size: 9pt; line-height: 1.38;
 }
+
 .invoice-body table { width: 100%; border-collapse: collapse; margin: 8pt 0; }
 .invoice-body thead th {
   font-family: var(--font-body); font-size: 8pt; font-weight: 500;
@@ -2069,6 +2090,7 @@ function buildFinancialStatementHtml(args: BuildPdfArgs): string {
   const scenarioLabel = readString(args.inputs, 'scenario_label')
 
   const body = stripAllH1(stripLeadingTitle(args.contentHtml))
+  const quoteControlPanel=renderQuoteControlPanel(args)
   const isCompactStatement = ['expense-report', 'personal-monthly'].includes(args.template.slug)
   const signaturesHtml = renderSignatureBlock(args)
 
@@ -2254,7 +2276,7 @@ ${watermarkCss()}
   </div>
 </div>
 
-<div class="fin-body${isCompactStatement ? ' compact' : ''}">${body}</div>
+<div class="fin-body${isCompactStatement ? ' compact' : ''}">${quoteControlPanel}${body}</div>
 
 ${signaturesHtml}
 
