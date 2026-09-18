@@ -45,12 +45,17 @@ function evidenceText(slug:PilotCanarySlug,fields:Record<string,unknown>){
 }
 
 export async function runProductionPilotCanary(slug:PilotCanarySlug){
+  const startedAt=Date.now()
+  const timings:Record<string,number>={}
+  let checkpoint=startedAt
+  const mark=(stage:string)=>{const now=Date.now();timings[stage]=now-checkpoint;checkpoint=now}
   const summary=findDeliverable(slug);const module=getModule(slug);const schema=getSchema(slug)
   if(!summary||!module||!schema)throw new Error('pilot catalog resources unavailable')
   const style=getStylesForIndustry(summary.industry_slug)[0];const brand=await loadBrand('on-spot-solutions');const palette=await loadBrandPalette('on-spot-solutions')
   if(!style||!brand)throw new Error('pilot presentation resources unavailable')
   const sourceId=`pilot-canary-${slug}`;const text=evidenceText(slug,FIXTURES[slug]);const bytes=Buffer.from(text)
   const extracted=await extractEvidenceFactsWithTraceFromArtifact({id:sourceId,name:`${slug}-canary.txt`,mime:'text/plain',bytes,text},slug)
+  mark('evidence_extraction')
   if(!extractionTracesCoverSources([sourceId],[extracted.trace]))throw new Error('multipass extraction trace incomplete')
   const turn=interpretMission(`Create a ${summary.label}${slug==='quote'?' using current fair-market research':''}.`)
   turn.specification.artifact.recommended_type=slug;turn.specification.aura.operator_involvement=0;turn.specification.sources=[{id:sourceId,name:`${slug}-canary.txt`,status:'verified'}]
@@ -64,6 +69,7 @@ export async function runProductionPilotCanary(slug:PilotCanarySlug){
     specification.content.facts=[...specification.content.facts.filter(fact=>fact.key!=='market_pricing_basis'),pricingResearchFact(research)]
     specification=applyQuotePricingApproval(specification,PRICING_APPROVAL_DIRECTIVE)
   }
+  mark('specification_and_research')
   const calibrated=calibrateMissionSpecification(specification,82)
   if(calibrated.gaps.length)throw new Error(`calibration left gaps: ${calibrated.gaps.map(gap=>gap.key).join(', ')}`)
   specification={...calibrated.specification,approval:{status:'approved',approved_by:'pilot-canary',approved_at:'2026-09-17T12:05:00Z',unresolved_items_accepted:[]}}
@@ -80,12 +86,14 @@ export async function runProductionPilotCanary(slug:PilotCanarySlug){
     if(normalize(actual)!==normalize(expected))throw new Error(`controlled evidence custody mismatch for ${key}: expected ${JSON.stringify(expected)}, received ${JSON.stringify(actual)}`)
   }
   const generated=await orchestrate({slug,deliverableLabel:summary.label,industryLabel:summary.industry_label,module,schema:schema as Record<string,unknown>,style,brand,fields,uploads})
+  mark('generation_and_repair')
   verifyDocumentContent(compiled.order,generated.contentHtml,{phase:'generated'})
   const template:Template={slug,label:summary.label,description:summary.description,category:summary.industry_slug,supports_images:true,has_signature_block:slug==='proposal',has_toc:shouldRenderToc(slug),layout:chooseLayoutForSlug(slug),fields:[],sections:module.sections.map(section=>({id:section.key,title:section.label})),generation_notes:''}
   const pdf=await buildPdf({template,brand,inputs:fields,contentHtml:generated.contentHtml,documentId:`CANARY-${slug.toUpperCase()}`,preparedDate:'September 17, 2026',palette,sourceNames:[sourceName]})
   const integrity=await verifyRenderedPdf(pdf)
   const pdfSha256=createHash('sha256').update(pdf).digest('hex')
   const pickupIntegrity=await verifyControlledPdfDownload({bytes:pdf,mimeType:'application/pdf',contentSha256:pdfSha256,factualContentSha256:normalizedPdfTextSha256(integrity.text)})
+  mark('initial_render_and_pickup')
   let verification:ReturnType<typeof verifyDocumentContent>
   try{verification=verifyDocumentContent(compiled.order,integrity.text,{phase:'rendered'})}
   catch(error){
@@ -102,5 +110,7 @@ export async function runProductionPilotCanary(slug:PilotCanarySlug){
   const revisionPdfSha256=createHash('sha256').update(revisionPdf).digest('hex')
   const revisionPickupIntegrity=await verifyControlledPdfDownload({bytes:revisionPdf,mimeType:'application/pdf',contentSha256:revisionPdfSha256,factualContentSha256:normalizedPdfTextSha256(revisionIntegrity.text)})
   const revisionVerification=verifyDocumentContent(revisionOrder,revisionIntegrity.text,{phase:'rendered'})
-  return {slug,passed:true,source_sha256:sourceSha256,specification_hash:specificationHash,extracted_facts:extracted.facts.length,trace:extracted.trace,open_questions:specification.content.open_questions.length,quality:generated.quality,verification,failure_probe:{rejected:true},regeneration:{version:revisionOrder.fields.artifact_version,revision_of:revisionOrder.fields.revision_of,work_order_id:revisionOrder.work_order_id,verification:revisionVerification,pickup:{controlled:true,...revisionPickupIntegrity},pdf:{sha256:revisionPdfSha256,...revisionIntegrity.integrity}},pickup:{controlled:true,...pickupIntegrity},pdf:{sha256:pdfSha256,...integrity.integrity}}
+  mark('regeneration_render_and_pickup')
+  timings.total=Date.now()-startedAt
+  return {slug,passed:true,source_sha256:sourceSha256,specification_hash:specificationHash,extracted_facts:extracted.facts.length,trace:extracted.trace,open_questions:specification.content.open_questions.length,quality:generated.quality,warnings:generated.warnings,timings_ms:timings,verification,failure_probe:{rejected:true},regeneration:{version:revisionOrder.fields.artifact_version,revision_of:revisionOrder.fields.revision_of,work_order_id:revisionOrder.work_order_id,verification:revisionVerification,pickup:{controlled:true,...revisionPickupIntegrity},pdf:{sha256:revisionPdfSha256,...revisionIntegrity.integrity}},pickup:{controlled:true,...pickupIntegrity},pdf:{sha256:pdfSha256,...integrity.integrity}}
 }
