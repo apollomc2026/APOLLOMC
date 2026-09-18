@@ -200,6 +200,31 @@ export function sourceBoundaryViolations(args:OrchestrateArgs, html:string):stri
   return violations
 }
 
+/**
+ * Source-bound strategic publications may not carry a remembered or inferred
+ * commercial figure into the artifact. Remove unsupported currency and
+ * percentage tokens immediately after structured generation so subsequent
+ * quality repair cannot preserve or amplify them.
+ */
+export function redactUnsupportedCommercialClaims(args:OrchestrateArgs,output:Record<string,unknown>):Record<string,unknown>{
+  if(!SOURCE_BOUND_STRATEGIC_SLUGS.has(args.slug)||!Array.isArray(output.sections))return output
+  const allowed=normalizedCommercialClaims(sourceCorpus(args))
+  const redact=(content:string)=>content
+    .replace(/\$\s*[\d,.]+\s*(?:billion\b|million\b|thousand\b|[bmk](?![a-z]))?/gi,match=>{
+      const claim=[...normalizedCommercialClaims(match)][0]
+      return claim&&allowed.has(claim)?match:'[unverified amount removed by APOLLO source-control]'
+    })
+    .replace(/\b\d+(?:\.\d+)?\s*%/g,match=>{
+      const claim=[...normalizedCommercialClaims(match)][0]
+      return claim&&allowed.has(claim)?match:'[unverified percentage removed by APOLLO source-control]'
+    })
+  return {...output,sections:output.sections.map(raw=>{
+    if(!raw||typeof raw!=='object')return raw
+    const section=raw as Record<string,unknown>
+    return typeof section.content==='string'?{...section,content:redact(section.content)}:section
+  })}
+}
+
 export function formatRevisionDirective(fields: Record<string, unknown>): string | null {
   const instruction = typeof fields.revision_instruction === 'string' ? fields.revision_instruction.trim() : ''
   if (!instruction) return null
@@ -726,7 +751,7 @@ async function callClaudeWithTool(
       { content: response.content }
     )
   }
-  return applyAuthoritativeQuoteStructure(args,normalizeSectionCollection(args, tool.input))
+  return redactUnsupportedCommercialClaims(args,applyAuthoritativeQuoteStructure(args,normalizeSectionCollection(args, tool.input)))
 }
 
 // Each section's canonical heading is the single <h2> emitted by

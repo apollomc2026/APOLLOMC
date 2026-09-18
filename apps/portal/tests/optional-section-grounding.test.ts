@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activeSections, buildUserPromptText, normalizeSectionCollection, outputTokenBudget, recoverWorkmanshipCollection, sectionContractViolations, sourceBoundaryViolations, workmanshipRepairGuidance, type OrchestrateArgs } from '../lib/apollo/orchestrate'
+import { activeSections, buildUserPromptText, normalizeSectionCollection, outputTokenBudget, recoverWorkmanshipCollection, redactUnsupportedCommercialClaims, sectionContractViolations, sourceBoundaryViolations, workmanshipRepairGuidance, type OrchestrateArgs } from '../lib/apollo/orchestrate'
 import { getModule } from '../lib/apollo/packages-loader'
 
 function args(slug:string, fields:Record<string,unknown> = {}, uploads:OrchestrateArgs['uploads'] = []):OrchestrateArgs {
@@ -131,6 +131,21 @@ describe('optional section evidence boundaries', () => {
     const sections=recovered.sections as Array<{key:string;content:string}>
     expect(sections.find(section=>section.key==='status_dashboard')?.content).toContain('| Notice |')
     expect(sections.find(section=>section.key==='obligation_matrix')?.content).toContain('| Notice |')
+  })
+
+  it('removes unsupported commercial figures before source-bound content can render', () => {
+    const input=args('contract-intelligence-review')
+    input.fields={contract_title:'Synthetic agreement',commercial_rights_and_limits:'Contract price $2,495; deductible $100; benefit covers 50%.'}
+    const output={sections:[{key:'money_value',label:'Money',content:'The verified price is $2,495 and deductible is $100. An unsupported fee is $250 and an unsupported rate is 25%. Coverage remains 50%.'}]}
+    const redacted=redactUnsupportedCommercialClaims(input,output)
+    const content=((redacted.sections as Array<{content:string}>)[0]).content
+    expect(content).toContain('$2,495')
+    expect(content).toContain('$100')
+    expect(content).toContain('50%')
+    expect(content).not.toContain('$250')
+    expect(content).not.toContain('25%')
+    expect(content.match(/source-control/g)).toHaveLength(2)
+    expect(sourceBoundaryViolations(input,`<p>${content}</p>`)).toEqual([])
   })
 
   it('rejects strategic figures and legal authorities that are not in the approved source corpus', () => {
