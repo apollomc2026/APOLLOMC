@@ -1243,6 +1243,27 @@ function renderQuoteControlPanel(args:BuildPdfArgs):string{
   </section>`
 }
 
+function renderProposalControlPanel(args:BuildPdfArgs):string{
+  if(args.template.slug!=='proposal')return''
+  const value=(key:string,fallback='Not recorded')=>escapeHtml(readString(args.inputs,key)||fallback)
+  const pricingRows=readString(args.inputs,'pricing_detail').split(/\r?\n|\s*;\s*/).map(line=>line.trim()).filter(Boolean).map(line=>`<tr>${line.split(/[|:]/).map(cell=>`<td>${escapeHtml(cell.trim())}</td>`).join('')}</tr>`).join('')
+  return `<section class="proposal-control-panel">
+    <h2>Approved mission brief</h2>
+    <table aria-label="Approved proposal controls"><tbody>
+      <tr><th>Prospect</th><td>${value('prospect_organization')}</td><th>Proposal date</th><td>${value('proposal_date')}</td></tr>
+      <tr><th>Problem statement</th><td colspan="3">${value('problem_statement')}</td></tr>
+      <tr><th>Our understanding</th><td colspan="3">${value('our_understanding')}</td></tr>
+      <tr><th>Win themes</th><td colspan="3">${value('win_themes')}</td></tr>
+      <tr><th>Methodology</th><td colspan="3">${value('proposed_methodology')}</td></tr>
+      <tr><th>Risks and mitigations</th><td colspan="3">${value('risks_and_mitigations')}</td></tr>
+      <tr><th>Assumptions</th><td colspan="3">${value('assumptions')}</td></tr>
+      <tr><th>Pricing model</th><td>${value('pricing_model')}</td><th>Validity</th><td>${value('validity_period_days')} days</td></tr>
+      <tr><th>Next action</th><td colspan="3">${value('next_steps_call_to_action')}</td></tr>
+    </tbody></table>
+    ${pricingRows?`<table aria-label="Approved proposal pricing"><tbody>${pricingRows}</tbody></table>`:''}
+  </section>`
+}
+
 function buildContractHtml(args: BuildPdfArgs): string {
   const palette = resolvePaletteForBuild(args)
   const preset = resolvePreset(args.fontPreset?.key)
@@ -1259,6 +1280,7 @@ function buildContractHtml(args: BuildPdfArgs): string {
     ? `<section class="preamble">${preamble}</section>`
     : ''
   const quoteControlPanel=renderQuoteControlPanel(args)
+  const proposalControlPanel=renderProposalControlPanel(args)
   const signaturesHtml = renderSignatureBlock(args)
   const isEditorialReport = new Set(['business-plan','market-analysis','investor-memo','investor-update','audit-readiness','legal-memo','compliance-report','board-report','discovery-summary']).has(args.template.slug)
   const wordmark = brandWordmark(args.brand.slug) || args.brand.label
@@ -1700,6 +1722,7 @@ ${tocHtml}
 <!-- BODY -->
 <main class="body-content${isEditorialReport ? ' editorial-report' : ''}">
 ${quoteControlPanel}
+${proposalControlPanel}
 ${preambleHtml}
 ${numberedBody}
 </main>
