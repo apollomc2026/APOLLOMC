@@ -207,6 +207,7 @@ button, [role="button"] { -webkit-tap-highlight-color: transparent; user-select:
 .theme-toggle { display:flex; align-items:center; gap:10px; width:100%; padding:10px 12px; border:1px solid var(--glass-border); border-radius:var(--r-md); color:var(--text-secondary); background:var(--glass-sm); font:500 12px var(--font-body); cursor:pointer; transition:.2s; }
 .theme-toggle:hover { color:var(--text-primary); border-color:var(--cyan-border); background:var(--cyan-glass); }
 .theme-toggle svg { width:16px; height:16px; color:var(--cyan); }
+.sidebar-lock{display:flex;align-items:center;gap:10px;width:100%;margin-top:9px;padding:10px 12px;border:1px solid rgba(255,122,24,.22);border-radius:var(--r-md);background:rgba(255,122,24,.055);color:var(--text-muted);font:600 11px var(--font-body);cursor:pointer;transition:.2s}.sidebar-lock:hover{border-color:var(--orange-border);background:rgba(255,122,24,.11);color:var(--orange)}.sidebar-lock:disabled{opacity:.55;cursor:wait}.sidebar-lock svg{width:15px;height:15px;color:var(--orange)}
 .global-theme-access{position:fixed;top:18px;right:18px;z-index:900;width:132px}
 
 /* Flagship public experience — cinematic restraint, APOLLO identity */

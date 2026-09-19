@@ -4,7 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Archive, CreditCard, FileText, Gauge, LayoutDashboard, Palette, Plus, Settings } from 'lucide-react'
+import { Archive, CreditCard, FileText, Gauge, LayoutDashboard, LockKeyhole, Palette, Plus, Settings } from 'lucide-react'
 import { ThemeToggle } from '@/components/ThemeToggle'
 
 const NAV_MISSION = [
@@ -33,6 +33,7 @@ interface SidebarProps {
 export function Sidebar({ userName = 'Commander', tier = 'MERCURY' }: SidebarProps) {
   const pathname = usePathname()
   const [telemetryNotice, setTelemetryNotice] = useState<TelemetryNotice>({ failed:0, ready:0 })
+  const [locking,setLocking]=useState(false)
   const initials = userName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 
   useEffect(() => {
@@ -66,6 +67,13 @@ export function Sidebar({ userName = 'Commander', tier = 'MERCURY' }: SidebarPro
     document.addEventListener('visibilitychange',refreshNotices)
     return () => { active = false; window.clearInterval(timer); document.removeEventListener('visibilitychange',refreshNotices) }
   }, [pathname])
+
+  async function lockMissionControl(){
+    if(locking)return
+    setLocking(true)
+    await fetch('/api/apollo/auth/signout',{method:'POST',cache:'no-store'}).catch(()=>null)
+    window.location.assign('/login?locked=1')
+  }
 
   return (
     <aside className="sidebar">
@@ -121,6 +129,10 @@ export function Sidebar({ userName = 'Commander', tier = 'MERCURY' }: SidebarPro
       <div className="sidebar-divider" />
 
       <ThemeToggle />
+      <button type="button" className="sidebar-lock" onClick={()=>void lockMissionControl()} disabled={locking}>
+        <LockKeyhole aria-hidden="true" />
+        <span>{locking?'Securing…':'Lock Mission Control'}</span>
+      </button>
 
       {/* User Card */}
       <div className="sidebar-user">

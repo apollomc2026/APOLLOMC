@@ -64,6 +64,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'This identity is not authorized for APOLLO.' }, { status: 403, headers: noStore })
   }
 
+  const configuredHours=Number(process.env.APOLLO_SESSION_MAX_HOURS||8)
+  const maxSessionHours=Number.isFinite(configuredHours)&&configuredHours>0?configuredHours:8
+  response.cookies.set('apollo-commander-policy','2',{
+    path:'/',
+    maxAge:maxSessionHours*60*60,
+    sameSite:'lax',
+    secure:process.env.NODE_ENV==='production',
+    httpOnly:true,
+  })
   console.info('[auth/verify-code] Session established', { email: data.user.email })
   return response
 }
